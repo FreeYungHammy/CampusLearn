@@ -1,0 +1,36 @@
+body {
+  font-family: "Roboto", sans-serif;
+  scroll-behavior: smooth;
+}
+.nav-link {
+  position: relative;
+}
+.nav-link::after {
+  content: "";
+  position: absolute;
+  width: 0;
+  height: 2px;
+  bottom: -5px;
+  left: 0;
+  background-color: #0070c0;
+  transition: width 0.3s;
+}
+.nav-link:hover::after {
+  width: 100%;
+}
+.forum-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+}
+.chat-bubble {
+  border-radius: 20px 20px 20px 0;
+}
+.chat-bubble.own {
+  border-radius: 20px 20px 0 20px;
+}
+.topic-card {
+  transition: all 0.3s ease;
+}
+.topic-card:hover {
+  transform: scale(1.02);
+}

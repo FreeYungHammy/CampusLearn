@@ -1,0 +1,19 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "jest.config.cjs",
+  "type": "module",
+  "scripts": {
+    "dev": "cross-env NODE_ENV=development nodemon src/server.js",
+    "start": "node src/server.js",
+    "test": "cross-env NODE_ENV=test jest",
+    "test:watch": "cross-env NODE_ENV=test jest --watch",
+    "lint": "eslint . --ext .js --max-warnings=0",
+    "fmt": "prettier --write .",
+    "seed": "node src/infra/db/seed.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

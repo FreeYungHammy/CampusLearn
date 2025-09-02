@@ -1,0 +1,151 @@
+CampusLearn/
+├─ .github/
+│  └─ workflows/
+│     ├─ ci.yml                      # lint + test on push/PR (frontend & backend)
+│     └─ deploy.yml                  # placeholder for Azure/Render CI/CD
+├─ docs/                              # SEN381 deliverables
+│  ├─ SRS/                            # Requirements spec
+│  ├─ Architecture/
+│  │  ├─ C4/                          # C4 diagrams (Context, Container, Component)
+│  │  └─ ADRs/                        # Architecture Decision Records
+│  ├─ TestPlan/                       # V-Model, test plan, coverage
+│  ├─ API/                            # OpenAPI + Postman mapping
+│  ├─ DataDesign/                     # ERD, schema justifications, indexing
+│  └─ SprintArtifacts/                # backlog snapshots, burndown
+├─ docker/
+│  ├─ mongo-init.js                   # optional, seed DB
+│  └─ redis.conf                      # optional baseline config
+├─ postman/
+│  ├─ CampusLearn.postman_collection.json
+│  └─ CampusLearn.postman_environment.json
+├─ docker-compose.yml                 # MongoDB + Redis for localhost dev
+├─ README.md                          # project overview, run steps
+├─ LICENSE
+├─ .gitignore
+├─ package.json                       # root tooling (lint/format/hooks)
+├─ tsconfig.json                      # root TS config
+│
+├─ frontend/                          # React + Vite + Tailwind (TSX)
+│  ├─ index.html
+│  ├─ vite.config.ts
+│  ├─ tailwind.config.js
+│  ├─ postcss.config.js
+│  └─ src/
+│     ├─ main.tsx
+│     ├─ App.tsx
+│     ├─ routes/
+│     │  ├─ index.tsx                 # route definitions
+│     │  ├─ ProtectedRoute.tsx
+│     │  └─ NotFound.tsx
+│     ├─ pages/
+│     │  ├─ Home.tsx
+│     │  ├─ Auth/
+│     │  │  ├─ Login.tsx
+│     │  │  └─ Register.tsx
+│     │  ├─ Tutors/
+│     │  │  ├─ TutorList.tsx
+│     │  │  └─ TutorProfile.tsx
+│     │  ├─ Topics/
+│     │  ├─ Forum/
+│     │  │  ├─ Threads.tsx
+│     │  │  └─ ThreadDetail.tsx
+│     │  ├─ Chat/
+│     │  │  └─ ChatRoom.tsx
+│     │  └─ Profile/
+│     ├─ components/
+│     │  ├─ ui/                       # reusable Tailwind components
+│     │  ├─ forms/
+│     │  └─ charts/
+│     ├─ hooks/
+│     │  ├─ useAuth.ts
+│     │  └─ useSocket.ts
+│     ├─ store/                       # Zustand stores
+│     │  └─ authStore.ts
+│     ├─ services/                    # API clients
+│     │  ├─ http.ts                   # axios instance (JWT + interceptors)
+│     │  ├─ authApi.ts
+│     │  ├─ tutorApi.ts
+│     │  ├─ forumApi.ts
+│     │  └─ chatApi.ts
+│     ├─ types/                       # shared FE types
+│     │  ├─ User.ts
+│     │  ├─ Forum.ts
+│     │  ├─ Topic.ts
+│     │  └─ Chat.ts
+│     ├─ assets/
+│     ├─ styles/
+│     │  └─ globals.css
+│     ├─ __tests__/                   # Jest + RTL
+│     └─ __mocks__/
+│
+├─ backend/                           # Node + Express (TS)
+│  ├─ .env.example
+│  ├─ tsconfig.json
+│  ├─ src/
+│  │  ├─ server.ts                    # http server + socket bootstrap
+│  │  ├─ app.ts                       # Express app wiring
+│  │  ├─ config/
+│  │  │  ├─ env.ts                    # loads env + validates
+│  │  │  ├─ logger.ts                 # morgan/winston
+│  │  │  └─ socket.ts                 # socket.io init + namespaces
+│  │  ├─ infra/
+│  │  │  ├─ db/
+│  │  │  │  ├─ mongoose.ts            # connect, models init
+│  │  │  │  ├─ seed.ts
+│  │  │  │  └─ redisClient.ts         # Redis connection
+│  │  │  └─ http/
+│  │  │     └─ errorHandler.ts        # centralized error mapping
+│  │  ├─ auth/
+│  │  │  ├─ jwt.ts                    # sign/verify, attach user
+│  │  │  ├─ auth.middleware.ts        # protect routes
+│  │  │  └─ password.ts               # bcrypt helpers
+│  │  ├─ modules/                     # feature-based structure
+│  │  │  ├─ users/
+│  │  │  │  ├─ user.model.ts
+│  │  │  │  ├─ user.controller.ts
+│  │  │  │  ├─ user.service.ts
+│  │  │  │  ├─ user.routes.ts
+│  │  │  │  └─ user.validators.ts
+│  │  │  ├─ tutors/
+│  │  │  ├─ topics/
+│  │  │  ├─ forum/
+│  │  │  ├─ chat/
+│  │  │  │  ├─ chat.events.ts         # socket event handlers
+│  │  │  │  ├─ chat.controller.ts
+│  │  │  │  └─ chat.routes.ts
+│  │  │  └─ ai/                       # Copilot Studio integration
+│  │  │     ├─ copilot.service.ts     # API integration
+│  │  │     └─ ai.routes.ts           # optional proxy routes
+│  │  ├─ middleware/
+│  │  │  ├─ cors.ts
+│  │  │  ├─ notFound.ts
+│  │  │  └─ rateLimit.ts
+│  │  ├─ routes/
+│  │  │  ├─ index.ts                  # mounts all module routes
+│  │  │  └─ docs.routes.ts            # /docs Swagger UI
+│  │  ├─ schemas/
+│  │  │  └─ openapi.yaml              # OpenAPI spec
+│  │  ├─ types/                       # Shared BE types/interfaces
+│  │  │  ├─ User.ts
+│  │  │  ├─ ForumPost.ts
+│  │  │  ├─ ChatMessage.ts
+│  │  │  └─ Topic.ts
+│  │  └─ utils/
+│  │     ├─ asyncHandler.ts
+│  │     └─ httpResponses.ts
+│  ├─ tests/
+│  │  ├─ setup.ts                     # test bootstrap
+│  │  ├─ unit/
+│  │  │  ├─ auth.test.ts
+│  │  │  └─ user.service.test.ts
+│  │  ├─ integration/
+│  │  │  ├─ users.api.test.ts
+│  │  │  └─ forum.api.test.ts
+│  │  └─ socket/
+│  │     └─ chat.events.test.ts
+│
+└─ tools/
+   ├─ scripts/
+   │  ├─ verify-env.ts                # checks env vars at startup
+   │  └─ db-wait.ts                   # wait-for Mongo in CI
+   └─ load-test/                      # k6 or artillery (optional later)

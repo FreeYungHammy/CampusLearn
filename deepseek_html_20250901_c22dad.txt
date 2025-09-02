@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CampusLearn™ - Empowering Student Success</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'bc-blue': '#005A9C',
+                        'bc-blue-light': '#0070C0',
+                        'bc-gray': '#333333',
+                    },
+                    fontFamily: {
+                        'roboto': ['Roboto', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            scroll-behavior: smooth;
+        }
+        .nav-link {
+            position: relative;
+        }
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -5px;
+            left: 0;
+            background-color: #0070C0;
+            transition: width 0.3s;
+        }
+        .nav-link:hover::after {
+            width: 100%;
+        }
+        .forum-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        .chat-bubble {
+            border-radius: 20px 20px 20px 0;
+        }
+        .chat-bubble.own {
+            border-radius: 20px 20px 0 20px;
+        }
+        .topic-card {
+            transition: all 0.3s ease;
+        }
+        .topic-card:hover {
+            transform: scale(1.02);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-roboto">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-md fixed w-full z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 flex items-center">
+                        <span class="text-bc-blue font-bold text-2xl">Campus<span class="text-bc-blue-light">Learn</span><sup class="text-xs">™</sup></span>
+                    </div>
+                    <div class="hidden md:ml-6 md:flex md:space-x-8">
+                        <a href="#" class="nav-link text-bc-blue border-bc-blue inline-flex items-center px-1 pt-1 text-sm font-medium">Home</a>
+                        <a href="#forum" class="nav-link text-gray-500 hover:text-bc-blue inline-flex items-center px-1 pt-1 text-sm font-medium">Forum</a>
+                        <a href="#tutors" class="nav-link text-gray-500 hover:text-bc-blue inline-flex items-center px-1 pt-1 text-sm font-medium">Tutors</a>
+                        <a href="#topics" class="nav-link text-gray-500 hover:text-bc-blue inline-flex items-center px-1 pt-1 text-sm font-medium">Topics</a>
+                        <a href="#chat" class="nav-link text-gray-500 hover:text-bc-blue inline-flex items-center px-1 pt-1 text-sm font-medium">Chat</a>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <button class="relative inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-bc-blue hover:bg-bc-blue-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bc-blue">
+                            <i class="fas fa-comment-dots mr-2"></i> AI Assistant
+                        </button>
+                    </div>
+                    <div class="ml-3 relative">
+                        <div>
+                            <button class="bg-gray-100 p-1 rounded-full text-gray-400 hover:text-bc-blue focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bc-blue">
+                                <img class="h-8 w-8 rounded-full" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="">
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <div class="pt-16 bg-gradient-to-r from-bc-blue to-bc-blue-light">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
+            <div class="md:flex md:items-center md:justify-between">
+                <div class="md:w-1/2">
+                    <h1 class="text-4xl md:text-5xl font-extrabold text-white">
+                        Empowering Student Success Through Peer-Powered Learning
+                    </h1>
+                    <p class="mt-4 text-xl text-blue-100">
+                        Connect with peer tutors, access learning resources, and collaborate with fellow students—all in one platform.
+                    </p>
+                    <div class="mt-8 flex flex-col sm:flex-row sm:space-x-4">
+                        <a href="#" class="inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-bc-blue bg-white hover:bg-blue-50">
+                            Find a Tutor
+                        </a>
+                        <a href="#" class="mt-3 sm:mt-0 inline-flex items-center justify-center px-5 py-3 border border-white text-base font-medium rounded-md text-white bg-transparent hover:bg-white hover:text-bc-blue">
+                            Browse Topics
+                        </a>
+                    </div>
+                </div>
+                <div class="mt-10 md:mt-0 md:w-1/2">
+                    <div class="bg-white rounded-lg shadow-xl p-6">
+                        <h3 class="text-lg font-medium text-bc-blue mb-4">Student Login</h3>
+                        <form class="space-y-4">
+                            <div>
+                                <label for="email" class="block text-sm font-medium text-gray-700">Belgium Campus Email</label>
+                                <div class="mt-1">
+                                    <input id="email" name="email" type="email" autocomplete="email" required class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-bc-blue focus:border-bc-blue sm:text-sm" placeholder="you@belgiumcampus.ac.za">
+                                </div>
+                            </div>
+                            <div>
+                                <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                                <div class="mt-1">
+                                    <input id="password" name="password" type="password" autocomplete="current-password" required class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-bc-blue focus:border-bc-blue sm:text-sm">
+                                </div>
+                            </div>
+                            <div>
+                                <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-bc-blue hover:bg-bc-blue-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bc-blue">
+                                    Sign in
+                                </button>
+                            </div>
+                            <div class="text-sm text-center">
+                                <a href="#" class="font-medium text-bc-blue hover:text-bc-blue-light">
+                                    Forgot your password?
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <div class="py-12 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <h2 class="text-base font-semibold text-bc-blue tracking-wide uppercase">Features</h2>
+                <p class="mt-2 text-3xl font-extrabold text-gray-900 sm:text-4xl">
+                    Everything you need for academic success
+                </p>
+            </div>
+
+            <div class="mt-12">
+                <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+                    <!-- Feature 1 -->
+                    <div class="pt-6">
+                        <div class="flow-root bg-gray-50 rounded-lg px-6 pb-8">
+                            <div class="-mt-6">
+                                <div>
+                                    <span class="inline-flex items-center justify-center p-3 bg-bc-blue rounded-md shadow-lg">
+                                        <i class="fas fa-user-graduate text-white text-2xl"></i>
+                                    </span>
+                                </div>
+                                <h3 class="mt-8 text-lg font-medium text-gray-900 tracking-tight">Peer Tutor Matching</h3>
+                                <p class="mt-5 text-base text-gray-500">
+                                    Get matched with qualified peer tutors based on your specific academic needs and course requirements.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Feature 2 -->
+                    <div class="pt-6">
+                        <div class="flow-root bg-gray-50 rounded-lg px-6 pb-8">
+                            <div class="-mt-6">
+                                <div>
+                                    <span class="inline-flex items-center justify-center p-3 bg-bc-blue rounded-md shadow-lg">
+                                        <i class="fas fa-comments text-white text-2xl"></i>
+                                    </span>
+                                </div>
+                                <h3 class="mt-8 text-lg font-medium text-gray-900 tracking-tight">AI-Powered Assistant</h3>
+                                <p class="mt-5 text-base text-gray-500">
+                                    24/7 AI tutor support with smart escalation to human tutors when needed.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Feature 3 -->
+                    <div class="pt-6">
+                        <div class="flow-root bg-gray-50 rounded-lg px-6 pb-8">
+                            <div class="-mt-6">
+                                <div>
+                                    <span class="inline-flex items-center justify-center p-3 bg-bc-blue rounded-md shadow-lg">
+                                        <i class="fas fa-book-open text-white text-2xl"></i>
+                                    </span>
+                                </div>
+                                <h3 class="mt-8 text-lg font-medium text-gray-900 tracking-tight">Learning Resources</h3>
+                                <p class="mt-5 text-base text-gray-500">
+                                    Access a vast library of study materials, videos, and interactive exercises.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Feature 4 -->
+                    <div class="pt-6">
+                        <div class="flow-root bg-gray-50 rounded-lg px-6 pb-8">
+                            <div class="-mt-6">
+                                <div>
+                                    <span class="inline-flex items-center justify-center p-3 bg-bc-blue rounded-md shadow-lg">
+                                        <i class="fas fa-users text-white text-2xl"></i>
+                                    </span>
+                                </div>
+                                <h3 class="mt-8 text-lg font-medium text-gray-900 tracking-tight">Public Forum</h3>
+                                <p class="mt-5 text-base text-gray-500">
+                                    Join academic discussions anonymously and get help from the entire student community.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Feature 5 -->
+                    <div class="pt-6">
+                        <div class="flow-root bg-gray-50 rounded-lg px-6 pb-8">
+                            <div class="-mt-6">
+                                <div>
+                                    <span class="inline-flex items-center justify-center p-3 bg-bc-blue rounded-md shadow-lg">
+                                        <i class="fas fa-comment-dots text-white text-2xl"></i>
+                                    </span>
+                                </div>
+                                <h3 class="mt-8 text-lg font-medium text-gray-900 tracking-tight">Private Messaging</h3>
+                                <p class="mt-5 text-base text-gray-500">
+                                    One-on-one academic support with secure private messaging between students and tutors.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Feature 6 -->
+                    <div class="pt-6">
+                        <div class="flow-root bg-gray-50 rounded-lg px-6 pb-8">
+                            <div class="-mt-6">
+                                <div>
+                                    <span class="inline-flex items-center justify-center p-3 bg-bc-blue rounded-md shadow-lg">
+                                        <i class="fas fa-bell text-white text-2xl"></i>
+                                    </span>
+                                </div>
+                                <h3 class="mt-8 text-lg font-medium text-gray-900 tracking-tight">Smart Notifications</h3>
+                                <p class="mt-5 text-base text-gray-500">
+                                    Get alerts via email, SMS, or WhatsApp for new responses and tutor availability.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Forum Section -->
+    <div id="forum" class="py-12 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="lg:text-center">
+                <h2 class="text-base font-semibold text-bc-blue tracking-wide uppercase">Forum</h2>
+                <p class="mt-2 text-3xl font-extrabold text-gray-900 sm:text-4xl">
+                    Public Academic Discussions
+                </p>
+                <p class="mt-4 max-w-2xl text-xl text-gray-500 lg:mx-auto">
+                    Ask questions anonymously and get answers from the entire student community.
+                </p>
+            </div>
+
+            <div class="mt-12 grid gap-5 max-w-lg mx-auto lg:grid-cols-3 lg:max-w-none">
+                <!-- Forum Card 1 -->
+                <div class="flex flex-col rounded-lg shadow-lg overflow-hidden forum-card transition duration-300">
+                    <div class="flex-shrink-0">
+                        <div class="h-48 bg-gradient-to-r from-bc-blue to-bc-blue-light flex items-center justify-center">
+                            <span class="text-white text-6xl"><i class="fas fa-code"></i></span>
+                        </div>
+                    </div>
+                    <div class="flex-1 bg-white p-6 flex flex-col justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center">
+                                <span class="inline-flex items-center px-3 py-0.5 rounded-full text-sm font-medium bg-blue-100 text-bc-blue">
+                                    Programming
+                                </span>
+                                <span class="ml-2 text-sm text-gray-500">25 replies</span>
+                            </div>
+                            <a href="#" class="block mt-2">
+                                <p class="text-xl font-semibold text-gray-900">JavaScript Closure Concepts</p>
+                                <p class="mt-3 text-base text-gray-500">Can someone explain closures in JavaScript with a practical example? I'm struggling to understand how they work...</p>
+                            </a>
+                        </div>
+                        <div class="mt-6 flex items-center">
+                            <div class="flex-shrink-0">
+                                <span class="inline-flex items-center justify-center h-10 w-10 rounded-full bg-gray-300">
+                                    <span class="text-sm font-medium leading-none text-gray-900">A</span>
+                                </span>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm font-medium text-gray-900">Anonymous</p>
+                                <div class="flex space-x-1 text-sm text-gray-500">
+                                    <time datetime="2020-03-16">Mar 16, 2023</time>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Forum Card 2 -->
+                <div class="flex flex-col rounded-lg shadow-lg overflow-hidden forum-card transition duration-300">
+                    <div class="flex-shrink-0">
+                        <div class="h-48 bg-gradient-to-r from-bc-blue to-bc-blue-light flex items-center justify-center">
+                            <span class="text-white text-6xl"><i class="fas fa-calculator"></i></span>
+                        </div>
+                    </div>
+                    <div class="flex-1 bg-white p-6 flex flex-col justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center">
+                                <span class="inline-flex items-center px-3 py-0.5 rounded-full text-sm font-medium bg-blue-100 text-bc-blue">
+                                    Mathematics
+                                </span>
+                                <span class="ml-2 text-sm text-gray-500">18 replies</span>
+                            </div>
+                            <a href="#" class="block mt-2">
+                                <p class="text-xl font-semibold text-gray-900">Calculus Integration Problems</p>
+                                <p class="mt-3 text-base text-gray-500">I'm having trouble solving integration by parts for this specific equation. Any tips or resources that might help?</p>
+                            </a>
+                        </div>
+                        <div class="mt-6 flex items-center">
+                            <div class="flex-shrink-0">
+                                <span class="inline-flex items-center justify-center h-10 w-10 rounded-full bg-gray-300">
+                                    <span class="text-sm font-medium leading-none text-gray-900">A</span>
+                                </span>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm font-medium text-gray-900">Anonymous</p>
+                                <div class="flex space-x-1 text-sm text-gray-500">
+                                    <time datetime="2020-03-10">Mar 10, 2023</time>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Forum Card 3 -->
+                <div class="flex flex-col rounded-lg shadow-lg overflow-hidden forum-card transition duration-300">
+                    <div class="flex-shrink-0">
+                        <div class="h-48 bg-gradient-to-r from-bc-blue to-bc-blue-light flex items-center justify-center">
+                            <span class="text-white text-6xl"><i class="fas fa-database"></i></span>
+                        </div>
+                    </div>
+                    <div class="flex-1 bg-white p-6 flex flex-col justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center">
+                                <span class="inline-flex items-center px-3 py-0.5 rounded-full text-sm font-medium bg-blue-100 text-bc-blue">
+                                    Database
+                                </span>
+                                <span class="ml-2 text-sm text-gray-500">32 replies</span>
+                            </div>
+                            <a href="#" class="block mt-2">
+                                <p class="text-xl font-semibold text-gray-900">SQL Query Optimization</p>
+                                <p class="mt-3 text-base text-gray-500">How can I optimize this complex SQL query to run faster? I've tried indexing but still experiencing performance issues...</p>
+                            </a>
+                        </div>
+                        <div class="mt-6 flex items-center">
+                            <div class="flex-shrink-0">
+                                <span class="inline-flex items-center justify-center h-10 w-10 rounded-full bg-gray-300">
+                                    <span class="text-sm font-medium leading-none text-gray-900">A</span>
+                                </span>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm font-medium text-gray-900">Anonymous</p>
+                                <div class="flex space-x-1 text-sm text-gray-500">
+                                    <time datetime="2020-03-05">Mar 5, 2023</time>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-12 text-center">
+                <a href="#" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-bc-blue hover:bg-bc-blue-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bc-blue">
+                    View All Discussions
+                    <i class="fas fa-arrow-right ml-2"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tutors Section -->
+    <div id="tutors" class="py-12 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <h2 class="text-base font-semibold text-bc-blue tracking-wide uppercase">Tutors</h2>
+                <p class="mt-2 text-3xl font-extrabold text-gray-900 sm:text-4xl">
+                    Meet Our Peer Tutors
+                </p>
+                <p class="mt-4 max-w-2xl text-xl text-gray-500 lg:mx-auto">
+                    Qualified students ready to help you succeed in your courses.
+                </p>
+            </div>
+
+            <div class="mt-12 grid gap-8 lg:grid-cols-3">
+                <!-- Tutor Card 1 -->
+                <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="md:flex">
+                        <div class="md:flex-shrink-0">
+                            <img class="h-48 w-full object-cover md:w-48" src="https://images.unsplash.com/photo-1519244703995-f4e0f30006d5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="Tutor">
+                        </div>
+                        <div class="p-8">
+                            <div class="uppercase tracking-wide text-sm text-bc-blue font-semibold">BCom IT • 3rd Year</div>
+                            <a href="#" class="block mt-1 text-lg font-medium text-gray-900">Sarah Johnson</a>
+                            <p class="mt-2 text-gray-500">Specializes in programming fundamentals, database systems, and web development. Available for evening sessions.</p>
+                            <div class="mt-4">
+                                <span class="text-gray-600 text-sm">4.9 ★ (87 reviews)</span>
+                            </div>
+                            <div class="mt-4">
+                                <button class="text-sm text-bc-blue hover:text-bc-blue-light font-medium">View Profile →</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tutor Card 2 -->
+                <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="md:flex">
+                        <div class="md:flex-shrink-0">
+                            <img class="h-48 w-full object-cover md:w-48" src="https://images.unsplash.com/photo-1552058544-f2b08422138a?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="Tutor">
+                        </div>
+                        <div class="p-8">
+                            <div class="uppercase tracking-wide text-sm text-bc-blue font-semibold">BIT • 2nd Year</div>
+                            <a href="#" class="block mt-1 text-lg font-medium text-gray-900">Michael Chen</a>
+                            <p class="mt-2 text-gray-500">Expert in mathematics, algorithms, and data structures. Patient and thorough explanations for complex concepts.</p>
+                            <div class="mt-4">
+                                <span class="text-gray-600 text-sm">4.8 ★ (63 reviews)</span>
+                            </div>
+                            <div class="mt-4">
+                                <button class="text-sm text-bc-blue hover:text-bc-blue-light font-medium">View Profile →</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tutor Card 3 -->
+                <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="md:flex">
+                        <div class="md:flex-shrink-0">
+                            <img class="h-48 w-full object-cover md:w-48" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="Tutor">
+                        </div>
+                        <div class="p-8">
+                            <div class="uppercase tracking-wide text-sm text-bc-blue font-semibold">Diploma • Final Year</div>
+                            <a href="#" class="block mt-1 text-lg font-medium text-gray-900">Amanda Williams</a>
+                            <p class="mt-2 text-gray-500">Specializes in networking, system administration, and cybersecurity concepts. Flexible scheduling available.</p>
+                            <div class="mt-4">
+                                <span class="text-gray-600 text-sm">4.9 ★ (92 reviews)</span>
+                            </div>
+                            <div class="mt-4">
+                                <button class="text-sm text-bc-blue hover:text-bc-blue-light font-medium">View Profile →</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-12 text-center">
+                <a href="#" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-bc-blue hover:bg-bc-blue-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bc-blue">
+                    Browse All Tutors
+                    <i class="fas fa-arrow-right ml-2"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Topics Section -->
+    <div id="topics" class="py-12 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <h2 class="text-base font-semibold text-bc-blue tracking-wide uppercase">Topics</h2>
+                <p class="mt-2 text-3xl font-extrabold text-gray-900 sm:text-4xl">
+                    Popular Study Topics
+                </p>
+                <p class="mt-4 max-w-2xl text-xl text-gray-500 lg:mx-auto">
+                    Browse through subjects students are currently seeking help with.
+                </p>
+            </div>
+
+            <div class="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+                <!-- Topic Card 1 -->
+                <div class="topic-card bg-white overflow-hidden shadow rounded-lg">
+                    <div class="px-4 py-5 sm:p-6">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 bg-blue-100 p-3 rounded-md">
+                                <i class="fas fa-code text-bc-blue text-xl"></i>
+                            </div>
+                            <div class="ml-5 w-0 flex-1">
+                                <dl>
+                                    <dt class="text-sm font-medium text-gray-500 truncate">
+                                        Programming
+                                    </dt>
+                                    <dd>
+                                        <div class="text-lg font-medium text-gray-900">
+                                            24 Active Tutors
+                                        </div>
+                                    </dd>
+                                </dl>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <div class="border-t border-gray-200 pt-4">
+                                <p class="text-sm text-gray-500">
+                                    <span class="inline-flex items-center text-sm">
+                                        <span class="inline-block h-3 w-3 rounded-full bg-green-400 mr-1"></span>
+                                        58 students seeking help
+                                    </span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Topic Card 2 -->
+                <div class="topic-card bg-white overflow-hidden shadow rounded-lg">
+                    <div class="px-4 py-5 sm:p-6">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 bg-blue-100 p-3 rounded-md">
+                                <i class="fas fa-calculator text-bc-blue text-xl"></i>
+                            </div>
+                            <div class="ml-5 w-0 flex-1">
+                                <dl>
+                                    <dt class="text-sm font-medium text-gray-500 truncate">
+                                        Mathematics
+                                    </dt>
+                                    <dd>
+                                        <div class="text-lg font-medium text-gray-900">
+                                            18 Active Tutors
+                                        </div>
+                                    </dd>
+                                </dl>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <div class="border-t border-gray-200 pt-4">
+                                <p class="text-sm text-gray-500">
+                                    <span class="inline-flex items-center text-sm">
+                                        <span class="inline-block h-3 w-3 rounded-full bg-green-400 mr-1"></span>
+                                        42 students seeking help
+                                    </span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Topic Card 3 -->
+                <div class="topic-card bg-white overflow-hidden shadow rounded-lg">
+                    <div class="px-4 py-5 sm:p-6">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 bg-blue-100 p-3 rounded-md">
+                                <i class="fas fa-database text-bc-blue text-xl"></i>
+                            </div>
+                            <div class="ml-5 w-0 flex-1">
+                                <dl>
+                                    <dt class="text-sm font-medium text-gray-500 truncate">
+                                        Databases
+                                    </dt>
+                                    <dd>
+                                        <div class="text-lg font-medium text-gray-900">
+                                            15 Active Tutors
+                                        </div>
+                                    </dd>
+                                </dl>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <div class="border-t border-gray-200 pt-4">
+                                <p class="text-sm text-gray-500">
+                                    <span class="inline-flex items-center text-sm">
+                                        <span class="inline-block h-3 w-3 rounded-full bg-green-400 mr-1"></span>
+                                        36 students seeking help
+                                    </span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Topic Card 4 -->
+                <div class="topic-card bg-white overflow-hidden shadow rounded-lg">
+                    <div class="px-4 py-5 sm:p-6">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 bg-blue-100 p-3 rounded-md">
+                                <i class="fas fa-shield-alt text-bc-blue text-xl"></i>
+                            </div>
+                            <div class="ml-5 w-0 flex-1">
+                                <dl>
+                                    <dt class="text-sm font-medium text-gray-500 truncate">
+                                        Cybersecurity
+                                    </dt>
+                                    <dd>
+                                        <div class="text-lg font-medium text-gray-900">
+                                            12 Active Tutors
+                                        </div>
+                                    </dd>
+                                </dl>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <div class="border-t border-gray-200 pt-4">
+                                <p class="text-sm text-gray-500">
+                                    <span class="inline-flex items-center text-sm">
+                                        <span class="inline-block h-3 w-3 rounded-full bg-green-400 mr-1"></span>
+                                        28 students seeking help
+                                    </span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-12 text-center">
+                <a href="#" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-bc-blue hover:bg-bc-blue-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bc-blue">
+                    Explore All Topics
+                    <i class="fas fa-arrow-right ml-2"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Demo Section -->
+    <div id="chat" class="py-12 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <h2 class="text-base font-semibold text-bc-blue tracking-wide uppercase">Chat</h2>
+                <p class="mt-2 text-3xl font-extrabold text-gray-900 sm:text-4xl">
+                    Connect with Tutors Instantly
+                </p>
+                <p class="mt-4 max-w-2xl text-xl text-gray-500 lg:mx-auto">
+                    Private messaging for one-on-one academic support.
+                </p>
+            </div>
+
+            <div class="mt-12 bg-gray-50 rounded-xl shadow-lg overflow-hidden">
+                <div class="flex flex-col md:flex-row">
+                    <!-- Contacts Sidebar -->
+                    <div class="w-full md:w-1/3 bg-white border-r border-gray-200">
+                        <div class="p-4 border-b border-gray-200">
+                            <h3 class="text-lg font-medium text-gray-900">Conversations</h3>
+                        </div>
+                        <div class="overflow-y-auto" style="max-height: 400px;">
+                            <!-- Contact 1 -->
+                            <div class="p-4 border-b border-gray-200 hover:bg-blue-50 cursor-pointer">
+                                <div class="flex items-center">
+                                    <img class="h-10 w-10 rounded-full" src="https://images.unsplash.com/photo-1519244703995-f4e0f30006d5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="">
+                                    <div class="ml-3">
+                                        <p class="text-sm font-medium text-gray-900">Sarah Johnson</p>
+                                        <p class="text-sm text-gray-500">BCom IT • Programming</p>
+                                    </div>
+                                    <div class="ml-auto text-xs text-gray-500">2h ago</div>
+                                </div>
+                            </div>
+                            <!-- Contact 2 -->
+                            <div class="p-4 border-b border-gray-200 hover:bg-blue-50 cursor-pointer bg-blue-50">
+                                <div class="flex items-center">
+                                    <img class="h-10 w-10 rounded-full" src="https://images.unsplash.com/photo-1552058544-f2b08422138a?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="">
+                                    <div class="ml-3">
+                                        <p class="text-sm font-medium text-gray-900">Michael Chen</p>
+                                        <p class="text-sm text-gray-500">BIT • Mathematics</p>
+                                    </div>
+                                    <div class="ml-auto text-xs text-gray-500">Now</div>
+                                </div>
+                            </div>
+                            <!-- Contact 3 -->
+                            <div class="p-4 border-b border-gray-200 hover:bg-blue-50 cursor-pointer">
+                                <div class="flex items-center">
+                                    <img class="h-10 w-10 rounded-full" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="">
+                                    <div class="ml-3">
+                                        <p class="text-sm font-medium text-gray-900">Amanda Williams</p>
+                                        <p class="text-sm text-gray-500">Diploma • Networking</p>
+                                    </div>
+                                    <div class="ml-auto text-xs text-gray-500">1d ago</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chat Area -->
+                    <div class="w-full md:w-2/3 flex flex-col" style="height: 500px;">
+                        <div class="p-4 border-b border-gray-200 bg-white">
+                            <div class="flex items-center">
+                                <img class="h-10 w-10 rounded-full" src="https://images.unsplash.com/photo-1552058544-f2b08422138a?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="">
+                                <div class="ml-3">
+                                    <p class="text-sm font-medium text-gray-900">Michael Chen</p>
+                                    <p class="text-sm text-gray-500">Online</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex-1 p-4 overflow-y-auto bg-gray-50">
+                            <!-- Message from tutor -->
+                            <div class="flex mb-4">
+                                <img class="h-8 w-8 rounded-full" src="https://images.unsplash.com/photo-1552058544-f2b08422138a?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="">
+                                <div class="ml-3">
+                                    <div class="bg-white chat-bubble py-2 px-4 shadow-md rounded-lg">
+                                        <p class="text-sm text-gray-800">Hi there! How can I help you with calculus today?</p>
+                                    </div>
+                                    <span class="text-xs text-gray-500 block mt-1">2:45 PM</span>
+                                </div>
+                            </div>
+                            <!-- Message from user -->
+                            <div class="flex mb-4 justify-end">
+                                <div class="mr-3">
+                                    <div class="bg-bc-blue chat-bubble own py-2 px-4 shadow-md rounded-lg">
+                                        <p class="text-sm text-white">I'm struggling with integration by parts. I don't understand when to use which function as u and which as dv.</p>
+                                    </div>
+                                    <span class="text-xs text-gray-500 block mt-1 text-right">2:47 PM</span>
+                                </div>
+                                <img class="h-8 w-8 rounded-full" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="">
+                            </div>
+                            <!-- Message from tutor -->
+                            <div class="flex mb-4">
+                                <img class="h-8 w-8 rounded-full" src="https://images.unsplash.com/photo-1552058544-f2b08422138a?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="">
+                                <div class="ml-3">
+                                    <div class="bg-white chat-bubble py-2 px-4 shadow-md rounded-lg">
+                                        <p class="text-sm text-gray-800">No problem! There's a handy rule called LIATE that helps decide which function to choose as u. It stands for Logarithmic, Inverse trigonometric, Algebraic, Trigonometric, Exponential.</p>
+                                    </div>
+                                    <span class="text-xs text-gray-500 block mt-1">2:49 PM</span>
+                                </div>
+                            </div>
+                            <!-- Message from tutor with attachment -->
+                            <div class="flex mb-4">
+                                <img class="h-8 w-8 rounded-full" src="https://images.unsplash.com/photo-1552058544-f2b08422138a?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="">
+                                <div class="ml-3">
+                                    <div class="bg-white chat-bubble py-2 px-4 shadow-md rounded-lg">
+                                        <p class="text-sm text-gray-800">I'm sending you a PDF with some examples that should help.</p>
+                                        <div class="mt-2 flex items-center p-2 bg-gray-100 rounded">
+                                            <i class="fas fa-file-pdf text-red-500 mr-2"></i>
+                                            <span class="text-sm text-gray-700">Integration_By_Parts_Examples.pdf</span>
+                                            <span class="text-xs text-gray-500 ml-2">(2.4 MB)</span>
+                                        </div>
+                                    </div>
+                                    <span class="text-xs text-gray-500 block mt-1">2:50 PM</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-4 border-t border-gray-200 bg-white">
+                            <div class="flex items-center">
+                                <input type="text" placeholder="Type your message..." class="flex-1 border border-gray-300 rounded-l-md py-2 px-4 focus:outline-none focus:ring-2 focus:ring-bc-blue focus:border-bc-blue">
+                                <button class="bg-bc-blue text-white py-2 px-4 rounded-r-md hover:bg-bc-blue-light focus:outline-none focus:ring-2 focus:ring-bc-blue">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CTA Section -->
+    <div class="bg-bc-blue">
+        <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:py-16 lg:px-8 lg:flex lg:items-center lg:justify-between">
+            <h2 class="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+                <span class="block">Ready to improve your grades?</span>
+                <span class="block text-bc-blue-light">Join CampusLearn today.</span>
+            </h2>
+            <div class="mt-8 flex lg:mt-0 lg:flex-shrink-0">
+                <div class="inline-flex rounded-md shadow">
+                    <a href="#" class="inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-bc-blue bg-white hover:bg-blue-50">
+                        Get started
+                    </a>
+                </div>
+                <div class="ml-3 inline-flex rounded-md shadow">
+                    <a href="#" class="inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-white bg-bc-blue-light hover:bg-blue-700">
+                        Learn more
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-bc-gray">
+        <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:py-16 lg:px-8">
+            <div class="xl:grid xl:grid-cols-3 xl:gap-8">
+                <div class="xl:col-span-1">
+                    <span class="text-white font-bold text-2xl">Campus<span class="text-bc-blue-light">Learn</span><sup class="text-xs">™</sup></span>
+                    <p class="mt-2 text-gray-400 text-sm">
+                        Empowering student success through peer-powered learning at Belgium Campus.
+                    </p>
+                </div>
+                <div class="mt-12 grid grid-cols-2 gap-8 xl:mt-0 xl:col-span-2">
+                    <div class="md:grid md:grid-cols-2 md:gap-8">
+                        <div>
+                            <h3 class="text-sm font-semibold text-gray-300 tracking-wider uppercase">Platform</h3>
+                            <ul class="mt-4 space-y-4">
+                                <li>
+                                    <a href="#" class="text-base text-gray-400 hover:text-white">Features</a>
+                                </li>
+                                <li>
+                                    <a href="#" class="text-base text-gray-400 hover:text-white">Pricing</a>
+                                </li>
+                                <li>
+                                    <a href="#" class="text-base text-gray-400 hover:text-white">Forum</a>
+                                </li>
+                                <li>
+                                    <a href="#" class="text-base text-gray-400 hover:text-white">Tutors</a>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="mt-12 md:mt-0">
+                            <h3 class="text-sm font-semibold text-gray-300 tracking-wider uppercase">Support</h3>
+                            <ul class="mt-4 space-y-4">
+                                <li>
+                                    <a href="#" class="text-base text-gray-400 hover:text-white">Help Center</a>
+                                </li>
+                                <li>
+                                    <a href="#" class="text-base text-gray-400 hover:text-white">Privacy Policy</a>
+                                </li>
+                                <li>
+                                    <a href="#" class="text-base text-gray-400 hover:text-white">Terms of Service</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="md:grid md:grid-cols-2 md:gap-8">
+                        <div>
+                            <h3 class="text-sm font-semibold text-gray-300 tracking-wider uppercase">Connect</h3>
+                            <ul class="mt-4 space-y-4">
+                                <li>
+                                    <a href="#" class="text-base text-gray-400 hover:text-white">Facebook</a>
+                                </li>
+                                <li>
+                                    <a href="#" class="text-base text-gray-400 hover:text-white">Twitter</a>
+                                </li>
+                                <li>
+                                    <a href="#" class="text-base text-gray-400 hover:text-white">Instagram</a>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="mt-12 md:mt-0">
+                            <h3 class="text-sm font-semibold text-gray-300 tracking-wider uppercase">Belgium Campus</h3>
+                            <ul class="mt-4 space-y-4">
+                                <li>
+                                    <a href="https://www.belgiumcampus.ac.za/" class="text-base text-gray-400 hover:text-white">Website</a>
+                                </li>
+                                <li>
+                                    <a href="#" class="text-base text-gray-400 hover:text-white">Contact</a>
+                                </li>
+                                <li>
+                                    <a href="#" class="text-base text-gray-400 hover:text-white">Careers</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-12 border-t border-gray-700 pt-8">
+                <p class="text-base text-gray-400 text-center">
+                    &copy; 2023 CampusLearn™. All rights reserved.
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- AI Assistant Button (Fixed) -->
+    <div class="fixed bottom-6 right-6">
+        <button class="p-4 bg-bc-blue text-white rounded-full shadow-lg hover:bg-bc-blue-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bc-blue">
+            <i class="fas fa-robot text-xl"></i>
+        </button>
+    </div>
+</body>
+</html>
