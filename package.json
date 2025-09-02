@@ -12,7 +12,7 @@
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx --max-warnings=0",
     "fmt": "prettier --write .",
     "test": "npm run test --workspace=backend",
-    "prepare": "husky",
+    "prepare": "npx husky",
     "lint-staged": "lint-staged"
   },
   "lint-staged": {
