@@ -1,31 +1,62 @@
-# node
+# Node / package managers
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-pnpm-lock.yaml
+pnpm-debug.log*
+.pnpm-store/
+package-lock.json.*    # lockfile variants; keep main package-lock.json tracked
 
-# build/output
+# Build / dist
 dist/
 build/
 coverage/
 .out/
 .next/
 .vite/
+.eslintcache
+.tailwindcss/*
 
-# env & local
+# Environment
 .env
 .env.*
 *.local
 
-# editor/OS
+# Editor / OS
 .vscode/
+.idea/
 *.swp
 .DS_Store
 Thumbs.db
 desktop.ini
 
-# caches
+# Logs
+logs/
+*.log
+*.log.*
+npm-cache/
+lerna-debug.log*
+
+# Husky (keep hooks, ignore backup state)
+.husky/_/
+.husky/*.backup
+*.sh text eol=lf
+
+# Postman local stuff (keep collections but ignore scratch)
+postman/*-local*.json
+
+# Docker
+docker-data/
+**/.dockerignore
+
+# Frontend framework caches
+.svelte-kit/
+.angular/
+.nuxt/
+.next/
+.cache/
 .parcel-cache/
-.eslintcache
-.tailwindcss/*
+
+# Misc
+*.pid
+*.seed

@@ -1,7 +1,7 @@
 {
   "name": "campuslearn",
   "version": "1.0.0",
-  "private": true,
+  "private": "true",
   "workspaces": [
     "frontend",
     "backend"
@@ -23,6 +23,7 @@
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
+    "@types/cors": "^2.8.19",
     "cross-env": "^7.0.3",
     "eslint": "^9.34.0",
     "eslint-config-prettier": "^10.1.8",
