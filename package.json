@@ -6,6 +6,9 @@
     "frontend",
     "backend"
   ],
+  "engines": {
+    "node": ">=20.19.0"
+  },
   "scripts": {
     "install:all": "npm install --workspaces",
     "dev": "NODE_ENV=development nodemon --watch src --ext js,ts,json src/server.js",
@@ -13,8 +16,7 @@
     "fmt": "prettier --write .",
     "test": "npm run test --workspace=backend",
     "lint-staged": "lint-staged",
-    "start": "node src/server.js",
-    "prepare": "husky install"
+    "start": "node src/server.js"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,css,md,json,yml,yaml}": [
