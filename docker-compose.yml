@@ -1,123 +1,58 @@
-# Common network for all services
-networks:
-  campuslearn-net:
-    driver: bridge
-
-volumes:
-  mongo_data:
-
 services:
-  # ---------- Infra ----------
   mongo:
-    image: mongo:7
-    container_name: campuslearn-mongo
-    ports: ["27017:27017"]
-    networks: [campuslearn-net]
+    image: mongo:6
+    restart: unless-stopped
+    # For local dev tools (MongoDB Compass). Remove ports in prod.
+    ports:
+      - "27017:27017"
     volumes:
       - mongo_data:/data/db
     healthcheck:
       test:
         [
           "CMD-SHELL",
-          'mongosh --quiet --eval "db.adminCommand(''ping'').ok" | grep 1',
+          "mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok' | grep 1",
         ]
       interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 10s
+      retries: 6
 
   redis:
-    image: redis:7
-    container_name: campuslearn-redis
-    ports: ["6379:6379"]
-    networks: [campuslearn-net]
+    image: redis:7-alpine
+    restart: unless-stopped
+    # Expose for local debugging. Remove in prod if you want it internal-only.
+    ports:
+      - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 5s
+      retries: 6
 
-  # ---------- Dev profile ----------
-  api-dev:
-    profiles: ["dev"]
-    image: node:20-alpine
-    container_name: campuslearn-api-dev
-    working_dir: /app
-    networks: [campuslearn-net]
-    depends_on:
-      mongo:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    env_file:
-      - ./backend/.env
-    environment:
-      # If you prefer service names in Docker network:
-      # MONGO_URI: mongodb://mongo:27017/campuslearn
-      # REDIS_URL: redis://redis:6379
-      # Ensure backend/.env matches what your code expects.
-      NODE_ENV: development
-    ports:
-      - "5000:5000"
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
-    command: sh -c "npm ci && npm run dev"
-
-  web-dev:
-    profiles: ["dev"]
-    image: node:20-alpine
-    container_name: campuslearn-web-dev
-    working_dir: /app
-    networks: [campuslearn-net]
-    depends_on:
-      api-dev:
-        condition: service_started
-    ports:
-      - "5173:5173"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    command: sh -c "npm ci && npm run dev -- --host 0.0.0.0"
-
-  # ---------- Prod profile ----------
   api:
-    profiles: ["prod"]
     build:
-      context: ./backend
+      context: .
       dockerfile: Dockerfile
-    container_name: campuslearn-api
-    networks: [campuslearn-net]
-    env_file:
-      - ./backend/.env
+    image: campuslearn-api:latest
+    restart: unless-stopped
     environment:
-      NODE_ENV: production
-      # If you want to force container-internal endpoints:
-      # MONGO_URI: mongodb://mongo:27017/campuslearn
-      # REDIS_URL: redis://redis:6379
+      NODE_ENV: "production"
+      PORT: "5000" # container listens here
+      # PUBLIC_URL logging in server.ts
+      PUBLIC_URL: "http://localhost:5001"
+      # CORS: your frontend origins (comma-separated)
+      CORS_ORIGIN: "http://localhost:5173,http://localhost:8080"
+      # Internal service URLs
+      MONGO_URL: "mongodb://mongo:27017/campuslearn"
+      REDIS_URL: "redis://redis:6379"
+    # host:container (dev runs on 5000)
+    ports:
+      - "${HOST_PORT-5001}:5000"
     depends_on:
       mongo:
         condition: service_healthy
       redis:
         condition: service_healthy
-    ports:
-      - "5000:5000"
-    healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://localhost:5000/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
-  web:
-    profiles: ["prod"]
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile.nginx
-    container_name: campuslearn-web
-    networks: [campuslearn-net]
-    depends_on:
-      api:
-        condition: service_started
-    ports:
-      - "8080:80"
+volumes:
+  mongo_data:

@@ -1,16 +1,29 @@
 import "dotenv/config";
 import http from "http";
-import app from "./app.js";
+import app from "./app";
 
-const PORT = Number(process.env.PORT || 5000);
+const internalPort = Number(process.env.PORT || 5000);
+const publicUrl = process.env.PUBLIC_URL; // e.g. "http://localhost:5001"
 
 const server = http.createServer(app);
 
-// Socket.IO (optional later):
-// import { Server } from "socket.io";
-// const io = new Server(server, { path: process.env.SOCKET_PATH || "/socket.io", cors: { origin: "*" } });
-// io.on("connection", (socket) => { console.log("socket connected", socket.id); });
-
-server.listen(PORT, () => {
-  console.log(`API listening on http://localhost:${PORT}`);
+server.listen(internalPort, () => {
+  const internal = `http://localhost:${internalPort}`;
+  if (publicUrl) {
+    console.log(`API listening (container): ${internal}`);
+    console.log(`API reachable (host):     ${publicUrl}`);
+  } else {
+    console.log(`API listening on ${internal}`);
+  }
 });
+
+// clean shutdowns in containers
+const shutdown = (sig: string) => () => {
+  console.log(`\nReceived ${sig}. Closing server...`);
+  server.close(() => {
+    console.log("Server closed.");
+    process.exit(0);
+  });
+};
+process.on("SIGTERM", shutdown("SIGTERM"));
+process.on("SIGINT", shutdown("SIGINT"));

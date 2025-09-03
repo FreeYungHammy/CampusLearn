@@ -13,7 +13,8 @@
     "fmt": "prettier --write .",
     "test": "npm run test --workspace=backend",
     "lint-staged": "lint-staged",
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "prepare": "husky install"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,css,md,json,yml,yaml}": [

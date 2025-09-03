@@ -1,9 +1,9 @@
-import { Router, Request, Response } from "express";
-
+import { Router } from "express";
 const r = Router();
 
-r.get("/hello", (_req: Request, res: Response) => {
-  res.json({ message: "CampusLearn API says hello 👋" });
+// test endpoint
+r.get("/v1/ping", (_req, res) => {
+  res.json({ ok: true, ts: Date.now() });
 });
 
 export default r;

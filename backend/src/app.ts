@@ -1,11 +1,11 @@
 import express from "express";
 import cors from "cors";
-import health from "./routes/health.js";
-import api from "./routes/index.js";
+import health from "./routes/health";
+import api from "./routes/index";
 
 const app = express();
 
-// --- CORS (before routes)
+/* ---------- CORS ---------- */
 const allowed = (process.env.CORS_ORIGIN || "")
   .split(",")
   .map((s) => s.trim())
@@ -20,15 +20,32 @@ app.use(
   }),
 );
 
-// --- Body parsers
+/* ---------- Parsers ---------- */
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// --- Routes
-app.use("/health", health); // 200 OK for container health checks
-app.use("/api", api); // your main API lives under /api
+/* ---------- Diagnostics ---------- */
+app.get("/__ping", (_req, res) => res.status(200).send("All is operational."));
 
-// --- 404
-app.use((_req, res) => res.status(404).json({ error: "Not found" }));
+/* ---------- Root banner ---------- */
+app.get("/", (_req, res) => {
+  res.json({
+    status: "ok",
+    service: "campuslearn-api",
+    version: process.env.npm_package_version ?? "unknown",
+  });
+});
+
+/* Silence favicon console noise */
+app.get("/favicon.ico", (_req, res) => res.status(204).end());
+
+/* ---------- Routes ---------- */
+app.use("/health", health); // GET /health -> { ok: true }
+app.use("/api", api); // GET /api/v1/ping -> { ok: true }
+
+/* ---------- 404 (last) ---------- */
+app.use((req, res) => {
+  res.status(404).json({ error: "Not found", path: req.path });
+});
 
 export default app;

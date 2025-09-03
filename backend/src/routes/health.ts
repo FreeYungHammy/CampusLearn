@@ -1,9 +1,8 @@
 import { Router } from "express";
+const r = Router();
 
-const router = Router();
-
-router.get("/health", (_req, res) => {
-  res.json({ status: "ok" });
+r.get("/", (_req, res) => {
+  res.json({ ok: true });
 });
 
-export default router;
+export default r;
