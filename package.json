@@ -1,7 +1,7 @@
 {
-  "name": "campuslearn",
+  "name": "campuslearn-root",
   "version": "1.0.0",
-  "private": "true",
+  "private": true,
   "workspaces": [
     "frontend",
     "backend"
@@ -11,12 +11,10 @@
   },
   "scripts": {
     "install:all": "npm install --workspaces",
-    "dev": "NODE_ENV=development nodemon --watch src --ext js,ts,json src/server.js",
-    "lint": "eslint . --ext .js,.jsx,.ts,.tsx --max-warnings=0",
     "fmt": "prettier --write .",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx --max-warnings=0",
     "test": "npm run test --workspace=backend",
-    "lint-staged": "lint-staged",
-    "start": "node src/server.js"
+    "lint-staged": "lint-staged"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,css,md,json,yml,yaml}": [
@@ -26,13 +24,10 @@
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
-    "@types/express": "^5.0.3",
-    "cors": "^2.8.5",
     "cross-env": "^7.0.3",
     "eslint": "^9.34.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import": "^2.32.0",
-    "express": "^5.1.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.1.6",
     "nodemon": "^3.1.0",

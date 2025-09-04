@@ -1,57 +1,51 @@
-import { Server as HttpServer } from "http";
-import { Server, Socket } from "socket.io";
+import { Server } from "socket.io";
+import type { Server as HttpServer } from "http";
 
-interface User {
-  userId: string;
-  socketId: string;
-}
+export function createSocketServer(httpServer: HttpServer) {
+  const allowed = (process.env.CORS_ORIGIN || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
 
-let onlineUsers: User[] = [];
-
-const addUser = (userId: string, socketId: string) => {
-  !onlineUsers.some((user) => user.userId === userId) &&
-    onlineUsers.push({ userId, socketId });
-};
-
-const removeUser = (socketId: string) => {
-  onlineUsers = onlineUsers.filter((user) => user.socketId !== socketId);
-};
-
-const getUser = (userId: string) => {
-  return onlineUsers.find((user) => user.userId === userId);
-};
-
-export const createSocketServer = (httpServer: HttpServer) => {
   const io = new Server(httpServer, {
+    path: "/socket.io",
+    transports: ["websocket", "polling"],
+    allowUpgrades: true,
     cors: {
-      origin: ["http://localhost:5173", "http://localhost:8080"], // Your frontend URL
+      origin: allowed.length
+        ? allowed
+        : [
+            "http://localhost:5173",
+            "http://localhost:8080",
+            "http://localhost:5001",
+          ],
       methods: ["GET", "POST"],
+      credentials: true,
     },
   });
 
-  io.on("connection", (socket: Socket) => {
-    console.log(`User connected: ${socket.id}`);
+  // Log low-level engine errors (useful when upgrade is refused)
+  io.engine.on("connection_error", (err) => {
+    console.error("engine.io connection_error:", {
+      code: err.code,
+      message: err.message,
+      context: err.context,
+    });
+  });
 
-    // Listener for a new user connecting
-    socket.on("newUser", (userId: string) => {
-      addUser(userId, socket.id);
-      console.log("Online users:", onlineUsers);
+  io.on("connection", (socket) => {
+    // history request
+    socket.on("messages:get", ({ peerId }) => {
+      // TODO: replace with DB fetch; send back array
+      io.to(socket.id).emit("messages:history", []);
     });
 
-    // Listener for sending a message
-    socket.on("sendMessage", ({ recipientId, message }) => {
-      const recipient = getUser(recipientId);
-      if (recipient) {
-        io.to(recipient.socketId).emit("getMessage", message);
-      }
-    });
-
-    // Listener for when a user disconnects
-    socket.on("disconnect", () => {
-      console.log(`User disconnected: ${socket.id}`);
-      removeUser(socket.id);
+    // send message
+    socket.on("message:send", (msg) => {
+      // echo to recipient and sender (rooming or direct lookup can be added)
+      io.emit("message:receive", msg);
     });
   });
 
   return io;
-};
+}
