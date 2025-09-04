@@ -3,20 +3,21 @@ try {
 } catch {}
 
 import http from "http";
-import app from "./app.js";
+import app from "./app";
+import { createSocketServer } from "./config/socket";
 
-const PORT = Number(process.env.PORT || 5000);
-const HOST = "0.0.0.0"; // explicit for Docker
+const port = process.env.PORT || 8080;
 
 const server = http.createServer(app);
 
-server.listen(PORT, HOST, () => {
-  const hostPort = process.env.PUBLIC_URL || `http://localhost:${PORT}`;
-  console.log(`API listening (container): http://${HOST}:${PORT}`);
-  console.log(`API reachable (host):     ${hostPort}`);
+// Initialize Socket.IO
+createSocketServer(server);
+
+server.listen(port, () => {
+  console.log(`🚀 Server listening at http://localhost:${port}`);
 });
 
-// basic hardening
+// Basic hardening
 server.on("error", (err) => {
   console.error("Server error:", err);
   process.exit(1);
@@ -26,12 +27,13 @@ process.on("unhandledRejection", (r) => {
   console.error("Unhandled rejection:", r);
   process.exit(1);
 });
+
 process.on("uncaughtException", (e) => {
   console.error("Uncaught exception:", e);
   process.exit(1);
 });
 
-// clean shutdowns in containers
+// Clean shutdowns in containers
 const shutdown = (sig: NodeJS.Signals) => () => {
   console.log(`\nReceived ${sig}. Closing server...`);
   server.close(() => {
@@ -39,5 +41,6 @@ const shutdown = (sig: NodeJS.Signals) => () => {
     process.exit(0);
   });
 };
+
 process.on("SIGTERM", shutdown("SIGTERM"));
 process.on("SIGINT", shutdown("SIGINT"));
