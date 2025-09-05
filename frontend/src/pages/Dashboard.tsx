@@ -3,8 +3,6 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 
-// CSS imports were removed due to previous errors. Calendar will be unstyled.
-
 const events = [
   {
     title: "Calculus with Gideon",

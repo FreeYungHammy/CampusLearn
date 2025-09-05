@@ -24,6 +24,7 @@
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
+    "@types/mongoose": "^5.11.96",
     "cross-env": "^7.0.3",
     "eslint": "^9.34.0",
     "eslint-config-prettier": "^10.1.8",
@@ -32,5 +33,9 @@
     "lint-staged": "^16.1.6",
     "nodemon": "^3.1.0",
     "prettier": "^3.6.2"
+  },
+  "dependencies": {
+    "mongoose": "^8.18.0",
+    "winston": "^3.17.0"
   }
 }

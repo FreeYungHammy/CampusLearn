@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import health from "./routes/health";
 import api from "./routes/index";
+import { connectMongo } from "./infra/db/mongoose";
 
 const app = express();
 
@@ -35,6 +36,11 @@ app.get("/", (_req, res) => {
     version: process.env.npm_package_version ?? "unknown",
   });
 });
+
+/* Database connection call */
+export async function boot() {
+  await connectMongo();
+}
 
 /* Silence favicon console noise */
 app.get("/favicon.ico", (_req, res) => res.status(204).end());
