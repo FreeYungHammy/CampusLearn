@@ -1,20 +1,16 @@
 import { Schema, model, type InferSchemaType } from "mongoose";
 
-// BASIC USER SCHEMA JUST TO GET FORMATTING IN SO THAT IT CAN BE ADJUSTED
-
 const UserSchema = new Schema(
   {
-    email: { type: String, required: true, unique: true, index: true },
-    fullName: { type: String, required: true },
-    role: {
+    email: {
       type: String,
-      enum: ["student", "tutor", "admin"],
-      default: "student",
-      index: true,
+      required: true,
+      unique: true,
+      lowercase: true,
+      match: /.+@.+\..+/,
     },
-    bio: { type: String },
-    avatarUrl: { type: String },
-    isActive: { type: Boolean, default: true },
+    passwordHash: { type: String, required: true, select: false },
+    role: { type: String, enum: ["tutor", "student"], required: true },
   },
   { timestamps: true },
 );

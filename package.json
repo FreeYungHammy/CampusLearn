@@ -24,6 +24,7 @@
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/mongoose": "^5.11.96",
     "cross-env": "^7.0.3",
     "eslint": "^9.34.0",
@@ -35,6 +36,8 @@
     "prettier": "^3.6.2"
   },
   "dependencies": {
+    "bcrypt": "^6.0.0",
+    "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.18.0",
     "winston": "^3.17.0"
   }

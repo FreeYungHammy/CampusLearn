@@ -1,8 +1,8 @@
-// server.ts
 try {
   require("dotenv").config();
 } catch {}
 
+import path from "path";
 import http from "http";
 import app from "./app"; // make sure app.ts default-exports the Express app
 import { createSocketServer } from "./config/socket";
