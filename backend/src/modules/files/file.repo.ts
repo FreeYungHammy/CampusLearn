@@ -22,7 +22,9 @@ export const FileRepo = {
 
   // When you need the binary
   findByIdWithContent(id: string) {
-    return FileModel.findById(id).select("+content").lean<FileDoc | null>();
+    return FileModel.findById(id)
+      .select("+content")
+      .lean<FileDoc | null>({ virtuals: true });
   },
 
   findByTutor(tutorId: string, limit = 20, skip = 0) {
@@ -30,7 +32,7 @@ export const FileRepo = {
       .sort({ createdAt: -1 })
       .limit(limit)
       .skip(skip)
-      .lean<FileDoc[]>();
+      .lean<FileDoc[]>({ virtuals: true });
   },
 
   // UPDATE
@@ -42,7 +44,9 @@ export const FileRepo = {
 
   // DELETE
   deleteById(id: string) {
-    return FileModel.findByIdAndDelete(id).lean<FileDoc | null>();
+    return FileModel.findById(id)
+      .select("+content")
+      .lean<FileDoc | null>({ virtuals: true });
   },
 
   // Count / exists helpers

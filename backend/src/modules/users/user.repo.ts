@@ -37,11 +37,13 @@ export const UserRepo = {
       (update as any).email = (update as any).email.toLowerCase();
     return UserModel.findByIdAndUpdate(id, update, {
       new: true,
-    }).lean<UserDoc | null>();
+    }).lean<UserDoc | null>({ virtuals: true });
   },
 
   // DELETE
   deleteById(id: string) {
-    return UserModel.findByIdAndDelete(id).lean<UserDoc | null>();
+    return UserModel.findByIdAndDelete(id).lean<UserDoc | null>({
+      virtuals: true,
+    });
   },
 };

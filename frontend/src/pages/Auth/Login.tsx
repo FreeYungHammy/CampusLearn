@@ -1,7 +1,30 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import "./Login.css";
+import { useState } from "react";
+import { login } from "../../services/authApi";
+import { useAuthStore } from "../../store/authStore";
 
 const Login = () => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+  const { setToken, setUser } = useAuthStore();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    try {
+      const { token, user } = await login({ email, password });
+      setToken(token);
+      setUser(user);
+      navigate("/schedule");
+    } catch (err) {
+      setError("Invalid email or password");
+    }
+  };
+
   return (
     <div className="login-container">
       <div className="logo">
@@ -17,7 +40,8 @@ const Login = () => {
           <p className="login-subtitle">Sign in to continue to your account</p>
         </div>
 
-        <form id="login-form">
+        <form id="login-form" onSubmit={handleSubmit}>
+          {error && <p className="error-message">{error}</p>}
           <div className="form-group">
             <label className="form-label">
               <i className="fas fa-envelope"></i>
@@ -28,6 +52,8 @@ const Login = () => {
               className="form-control"
               placeholder="Enter your email"
               required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
             />
           </div>
 
@@ -41,6 +67,8 @@ const Login = () => {
               className="form-control"
               placeholder="Enter your password"
               required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
             />
           </div>
 

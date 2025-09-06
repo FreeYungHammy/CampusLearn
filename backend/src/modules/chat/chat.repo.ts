@@ -55,7 +55,7 @@ export const ChatRepo = {
       id,
       { $set: { seen } },
       { new: true },
-    ).lean<ChatDoc | null>();
+    ).lean<ChatDoc | null>({ virtuals: true });
   },
 
   markConversationSeen(fromUserId: string, toUserId: string) {
@@ -68,6 +68,8 @@ export const ChatRepo = {
 
   // DELETE
   deleteById(id: string) {
-    return ChatModel.findByIdAndDelete(id).lean<ChatDoc | null>();
+    return ChatModel.findByIdAndDelete(id).lean<ChatDoc | null>({
+      virtuals: true,
+    });
   },
 };

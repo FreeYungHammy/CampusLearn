@@ -43,7 +43,7 @@ export const StudentRepo = {
       id,
       { $addToSet: { enrolledCourses: courseCode } },
       { new: true },
-    ).lean<StudentDoc | null>();
+    ).lean<StudentDoc | null>({ virtuals: true });
   },
 
   unenroll(id: string, courseCode: string) {
@@ -56,6 +56,8 @@ export const StudentRepo = {
 
   // DELETE
   deleteById(id: string) {
-    return StudentModel.findByIdAndDelete(id).lean<StudentDoc | null>();
+    return StudentModel.findByIdAndDelete(id).lean<StudentDoc | null>({
+      virtuals: true,
+    });
   },
 };

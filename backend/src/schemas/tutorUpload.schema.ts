@@ -12,5 +12,19 @@ const tutorUpload = new Schema(
   { timestamps: true },
 );
 
+tutorUpload.virtual("id").get(function () {
+  // @ts-ignore
+  return this._id?.toString();
+});
+tutorUpload.set("toJSON", {
+  virtuals: true,
+  versionKey: false,
+  transform: (_doc, ret) => {
+    delete ret._id;
+    delete ret.content;
+  },
+});
+tutorUpload.set("toObject", { virtuals: true });
+
 export type FileDoc = InferSchemaType<typeof tutorUpload>;
 export const FileModel = model<FileDoc>("File", tutorUpload);

@@ -15,5 +15,18 @@ const StudentSchema = new Schema(
   { timestamps: true },
 );
 
+StudentSchema.virtual("id").get(function () {
+  // @ts-ignore
+  return this._id?.toString();
+});
+StudentSchema.set("toJSON", {
+  virtuals: true,
+  versionKey: false,
+  transform: (_doc, ret: { _id?: unknown }) => {
+    delete ret._id;
+  },
+});
+StudentSchema.set("toObject", { virtuals: true });
+
 export type StudentDoc = InferSchemaType<typeof StudentSchema>;
 export const StudentModel = model<StudentDoc>("Student", StudentSchema);

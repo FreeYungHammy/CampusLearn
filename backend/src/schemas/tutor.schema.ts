@@ -18,5 +18,18 @@ const TutorSchema = new Schema(
   { timestamps: true },
 );
 
+TutorSchema.virtual("id").get(function () {
+  // @ts-ignore
+  return this._id?.toString();
+});
+TutorSchema.set("toJSON", {
+  virtuals: true,
+  versionKey: false,
+  transform: (_doc, ret: { _id?: unknown }) => {
+    delete ret._id;
+  },
+});
+TutorSchema.set("toObject", { virtuals: true });
+
 export type TutorDoc = InferSchemaType<typeof TutorSchema>;
 export const TutorModel = model<TutorDoc>("Tutor", TutorSchema);

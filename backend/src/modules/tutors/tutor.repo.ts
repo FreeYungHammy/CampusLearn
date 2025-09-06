@@ -24,7 +24,7 @@ export const TutorRepo = {
     return TutorModel.find({ subjects: { $regex: q, $options: "i" } })
       .limit(limit)
       .skip(skip)
-      .lean<TutorDoc[]>();
+      .lean<TutorDoc[]>({ virtuals: true });
   },
 
   // UPDATE

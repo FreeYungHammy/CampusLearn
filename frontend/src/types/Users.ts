@@ -1,0 +1,20 @@
+export type Role = "tutor" | "student";
+
+export type User = {
+  id: string; // stringified _id
+  email: string;
+  role: Role;
+  createdAt?: string; // ISO
+  updatedAt?: string; // ISO
+};
+
+// Auth DTOs used by /users/login
+export type LoginCredentials = {
+  email: string;
+  password: string;
+};
+
+export type AuthResponse = {
+  token: string;
+  user: User;
+};
