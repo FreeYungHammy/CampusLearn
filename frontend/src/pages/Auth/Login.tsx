@@ -1,101 +1,70 @@
 import { Link } from "react-router-dom";
+import "./Login.css";
 
 const Login = () => {
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          Sign in to your account
-        </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
-          Or{" "}
-          <Link
-            to="/register"
-            className="font-medium text-bc-blue hover:text-bc-blue-light"
-          >
-            create a new account
-          </Link>
-        </p>
+    <div className="login-container">
+      <div className="logo">
+        <div className="logo-icon">
+          <i className="fas fa-graduation-cap"></i>
+        </div>
+        <div className="logo-text">CampusLearn™</div>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          <form className="space-y-6" action="#" method="POST">
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Belgium Campus Email
-              </label>
-              <div className="mt-1">
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-bc-blue focus:border-bc-blue sm:text-sm"
-                  placeholder="you@belgiumcampus.ac.za"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Password
-              </label>
-              <div className="mt-1">
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-bc-blue focus:border-bc-blue sm:text-sm"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  className="h-4 w-4 text-bc-blue focus:ring-bc-blue-light border-gray-300 rounded"
-                />
-                <label
-                  htmlFor="remember-me"
-                  className="ml-2 block text-sm text-gray-900"
-                >
-                  Remember me
-                </label>
-              </div>
-
-              <div className="text-sm">
-                <a
-                  href="#"
-                  className="font-medium text-bc-blue hover:text-bc-blue-light"
-                >
-                  Forgot your password?
-                </a>
-              </div>
-            </div>
-
-            <div>
-              <button
-                type="submit"
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-bc-blue hover:bg-bc-blue-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bc-blue"
-              >
-                Sign in
-              </button>
-            </div>
-          </form>
+      <div className="login-card">
+        <div className="login-header">
+          <h1 className="login-title">Welcome Back</h1>
+          <p className="login-subtitle">Sign in to continue to your account</p>
         </div>
+
+        <form id="login-form">
+          <div className="form-group">
+            <label className="form-label">
+              <i className="fas fa-envelope"></i>
+              <span>Email Address</span>
+            </label>
+            <input
+              type="email"
+              className="form-control"
+              placeholder="Enter your email"
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">
+              <i className="fas fa-lock"></i>
+              <span>Password</span>
+            </label>
+            <input
+              type="password"
+              className="form-control"
+              placeholder="Enter your password"
+              required
+            />
+          </div>
+
+          <button type="submit" className="btn btn-primary">
+            <i className="fas fa-sign-in-alt"></i>
+            Sign In
+          </button>
+
+          <Link to="/register" className="btn btn-outline">
+            <i className="fas fa-user-plus"></i>
+            Create New Account
+          </Link>
+
+          <div className="login-links">
+            <a href="#" className="login-link">
+              <i className="fas fa-question-circle"></i>
+              Need Help?
+            </a>
+            <a href="#" className="login-link">
+              <i className="fas fa-key"></i>
+              Forgot Password?
+            </a>
+          </div>
+        </form>
       </div>
     </div>
   );
