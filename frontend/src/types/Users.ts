@@ -6,6 +6,10 @@ export type User = {
   role: Role;
   name?: string;
   surname?: string;
+  pfp?: {
+    data: string; // base64 string
+    contentType: string;
+  };
   createdAt?: string; // ISO
   updatedAt?: string; // ISO
 };

@@ -27,6 +27,10 @@ const TutorSchema = new Schema(
       average: { type: Number, default: 0, min: 0, max: 5 },
       count: { type: Number, default: 0, min: 0 },
     },
+    pfp: {
+      data: Buffer,
+      contentType: String,
+    },
   },
   { timestamps: true },
 );

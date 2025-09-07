@@ -73,7 +73,11 @@ const Header = () => {
           <>
             <div className="user-profile">
               <img
-                src="https://randomuser.me/api/portraits/men/67.jpg"
+                src={
+                  user.pfp
+                    ? `data:${user.pfp.contentType};base64,${user.pfp.data}`
+                    : "https://randomuser.me/api/portraits/men/67.jpg"
+                }
                 alt="User Avatar"
                 className="user-avatar"
               />
