@@ -346,3 +346,46 @@ body {
   margin-right: 10px;
   color: var(--primary);
 }
+
+.password-strength-meter {
+  height: 10px;
+  background-color: var(--light-gray);
+  border-radius: 5px;
+  margin-top: 10px;
+  overflow: hidden;
+}
+
+.strength-bar {
+  height: 100%;
+  transition: var(--transition);
+}
+
+.strength-bar[data-strength="0"] {
+  width: 0%;
+  background-color: var(--danger);
+}
+
+.strength-bar[data-strength="1"] {
+  width: 20%;
+  background-color: var(--danger);
+}
+
+.strength-bar[data-strength="2"] {
+  width: 40%;
+  background-color: var(--warning);
+}
+
+.strength-bar[data-strength="3"] {
+  width: 60%;
+  background-color: var(--warning);
+}
+
+.strength-bar[data-strength="4"] {
+  width: 80%;
+  background-color: var(--secondary);
+}
+
+.strength-bar[data-strength="5"] {
+  width: 100%;
+  background-color: var(--secondary);
+}
