@@ -1,30 +1,50 @@
 import { Link, useNavigate } from "react-router-dom";
+import { useFormik } from "formik";
+import * as Yup from "yup";
 import "./Login.css";
 import { useState } from "react";
 import { login } from "../../services/authApi";
 import { useAuthStore } from "../../store/authStore";
 
 const Login = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
   const { setToken, setUser } = useAuthStore();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-
-    try {
-      const { token, user } = await login({ email, password });
-      setToken(token);
-      setUser(user);
-      navigate("/schedule");
-    } catch (err) {
-      setError("Invalid email or password");
-    }
-  };
+  const formik = useFormik({
+    initialValues: {
+      email: "",
+      password: "",
+    },
+    validationSchema: Yup.object({
+      email: Yup.string()
+        .email("Invalid email address")
+        .required("Required")
+        .test(
+          "domain",
+          "Email must be a student.belgiumcampus.ac.za domain",
+          (value) => {
+            if (value) {
+              return value.endsWith("@student.belgiumcampus.ac.za");
+            }
+            return true;
+          },
+        ),
+      password: Yup.string().required("Required"),
+    }),
+    onSubmit: async (values) => {
+      setError("");
+      try {
+        const { token, user } = await login(values);
+        setToken(token);
+        setUser(user);
+        navigate("/schedule");
+      } catch (err) {
+        setError("Invalid email or password");
+      }
+    },
+  });
 
   return (
     <div className="login-container">
@@ -41,7 +61,7 @@ const Login = () => {
           <p className="login-subtitle">Sign in to continue to your account</p>
         </div>
 
-        <form id="login-form" onSubmit={handleSubmit}>
+        <form id="login-form" onSubmit={formik.handleSubmit}>
           {error && <p className="error-message">{error}</p>}
           <div className="form-group">
             <label className="form-label">
@@ -49,13 +69,22 @@ const Login = () => {
               <span>Email Address</span>
             </label>
             <input
+              id="email"
+              name="email"
               type="email"
-              className="form-control"
+              className={`form-control ${
+                formik.touched.email && formik.errors.email ? "is-invalid" : ""
+              }${
+                formik.touched.email && !formik.errors.email ? "is-valid" : ""
+              }`}
               placeholder="Enter your email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
+              value={formik.values.email}
             />
+            {formik.touched.email && formik.errors.email ? (
+              <div className="error-message">{formik.errors.email}</div>
+            ) : null}
           </div>
 
           <div className="form-group">
@@ -65,18 +94,31 @@ const Login = () => {
             </label>
             <div className="password-wrapper">
               <input
+                id="password"
+                name="password"
                 type={showPassword ? "text" : "password"}
-                className="form-control"
+                className={`form-control ${
+                  formik.touched.password && formik.errors.password
+                    ? "is-invalid"
+                    : ""
+                }${
+                  formik.touched.password && !formik.errors.password
+                    ? "is-valid"
+                    : ""
+                }`}
                 placeholder="Enter your password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                value={formik.values.password}
               />
               <i
                 className={`fas ${showPassword ? "fa-eye-slash" : "fa-eye"} password-toggle-icon`}
                 onClick={() => setShowPassword(!showPassword)}
               ></i>
             </div>
+            {formik.touched.password && formik.errors.password ? (
+              <div className="error-message">{formik.errors.password}</div>
+            ) : null}
           </div>
 
           <button type="submit" className="btn btn-primary">

@@ -1,21 +1,9 @@
 import React, { useState } from "react";
+import { useFormik } from "formik";
+import * as Yup from "yup";
 import "./Settings.css";
 
 const Settings = () => {
-  const [profile, setProfile] = useState({
-    firstName: "John",
-    lastName: "Doe",
-    email: "john.doe@example.com",
-  });
-
-  const [password, setPassword] = useState({
-    current: "",
-    new: "",
-    confirm: "",
-  });
-
-  const [passwordStrength, setPasswordStrength] = useState(0);
-
   const [notifications, setNotifications] = useState({
     newMessages: true,
     forumReplies: true,
@@ -35,18 +23,55 @@ const Settings = () => {
     return strength;
   };
 
-  const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setProfile({ ...profile, [e.target.name]: e.target.value });
-  };
+  const profileFormik = useFormik({
+    initialValues: {
+      firstName: "John",
+      lastName: "Doe",
+      email: "john.doe@example.com",
+    },
+    validationSchema: Yup.object({
+      firstName: Yup.string().required("Required"),
+      lastName: Yup.string().required("Required"),
+      email: Yup.string()
+        .email("Invalid email address")
+        .required("Required")
+        .test(
+          "domain",
+          "Email must be a student.belgiumcampus.ac.za domain",
+          (value) => {
+            if (value) {
+              return value.endsWith("@student.belgiumcampus.ac.za");
+            }
+            return true;
+          },
+        ),
+    }),
+    onSubmit: (values) => {
+      console.log("Profile submitted", values);
+    },
+  });
 
-  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setPassword({ ...password, [name]: value });
-
-    if (name === "new") {
-      setPasswordStrength(checkPasswordStrength(value));
-    }
-  };
+  const passwordFormik = useFormik({
+    initialValues: {
+      current: "",
+      new: "",
+      confirm: "",
+    },
+    validationSchema: Yup.object({
+      current: Yup.string().required("Required"),
+      new: Yup.string()
+        .required("Required")
+        .test("password-strength", "Password is too weak", (value) => {
+          return checkPasswordStrength(value || "") >= 4;
+        }),
+      confirm: Yup.string()
+        .oneOf([Yup.ref("new"), null], "Passwords must match")
+        .required("Required"),
+    }),
+    onSubmit: (values) => {
+      console.log("Password submitted", values);
+    },
+  });
 
   const handleNotificationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setNotifications({ ...notifications, [e.target.name]: e.target.checked });
@@ -61,6 +86,8 @@ const Settings = () => {
       setPreview(URL.createObjectURL(file));
     }
   };
+
+  const passwordStrength = checkPasswordStrength(passwordFormik.values.new);
 
   return (
     <div className="settings-container">
@@ -90,37 +117,68 @@ const Settings = () => {
             Change Picture
           </label>
         </div>
-        <form>
+        <form onSubmit={profileFormik.handleSubmit}>
           <div className="form-grid">
             <div className="form-group">
               <label className="form-label">First Name</label>
               <input
-                type="text"
+                id="firstName"
                 name="firstName"
-                className="form-control"
-                value={profile.firstName}
-                onChange={handleProfileChange}
+                type="text"
+                className={`form-control ${
+                  profileFormik.touched.firstName &&
+                  profileFormik.errors.firstName
+                    ? "is-invalid"
+                    : ""
+                }${
+                  profileFormik.touched.firstName &&
+                  !profileFormik.errors.firstName
+                    ? "is-valid"
+                    : ""
+                }`}
+                onChange={profileFormik.handleChange}
+                value={profileFormik.values.firstName}
               />
             </div>
             <div className="form-group">
               <label className="form-label">Last Name</label>
               <input
-                type="text"
+                id="lastName"
                 name="lastName"
-                className="form-control"
-                value={profile.lastName}
-                onChange={handleProfileChange}
+                type="text"
+                className={`form-control ${
+                  profileFormik.touched.lastName &&
+                  profileFormik.errors.lastName
+                    ? "is-invalid"
+                    : ""
+                }${
+                  profileFormik.touched.lastName &&
+                  !profileFormik.errors.lastName
+                    ? "is-valid"
+                    : ""
+                }`}
+                onChange={profileFormik.handleChange}
+                value={profileFormik.values.lastName}
               />
             </div>
           </div>
           <div className="form-group">
             <label className="form-label">Email Address</label>
             <input
-              type="email"
+              id="email"
               name="email"
-              className="form-control"
-              value={profile.email}
-              onChange={handleProfileChange}
+              type="email"
+              className={`form-control ${
+                profileFormik.touched.email && profileFormik.errors.email
+                  ? "is-invalid"
+                  : ""
+              }${
+                profileFormik.touched.email && !profileFormik.errors.email
+                  ? "is-valid"
+                  : ""
+              }`}
+              onChange={profileFormik.handleChange}
+              value={profileFormik.values.email}
             />
           </div>
           <div className="card-footer">
@@ -136,42 +194,57 @@ const Settings = () => {
         <div className="card-header">
           <h2 className="card-title">Change Password</h2>
         </div>
-        <form>
+        <form onSubmit={passwordFormik.handleSubmit}>
           <div className="form-group">
             <label className="form-label">Current Password</label>
             <input
-              type="password"
+              id="current"
               name="current"
+              type="password"
               className="form-control"
-              value={password.current}
-              onChange={handlePasswordChange}
+              onChange={passwordFormik.handleChange}
+              value={passwordFormik.values.current}
             />
           </div>
           <div className="form-grid">
             <div className="form-group">
               <label className="form-label">New Password</label>
               <input
-                type="password"
+                id="new"
                 name="new"
-                className="form-control"
-                value={password.new}
-                onChange={handlePasswordChange}
+                type="password"
+                className={`form-control ${
+                  passwordFormik.touched.new && passwordFormik.errors.new
+                    ? "is-invalid"
+                    : ""
+                }${
+                  passwordFormik.touched.new && !passwordFormik.errors.new
+                    ? "is-valid"
+                    : ""
+                }`}
+                onChange={passwordFormik.handleChange}
+                value={passwordFormik.values.new}
               />
-            </div>
-            <div className="password-strength-meter">
-              <div
-                className="strength-bar"
-                data-strength={passwordStrength}
-              ></div>
             </div>
             <div className="form-group">
               <label className="form-label">Confirm New Password</label>
               <input
-                type="password"
+                id="confirm"
                 name="confirm"
-                className="form-control"
-                value={password.confirm}
-                onChange={handlePasswordChange}
+                type="password"
+                className={`form-control ${
+                  passwordFormik.touched.confirm &&
+                  passwordFormik.errors.confirm
+                    ? "is-invalid"
+                    : ""
+                }${
+                  passwordFormik.touched.confirm &&
+                  !passwordFormik.errors.confirm
+                    ? "is-valid"
+                    : ""
+                }`}
+                onChange={passwordFormik.handleChange}
+                value={passwordFormik.values.confirm}
               />
             </div>
           </div>
