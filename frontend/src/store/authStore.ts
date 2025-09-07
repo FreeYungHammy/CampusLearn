@@ -7,9 +7,12 @@ interface AuthState {
   token: string | null;
   user: User | null;
   showLogoutModal: boolean;
-  setToken: (token: string) => void;
-  setUser: (user: User) => void;
-  logout: () => void;
+
+  setToken: (token: string | null) => void;
+  setUser: (user: User | null) => void;
+  clearAuth: () => void;
+
+  logout: () => Promise<void>;
   openLogoutModal: () => void;
   closeLogoutModal: () => void;
 }
@@ -20,17 +23,26 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       user: null,
       showLogoutModal: false,
+
       setToken: (token) => set({ token }),
       setUser: (user) => set({ user }),
+      clearAuth: () => set({ token: null, user: null, showLogoutModal: false }),
+
       logout: async () => {
         await logoutApi();
         set({ token: null, user: null, showLogoutModal: false });
       },
+
       openLogoutModal: () => set({ showLogoutModal: true }),
       closeLogoutModal: () => set({ showLogoutModal: false }),
     }),
     {
-      name: "auth-storage", // name of the item in the storage (must be unique)
+      name: "auth-storage",
+      // Persist only auth identity; avoid persisting transient UI like the modal flag
+      partialize: (state) => ({
+        token: state.token,
+        user: state.user,
+      }),
     },
   ),
 );

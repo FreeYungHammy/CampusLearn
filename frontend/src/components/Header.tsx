@@ -1,24 +1,11 @@
-import React from "react";
-import { Link, NavLink } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
+import LogoutConfirmationModal from "./LogoutConfirmationModal";
 
 const Header = () => {
-  const { user, logout, openLoginModal } = useAuthStore(); // keep login if added
+  const user = useAuthStore((s) => s.user);
+  const openLogoutModal = useAuthStore((s) => s.openLogoutModal);
   const isTutor = user?.role === "tutor";
-
-  const handleLogout = () => {
-    if (confirm("Are you sure you want to logout?")) {
-      logout();
-      alert("You have been logged out successfully.");
-      // In a real application, this would redirect to the login page
-    }
-  };
-
-  const handleLogin = () => {
-    if (openLoginModal) {
-      openLoginModal();
-    }
-  };
 
   return (
     <header className="header">
@@ -29,43 +16,44 @@ const Header = () => {
         <div className="logo-text">CampusLearn™</div>
       </div>
 
-      <div className="nav-items">
+      <nav className="nav-items">
         <NavLink to="/schedule" className="nav-item">
           <i className="fas fa-calendar"></i>
           <span>Schedule</span>
         </NavLink>
-        <NavLink
-          to="/mytutors"
-          className="nav-item"
-          style={{ display: isTutor ? "none" : "flex" }}
-        >
-          <i className="fas fa-user-friends"></i>
-          <span>My Tutors</span>
-        </NavLink>
-        <NavLink
-          to="/tutors"
-          className="nav-item"
-          style={{ display: isTutor ? "none" : "flex" }}
-        >
-          <i className="fas fa-user-graduate"></i>
-          <span>Find Tutors</span>
-        </NavLink>
-        <NavLink
-          to="/mystudents"
-          className="nav-item"
-          style={{ display: isTutor ? "flex" : "none" }}
-        >
-          <i className="fas fa-users"></i>
-          <span>My Students</span>
-        </NavLink>
-        <NavLink
-          to="/mycontent"
-          className="nav-item"
-          style={{ display: isTutor ? "flex" : "none" }}
-        >
-          <i className="fas fa-folder"></i>
-          <span>My Content</span>
-        </NavLink>
+
+        {/* student-only */}
+        {!isTutor && (
+          <>
+            <NavLink to="/mytutors" className="nav-item">
+              <i className="fas fa-user-friends"></i>
+              <span>My Tutors</span>
+            </NavLink>
+            <NavLink to="/tutors" className="nav-item">
+              <i className="fas fa-user-graduate"></i>
+              <span>Find Tutors</span>
+            </NavLink>
+          </>
+        )}
+
+        {/* tutor-only */}
+        {isTutor && (
+          <>
+            <NavLink to="/mystudents" className="nav-item">
+              <i className="fas fa-users"></i>
+              <span>My Students</span>
+            </NavLink>
+            <NavLink to="/mycontent" className="nav-item">
+              <i className="fas fa-folder"></i>
+              <span>My Content</span>
+            </NavLink>
+            <NavLink to="/upload" className="nav-item">
+              <i className="fas fa-upload"></i>
+              <span>Upload Content</span>
+            </NavLink>
+          </>
+        )}
+
         <NavLink to="/forum" className="nav-item">
           <i className="fas fa-comments"></i>
           <span>Forum</span>
@@ -74,19 +62,11 @@ const Header = () => {
           <i className="fas fa-envelope"></i>
           <span>Messages</span>
         </NavLink>
-        <NavLink
-          to="/upload"
-          className="nav-item"
-          style={{ display: isTutor ? "flex" : "none" }}
-        >
-          <i className="fas fa-upload"></i>
-          <span>Upload Content</span>
-        </NavLink>
         <NavLink to="/settings" className="nav-item">
           <i className="fas fa-cog"></i>
           <span>Settings</span>
         </NavLink>
-      </div>
+      </nav>
 
       <div className="user-actions">
         {user ? (
@@ -98,24 +78,28 @@ const Header = () => {
                 className="user-avatar"
               />
               <div className="user-name">
-                {user ? `${user.name} ${user.surname}` : ""}
+                {`${user.name} ${user.surname ?? ""}`.trim()}
               </div>
             </div>
 
             <button
               className="logout-btn"
               title="Logout"
-              onClick={handleLogout}
+              onClick={openLogoutModal}
             >
               <i className="fas fa-sign-out-alt"></i>
             </button>
           </>
         ) : (
-          <button className="login-btn" onClick={handleLogin}>
+          // if you later add a login modal, wire it here
+          <NavLink to="/login" className="btn btn-primary btn-sm">
             Login
-          </button>
+          </NavLink>
         )}
       </div>
+
+      {/* Mount once so it overlays the whole app */}
+      <LogoutConfirmationModal />
     </header>
   );
 };

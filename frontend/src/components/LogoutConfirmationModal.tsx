@@ -1,38 +1,43 @@
-import React from "react";
+import { useState } from "react";
+import Dialog from "./ui/Dialog";
+import { useAuthStore } from "../store/authStore";
 
-interface LogoutConfirmationModalProps {
-  onConfirm: () => void;
-  onCancel: () => void;
-}
+export default function LogoutConfirmationModal() {
+  const show = useAuthStore((s) => s.showLogoutModal);
+  const close = useAuthStore((s) => s.closeLogoutModal);
+  const doLogout = useAuthStore((s) => s.logout);
+  const [busy, setBusy] = useState(false);
 
-const LogoutConfirmationModal: React.FC<LogoutConfirmationModalProps> = ({
-  onConfirm,
-  onCancel,
-}) => {
+  const onConfirm = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await doLogout();
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm">
-      <div className="bg-white p-8 rounded-xl shadow-2xl transform transition-all duration-300 scale-100">
-        <h2 className="text-xl font-bold mb-6 text-gray-800">Confirm Logout</h2>
-        <p className="text-gray-600 mb-8">
-          Are you sure you want to end your session?
-        </p>
-        <div className="flex justify-end space-x-4">
-          <button
-            onClick={onCancel}
-            className="px-6 py-2 font-semibold text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors duration-200"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onConfirm}
-            className="px-6 py-2 font-semibold text-white bg-red-500 rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400 transition-colors duration-200"
-          >
-            Logout
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
+    <Dialog isOpen={show} onClose={close} labelledById="logout-title">
+      <h2 id="logout-title" className="modal-title">
+        Confirm Logout
+      </h2>
+      <p className="modal-body">Are you sure you want to end your session?</p>
 
-export default LogoutConfirmationModal;
+      <div className="modal-actions">
+        <button type="button" className="btn-ghost" onClick={close}>
+          Cancel
+        </button>
+        <button
+          type="button"
+          className="btn-danger-solid"
+          disabled={busy}
+          onClick={onConfirm}
+        >
+          {busy ? "Logging out…" : "Logout"}
+        </button>
+      </div>
+    </Dialog>
+  );
+}
