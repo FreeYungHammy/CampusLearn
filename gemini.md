@@ -125,3 +125,13 @@ The frontend is a React application built with Vite.
   - Introduced a full-screen, modern confirmation modal (`LogoutConfirmationModal.tsx`) that appears when the user clicks the logout button. This prevents accidental logouts and improves user experience.
   - The modal is rendered as an overlay on the entire application, creating a 3D effect and focusing the user's attention.
   - The modal's visibility is managed through the global Zustand store, ensuring a clean and centralized state management approach.
+
+### Session 3: Default Profile Picture Implementation
+
+- **Backend (Profile Picture):**
+  - Updated `students.schema.ts` and `tutor.schema.ts` to include a `pfp` field for storing the profile picture.
+  - Modified `user.service.ts` to set a default profile picture for new users upon registration. The default image is read from a file at runtime.
+  - Updated the `login` function in `user.service.ts` to include the `pfp` data in the user object returned to the frontend.
+- **Frontend (Profile Picture):**
+  - Updated the `User` type in `frontend/src/types/Users.ts` to include the `pfp` field.
+  - Modified the `Header.tsx` component to dynamically display the user's profile picture from the database. If no profile picture is available, a default avatar is shown.
