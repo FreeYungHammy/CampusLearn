@@ -79,8 +79,16 @@ The frontend is a React application built with Vite.
 
 1.  **User Lookup:** The system finds the user by email, retrieving the stored `passwordHash`.
 2.  **Password Comparison:** `bcrypt.compare` is used to securely check if the provided password matches the stored hash.
-3.  **JWT Generation:** On success, a JSON Web Token (JWT) is generated containing the user's ID, role, and email.
+3.  **JWT Generation:** On success, a JSON Web Token (JWT) is generated containing the user's ID, role, and email. The token is set to expire in 30 minutes.
 4.  **Response:** The JWT and public user information are returned to the frontend.
+
+**Logout (`POST /api/users/logout`):**
+
+1.  **Frontend Trigger:** The user initiates logout from the UI (e.g., by clicking a logout button).
+2.  **Confirmation Modal:** A confirmation modal appears to prevent accidental logout.
+3.  **API Call:** If confirmed, the frontend sends a request to the `/api/users/logout` endpoint.
+4.  **Cookie Removal:** The backend clears the JWT cookie.
+5.  **State Update:** The frontend removes the user's authentication token and user data from the global state, redirecting them to the login page.
 
 ## Session Log
 
@@ -102,3 +110,18 @@ The frontend is a React application built with Vite.
   - Implemented the full-stack registration feature.
   - **Backend:** Updated the `user.service.ts` and `user.controller.ts` to handle user and profile (student/tutor) creation, password hashing, duplicate email checks, and custom email domain validation (`@student.belgiumcampus.ac.za`).
   - **Frontend:** Connected the `Register.tsx` component to the new backend endpoint, providing full error handling and success navigation.
+
+### Session 2: Logout Functionality and UI Enhancements
+
+- **Backend (JWT and Logout):**
+  - Configured JSON Web Token (JWT) to expire after 30 minutes of inactivity in `backend/src/auth/jwt.ts`.
+  - Implemented a new logout route (`/api/users/logout`) that clears the JWT cookie, effectively logging out the user on the server side.
+- **Frontend (Logout and Inactivity):**
+  - Created a `logout` function in the frontend API service (`frontend/src/services/authApi.ts`) to communicate with the new backend endpoint.
+  - Updated the Zustand auth store (`frontend/src/store/authStore.ts`) with a `logout` action to clear the user's authentication state from the application.
+  - Added a "Logout" button to the main `Header.tsx` component, which now triggers the logout process.
+  - Implemented an automatic logout feature using a custom hook (`useInactivityLogout.ts`) that logs the user out after 30 minutes of inactivity (no mouse movement or key presses).
+- **Frontend (UI Enhancements):**
+  - Introduced a full-screen, modern confirmation modal (`LogoutConfirmationModal.tsx`) that appears when the user clicks the logout button. This prevents accidental logouts and improves user experience.
+  - The modal is rendered as an overlay on the entire application, creating a 3D effect and focusing the user's attention.
+  - The modal's visibility is managed through the global Zustand store, ensuring a clean and centralized state management approach.

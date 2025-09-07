@@ -1,23 +1,11 @@
 import bcrypt from "bcrypt";
-import jwt, { type SignOptions } from "jsonwebtoken";
+import { signJwt } from "../../auth/jwt";
 import { UserRepo } from "./user.repo";
 import { StudentRepo } from "../students/student.repo";
 import { TutorRepo } from "../tutors/tutor.repo";
 import type { UserDoc } from "../../schemas/user.schema";
 
-const JWT_SECRET: string = process.env.JWT_SECRET ?? "";
-
-if (!JWT_SECRET) throw new Error("JWT_SECRET not configured");
-
-const JWT_EXPIRES_IN: SignOptions["expiresIn"] =
-  (process.env.JWT_EXPIRES_IN as SignOptions["expiresIn"]) ?? "7d";
-
 const ALLOWED_EMAIL_DOMAIN = "@student.belgiumcampus.ac.za";
-
-function signJwt(payload: object) {
-  if (!JWT_SECRET) throw new Error("JWT_SECRET not configured");
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
-}
 
 export const UserService = {
   async register(input: {
@@ -82,7 +70,7 @@ export const UserService = {
     if (!ok) throw new Error("Invalid credentials");
 
     const token = signJwt({
-      sub: String((user as any)._id),
+      id: String((user as any)._id),
       role: user.role,
       email: user.email,
     });

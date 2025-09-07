@@ -26,6 +26,15 @@ export const UserController = {
     }
   },
 
+  logout: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      res.clearCookie("jwt");
+      res.status(200).json({ message: "Logged out successfully" });
+    } catch (e) {
+      next(e);
+    }
+  },
+
   list: async (_: Request, res: Response, next: NextFunction) => {
     try {
       const users = await UserService.list();

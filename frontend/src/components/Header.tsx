@@ -3,7 +3,7 @@ import { Link, NavLink } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 
 const Header = () => {
-  const { user, logout } = useAuthStore();
+  const { user, logout, openLoginModal } = useAuthStore(); // keep login if added
   const isTutor = user?.role === "tutor";
 
   const handleLogout = () => {
@@ -11,6 +11,12 @@ const Header = () => {
       logout();
       alert("You have been logged out successfully.");
       // In a real application, this would redirect to the login page
+    }
+  };
+
+  const handleLogin = () => {
+    if (openLoginModal) {
+      openLoginModal();
     }
   };
 
@@ -83,20 +89,32 @@ const Header = () => {
       </div>
 
       <div className="user-actions">
-        <div className="user-profile">
-          <img
-            src="https://randomuser.me/api/portraits/men/67.jpg"
-            alt="User Avatar"
-            className="user-avatar"
-          />
-          <div className="user-name">
-            {user ? `${user.name} ${user.surname}` : ""}
-          </div>
-        </div>
+        {user ? (
+          <>
+            <div className="user-profile">
+              <img
+                src="https://randomuser.me/api/portraits/men/67.jpg"
+                alt="User Avatar"
+                className="user-avatar"
+              />
+              <div className="user-name">
+                {user ? `${user.name} ${user.surname}` : ""}
+              </div>
+            </div>
 
-        <button className="logout-btn" title="Logout" onClick={handleLogout}>
-          <i className="fas fa-sign-out-alt"></i>
-        </button>
+            <button
+              className="logout-btn"
+              title="Logout"
+              onClick={handleLogout}
+            >
+              <i className="fas fa-sign-out-alt"></i>
+            </button>
+          </>
+        ) : (
+          <button className="login-btn" onClick={handleLogin}>
+            Login
+          </button>
+        )}
       </div>
     </header>
   );

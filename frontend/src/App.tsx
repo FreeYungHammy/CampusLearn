@@ -17,7 +17,15 @@ import "./App.css";
 
 const Messages = React.lazy(() => import("./pages/Messages"));
 
+import { useInactivityLogout } from "./hooks/useInactivityLogout";
+
+import { useAuthStore } from "./store/authStore";
+import LogoutConfirmationModal from "./components/LogoutConfirmationModal";
+
 function App() {
+  useInactivityLogout();
+  const { showLogoutModal, logout, closeLogoutModal } = useAuthStore();
+
   return (
     <div className="App">
       <Suspense fallback={<div>Loading...</div>}>
@@ -41,6 +49,12 @@ function App() {
           <Route path="*" element={<Navigate to="/schedule" />} />
         </Routes>
       </Suspense>
+      {showLogoutModal && (
+        <LogoutConfirmationModal
+          onConfirm={logout}
+          onCancel={closeLogoutModal}
+        />
+      )}
     </div>
   );
 }
