@@ -4,4 +4,7 @@ export const env = {
   mongoUri:
     process.env.MONGO_URI ??
     "mongodb+srv://Gabriel:admin1@campuslearn.ukgqknw.mongodb.net/?retryWrites=true&w=majority&appName=CampusLearn",
+  jwtSecret:
+    process.env.JWT_SECRET ??
+    "Cw_e94TFCNIAWSe-e52FF4R9fqMV7ghJ6LZUL_JuZBhqne1mnP3Gv7bTNuDE3Hu5BC3xeONS52e-ZPMCLpVfwA",
 };
