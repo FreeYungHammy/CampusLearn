@@ -1,17 +1,12 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useFormik } from "formik";
+import * as Yup from "yup";
 import { register } from "../../services/authApi";
 import "./Login.css";
 
 const Register = () => {
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [passwordStrength, setPasswordStrength] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
-  const [role, setRole] = useState("student");
-  const [subjects, setSubjects] = useState<string[]>([]);
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
@@ -25,43 +20,55 @@ const Register = () => {
     return strength;
   };
 
-  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newPassword = e.target.value;
-    setPassword(newPassword);
-    setPasswordStrength(checkPasswordStrength(newPassword));
-  };
-
-  const handleSubjectChange = (subject: string) => {
-    setSubjects((prev) =>
-      prev.includes(subject)
-        ? prev.filter((s) => s !== subject)
-        : [...prev, subject],
-    );
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-
-    try {
-      await register({
-        firstName,
-        lastName,
-        email,
-        password,
-        role,
-        subjects,
-      });
-      // On success, navigate to the login page with a success message
-      navigate("/login?registered=true");
-    } catch (err: any) {
-      if (err.response && err.response.data && err.response.data.message) {
-        setError(err.response.data.message);
-      } else {
-        setError("An unexpected error occurred. Please try again.");
+  const formik = useFormik({
+    initialValues: {
+      firstName: "",
+      lastName: "",
+      email: "",
+      password: "",
+      role: "student",
+      subjects: [],
+    },
+    validationSchema: Yup.object({
+      firstName: Yup.string().required("Required"),
+      lastName: Yup.string().required("Required"),
+      email: Yup.string()
+        .email("Invalid email address")
+        .required("Required")
+        .test(
+          "domain",
+          "Email must be a student.belgiumcampus.ac.za domain",
+          (value) => {
+            if (value) {
+              return value.endsWith("@student.belgiumcampus.ac.za");
+            }
+            return true;
+          },
+        ),
+      password: Yup.string()
+        .required("Required")
+        .test("password-strength", "Password is too weak", (value) => {
+          return checkPasswordStrength(value || "") >= 4;
+        }),
+      role: Yup.string().required("Required"),
+      subjects: Yup.array().min(1, "Select at least one subject"),
+    }),
+    onSubmit: async (values) => {
+      setError("");
+      try {
+        await register(values);
+        navigate("/login?registered=true");
+      } catch (err: any) {
+        if (err.response && err.response.data && err.response.data.message) {
+          setError(err.response.data.message);
+        } else {
+          setError("An unexpected error occurred. Please try again.");
+        }
       }
-    }
-  };
+    },
+  });
+
+  const passwordStrength = checkPasswordStrength(formik.values.password);
 
   return (
     <div className="login-container">
@@ -80,7 +87,7 @@ const Register = () => {
           </p>
         </div>
 
-        <form id="register-form" onSubmit={handleSubmit}>
+        <form id="register-form" onSubmit={formik.handleSubmit}>
           {error && (
             <p
               className="error-message"
@@ -99,13 +106,26 @@ const Register = () => {
               <span>First Name</span>
             </label>
             <input
+              id="firstName"
+              name="firstName"
               type="text"
-              className="form-control"
+              className={`form-control ${
+                formik.touched.firstName && formik.errors.firstName
+                  ? "is-invalid"
+                  : ""
+              }${
+                formik.touched.firstName && !formik.errors.firstName
+                  ? "is-valid"
+                  : ""
+              }`}
               placeholder="Enter your first name"
-              required
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
+              value={formik.values.firstName}
             />
+            {formik.touched.firstName && formik.errors.firstName ? (
+              <div className="error-message">{formik.errors.firstName}</div>
+            ) : null}
           </div>
 
           <div className="form-group">
@@ -114,13 +134,26 @@ const Register = () => {
               <span>Last Name</span>
             </label>
             <input
+              id="lastName"
+              name="lastName"
               type="text"
-              className="form-control"
+              className={`form-control ${
+                formik.touched.lastName && formik.errors.lastName
+                  ? "is-invalid"
+                  : ""
+              }${
+                formik.touched.lastName && !formik.errors.lastName
+                  ? "is-valid"
+                  : ""
+              }`}
               placeholder="Enter your last name"
-              required
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
+              value={formik.values.lastName}
             />
+            {formik.touched.lastName && formik.errors.lastName ? (
+              <div className="error-message">{formik.errors.lastName}</div>
+            ) : null}
           </div>
 
           <div className="form-group">
@@ -129,13 +162,22 @@ const Register = () => {
               <span>Email Address</span>
             </label>
             <input
+              id="email"
+              name="email"
               type="email"
-              className="form-control"
+              className={`form-control ${
+                formik.touched.email && formik.errors.email ? "is-invalid" : ""
+              }${
+                formik.touched.email && !formik.errors.email ? "is-valid" : ""
+              }`}
               placeholder="Enter your email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
+              value={formik.values.email}
             />
+            {formik.touched.email && formik.errors.email ? (
+              <div className="error-message">{formik.errors.email}</div>
+            ) : null}
           </div>
 
           <div className="form-group">
@@ -145,12 +187,22 @@ const Register = () => {
             </label>
             <div className="password-wrapper">
               <input
+                id="password"
+                name="password"
                 type={showPassword ? "text" : "password"}
-                className="form-control"
+                className={`form-control ${
+                  formik.touched.password && formik.errors.password
+                    ? "is-invalid"
+                    : ""
+                }${
+                  formik.touched.password && !formik.errors.password
+                    ? "is-valid"
+                    : ""
+                }`}
                 placeholder="Create a password"
-                required
-                value={password}
-                onChange={handlePasswordChange}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                value={formik.values.password}
               />
               <i
                 className={`fas ${showPassword ? "fa-eye-slash" : "fa-eye"} password-toggle-icon`}
@@ -163,6 +215,9 @@ const Register = () => {
                 data-strength={passwordStrength}
               ></div>
             </div>
+            {formik.touched.password && formik.errors.password ? (
+              <div className="error-message">{formik.errors.password}</div>
+            ) : null}
           </div>
 
           <div className="form-group">
@@ -172,16 +227,16 @@ const Register = () => {
             </label>
             <div className="role-selection">
               <div
-                className={`role-option ${role === "student" ? "selected" : ""}`}
-                onClick={() => setRole("student")}
+                className={`role-option ${formik.values.role === "student" ? "selected" : ""}`}
+                onClick={() => formik.setFieldValue("role", "student")}
               >
                 <i className="fas fa-user-graduate"></i>
                 <h3>Student</h3>
                 <p>Learn from peers and tutors</p>
               </div>
               <div
-                className={`role-option ${role === "tutor" ? "selected" : ""}`}
-                onClick={() => setRole("tutor")}
+                className={`role-option ${formik.values.role === "tutor" ? "selected" : ""}`}
+                onClick={() => formik.setFieldValue("role", "tutor")}
               >
                 <i className="fas fa-chalkboard-teacher"></i>
                 <h3>Tutor</h3>
@@ -210,8 +265,8 @@ const Register = () => {
                     className="subject-checkbox"
                     name="subjects"
                     value={subject}
-                    checked={subjects.includes(subject)}
-                    onChange={() => handleSubjectChange(subject)}
+                    checked={formik.values.subjects.includes(subject)}
+                    onChange={formik.handleChange}
                   />
                   <label htmlFor={subject} className="subject-label">
                     <i
@@ -231,6 +286,9 @@ const Register = () => {
                 </div>
               ))}
             </div>
+            {formik.touched.subjects && formik.errors.subjects ? (
+              <div className="error-message">{formik.errors.subjects}</div>
+            ) : null}
           </div>
 
           <button type="submit" className="btn btn-primary">
