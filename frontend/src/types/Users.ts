@@ -4,6 +4,8 @@ export type User = {
   id: string; // stringified _id
   email: string;
   role: Role;
+  name?: string;
+  surname?: string;
   createdAt?: string; // ISO
   updatedAt?: string; // ISO
 };
