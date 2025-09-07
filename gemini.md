@@ -1,0 +1,104 @@
+# Gemini - AI Software Engineer
+
+This document outlines my understanding of the CampusLearn project and my role as an AI software engineer for the next 8 weeks.
+
+## Project Overview
+
+CampusLearn is a full-stack web application with a React frontend and a Node.js/Express backend. It appears to be an educational platform that connects students and tutors.
+
+### Key Technologies
+
+- **Frontend:** React, Vite, TypeScript, Tailwind CSS, Axios, Socket.IO Client, Zustand
+- **Backend:** Node.js, Express, TypeScript, MongoDB (Mongoose), Socket.IO, bcrypt
+- **Architecture:** Monorepo with `frontend` and `backend` workspaces.
+
+### Core Features
+
+- User authentication (login/registration)
+- Tutor discovery and profiles
+- Forum for discussions
+- Real-time chat between users
+- File uploads
+
+## My Role
+
+As an AI software engineer on this project, my primary responsibilities will be:
+
+- **Code Refactoring:** Improving the existing codebase for clarity, performance, and maintainability.
+- **Feature Development:** Assisting in the implementation of new features as requested.
+- **Bug Fixes:** Identifying and resolving issues within the application.
+- **Code Analysis:** Providing insights and explanations of the current codebase.
+- **Automation:** Assisting with scripts and tooling to improve the development workflow.
+
+I will strive to adhere to the existing coding conventions and best practices of the project. I look forward to collaborating with the team over the next 8 weeks.
+
+## Code Deep Dive & Snapshots
+
+To ensure continuity between sessions, here is a more detailed snapshot of the application's architecture and key code pathways.
+
+### Backend
+
+The backend is an Express.js application.
+
+**Startup Process (`server.ts` -> `app.ts`):**
+
+1.  `server.ts` is the main entry point, which calls the `boot()` function from `app.ts`.
+2.  The `boot()` function in `app.ts` establishes a connection to MongoDB via `connectMongo()`.
+3.  `app.ts` configures the Express app with middleware for CORS, JSON parsing, and then sets up the API routes.
+4.  The server starts listening for requests.
+
+**API Routing (`app.ts` -> `routes/index.ts` -> modules):**
+
+- The main application (`app.ts`) forwards all requests starting with `/api` to the main router in `routes/index.ts`.
+- This main router then delegates to modular routers for different resources.
+
+### Frontend
+
+The frontend is a React application built with Vite.
+
+**Startup Process (`main.tsx`):**
+
+1.  `main.tsx` is the entry point.
+2.  It renders the `RouterProvider` from `react-router-dom`, which manages the application's routing.
+3.  The core application component is `<App />`, which likely contains the main layout and shared components.
+
+### Authentication Flow (Login/Register)
+
+**Registration (`POST /api/users/register`):**
+
+1.  **Validation:** The incoming user's email is validated to ensure it ends with `@student.belgiumcampus.ac.za`. If not, a `400 Bad Request` error is returned.
+2.  **Duplicate Check:** The database is checked to see if a user with that email already exists. If so, a `409 Conflict` error is returned.
+3.  **Password Hashing:** The user's plain-text password is securely hashed using `bcrypt` with a cost factor of 10.
+4.  **User Creation:** A new `User` document is created with the email, hashed password, and role.
+5.  **Profile Creation:**
+    - If the role is `student`, a corresponding `Student` document is created with the user's name and selected subjects (stored as `enrolledCourses`).
+    - If the role is `tutor`, a `Tutor` document is created with the user's name and selected subjects.
+6.  **Response:** A success response is sent to the frontend.
+
+**Login (`POST /api/users/login`):**
+
+1.  **User Lookup:** The system finds the user by email, retrieving the stored `passwordHash`.
+2.  **Password Comparison:** `bcrypt.compare` is used to securely check if the provided password matches the stored hash.
+3.  **JWT Generation:** On success, a JSON Web Token (JWT) is generated containing the user's ID, role, and email.
+4.  **Response:** The JWT and public user information are returned to the frontend.
+
+## Session Log
+
+### Session 1: Initial Setup, Debugging, and Registration Implementation
+
+- **Initial Analysis:** Analyzed the project structure, dependencies, and core files to gain a comprehensive understanding of the full-stack application. Created this `gemini.md` file to document my understanding.
+- **Backend Debugging:**
+  - Resolved a server startup crash by creating a `.env` file and setting the required `JWT_SECRET`.
+  - Fixed multiple TypeScript compilation errors (`TS2790`) in all schema files by replacing the `delete` operator with a type-safe destructuring method in `toJSON` transforms.
+  - Resolved a `net::ERR_CONNECTION_REFUSED` error by correcting the backend port from `5000` to `5001` in the frontend's API configuration.
+  - Diagnosed and fixed a database connection issue by adding the correct MongoDB Atlas URI (including the database name `campuslearn`) to the `.env` file, resolving a `MongoServerError` related to database/collection name casing.
+  - Fixed a series of compilation errors (`TS2339`, `TS2551`) by implementing missing static methods (`findByUserId`, `searchBySubject`, etc.) and their corresponding type definitions in the `tutor.schema.ts` file.
+- **Frontend Development:**
+  - Replaced the existing registration page with a new, more detailed component based on user-provided HTML (`newregister.html`).
+  - Integrated the new HTML structure into a React component (`Register.tsx`), adding state management for all form fields.
+  - Ensured the new page's styling and layout matched the existing `Login.tsx` page, including making the container progressively wider based on user feedback.
+  - Fixed an issue where selection buttons had no visual feedback by centralizing all component styles into the shared `Login.css` file.
+- **Feature Implementation (Registration Logic):**
+  - Implemented the full-stack registration feature.
+  - **Backend:** Updated the `user.service.ts` and `user.controller.ts` to handle user and profile (student/tutor) creation, password hashing, duplicate email checks, and custom email domain validation (`@student.belgiumcampus.ac.za`).
+  - **Frontend:** Connected the `Register.tsx` component to the new backend endpoint, providing full error handling and success navigation.

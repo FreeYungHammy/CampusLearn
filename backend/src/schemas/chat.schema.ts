@@ -19,7 +19,8 @@ ChatSchema.set("toJSON", {
   virtuals: true,
   versionKey: false,
   transform: (_doc, ret) => {
-    delete ret._id;
+    const { _id, ...rest } = ret;
+    return rest;
   },
 });
 ChatSchema.set("toObject", { virtuals: true });

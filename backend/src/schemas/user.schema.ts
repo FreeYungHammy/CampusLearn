@@ -22,9 +22,9 @@ UserSchema.virtual("id").get(function () {
 UserSchema.set("toJSON", {
   virtuals: true,
   versionKey: false,
-  transform: (_doc, ret: { _id?: unknown; passwordHash?: unknown }) => {
-    delete ret._id;
-    delete ret.passwordHash;
+  transform: (_doc, ret) => {
+    const { _id, passwordHash, ...rest } = ret;
+    return rest;
   },
 });
 UserSchema.set("toObject", { virtuals: true });

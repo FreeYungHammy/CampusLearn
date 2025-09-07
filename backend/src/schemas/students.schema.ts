@@ -22,8 +22,9 @@ StudentSchema.virtual("id").get(function () {
 StudentSchema.set("toJSON", {
   virtuals: true,
   versionKey: false,
-  transform: (_doc, ret: { _id?: unknown }) => {
-    delete ret._id;
+  transform: (_doc, ret) => {
+    const { _id, ...rest } = ret;
+    return rest;
   },
 });
 StudentSchema.set("toObject", { virtuals: true });
