@@ -87,8 +87,24 @@ export const UserService = {
       email: user.email,
     });
 
+    // Fetch the user's profile to get their name
+    let profile: any;
+    if (user.role === "student") {
+      profile = await StudentRepo.findOne({ userId: (user as any)._id });
+    } else if (user.role === "tutor") {
+      profile = await TutorRepo.findOne({ userId: (user as any)._id });
+    }
+
     const { passwordHash: _ph, ...publicUser } = user as any;
-    return { token, user: publicUser };
+
+    // Combine user and profile data
+    const userWithProfile = {
+      ...publicUser,
+      name: profile?.name,
+      surname: profile?.surname,
+    };
+
+    return { token, user: userWithProfile };
   },
 
   list() {

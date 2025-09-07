@@ -1,15 +1,14 @@
-import React, { useState } from "react";
+import React from "react";
 import { Link, NavLink } from "react-router-dom";
+import { useAuthStore } from "../store/authStore";
 
 const Header = () => {
-  const [isTutor, setIsTutor] = useState(false);
-
-  const handleRoleChange = (role) => {
-    setIsTutor(role === "tutor");
-  };
+  const { user, logout } = useAuthStore();
+  const isTutor = user?.role === "tutor";
 
   const handleLogout = () => {
     if (confirm("Are you sure you want to logout?")) {
+      logout();
       alert("You have been logged out successfully.");
       // In a real application, this would redirect to the login page
     }
@@ -84,28 +83,15 @@ const Header = () => {
       </div>
 
       <div className="user-actions">
-        <div className="role-toggle">
-          <div
-            className={`role-btn student ${!isTutor ? "active" : ""}`}
-            onClick={() => handleRoleChange("student")}
-          >
-            Student
-          </div>
-          <div
-            className={`role-btn tutor ${isTutor ? "active" : ""}`}
-            onClick={() => handleRoleChange("tutor")}
-          >
-            Tutor
-          </div>
-        </div>
-
         <div className="user-profile">
           <img
             src="https://randomuser.me/api/portraits/men/67.jpg"
             alt="User Avatar"
             className="user-avatar"
           />
-          <div className="user-name">John Doe</div>
+          <div className="user-name">
+            {user ? `${user.name} ${user.surname}` : ""}
+          </div>
         </div>
 
         <button className="logout-btn" title="Logout" onClick={handleLogout}>
