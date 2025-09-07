@@ -7,3 +7,8 @@ export const login = async (
   const response = await api.post("/users/login", credentials);
   return response.data;
 };
+
+export const register = async (details: any): Promise<User> => {
+  const response = await api.post("/users/register", details);
+  return response.data;
+};

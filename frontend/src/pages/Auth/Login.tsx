@@ -7,6 +7,7 @@ import { useAuthStore } from "../../store/authStore";
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
   const { setToken, setUser } = useAuthStore();
@@ -62,14 +63,20 @@ const Login = () => {
               <i className="fas fa-lock"></i>
               <span>Password</span>
             </label>
-            <input
-              type="password"
-              className="form-control"
-              placeholder="Enter your password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+            <div className="password-wrapper">
+              <input
+                type={showPassword ? "text" : "password"}
+                className="form-control"
+                placeholder="Enter your password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <i
+                className={`fas ${showPassword ? "fa-eye-slash" : "fa-eye"} password-toggle-icon`}
+                onClick={() => setShowPassword(!showPassword)}
+              ></i>
+            </div>
           </div>
 
           <button type="submit" className="btn btn-primary">

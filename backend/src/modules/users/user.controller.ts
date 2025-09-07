@@ -6,7 +6,13 @@ export const UserController = {
     try {
       const created = await UserService.register(req.body);
       res.status(201).json(created);
-    } catch (e) {
+    } catch (e: any) {
+      if (e.name === "Conflict") {
+        return res.status(409).json({ message: e.message });
+      }
+      if (e.name === "BadRequest") {
+        return res.status(400).json({ message: e.message });
+      }
       next(e);
     }
   },

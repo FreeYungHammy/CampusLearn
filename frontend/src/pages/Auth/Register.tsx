@@ -1,7 +1,51 @@
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { register } from "../../services/authApi";
 import "./Login.css";
 
 const Register = () => {
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [role, setRole] = useState("student");
+  const [subjects, setSubjects] = useState<string[]>([]);
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+
+  const handleSubjectChange = (subject: string) => {
+    setSubjects((prev) =>
+      prev.includes(subject)
+        ? prev.filter((s) => s !== subject)
+        : [...prev, subject],
+    );
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    try {
+      await register({
+        firstName,
+        lastName,
+        email,
+        password,
+        role,
+        subjects,
+      });
+      // On success, navigate to the login page with a success message
+      navigate("/login?registered=true");
+    } catch (err: any) {
+      if (err.response && err.response.data && err.response.data.message) {
+        setError(err.response.data.message);
+      } else {
+        setError("An unexpected error occurred. Please try again.");
+      }
+    }
+  };
+
   return (
     <div className="login-container">
       <div className="logo">
@@ -13,23 +57,55 @@ const Register = () => {
 
       <div className="login-card">
         <div className="login-header">
-          <h1 className="login-title">Create Account</h1>
-          <p className="login-subtitle">Get started with your account</p>
+          <h1 className="login-title">Create Your Account</h1>
+          <p className="login-subtitle">
+            Join our peer-powered learning community
+          </p>
         </div>
 
-        <form id="register-form">
+        <form id="register-form" onSubmit={handleSubmit}>
+          {error && (
+            <p
+              className="error-message"
+              style={{
+                color: "red",
+                textAlign: "center",
+                marginBottom: "10px",
+              }}
+            >
+              {error}
+            </p>
+          )}
           <div className="form-group">
             <label className="form-label">
               <i className="fas fa-user"></i>
-              <span>Full Name</span>
+              <span>First Name</span>
             </label>
             <input
               type="text"
               className="form-control"
-              placeholder="Enter your full name"
+              placeholder="Enter your first name"
               required
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
             />
           </div>
+
+          <div className="form-group">
+            <label className="form-label">
+              <i className="fas fa-user"></i>
+              <span>Last Name</span>
+            </label>
+            <input
+              type="text"
+              className="form-control"
+              placeholder="Enter your last name"
+              required
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+            />
+          </div>
+
           <div className="form-group">
             <label className="form-label">
               <i className="fas fa-envelope"></i>
@@ -40,6 +116,8 @@ const Register = () => {
               className="form-control"
               placeholder="Enter your email"
               required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
             />
           </div>
 
@@ -48,12 +126,88 @@ const Register = () => {
               <i className="fas fa-lock"></i>
               <span>Password</span>
             </label>
-            <input
-              type="password"
-              className="form-control"
-              placeholder="Enter your password"
-              required
-            />
+            <div className="password-wrapper">
+              <input
+                type={showPassword ? "text" : "password"}
+                className="form-control"
+                placeholder="Create a password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <i
+                className={`fas ${showPassword ? "fa-eye-slash" : "fa-eye"} password-toggle-icon`}
+                onClick={() => setShowPassword(!showPassword)}
+              ></i>
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">
+              <i className="fas fa-users"></i>
+              <span>I want to join as a:</span>
+            </label>
+            <div className="role-selection">
+              <div
+                className={`role-option ${role === "student" ? "selected" : ""}`}
+                onClick={() => setRole("student")}
+              >
+                <i className="fas fa-user-graduate"></i>
+                <h3>Student</h3>
+                <p>Learn from peers and tutors</p>
+              </div>
+              <div
+                className={`role-option ${role === "tutor" ? "selected" : ""}`}
+                onClick={() => setRole("tutor")}
+              >
+                <i className="fas fa-chalkboard-teacher"></i>
+                <h3>Tutor</h3>
+                <p>Share knowledge and earn</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">
+              <i className="fas fa-book"></i>
+              <span>Select Subjects</span>
+            </label>
+            <div className="subjects-container">
+              {[
+                "Programming",
+                "Math",
+                "Linear Programming",
+                "Database",
+                "Web Programming",
+              ].map((subject) => (
+                <div key={subject}>
+                  <input
+                    type="checkbox"
+                    id={subject}
+                    className="subject-checkbox"
+                    name="subjects"
+                    value={subject}
+                    checked={subjects.includes(subject)}
+                    onChange={() => handleSubjectChange(subject)}
+                  />
+                  <label htmlFor={subject} className="subject-label">
+                    <i
+                      className={`fas ${
+                        {
+                          Programming: "fa-code",
+                          Math: "fa-calculator",
+                          "Linear Programming": "fa-project-diagram",
+                          Database: "fa-database",
+                          "Web Programming": "fa-laptop-code",
+                        }[subject]
+                      }
+                    `}
+                    ></i>
+                    {subject}
+                  </label>
+                </div>
+              ))}
+            </div>
           </div>
 
           <button type="submit" className="btn btn-primary">
@@ -61,10 +215,12 @@ const Register = () => {
             Create Account
           </button>
 
-          <Link to="/login" className="btn btn-outline">
-            <i className="fas fa-sign-in-alt"></i>
-            Sign In
-          </Link>
+          <div
+            className="login-link"
+            style={{ textAlign: "center", marginTop: "20px" }}
+          >
+            Already have an account? <Link to="/login">Sign in here</Link>
+          </div>
         </form>
       </div>
     </div>

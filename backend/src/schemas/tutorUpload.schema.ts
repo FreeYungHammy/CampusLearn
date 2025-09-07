@@ -20,8 +20,8 @@ tutorUpload.set("toJSON", {
   virtuals: true,
   versionKey: false,
   transform: (_doc, ret) => {
-    delete ret._id;
-    delete ret.content;
+    const { _id, content, ...rest } = ret;
+    return rest;
   },
 });
 tutorUpload.set("toObject", { virtuals: true });
