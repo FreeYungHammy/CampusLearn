@@ -12,3 +12,7 @@ export const register = async (details: any): Promise<User> => {
   const response = await api.post("/users/register", details);
   return response.data;
 };
+
+export const logout = async (): Promise<void> => {
+  await api.post("/users/logout");
+};

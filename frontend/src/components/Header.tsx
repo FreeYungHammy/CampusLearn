@@ -1,7 +1,9 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
+import { useAuthStore } from "../store/authStore";
 
 const Header = () => {
+  const openLogoutModal = useAuthStore((state) => state.openLogoutModal);
   const [isTutor, setIsTutor] = useState(false);
 
   const handleRoleChange = (role) => {
@@ -9,10 +11,7 @@ const Header = () => {
   };
 
   const handleLogout = () => {
-    if (confirm("Are you sure you want to logout?")) {
-      alert("You have been logged out successfully.");
-      // In a real application, this would redirect to the login page
-    }
+    openLogoutModal();
   };
 
   return (
