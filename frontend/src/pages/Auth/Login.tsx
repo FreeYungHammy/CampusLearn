@@ -47,101 +47,107 @@ const Login = () => {
   });
 
   return (
-    <div className="login-container">
-      <div className="logo">
-        <div className="logo-icon">
-          <i className="fas fa-graduation-cap"></i>
-        </div>
-        <div className="logo-text">CampusLearn™</div>
-      </div>
-
-      <div className="login-card">
-        <div className="login-header">
-          <h1 className="login-title">Welcome Back</h1>
-          <p className="login-subtitle">Sign in to continue to your account</p>
+    <div className="auth-page-container">
+      <div className="login-container">
+        <div className="logo">
+          <div className="logo-icon">
+            <i className="fas fa-graduation-cap"></i>
+          </div>
+          <div className="logo-text">CampusLearn™</div>
         </div>
 
-        <form id="login-form" onSubmit={formik.handleSubmit}>
-          {error && <p className="error-message">{error}</p>}
-          <div className="form-group">
-            <label className="form-label">
-              <i className="fas fa-envelope"></i>
-              <span>Email Address</span>
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              className={`form-control ${
-                formik.touched.email && formik.errors.email ? "is-invalid" : ""
-              }${
-                formik.touched.email && !formik.errors.email ? "is-valid" : ""
-              }`}
-              placeholder="Enter your email"
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              value={formik.values.email}
-            />
-            {formik.touched.email && formik.errors.email ? (
-              <div className="error-message">{formik.errors.email}</div>
-            ) : null}
+        <div className="login-card">
+          <div className="login-header">
+            <h1 className="login-title">Welcome Back</h1>
+            <p className="login-subtitle">
+              Sign in to continue to your account
+            </p>
           </div>
 
-          <div className="form-group">
-            <label className="form-label">
-              <i className="fas fa-lock"></i>
-              <span>Password</span>
-            </label>
-            <div className="password-wrapper">
+          <form id="login-form" onSubmit={formik.handleSubmit}>
+            {error && <p className="error-message">{error}</p>}
+            <div className="form-group">
+              <label className="form-label">
+                <i className="fas fa-envelope"></i>
+                <span>Email Address</span>
+              </label>
               <input
-                id="password"
-                name="password"
-                type={showPassword ? "text" : "password"}
+                id="email"
+                name="email"
+                type="email"
                 className={`form-control ${
-                  formik.touched.password && formik.errors.password
+                  formik.touched.email && formik.errors.email
                     ? "is-invalid"
                     : ""
                 }${
-                  formik.touched.password && !formik.errors.password
-                    ? "is-valid"
-                    : ""
+                  formik.touched.email && !formik.errors.email ? "is-valid" : ""
                 }`}
-                placeholder="Enter your password"
+                placeholder="Enter your email"
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
-                value={formik.values.password}
+                value={formik.values.email}
               />
-              <i
-                className={`fas ${showPassword ? "fa-eye-slash" : "fa-eye"} password-toggle-icon`}
-                onClick={() => setShowPassword(!showPassword)}
-              ></i>
+              {formik.touched.email && formik.errors.email ? (
+                <div className="error-message">{formik.errors.email}</div>
+              ) : null}
             </div>
-            {formik.touched.password && formik.errors.password ? (
-              <div className="error-message">{formik.errors.password}</div>
-            ) : null}
-          </div>
 
-          <button type="submit" className="btn btn-primary">
-            <i className="fas fa-sign-in-alt"></i>
-            Sign In
-          </button>
+            <div className="form-group">
+              <label className="form-label">
+                <i className="fas fa-lock"></i>
+                <span>Password</span>
+              </label>
+              <div className="password-wrapper">
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  className={`form-control ${
+                    formik.touched.password && formik.errors.password
+                      ? "is-invalid"
+                      : ""
+                  }${
+                    formik.touched.password && !formik.errors.password
+                      ? "is-valid"
+                      : ""
+                  }`}
+                  placeholder="Enter your password"
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  value={formik.values.password}
+                />
+                <i
+                  className={`fas ${showPassword ? "fa-eye-slash" : "fa-eye"} password-toggle-icon`}
+                  onClick={() => setShowPassword(!showPassword)}
+                ></i>
+              </div>
+              {formik.touched.password && formik.errors.password ? (
+                <div className="error-message">{formik.errors.password}</div>
+              ) : null}
+            </div>
 
-          <Link to="/register" className="btn btn-outline">
-            <i className="fas fa-user-plus"></i>
-            Create New Account
-          </Link>
+            <button type="submit" className="btn btn-primary">
+              <i className="fas fa-sign-in-alt"></i>
+              Sign In
+            </button>
 
-          <div className="login-links">
-            <a href="#" className="login-link">
-              <i className="fas fa-question-circle"></i>
-              Need Help?
-            </a>
-            <a href="#" className="login-link">
-              <i className="fas fa-key"></i>
-              Forgot Password?
-            </a>
-          </div>
-        </form>
+            <Link to="/register" className="btn btn-outline">
+              <i className="fas fa-user-plus"></i>
+              Create New Account
+            </Link>
+
+            <div className="login-links">
+              <a href="#" className="login-link">
+                <i className="fas fa-question-circle"></i>
+                Need Help?
+              </a>
+              <a href="#" className="login-link">
+                <i className="fas fa-key"></i>
+                Forgot Password?
+              </a>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

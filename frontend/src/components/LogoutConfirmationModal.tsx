@@ -13,6 +13,8 @@ export default function LogoutConfirmationModal() {
     setBusy(true);
     try {
       await doLogout();
+      // after logout, also close modal just to be safe
+      close();
     } finally {
       setBusy(false);
     }

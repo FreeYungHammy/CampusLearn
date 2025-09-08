@@ -39,7 +39,7 @@
 
   /* Layout */
   --header-h: 64px;
-  --page-max: 1200px;
+  --page-max: 100%;
   --gutter: 16px;
 }
 
@@ -102,7 +102,7 @@ img {
 /* Inner: let the nav span across (full width) */
 .cl-header-inner {
   max-width: 100%; /* was var(--page-max) */
-  margin-inline: 0; /* remove centering constraint */
+  margin-inline: auto; /* remove centering constraint */
   padding-inline: 12px;
   height: var(--header-h);
   display: grid;
@@ -119,9 +119,9 @@ img {
 .cl-center {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 24px;
   min-width: 0;
-  justify-content: space-between; /* spreads items on wide screens */
+  justify-content: center; /* spreads items on wide screens */
   height: 100%;
 }
 @media (max-width: 980px) {
@@ -414,8 +414,8 @@ img {
 .content {
   flex: 1;
   padding: 24px 20px;
-  max-width: var(--page-max);
-  margin: 0 auto;
+  max-width: 100%;
+  margin: 0;
   width: 100%;
 }
 .section-title {
@@ -1134,9 +1134,9 @@ img {
   margin-top: auto;
 }
 .footer-content {
-  max-width: 100%; /* was var(--page-max) */
+  max-width: 1400px; /* was var(--page-max) */
   padding: 20px 12px;
-  margin-inline: 0;
+  margin-inline: auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1239,6 +1239,7 @@ body {
 /* If you mount into #root, make it stretch, too */
 #root {
   min-height: 100%;
+  width: 100%;
   display: flex;
 }
 
@@ -1268,8 +1269,8 @@ main.content {
   flex: 1 1 auto; /* grow to push footer down */
   min-height: 0; /* allow internal scrolling areas to work */
   width: 100%;
-  max-width: var(--page-max); /* keep your boxed look */
-  margin-inline: auto;
+  max-width: 100%; /* keep your boxed look */
+  margin-inline: 0;
 }
 
 /* Footer sits at the bottom of the app shell, full width, no overflow */
@@ -1284,8 +1285,8 @@ main.content {
 /* Optional: responsive gutters for header/footer inner rows */
 .cl-header-inner,
 .footer-content {
-  max-width: var(--page-max);
-  margin-inline: auto;
+  max-width: 100%;
+  margin-inline: 0;
   padding-inline: 12px;
 }
 
@@ -1659,4 +1660,94 @@ body {
 .fc .fc-timegrid .fc-day-sat .fc-timegrid-all-day,
 .fc .fc-timegrid .fc-day-sun .fc-timegrid-all-day {
   background: var(--cal-weekend-bg);
+}
+
+/* ===== HARD LAYOUT OVERRIDES (place at END of App.css) ===== */
+
+/* 0) Global reset */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  overflow-x: hidden;
+}
+
+/* 1) App shell: header (top), main (fills), footer (bottom) */
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 2) Full-bleed header/footer bars */
+.site-header,
+.site-footer {
+  width: 100%;
+  left: 0;
+  right: 0;
+}
+
+/* header pinned to top; keep your existing colors/shadows */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: var(--white);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+/* footer always at bottom */
+.site-footer {
+  margin-top: auto;
+  background: var(--dark); /* or var(--surface-2) if using dark mode tokens */
+  color: #fff;
+}
+
+/* 3) Single container rule = 1200px center clamp */
+:root {
+  --container-max: 1200px;
+  --container-pad: 16px;
+}
+
+.container {
+  width: 100%;
+  max-width: var(--container-max);
+  margin-inline: auto;
+  padding-inline: var(--container-pad);
+}
+
+/* 4) Main content area fills remaining space */
+.site-main {
+  flex: 1 0 auto;
+  width: 100%;
+  padding-top: 24px;
+}
+
+/* 5) Make all “page bodies” follow the clamp automatically */
+.content,
+.content-view,
+.forum-container,
+.calendar-container {
+  max-width: var(--container-max);
+  margin-inline: auto;
+  width: 100%;
+}
+
+/* 6) Remove older conflicting header/footer inner widths */
+.footer-content {
+  max-width: var(--container-max) !important;
+  margin-inline: auto !important;
+  padding-inline: var(--container-pad) !important;
+  width: 100% !important;
+}
+
+/* 7) Kill stray margins that cause off-center bars */
+.cl-bleed-header,
+.header {
+  width: 100% !important;
+  margin: 0 !important;
+  left: 0;
+  right: 0;
 }

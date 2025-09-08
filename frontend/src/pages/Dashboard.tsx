@@ -45,7 +45,7 @@ const Dashboard = () => {
           headerToolbar={{
             left: "prev,next today",
             center: "title",
-            right: "dayGridMonth,timeGridWeek,timeGridDay",
+            right: "",
           }}
           height="auto" // grow with content
           expandRows={true} // fill vertical space evenly

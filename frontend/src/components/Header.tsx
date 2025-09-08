@@ -34,7 +34,7 @@ const Header = () => {
     } else {
       const prefersDark = window.matchMedia?.(
         "(prefers-color-scheme: dark)",
-      ).matches;
+      )?.matches;
       const initial: Theme = prefersDark ? "dark" : "light";
       setTheme(initial);
       document.documentElement.setAttribute("data-theme", initial);
@@ -63,7 +63,7 @@ const Header = () => {
             </Link>
           </div>
 
-          {/* Center: Primary nav */}
+          {/* Center: Primary nav (Messages now in main nav) */}
           <nav className="cl-center" aria-label="Primary">
             <NavLink to="/schedule" className="cl-nav-item">
               <i className="fas fa-calendar" />
@@ -104,29 +104,17 @@ const Header = () => {
               <i className="fas fa-comments" />
               <span>Forum</span>
             </NavLink>
+
+            {/* NEW: Messages in the main nav */}
+            <NavLink to="/messages" className="cl-nav-item">
+              <i className="fas fa-envelope" />
+              <span>Messages</span>
+            </NavLink>
           </nav>
 
-          {/* Right: Theme toggle + Logout icon + Profile menu */}
+          {/* Right: Logout icon + Profile menu (theme toggle moved inside) */}
           <div className="cl-right" ref={menuRef}>
-            <button
-              type="button"
-              className="cl-theme-btn"
-              onClick={toggleTheme}
-              title={
-                theme === "light"
-                  ? "Switch to dark mode"
-                  : "Switch to light mode"
-              }
-              aria-label="Toggle theme"
-            >
-              {theme === "light" ? (
-                <i className="fas fa-moon" />
-              ) : (
-                <i className="fas fa-sun" />
-              )}
-            </button>
-
-            {/* Always-visible logout icon (your original flow) */}
+            {/* Always-visible logout icon */}
             {user && (
               <button
                 type="button"
@@ -168,15 +156,25 @@ const Header = () => {
 
                 {menuOpen && (
                   <div className="cl-menu" role="menu">
-                    <NavLink
-                      to="/messages"
-                      role="menuitem"
+                    {/* Theme toggle moved into dropdown */}
+                    <button
+                      role="menuitemcheckbox"
+                      aria-checked={theme === "dark"}
                       className="cl-menu__item"
-                      onClick={() => setMenuOpen(false)}
+                      onClick={() => {
+                        toggleTheme();
+                        // keep menu open so user sees the state change
+                      }}
+                      title="Toggle dark mode"
                     >
-                      <i className="fas fa-envelope" />
-                      <span>Messages</span>
-                    </NavLink>
+                      {theme === "dark" ? (
+                        <i className="fas fa-sun" aria-hidden="true" />
+                      ) : (
+                        <i className="fas fa-moon" aria-hidden="true" />
+                      )}
+                      <span>Dark mode</span>
+                    </button>
+
                     <NavLink
                       to="/settings"
                       role="menuitem"
@@ -186,6 +184,7 @@ const Header = () => {
                       <i className="fas fa-cog" />
                       <span>Settings</span>
                     </NavLink>
+
                     <button
                       role="menuitem"
                       className="cl-menu__item"
