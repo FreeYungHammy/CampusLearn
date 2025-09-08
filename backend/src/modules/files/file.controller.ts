@@ -14,6 +14,7 @@ export const FileController = {
           body.file = {
             buffer: req.file.buffer,
             originalname: req.file.originalname,
+            mimetype: req.file.mimetype,
           };
         }
         const created = await FileService.create(body);
@@ -77,6 +78,7 @@ export const FileController = {
         body.file = {
           buffer: req.file.buffer,
           originalname: req.file.originalname,
+          mimetype: req.file.mimetype,
         };
       }
       const updated = await FileService.update(req.params.id, body);

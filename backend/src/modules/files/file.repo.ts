@@ -1,10 +1,21 @@
 import { type FilterQuery, type UpdateQuery } from "mongoose";
 import { FileModel, type FileDoc } from "../../schemas/tutorUpload.schema";
+import { createLogger } from "../../config/logger";
+
+const logger = createLogger("FileRepo");
 
 export const FileRepo = {
   // CREATE
-  create(data: Partial<FileDoc>) {
-    return FileModel.create(data);
+  async create(data: Partial<FileDoc>) {
+    logger.info("Attempting to save file document to MongoDB...");
+    try {
+      const result = await FileModel.create(data);
+      logger.info("File document saved successfully to MongoDB.");
+      return result;
+    } catch (e) {
+      logger.error("Failed to save file document to MongoDB.", e);
+      throw e; // Re-throw the error
+    }
   },
 
   // READ (meta only by default, because content is select:false)

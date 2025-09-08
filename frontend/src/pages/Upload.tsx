@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
+import api from "../lib/api";
+import { useAuthStore } from "../store/authStore";
 
 const Upload = () => {
   const [subject, setSubject] = useState("");
@@ -7,8 +9,11 @@ const Upload = () => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [errors, setErrors] = useState<any>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { user } = useAuthStore();
+  const tutorId = user?.role === "tutor" ? user._id : null; // Get tutorId from auth store
 
   useEffect(() => {
     if (file) {
@@ -26,6 +31,8 @@ const Upload = () => {
     if (!subject) newErrors.subject = "Subject is required";
     if (!subtopic) newErrors.subtopic = "Subtopic is required";
     if (!description) newErrors.description = "Description is required";
+    if (!tutorId)
+      newErrors.auth = "You must be logged in as a tutor to upload files.";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -53,17 +60,39 @@ const Upload = () => {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (validate()) {
-      // This is where the submission logic would go
-      console.log("Form is valid and ready to submit:", {
-        file,
-        title,
-        subject,
-        subtopic,
-        description,
-      });
-      // You can add your API call here later
+      setIsSubmitting(true);
+      const formData = new FormData();
+      formData.append("file", file as Blob);
+      formData.append("title", title);
+      formData.append("subject", subject);
+      formData.append("subtopic", subtopic);
+      formData.append("description", description);
+      formData.append("tutorId", tutorId as string);
+
+      try {
+        const response = await api.post("/files", formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        });
+        console.log("Upload successful:", response.data);
+        alert("File uploaded successfully!");
+        // Clear form fields
+        setFile(null);
+        setTitle("");
+        setSubject("");
+        setSubtopic("");
+        setDescription("");
+        setErrors({});
+      } catch (error) {
+        console.error("Upload failed:", error);
+        alert("File upload failed. Please check the console for details.");
+        setErrors({ api: "File upload failed." });
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -177,8 +206,12 @@ const Upload = () => {
               </div>
             )}
           </div>
-          <button className="btn btn-primary" onClick={handleSubmit}>
-            Upload Content
+          <button
+            className="btn btn-primary"
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Uploading..." : "Upload Content"}
           </button>
         </div>
       </div>
