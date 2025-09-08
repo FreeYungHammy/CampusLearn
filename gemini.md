@@ -135,3 +135,28 @@ The frontend is a React application built with Vite.
 - **Frontend (Profile Picture):**
   - Updated the `User` type in `frontend/src/types/Users.ts` to include the `pfp` field.
   - Modified the `Header.tsx` component to dynamically display the user's profile picture from the database. If no profile picture is available, a default avatar is shown.
+
+### Session 4: File Upload Feature Implementation and Debugging
+
+- **Goal:** Implement file upload functionality for tutors, allowing them to upload learning materials.
+- **Backend Implementation:**
+  - **Schema (`backend/src/schemas/tutorUpload.schema.ts` renamed to `file.schema.ts` conceptually):** Defined a `FileSchema` to store file metadata (tutorId, subject, subtopic, title, description, contentType) and the binary `content` of the file. The `description` field was made `required` to align with frontend validation. The `content` field was set to `select: false` for performance optimization.
+  - **Repository (`backend/src/modules/files/file.repo.ts`):** Created a repository for CRUD operations on the `File` model.
+  - **Service (`backend/src/modules/files/file.service.ts`):** Implemented the business logic for file creation, including determining the `contentType` using `mime-types` based on the file's original name. Also included methods for listing, retrieving (with/without binary content), updating, and deleting files.
+  - **Controller (`backend/src/modules/files/file.controller.ts`):** Created a controller to handle API requests for file operations. Integrated `multer` for handling `multipart/form-data` file uploads. Added endpoints for creating, listing, retrieving (meta and binary), updating, and deleting files.
+  - **Routes (`backend/src/modules/files/index.ts`):** Configured routes to expose the file API endpoints.
+- **Frontend Implementation (`frontend/src/pages/Upload.tsx`):**
+  - Implemented the UI for file uploads, including drag-and-drop functionality, file selection, and input fields for title, subject, subtopic, and description.
+  - Added client-side validation to ensure all fields are filled before submission. The title is automatically populated from the filename (without extension).
+  - Integrated `useAuthStore` to get the `tutorId` for file uploads.
+  - Added `isSubmitting` state to provide visual feedback during upload and prevent multiple submissions.
+  - Implemented basic success and error message display after API calls.
+- **Challenges and Lessons Learned:**
+  - **Frontend White Screen/Rendering Issues:** Repeatedly encountered a white screen on the frontend after implementing file upload features. This was primarily due to:
+    - **Incorrect component integration:** Attempting to render `UploadedFiles` component before it was fully stable or correctly integrated, leading to rendering errors.
+    - **Dependency issues/Circular dependencies:** Potential issues with how `useAuthStore` or `api` were being used or imported, causing the application to crash during rendering.
+    - **Unstable development practices:** Moving too quickly between features without thorough testing at each step, leading to cascading errors that were difficult to debug.
+  - **Backend Submission Failures:** Initial attempts to submit files to the database resulted in the frontend showing "Submitting..." but no data appearing in MongoDB Atlas. This was due to:
+    - **Syntax errors in backend service:** A missing parenthesis in `file.service.ts` caused the backend TypeScript compilation to fail, preventing the server from starting correctly and thus blocking any API calls.
+    - **Lack of immediate feedback:** The frontend was not adequately configured to display specific backend errors, making debugging difficult.
+  - **Lesson Learned:** For complex feature implementations, especially those involving both frontend and backend changes, a more granular, step-by-step approach with frequent testing is crucial. Prioritize application stability over rapid feature development. Ensure robust error handling and clear user feedback on both ends of the application. Thoroughly test each new piece of functionality in isolation before integrating it into the larger system. Always verify backend compilation and server startup after any backend code changes.

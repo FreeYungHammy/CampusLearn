@@ -44,9 +44,9 @@ export const FileRepo = {
 
   // DELETE
   deleteById(id: string) {
-    return FileModel.findById(id)
-      .select("+content")
-      .lean<FileDoc | null>({ virtuals: true });
+    return FileModel.findByIdAndDelete(id).lean<FileDoc | null>({
+      virtuals: true,
+    });
   },
 
   // Count / exists helpers
