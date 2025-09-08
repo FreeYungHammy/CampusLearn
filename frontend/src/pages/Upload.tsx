@@ -2,31 +2,7 @@ import React, { useState } from "react";
 
 const Upload = () => {
   const [subject, setSubject] = useState("");
-  const [subtopics, setSubtopics] = useState([]);
-
-  const subjectSubtopicMap = {
-    Mathematics: [
-      "Calculus",
-      "Algebra",
-      "Integration",
-      "Statistics",
-      "Geometry",
-    ],
-    "Computer Science": [
-      "Programming",
-      "Databases",
-      "Web Development",
-      "Algorithms",
-      "Data Structures",
-    ],
-    Business: ["Finance", "Marketing", "Management", "Accounting", "Economics"],
-  };
-
-  const handleSubjectChange = (e) => {
-    const selectedSubject = e.target.value;
-    setSubject(selectedSubject);
-    setSubtopics(subjectSubtopicMap[selectedSubject] || []);
-  };
+  const [subtopic, setSubtopic] = useState("");
 
   return (
     <div className="content-view" id="upload-view">
@@ -58,7 +34,7 @@ const Upload = () => {
             <select
               className="form-control"
               id="subject-select"
-              onChange={handleSubjectChange}
+              onChange={(e) => setSubject(e.target.value)}
               value={subject}
             >
               <option value="">Select a subject</option>
@@ -71,14 +47,13 @@ const Upload = () => {
             <label className="form-label">
               <i className="fas fa-tag"></i>Subtopic
             </label>
-            <select className="form-control" id="subtopic-select">
-              <option value="">Select a subtopic</option>
-              {subtopics.map((subtopic) => (
-                <option key={subtopic} value={subtopic}>
-                  {subtopic}
-                </option>
-              ))}
-            </select>
+            <input
+              type="text"
+              className="form-control"
+              placeholder="Enter a subtopic"
+              value={subtopic}
+              onChange={(e) => setSubtopic(e.target.value)}
+            />
           </div>
           <div className="form-group">
             <label className="form-label">
