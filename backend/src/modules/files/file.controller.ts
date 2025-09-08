@@ -1,20 +1,29 @@
 import { Request, Response, NextFunction } from "express";
 import { FileService } from "./file.service";
+import multer from "multer";
+
+const upload = multer({ storage: multer.memoryStorage() });
 
 export const FileController = {
-  create: async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const body = { ...req.body };
-      // if content is base64, convert to Buffer
-      if (typeof body.content === "string") {
-        body.content = Buffer.from(body.content, "base64");
+  create: [
+    upload.single("file"),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const body = { ...req.body };
+        if (req.file) {
+          body.file = {
+            buffer: req.file.buffer,
+            originalname: req.file.originalname,
+            mimetype: req.file.mimetype,
+          };
+        }
+        const created = await FileService.create(body);
+        res.status(201).json(created);
+      } catch (e) {
+        next(e);
       }
-      const created = await FileService.create(body);
-      res.status(201).json(created);
-    } catch (e) {
-      next(e);
-    }
-  },
+    },
+  ],
 
   list: async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -51,7 +60,7 @@ export const FileController = {
       if (!item) return res.status(404).json({ message: "File not found" });
 
       // Return as binary stream (generic octet-stream; you can add mimeType later)
-      res.setHeader("Content-Type", "application/octet-stream");
+      res.setHeader("Content-Type", item.contentType);
       res.setHeader(
         "Content-Disposition",
         `attachment; filename="${item.title ?? "file"}"`,
@@ -65,12 +74,25 @@ export const FileController = {
   update: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const body = { ...req.body };
-      if (typeof body.content === "string") {
-        body.content = Buffer.from(body.content, "base64");
+      if (req.file) {
+        body.file = {
+          buffer: req.file.buffer,
+          originalname: req.file.originalname,
+          mimetype: req.file.mimetype,
+        };
       }
       const updated = await FileService.update(req.params.id, body);
       if (!updated) return res.status(404).json({ message: "File not found" });
       res.json(updated);
+    } catch (e) {
+      next(e);
+    }
+  },
+
+  byTutor: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const items = await FileService.byTutor(req.params.tutorId);
+      res.json(items);
     } catch (e) {
       next(e);
     }

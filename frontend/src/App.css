@@ -867,6 +867,12 @@ img {
   background: rgba(52, 152, 219, 0.05);
 }
 
+/* --- Upload error message --- */
+.upload-error {
+  color: var(--danger);
+  font-weight: 600;
+}
+
 /* ------------------------------
    9) Messaging / Chat
    ------------------------------ */

@@ -36,9 +36,13 @@
     "prettier": "^3.6.2"
   },
   "dependencies": {
+    "@types/mime-types": "^3.0.1",
+    "@types/multer": "^2.0.0",
     "bcrypt": "^6.0.0",
     "jsonwebtoken": "^9.0.2",
+    "mime-types": "^3.0.1",
     "mongoose": "^8.18.0",
+    "multer": "^2.0.2",
     "winston": "^3.17.0"
   }
 }
