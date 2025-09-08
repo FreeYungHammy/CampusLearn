@@ -11,6 +11,10 @@ const StudentSchema = new Schema(
     name: { type: String, required: true }, // (typo fix)
     surname: { type: String, required: true },
     enrolledCourses: [{ type: String }],
+    pfp: {
+      data: Buffer,
+      contentType: String,
+    },
   },
   { timestamps: true },
 );

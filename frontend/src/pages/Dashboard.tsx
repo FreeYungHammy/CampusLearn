@@ -1,4 +1,3 @@
-import React from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
@@ -35,9 +34,10 @@ const Dashboard = () => {
   return (
     <div className="content-view active" id="dashboard-view">
       <h2 className="section-title">
-        <i className="fas fa-calendar"></i>My Schedule
+        <i className="fas fa-calendar" /> My Schedule
       </h2>
-      <div className="calendar-container">
+
+      <div className="calendar-shell">
         <FullCalendar
           plugins={[dayGridPlugin, timeGridPlugin]}
           initialView="dayGridMonth"
@@ -47,6 +47,15 @@ const Dashboard = () => {
             center: "title",
             right: "",
           }}
+          height="auto" // grow with content
+          expandRows={true} // fill vertical space evenly
+          fixedWeekCount={false} // no forced extra row
+          showNonCurrentDates={false}
+          dayMaxEventRows={3}
+          moreLinkClick="popover"
+          titleFormat={{ year: "numeric", month: "long" }}
+          dayHeaderFormat={{ weekday: "long" }}
+          firstDay={1}
         />
       </div>
     </div>

@@ -4,8 +4,20 @@ import { UserRepo } from "./user.repo";
 import { StudentRepo } from "../students/student.repo";
 import { TutorRepo } from "../tutors/tutor.repo";
 import type { UserDoc } from "../../schemas/user.schema";
+import fs from "fs";
+import path from "path";
 
 const ALLOWED_EMAIL_DOMAIN = "@student.belgiumcampus.ac.za";
+
+// Read the base64 string from default.txt (sync since it's only once on startup)
+const defaultPfpBase64 = fs
+  .readFileSync(path.join(__dirname, "default.txt"), "utf-8")
+  .trim();
+
+const defaultPfp = {
+  data: Buffer.from(defaultPfpBase64, "base64"),
+  contentType: "png",
+};
 
 export const UserService = {
   async register(input: {
@@ -48,6 +60,7 @@ export const UserService = {
         name: input.firstName,
         surname: input.lastName,
         enrolledCourses: input.subjects,
+        pfp: defaultPfp,
       });
     } else if (input.role === "tutor") {
       await TutorRepo.create({
@@ -55,6 +68,7 @@ export const UserService = {
         name: input.firstName,
         surname: input.lastName,
         subjects: input.subjects,
+        pfp: defaultPfp,
       });
     }
 
@@ -90,6 +104,7 @@ export const UserService = {
       ...publicUser,
       name: profile?.name,
       surname: profile?.surname,
+      pfp: profile?.pfp,
     };
 
     return { token, user: userWithProfile };

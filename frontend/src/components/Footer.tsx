@@ -1,10 +1,8 @@
-import React from "react";
-
 const Footer = () => {
   return (
     <footer className="footer">
       <div className="footer-content">
-        <div>© 2023 CampusLearn™ - Peer-Powered Learning Platform</div>
+        <div>© 2025 CampusLearn™ - Peer-Powered Learning Platform</div>
         <div className="footer-links">
           <a href="#">Privacy Policy</a>
           <a href="#">Terms of Service</a>
