@@ -22,18 +22,6 @@
   font-family: "Inter", sans-serif;
 }
 
-body {
-  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
-  color: var(--dark);
-  line-height: 1.6;
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  justify-content: center;
-  align-items: center;
-  padding: 20px;
-}
-
 .login-container {
   width: 600px;
   margin: 0 auto;
@@ -405,4 +393,16 @@ body {
   color: var(--danger);
   font-size: 14px;
   margin-top: 5px;
+}
+
+.auth-page-container {
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+  color: var(--dark);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  width: 100%;
 }

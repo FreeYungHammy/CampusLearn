@@ -1,5 +1,6 @@
 import React, { Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
+
 import Dashboard from "./pages/Dashboard";
 import MyTutors from "./pages/MyTutors";
 import FindTutors from "./pages/FindTutors";
@@ -11,28 +12,34 @@ import Upload from "./pages/Upload";
 import Settings from "./pages/Settings";
 import Login from "./pages/Auth/Login";
 import Register from "./pages/Auth/Register";
+
 import ProtectedRoute from "./routes/ProtectedRoute";
 import Layout from "./components/Layout";
-import "./App.css";
 
 const Messages = React.lazy(() => import("./pages/Messages"));
 
 import { useInactivityLogout } from "./hooks/useInactivityLogout";
-
 import { useAuthStore } from "./store/authStore";
 import LogoutConfirmationModal from "./components/LogoutConfirmationModal";
 
+import "./App.css";
+
 function App() {
   useInactivityLogout();
-  const { showLogoutModal, logout, closeLogoutModal } = useAuthStore();
+
+  const { showLogoutModal } = useAuthStore();
 
   return (
-    <div className="App">
-      <Suspense fallback={<div>Loading...</div>}>
+    <>
+      <Suspense fallback={<div style={{ padding: 24 }}>Loading…</div>}>
         <Routes>
+          {/* Public routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+
+          {/* Private routes */}
           <Route element={<ProtectedRoute />}>
+            {/* Layout provides the full-bleed header/footer and an <Outlet /> */}
             <Route element={<Layout />}>
               <Route path="/schedule" element={<Dashboard />} />
               <Route path="/mytutors" element={<MyTutors />} />
@@ -46,16 +53,14 @@ function App() {
               <Route path="/settings" element={<Settings />} />
             </Route>
           </Route>
-          <Route path="*" element={<Navigate to="/schedule" />} />
+
+          {/* Catch-all */}
+          <Route path="*" element={<Navigate to="/schedule" replace />} />
         </Routes>
       </Suspense>
-      {showLogoutModal && (
-        <LogoutConfirmationModal
-          onConfirm={logout}
-          onCancel={closeLogoutModal}
-        />
-      )}
-    </div>
+
+      {showLogoutModal && <LogoutConfirmationModal />}
+    </>
   );
 }
 
