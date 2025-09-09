@@ -1,6 +1,7 @@
-import { type FilterQuery, type UpdateQuery } from "mongoose";
+import { type FilterQuery, type UpdateQuery, Types } from "mongoose";
 import { FileModel, type FileDoc } from "../../schemas/tutorUpload.schema";
 import { createLogger } from "../../config/logger";
+import { TutorModel } from "../../schemas/tutor.schema";
 
 const logger = createLogger("FileRepo");
 
@@ -40,6 +41,34 @@ export const FileRepo = {
 
   findByTutor(tutorId: string, limit = 20, skip = 0) {
     return FileModel.find({ tutorId })
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .skip(skip)
+      .lean<FileDoc[]>({ virtuals: true });
+  },
+
+  // Resolve tutorId by userId, then list files (meta only)
+  async findByTutorUserId(userId: string, limit = 100, skip = 0) {
+    // Normalize and cast userId defensively (strip angle brackets or stray chars)
+    const raw = String(userId)
+      .trim()
+      .replace(/[<>\s]/g, "");
+    let userObjectId: Types.ObjectId | null = null;
+    try {
+      userObjectId = new Types.ObjectId(raw);
+    } catch {
+      logger.warn(`Invalid userId for files.by-user: ${userId}`);
+      return [] as FileDoc[];
+    }
+
+    const tutor = await TutorModel.findOne({ userId: userObjectId })
+      .select({ _id: 1 })
+      .lean();
+    // Support legacy uploads where files.tutorId stored the User._id instead of Tutor._id
+    const orConditions: any[] = [{ tutorId: userObjectId }];
+    if (tutor?._id) orConditions.push({ tutorId: tutor._id });
+
+    return FileModel.find({ $or: orConditions })
       .sort({ createdAt: -1 })
       .limit(limit)
       .skip(skip)
