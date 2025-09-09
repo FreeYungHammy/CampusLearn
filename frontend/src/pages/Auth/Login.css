@@ -379,6 +379,12 @@
   background-color: var(--secondary);
 }
 
+.password-strength-text {
+  text-align: left;
+  font-size: 12px;
+  margin-top: 5px;
+}
+
 .form-control.is-invalid {
   border-color: var(--danger);
   box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1);
