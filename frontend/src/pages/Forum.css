@@ -1,0 +1,442 @@
+/* Define CSS variables for colors */
+:root {
+  --text-color-primary: #333;
+  --text-color-secondary: #718096;
+  --text-color-dark: #2d3748;
+  --background-color-light: white;
+  --background-color-medium: #edf2f7;
+  --background-color-hover: #f7fafc;
+  --background-color-active: #ebf8ff;
+  --border-color: #e2e8f0;
+  --blue-primary: #4299e1;
+  --blue-dark: #3182ce;
+  --blue-light: #ebf8ff;
+}
+
+/* Dark mode variables */
+[data-theme="dark"] {
+  --text-color-primary: #e2e8f0; /* Light gray for dark mode text */
+  --text-color-secondary: #a0aec0; /* Lighter gray for secondary text */
+  --text-color-dark: #cbd5e0; /* Even lighter gray for dark text */
+  --background-color-light: #2d3748; /* Dark background for cards/sections */
+  --background-color-medium: #4a5568; /* Slightly lighter dark background */
+  --background-color-hover: #2c3748; /* Darker hover state */
+  --background-color-active: #3182ce; /* Blue for active state */
+  --border-color: #4a5568; /* Darker border */
+  /* Blue colors can remain similar or be adjusted if needed */
+}
+
+.forum-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--text-color-primary);
+}
+
+.forum-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 30px;
+}
+
+.header-content h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  color: var(--text-color-dark);
+}
+
+.header-content h1 i {
+  color: var(--blue-primary);
+  margin-right: 10px;
+}
+
+.header-content p {
+  font-size: 16px;
+  color: var(--text-color-secondary);
+  margin: 0;
+}
+
+.new-topic-btn {
+  background-color: var(--blue-primary);
+  color: white;
+  padding: 10px 16px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  transition: background-color 0.2s;
+}
+
+.new-topic-btn:hover {
+  background-color: var(--blue-dark);
+}
+
+.new-topic-btn i {
+  margin-right: 8px;
+}
+
+.forum-filters {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--background-color-light);
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.filter-group span {
+  font-weight: 500;
+  color: var(--text-color-dark);
+}
+
+.filter-btn {
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: none;
+  background-color: var(--background-color-medium);
+  color: var(--text-color-dark);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-btn:hover {
+  background-color: var(--background-color-hover);
+}
+
+.filter-btn.active {
+  background-color: var(--background-color-active);
+  color: var(--blue-dark);
+  font-weight: 500;
+}
+
+.sort-group {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.sort-select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sort-select label {
+  font-weight: 500;
+  color: var(--text-color-dark);
+}
+
+.sort-select select {
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background-color: var(--background-color-light);
+}
+
+.view-past-btn {
+  color: var(--blue-primary);
+  background: none;
+  border: 1px solid var(--border-color);
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.view-past-btn:hover {
+  background-color: var(--background-color-hover);
+}
+
+.topics-list {
+  background-color: var(--background-color-light);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+}
+
+.topic-card {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.topic-card:last-child {
+  border-bottom: none;
+}
+
+.topic-link {
+  display: block;
+  padding: 20px;
+  text-decoration: none;
+  color: inherit;
+  transition: background-color 0.2s;
+}
+
+.topic-link:hover {
+  background-color: var(--background-color-hover);
+}
+
+.topic-content {
+  display: flex;
+  gap: 15px;
+}
+
+.vote-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.upvote-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background-color: var(--background-color-hover);
+  color: var(--text-color-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.upvote-btn:hover {
+  background-color: var(--background-color-medium);
+  color: var(--text-color-dark);
+}
+
+.upvote-btn.upvoted {
+  background-color: var(--blue-light);
+  color: var(--blue-dark);
+}
+
+.vote-count {
+  font-weight: 600;
+  font-size: 14px;
+  margin-top: 5px;
+  color: var(--text-color-dark);
+}
+
+.topic-main {
+  flex-grow: 1;
+}
+
+.topic-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  gap: 10px;
+}
+
+.topic-header h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-color-dark);
+}
+
+.subject-badge {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  background-color: var(--blue-light);
+  color: var(--blue-dark);
+}
+
+.topic-excerpt {
+  margin: 0 0 12px 0;
+  color: var(--text-color-dark);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.topic-tags {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.tag {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background-color: var(--background-color-medium);
+  color: var(--text-color-dark);
+}
+
+.topic-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: var(--text-color-secondary);
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.topic-author {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  margin-left: 15px;
+}
+
+.author-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: var(--blue-primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+}
+
+.author-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.author-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-color-dark);
+}
+
+.author-name.anonymous {
+  color: var(--text-color-secondary);
+}
+
+.post-time {
+  font-size: 12px;
+  color: var(--text-color-secondary);
+}
+
+.forum-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--background-color-light);
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.pagination-info {
+  font-size: 14px;
+  color: var(--text-color-secondary);
+}
+
+.pagination-info-text span {
+  font-weight: 500;
+  color: var(--text-color-dark);
+}
+
+.pagination-controls {
+  display: flex;
+  gap: 4px;
+}
+
+.pagination-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background-color: var(--background-color-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pagination-btn:hover {
+  background-color: var(--background-color-hover);
+}
+
+.pagination-btn.active {
+  background-color: var(--blue-primary);
+  color: white;
+  border-color: var(--blue-primary);
+}
+
+@media (max-width: 768px) {
+  .forum-header {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .forum-filters {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .topic-content {
+    flex-direction: column;
+  }
+
+  .vote-section {
+    flex-direction: row;
+    gap: 10px;
+  }
+
+  .topic-author {
+    margin-left: 0;
+    margin-top: 10px;
+  }
+
+  .forum-pagination {
+    flex-direction: column;
+    gap: 15px;
+    align-items: flex-start;
+  }
+}
+
+.header-content-h1-icon {
+  margin-right: 10px;
+}
+
+.new-topic-btn-icon {
+  margin-right: 8px;
+}
+
+.upvote-btn-icon {
+  /* No specific styles in original CSS, but good to have the class */
+}
+
+.meta-item-icon {
+  /* No specific styles in original CSS, but good to have the class */
+}
+
+.pagination-btn-icon {
+  /* No specific styles in original CSS, but good to have the class */
+}

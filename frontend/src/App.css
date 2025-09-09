@@ -1011,151 +1011,411 @@ img {
    ------------------------------ */
 .tutor-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 24px;
   margin-bottom: 24px;
 }
+
 .tutor-card {
-  background: #fff;
-  border-radius: var(--border-radius);
+  background: var(--surface);
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: var(--card-shadow);
-  transition: transform 0.25s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  border: 1px solid var(--border-light);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
 }
+
 .tutor-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-5px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
 }
+
 .tutor-header {
-  padding: 18px;
+  padding: 20px;
   display: flex;
   align-items: center;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--border-light);
+  background: linear-gradient(
+    135deg,
+    var(--primary-light) 0%,
+    var(--surface) 100%
+  );
 }
+
 .tutor-avatar {
   width: 70px;
   height: 70px;
   border-radius: 50%;
   object-fit: cover;
-  margin-right: 14px;
+  margin-right: 16px;
   border: 3px solid var(--primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
+
+.tutor-info h3 {
+  margin: 0 0 4px 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.tutor-info p {
+  margin: 0 0 6px 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.rating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  color: var(--accent);
+  font-size: 14px;
+}
+
+.rating i {
+  color: var(--accent);
+}
+
 .tutor-stats {
   display: flex;
   justify-content: space-around;
-  padding: 14px;
-  background: #f9f9f9;
-}
-.stat-value {
-  font-size: 18px;
-  font-weight: 800;
-  color: var(--primary);
-}
-.view-profile {
-  display: block;
-  text-align: center;
-  padding: 12px;
-  background: var(--primary);
-  color: #fff;
-  text-decoration: none;
-  font-weight: 700;
-  transition: background 0.25s ease;
-}
-.view-profile:hover {
-  background: var(--secondary);
+  padding: 16px;
+  background: var(--bg-light);
+  border-bottom: 1px solid var(--border-light);
 }
 
-/* students */
-.students-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 24px;
-}
-.student-card {
-  background: transparent;
-  box-shadow: var(--card-shadow);
-  transition: var(--transition);
+.stat {
   text-align: center;
 }
-.student-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.12);
+
+.stat-value {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--primary);
+  margin-bottom: 4px;
 }
-.student-header {
-  padding: 22px;
-  background: linear-gradient(135deg, #5ee7df 0%, #b490ca 100%);
-  color: #fff;
-  border-top-left-radius: var(--radius-lg);
-  border-top-right-radius: var(--radius-lg);
+
+.stat-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
 }
-.student-details {
-  padding: 22px;
-  border-bottom-left-radius: var(--radius-lg);
-  border-bottom-right-radius: var(--radius-lg);
+
+.tutor-subjects {
+  padding: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-light);
 }
-.student-avatar {
+
+.subject-tag {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--bg-light);
+  color: var(--primary);
+  border: 1px solid var(--primary-light);
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 60px;
+  text-align: center;
+}
+
+.subject-tag:hover {
+  background: var(--primary-light);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.tutor-actions {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.view-profile-btn {
+  display: block;
+  text-align: center;
+  padding: 10px 16px;
+  background: var(--primary);
+  color: white;
+  text-decoration: none;
+  font-weight: 600;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  font-size: 14px;
+}
+
+.view-profile-btn:hover {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.subscribe-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 1px solid var(--success);
+  background: white;
+  color: var(--success);
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+}
+
+.subscribe-btn:hover {
+  background: var(--success-light);
+  transform: translateY(-1px);
+}
+
+.subscribe-btn.subscribed {
+  background: var(--success);
+  color: white;
+}
+
+.subscribe-btn.subscribed:hover {
+  background: var(--success-dark);
+}
+
+/* My Tutors Specific Styles */
+#mytutors-view {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.section-header {
+  margin-bottom: 30px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.section-title i {
+  color: var(--primary);
+  font-size: 24px;
+}
+
+/* Tutor Grid for My Tutors */
+.tutor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 25px;
+  margin-bottom: 40px;
+}
+
+.tutor-card {
+  background: var(--surface);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  border: 1px solid var(--border-light);
+  position: relative;
+}
+
+.tutor-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.15);
+}
+
+.tutor-header {
+  padding: 25px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--border-light);
+  background: linear-gradient(
+    135deg,
+    var(--primary-light) 0%,
+    rgba(255, 255, 255, 0) 100%
+  );
+}
+
+.tutor-avatar {
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  margin: 0 auto 14px;
-  background: #fff;
-  color: var(--primary);
-  display: grid;
-  place-items: center;
-  font-size: 32px;
-  font-weight: 800;
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+  object-fit: cover;
+  margin-right: 20px;
+  border: 4px solid var(--primary);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
 }
 
-/* files/content */
-.file-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 24px;
-}
-.file-card {
-  background: #fff;
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  box-shadow: var(--card-shadow);
-  transition: var(--transition);
-  border: 1px solid rgba(0, 0, 0, 0.05);
-}
-.file-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.12);
-}
-.file-icon {
-  height: 140px;
-  display: grid;
-  place-items: center;
-  font-size: 48px;
-  color: #fff;
-}
-.file-icon.pdf {
-  background: linear-gradient(135deg, #ff758c 0%, #ff7eb3 100%);
-}
-.file-icon.video {
-  background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
-}
-.file-icon.document {
-  background: linear-gradient(135deg, #42e695 0%, #3bb2b8 100%);
-}
-.file-details {
-  padding: 18px;
-  text-align: center;
-}
-.file-name {
+.tutor-info h3 {
+  margin: 0 0 6px 0;
+  font-size: 20px;
   font-weight: 700;
-  margin-bottom: 6px;
-  font-size: 16px;
-  color: var(--dark);
+  color: var(--text-primary);
+  line-height: 1.2;
 }
-.file-meta {
-  font-size: 14px;
-  color: var(--gray);
+
+.tutor-info p {
+  margin: 0 0 8px 0;
+  font-size: 15px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.rating {
   display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 700;
+  color: var(--accent);
+  font-size: 16px;
+}
+
+.rating i {
+  color: var(--accent);
+}
+
+.tutor-stats {
+  display: flex;
+  justify-content: space-around;
+  padding: 20px;
+  background: var(--bg-light);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.stat {
+  text-align: center;
+  padding: 0 15px;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--primary);
+  margin-bottom: 5px;
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 700;
+}
+
+.tutor-subjects {
+  padding: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
   justify-content: center;
-  gap: 14px;
+  border-bottom: 1px solid var(--border-light);
+  min-height: 80px;
+  align-items: center;
+}
+
+.subject-tag {
+  padding: 8px 15px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  background: var(--bg-light);
+  color: var(--primary);
+  border: 2px solid var(--primary-light);
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 70px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.subject-tag:hover {
+  background: var(--primary-light);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.tutor-actions {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.view-profile-btn {
+  display: block;
+  text-align: center;
+  padding: 12px 20px;
+  background: var(--primary);
+  color: white;
+  text-decoration: none;
+  font-weight: 600;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  font-size: 15px;
+  letter-spacing: 0.5px;
+}
+
+.view-profile-btn:hover {
+  background: var(--primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+}
+
+.unsubscribe-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border: 2px solid var(--danger);
+  background: white;
+  color: var(--danger);
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 15px;
+  letter-spacing: 0.5px;
+}
+
+.unsubscribe-btn:hover {
+  background: var(--danger-light);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.unsubscribe-btn.subscribed {
+  background: var(--danger);
+  color: white;
+}
+
+.unsubscribe-btn.subscribed:hover {
+  background: var(--danger-dark);
 }
 
 /* ------------------------------
@@ -1569,6 +1829,138 @@ img {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .tutor-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .tutor-header {
+    padding: 16px;
+  }
+
+  .tutor-avatar {
+    width: 60px;
+    height: 60px;
+  }
+
+  .tutor-stats {
+    padding: 12px;
+  }
+
+  .tutor-subjects {
+    padding: 12px;
+  }
+
+  .tutor-actions {
+    padding: 12px;
+  }
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.section-title i {
+  color: var(--primary);
+}
+
+.search-bar {
+  min-width: 250px;
+}
+
+.form-control {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  font-size: 14px;
+  background: var(--surface);
+  color: var(--text-primary);
+}
+
+.filter-bar {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-group label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Responsive Design for My Tutors */
+@media (max-width: 768px) {
+  #mytutors-view {
+    padding: 15px;
+  }
+
+  .section-title {
+    font-size: 24px;
+  }
+
+  .tutor-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .tutor-header {
+    padding: 20px;
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .tutor-avatar {
+    margin-right: 0;
+    margin-bottom: 15px;
+  }
+
+  .tutor-stats {
+    padding: 15px;
+  }
+
+  .tutor-subjects {
+    padding: 15px;
+    gap: 8px;
+  }
+
+  .subject-tag {
+    padding: 6px 12px;
+    font-size: 12px;
+    min-width: 60px;
+  }
+
+  .tutor-actions {
+    padding: 15px;
   }
 }
 
