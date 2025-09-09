@@ -70,6 +70,19 @@ const Register = () => {
 
   const passwordStrength = checkPasswordStrength(formik.values.password);
 
+  const getStrengthText = () => {
+    if (formik.values.password.length === 0) {
+      return null;
+    }
+    if (passwordStrength <= 1) {
+      return <span style={{ color: "var(--danger)" }}>Weak</span>;
+    }
+    if (passwordStrength <= 3) {
+      return <span style={{ color: "var(--warning)" }}>Moderate</span>;
+    }
+    return <span style={{ color: "var(--secondary)" }}>Strong</span>;
+  };
+
   return (
     <div className="login-container">
       <div className="logo">
@@ -215,6 +228,7 @@ const Register = () => {
                 data-strength={passwordStrength}
               ></div>
             </div>
+            <div className="password-strength-text">{getStrengthText()}</div>
             {formik.touched.password && formik.errors.password ? (
               <div className="error-message">{formik.errors.password}</div>
             ) : null}

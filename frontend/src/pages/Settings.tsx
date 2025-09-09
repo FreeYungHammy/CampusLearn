@@ -89,6 +89,19 @@ const Settings = () => {
 
   const passwordStrength = checkPasswordStrength(passwordFormik.values.new);
 
+  const getStrengthText = () => {
+    if (passwordFormik.values.new.length === 0) {
+      return null;
+    }
+    if (passwordStrength <= 1) {
+      return <span style={{ color: "var(--danger)" }}>Weak</span>;
+    }
+    if (passwordStrength <= 3) {
+      return <span style={{ color: "var(--warning)" }}>Moderate</span>;
+    }
+    return <span style={{ color: "var(--secondary)" }}>Strong</span>;
+  };
+
   return (
     <div className="settings-container">
       <div className="settings-header">
@@ -207,7 +220,7 @@ const Settings = () => {
             />
           </div>
           <div className="form-grid">
-            <div className="form-group">
+            <div className="form-group form-group-full">
               <label className="form-label">New Password</label>
               <input
                 id="new"
@@ -225,8 +238,15 @@ const Settings = () => {
                 onChange={passwordFormik.handleChange}
                 value={passwordFormik.values.new}
               />
+              <div className="password-strength-meter">
+                <div
+                  className="strength-bar"
+                  data-strength={passwordStrength}
+                ></div>
+              </div>
+              <div className="password-strength-text">{getStrengthText()}</div>
             </div>
-            <div className="form-group">
+            <div className="form-group form-group-full">
               <label className="form-label">Confirm New Password</label>
               <input
                 id="confirm"

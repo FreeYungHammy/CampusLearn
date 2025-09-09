@@ -38,6 +38,7 @@
   box-shadow: var(--card-shadow);
   padding: 30px;
   margin-bottom: 30px;
+  border: 1px solid var(--border);
 }
 
 .card-header {
@@ -56,6 +57,10 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
+}
+
+.form-group-full {
+  grid-column: 1 / -1;
 }
 
 .form-group {
@@ -243,4 +248,10 @@ input:checked + .slider:before {
 .strength-bar[data-strength="5"] {
   width: 100%;
   background-color: var(--secondary);
+}
+
+.password-strength-text {
+  text-align: left;
+  font-size: 12px;
+  margin-top: 5px;
 }
