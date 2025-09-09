@@ -165,14 +165,16 @@ const Header = () => {
                         toggleTheme();
                         // keep menu open so user sees the state change
                       }}
-                      title="Toggle dark mode"
+                      title={`Toggle ${theme === "dark" ? "light" : "dark"} mode`}
                     >
                       {theme === "dark" ? (
                         <i className="fas fa-sun" aria-hidden="true" />
                       ) : (
                         <i className="fas fa-moon" aria-hidden="true" />
                       )}
-                      <span>Dark mode</span>
+                      <span>
+                        {theme === "dark" ? "Light mode" : "Dark mode"}
+                      </span>
                     </button>
 
                     <NavLink

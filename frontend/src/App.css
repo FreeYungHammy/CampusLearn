@@ -317,6 +317,10 @@ img {
   background: rgba(255, 255, 255, 0.08);
 }
 
+.cl-menu__item span {
+  font-size: 14px;
+}
+
 /* 2.2 Legacy header compatibility (your previous .header markup) */
 .header {
   background: var(--white);
@@ -737,9 +741,7 @@ img {
   gap: 24px;
 }
 .student-card {
-  background: #fff;
-  border-radius: var(--radius-lg);
-  overflow: hidden;
+  background: transparent;
   box-shadow: var(--card-shadow);
   transition: var(--transition);
   text-align: center;
@@ -752,6 +754,13 @@ img {
   padding: 22px;
   background: linear-gradient(135deg, #5ee7df 0%, #b490ca 100%);
   color: #fff;
+  border-top-left-radius: var(--radius-lg);
+  border-top-right-radius: var(--radius-lg);
+}
+.student-details {
+  padding: 22px;
+  border-bottom-left-radius: var(--radius-lg);
+  border-bottom-right-radius: var(--radius-lg);
 }
 .student-avatar {
   width: 80px;
