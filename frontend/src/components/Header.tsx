@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
+
 import LogoutConfirmationModal from "./LogoutConfirmationModal";
 
 type Theme = "light" | "dark";
