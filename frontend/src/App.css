@@ -286,6 +286,7 @@ img {
 .cl-caret {
   opacity: 0.85;
   margin-left: 6px;
+  margin-right: 10px;
 }
 
 /* dropdown menu */

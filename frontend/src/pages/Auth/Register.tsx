@@ -267,10 +267,15 @@ const Register = () => {
             <div className="subjects-container">
               {[
                 "Programming",
-                "Math",
+                "Mathematics",
                 "Linear Programming",
-                "Database",
+                "Database Development",
                 "Web Programming",
+                "Computer Architecture",
+                "Statistics",
+                "Software Testing",
+                "Network Development",
+                "Machine Learning",
               ].map((subject) => (
                 <div key={subject}>
                   <input
@@ -287,10 +292,15 @@ const Register = () => {
                       className={`fas ${
                         {
                           Programming: "fa-code",
-                          Math: "fa-calculator",
+                          Mathematics: "fa-calculator",
                           "Linear Programming": "fa-project-diagram",
-                          Database: "fa-database",
+                          "Database Development": "fa-database",
                           "Web Programming": "fa-laptop-code",
+                          "Computer Architecture": "fa-microchip",
+                          Statistics: "fa-chart-line",
+                          "Software Testing": "fa-bug",
+                          "Network Development": "fa-network-wired",
+                          "Machine Learning": "fa-robot",
                         }[subject]
                       }
                     `}
