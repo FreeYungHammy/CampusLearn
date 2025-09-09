@@ -3,10 +3,58 @@ import { Link } from "react-router-dom";
 
 const Forum = () => {
   const [topics, setTopics] = useState([
-    { id: 1, upvoted: false, upvotes: 8 },
-    { id: 2, upvoted: true, upvotes: 15 },
-    { id: 3, upvoted: false, upvotes: 32 },
+    {
+      id: 1,
+      upvoted: false,
+      upvotes: 8,
+      title: "How to approach BIT project planning?",
+      subject: "Mathematics",
+      time: "2 hours ago",
+      replies: 12,
+      content:
+        "I'm struggling with planning my BIT project. Any tips on how to break down the requirements and create a timeline? I've looked at the project guidelines but I'm still unsure about the best approach for the database design phase.",
+      author: "Anonymous",
+      authorInitial: "A",
+      tags: ["project planning", "database design", "BIT"],
+      views: 124,
+      lastActivity: "10 minutes ago",
+    },
+    {
+      id: 2,
+      upvoted: true,
+      upvotes: 15,
+      title: "BCom Finance Module Tips",
+      subject: "Business",
+      time: "1 day ago",
+      replies: 8,
+      content:
+        "Anyone have study tips for the advanced finance module? The concepts are getting complex and I could use some guidance on the best resources for understanding financial modeling techniques. The textbook seems quite dense.",
+      author: "Michael",
+      authorInitial: "M",
+      tags: ["finance", "study tips", "BCom"],
+      views: 98,
+      lastActivity: "15 minutes ago",
+    },
+    {
+      id: 3,
+      upvoted: false,
+      upvotes: 32,
+      title: "Python vs JavaScript for Web Development",
+      subject: "Computer Science",
+      time: "3 days ago",
+      replies: 24,
+      content:
+        "I'm starting a new web project and trying to decide between Python/Django and JavaScript/Node.js for the backend. What are the pros and cons of each for a medium-sized e-commerce application? Any experiences with both would be appreciated.",
+      author: "Sarah",
+      authorInitial: "S",
+      tags: ["python", "javascript", "web development"],
+      views: 376,
+      lastActivity: "25 minutes ago",
+    },
   ]);
+
+  const [filter, setFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("newest");
 
   const toggleUpvote = (id) => {
     setTopics(
@@ -22,169 +70,151 @@ const Forum = () => {
     );
   };
 
+  const filteredTopics = topics
+    .filter(
+      (topic) =>
+        filter === "all" ||
+        topic.subject.toLowerCase() === filter.toLowerCase(),
+    )
+    .sort((a, b) => {
+      if (sortBy === "newest") return new Date(b.time) - new Date(a.time);
+      if (sortBy === "active") return b.replies - a.replies;
+      if (sortBy === "upvoted") return b.upvotes - a.upvotes;
+      return 0;
+    });
+
   return (
-    <div className="content-view" id="forum-view">
-      <div className="section-header">
-        <h2 className="section-title">
-          <i className="fas fa-comments"></i>Discussion Forum
-        </h2>
-        <a href="#" className="btn btn-primary">
+    <div className="forum-container">
+      {/* Header */}
+      <div className="forum-header">
+        <div className="header-content">
+          <h1>
+            <i className="fas fa-comments"></i> Discussion Forum
+          </h1>
+          <p>
+            Ask questions and get answers from the entire student community.
+          </p>
+        </div>
+        <Link to="/new-topic" className="new-topic-btn">
           <i className="fas fa-plus"></i> New Topic
-        </a>
+        </Link>
       </div>
-      <div className="forum-container">
-        <div className="forum-header">
-          <div className="forum-filters">
-            <select className="forum-filter">
-              <option>All Subjects</option>
-              <option>Mathematics</option>
-              <option>Computer Science</option>
-              <option>Business</option>
-            </select>
-            <select className="forum-filter">
-              <option>Newest First</option>
-              <option>Most Active</option>
-              <option>Most Upvoted</option>
+
+      {/* Filters and Sorting */}
+      <div className="forum-controls">
+        <div className="controls-left">
+          <span className="filter-label">Filter by:</span>
+          {["All Subjects", "Mathematics", "Computer Science", "Business"].map(
+            (subject) => (
+              <button
+                key={subject}
+                onClick={() =>
+                  setFilter(
+                    subject === "All Subjects" ? "all" : subject.toLowerCase(),
+                  )
+                }
+                className={`subject-filter ${filter === (subject === "All Subjects" ? "all" : subject.toLowerCase()) ? "active" : ""}`}
+              >
+                {subject}
+              </button>
+            ),
+          )}
+        </div>
+
+        <div className="controls-right">
+          <div className="sort-container">
+            <span className="sort-label">Sort by:</span>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="sort-select"
+            >
+              <option value="newest">Newest First</option>
+              <option value="active">Most Active</option>
+              <option value="upvoted">Most Upvoted</option>
             </select>
           </div>
-          <a href="#" className="btn btn-outline">
-            View Past Posts
-          </a>
+
+          <button className="view-past-btn">View Past Posts</button>
         </div>
-        <div className="forum-topics">
-          <Link to="/forum/1" className="forum-topic" data-topic-id="1">
-            <div className="topic-header">
-              <div>
-                <div className="topic-title">
-                  How to approach BIT project planning?
+      </div>
+
+      {/* Topics List */}
+      <div className="topics-list">
+        {filteredTopics.map((topic) => (
+          <div key={topic.id} className="topic-card">
+            <div className="topic-vote">
+              <button
+                onClick={() => toggleUpvote(topic.id)}
+                className={`upvote-btn ${topic.upvoted ? "upvoted" : ""}`}
+              >
+                <i className="fas fa-chevron-up"></i>
+              </button>
+              <span className="vote-count">{topic.upvotes}</span>
+            </div>
+
+            <div className="topic-content">
+              <Link to={`/forum/${topic.id}`} className="topic-link">
+                <div className="topic-header">
+                  <h2 className="topic-title">{topic.title}</h2>
+                  <span className="topic-subject">{topic.subject}</span>
                 </div>
-                <div className="topic-meta">
-                  <span>
-                    <i className="far fa-clock"></i> 2 hours ago
+
+                <p className="topic-excerpt">{topic.content}</p>
+
+                <div className="topic-tags">
+                  {topic.tags.map((tag) => (
+                    <span key={tag} className="topic-tag">
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              </Link>
+
+              <div className="topic-meta">
+                <div className="meta-stats">
+                  <span className="stat-item">
+                    <i className="far fa-comment"></i>
+                    {topic.replies} replies
                   </span>
-                  <span>
-                    <i className="fas fa-layer-group"></i> Mathematics
+                  <span className="stat-item">
+                    <i className="far fa-eye"></i>
+                    {topic.views} views
                   </span>
-                  <span>
-                    <i className="fas fa-comment"></i> 12 replies
+                  <span className="stat-item">
+                    <i className="far fa-clock"></i>
+                    Last activity: {topic.lastActivity}
                   </span>
-                  <span>
-                    <button
-                      className={`upvote-btn ${topics.find((t) => t.id === 1).upvoted ? "upvoted" : ""}`}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        toggleUpvote(1);
-                      }}
-                    >
-                      <i className="fas fa-chevron-up"></i>{" "}
-                      {topics.find((t) => t.id === 1).upvotes} upvotes
-                    </button>
-                  </span>
+                </div>
+
+                <div className="topic-author">
+                  <div className="author-avatar">{topic.authorInitial}</div>
+                  <div className="author-details">
+                    <span className="author-name">{topic.author}</span>
+                    <span className="post-time">{topic.time}</span>
+                  </div>
                 </div>
               </div>
             </div>
-            <div className="topic-content">
-              <p>
-                I'm struggling with planning my BIT project. Any tips on how to
-                break down the requirements and create a timeline? I've looked
-                at the project guidelines but I'm still unsure about the best
-                approach for the database design phase.
-              </p>
-            </div>
-            <div className="topic-author">
-              <div className="author-avatar">A</div>
-              <div className="author-name anonymous">Anonymous</div>
-            </div>
-          </Link>
-          <Link to="/forum/2" className="forum-topic" data-topic-id="2">
-            <div className="topic-header">
-              <div>
-                <div className="topic-title">BCom Finance Module Tips</div>
-                <div className="topic-meta">
-                  <span>
-                    <i className="far fa-clock"></i> 1 day ago
-                  </span>
-                  <span>
-                    <i className="fas fa-layer-group"></i> Business
-                  </span>
-                  <span>
-                    <i className="fas fa-comment"></i> 5 replies
-                  </span>
-                  <span>
-                    <button
-                      className={`upvote-btn ${topics.find((t) => t.id === 2).upvoted ? "upvoted" : ""}`}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        toggleUpvote(2);
-                      }}
-                    >
-                      <i className="fas fa-chevron-up"></i>{" "}
-                      {topics.find((t) => t.id === 2).upvotes} upvotes
-                    </button>
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div className="topic-content">
-              <p>
-                Anyone have study tips for the advanced finance module? The
-                concepts are getting complex and I could use some guidance on
-                the best resources for understanding financial modeling
-                techniques. The textbook seems quite dense.
-              </p>
-            </div>
-            <div className="topic-author">
-              <div className="author-avatar">M</div>
-              <div className="author-name">Michael</div>
-            </div>
-          </Link>
-          <Link to="/forum/3" className="forum-topic" data-topic-id="3">
-            <div className="topic-header">
-              <div>
-                <div className="topic-title">
-                  Python vs JavaScript for Web Development
-                </div>
-                <div className="topic-meta">
-                  <span>
-                    <i className="far fa-clock"></i> 3 days ago
-                  </span>
-                  <span>
-                    <i className="fas fa-layer-group"></i> Computer Science
-                  </span>
-                  <span>
-                    <i className="fas fa-comment"></i> 24 replies
-                  </span>
-                  <span>
-                    <button
-                      className={`upvote-btn ${topics.find((t) => t.id === 3).upvoted ? "upvoted" : ""}`}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        toggleUpvote(3);
-                      }}
-                    >
-                      <i className="fas fa-chevron-up"></i>{" "}
-                      {topics.find((t) => t.id === 3).upvotes} upvotes
-                    </button>
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div className="topic-content">
-              <p>
-                I'm starting a new web project and trying to decide between
-                Python/Django and JavaScript/Node.js for the backend. What are
-                the pros and cons of each for a medium-sized e-commerce
-                application? Any experiences with both would be appreciated.
-              </p>
-            </div>
-            <div className="topic-author">
-              <div className="author-avatar">S</div>
-              <div className="author-name">Sarah</div>
-            </div>
-          </Link>
+          </div>
+        ))}
+      </div>
+
+      {/* Pagination */}
+      <div className="forum-pagination">
+        <div className="pagination-info">
+          <p>
+            Showing <span>1</span> to <span>3</span> of <span>3</span> results
+          </p>
+        </div>
+        <div className="pagination-controls">
+          <button className="pagination-btn">
+            <i className="fas fa-chevron-left"></i>
+          </button>
+          <button className="pagination-btn active">1</button>
+          <button className="pagination-btn">
+            <i className="fas fa-chevron-right"></i>
+          </button>
         </div>
       </div>
     </div>
