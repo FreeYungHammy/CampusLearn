@@ -160,3 +160,19 @@ The frontend is a React application built with Vite.
     - **Syntax errors in backend service:** A missing parenthesis in `file.service.ts` caused the backend TypeScript compilation to fail, preventing the server from starting correctly and thus blocking any API calls.
     - **Lack of immediate feedback:** The frontend was not adequately configured to display specific backend errors, making debugging difficult.
   - **Lesson Learned:** For complex feature implementations, especially those involving both frontend and backend changes, a more granular, step-by-step approach with frequent testing is crucial. Prioritize application stability over rapid feature development. Ensure robust error handling and clear user feedback on both ends of the application. Thoroughly test each new piece of functionality in isolation before integrating it into the larger system. Always verify backend compilation and server startup after any backend code changes.
+
+### Session 5: Dark Mode, Theme Toggling, and UI Consistency
+
+- **Dark Mode Implementation for Forum Page:**
+  - Moved Forum page-specific styles from an inline `<style jsx>` block in `Forum.tsx` to a dedicated CSS file (`frontend/src/pages/Forum.css`).
+  - Modified `Forum.css` to use CSS variables for colors and implemented dark mode theming using the `[data-theme="dark"]` selector, aligning with the project's global theme management.
+  - Updated `Forum.tsx` to import `Forum.css` and use the defined class names.
+- **Theme Toggling Refinement:**
+  - Identified that the project uses a `data-theme` attribute on the `html` element for theme switching, managed by `Header.tsx`'s `toggleTheme` function and `localStorage`.
+  - Ensured `Header.tsx` correctly utilizes this existing mechanism for theme toggling.
+- **Tutor Card UI Enhancements (My Tutors & Find Tutors Pages):**
+  - **Consistent Button Heights:** Modified `.tutor-card` in `App.css` to use `display: flex; flex-direction: column; justify-content: space-between; height: 100%;` to ensure "View Profile & Content" and subscribe/unsubscribe buttons are always at an equal height.
+  - **Improved Subject Tag Styling:**
+    - Updated `MyTutors.tsx` and `FindTutors.tsx` to render subjects as individual `<span>` elements with a `subject-tag` class, mapping over an array of subjects.
+    - Added comprehensive CSS rules for the `subject-tag` class in `App.css`, providing rounded borders, padding, and theme-adaptive background/text colors for a more professional "tag" look.
+  - **Button Consistency:** Aligned the subscribe/unsubscribe button styling and logic in `FindTutors.tsx` to match the `btn btn-sm btn-danger/btn-success` classes used in `MyTutors.tsx`.
