@@ -23,7 +23,7 @@
 }
 
 .login-container {
-  width: 600px;
+  width: 800px;
   margin: 0 auto;
 }
 
@@ -402,7 +402,11 @@
 }
 
 .auth-page-container {
-  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+  background: linear-gradient(
+    135deg,
+    var(--bg-grad-start) 0%,
+    var(--bg-grad-end) 100%
+  );
   color: var(--dark);
   display: flex;
   flex-direction: column;

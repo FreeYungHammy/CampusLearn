@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
+import { useAuthStore } from "../store/authStore";
 import "./Settings.css";
 
 const Settings = () => {
@@ -23,11 +24,13 @@ const Settings = () => {
     return strength;
   };
 
+  const user = useAuthStore((state) => state.user);
+
   const profileFormik = useFormik({
     initialValues: {
-      firstName: "John",
-      lastName: "Doe",
-      email: "john.doe@example.com",
+      firstName: user?.name || "",
+      lastName: user?.surname || "",
+      email: user?.email || "",
     },
     validationSchema: Yup.object({
       firstName: Yup.string().required("Required"),
