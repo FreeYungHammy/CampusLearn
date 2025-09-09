@@ -1418,6 +1418,82 @@ img {
   background: var(--danger-dark);
 }
 
+/* students */
+
+.students-grid {
+  display: grid;
+
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+
+  gap: 24px;
+}
+
+.student-card {
+  background: #fff;
+
+  border-radius: var(--radius-lg);
+
+  overflow: hidden;
+
+  background: transparent;
+
+  box-shadow: var(--card-shadow);
+
+  transition: var(--transition);
+
+  text-align: center;
+}
+
+.student-card:hover {
+  transform: translateY(-6px);
+
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.12);
+}
+
+.student-header {
+  padding: 22px;
+
+  background: linear-gradient(135deg, #5ee7df 0%, #b490ca 100%);
+
+  color: #fff;
+
+  border-top-left-radius: var(--radius-lg);
+
+  border-top-right-radius: var(--radius-lg);
+}
+
+.student-details {
+  padding: 22px;
+
+  border-bottom-left-radius: var(--radius-lg);
+
+  border-bottom-right-radius: var(--radius-lg);
+}
+
+.student-avatar {
+  width: 80px;
+
+  height: 80px;
+
+  border-radius: 50%;
+
+  margin: 0 auto 14px;
+
+  background: #fff;
+
+  color: var(--primary);
+
+  display: grid;
+
+  place-items: center;
+
+  font-size: 32px;
+
+  font-weight: 800;
+
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+}
+
 /* ------------------------------
    8) Forms
    ------------------------------ */
@@ -2148,6 +2224,16 @@ body {
   background: var(--surface);
   color: var(--dark);
   border-color: var(--border);
+}
+
+[data-theme="dark"] .form-control,
+[data-theme="dark"] .chat-input input,
+[data-theme="dark"] .comment-form textarea {
+  background: var(
+    --surface-2
+  ); /* Using a slightly different surface for inputs */
+  color: var(--dark); /* Text color from dark theme */
+  border-color: var(--border); /* Border color from dark theme */
 }
 
 /* Footer bar keeps your dark tone, but text and links use tokens */
