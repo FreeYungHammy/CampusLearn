@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { FileService } from "./file.service";
 import multer from "multer";
+import { AuthedRequest } from "../../auth/auth.middleware";
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -92,6 +93,25 @@ export const FileController = {
   byTutor: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const items = await FileService.byTutor(req.params.tutorId);
+      res.json(items);
+    } catch (e) {
+      next(e);
+    }
+  },
+
+  byUser: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const items = await FileService.byTutorUserId(req.params.userId);
+      res.json(items);
+    } catch (e) {
+      next(e);
+    }
+  },
+
+  myContent: async (req: AuthedRequest, res: Response, next: NextFunction) => {
+    try {
+      const userId = req.user!.id;
+      const items = await FileService.byTutorUserId(userId);
       res.json(items);
     } catch (e) {
       next(e);

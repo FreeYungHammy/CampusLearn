@@ -55,6 +55,12 @@ export const FileService = {
     return FileRepo.findByTutor(tutorId, limit, skip);
   },
 
+  // Find files for a tutor by the owning User's id (via Tutor profile)
+  async byTutorUserId(userId: string, limit = 100, skip = 0) {
+    // We can't import TutorRepo directly here to avoid a circular dep; query via repo helper
+    return FileRepo.findByTutorUserId(userId, limit, skip);
+  },
+
   update(id: string, patch: Partial<FileDoc>) {
     return FileRepo.updateById(id, { $set: patch });
   },

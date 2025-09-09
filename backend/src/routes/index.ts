@@ -8,6 +8,10 @@ import health from "./health";
 
 const r = Router();
 
+r.get("/", (_req, res) => {
+  res.json({ ok: true, root: "/api" });
+});
+
 r.use("/health", health);
 r.use("/users", users);
 r.use("/students", students);
