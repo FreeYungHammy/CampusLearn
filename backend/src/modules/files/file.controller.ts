@@ -15,7 +15,7 @@ const VIEWABLE_MIME_TYPES = [
   "image/webp",
   "image/svg+xml",
   "text/plain",
-  "text/html",
+  "video/mp4",
 ];
 
 export const FileController = {
@@ -79,7 +79,9 @@ export const FileController = {
       const isViewable = VIEWABLE_MIME_TYPES.some((type) =>
         item.contentType.startsWith(type),
       );
-      const disposition = isViewable ? "inline" : "attachment";
+      const forceDownload = req.query.download === "true";
+      const disposition =
+        isViewable && !forceDownload ? "inline" : "attachment";
 
       res.setHeader("Content-Type", item.contentType);
       res.setHeader(

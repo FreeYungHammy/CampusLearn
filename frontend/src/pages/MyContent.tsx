@@ -13,7 +13,7 @@ const VIEWABLE_MIME_TYPES = [
   "image/webp",
   "image/svg+xml",
   "text/plain",
-  "text/html",
+  "video/mp4",
 ];
 
 type Grouped = Record<string, Record<string, TutorUpload[]>>; // subject -> subtopic -> files
@@ -176,18 +176,37 @@ const MyContent = () => {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>{selectedFile.title}</h3>
-              <button className="modal-close-btn" onClick={closeModal}>
-                &times;
-              </button>
+              <div>
+                <a
+                  href={`${apiBaseUrl}/files/${(selectedFile as any).id || (selectedFile as any)._id}/binary?download=true`}
+                  className="btn btn-sm btn-primary"
+                  style={{ marginRight: "1rem" }}
+                >
+                  <i className="fas fa-download"></i> Download
+                </a>
+                <button className="modal-close-btn" onClick={closeModal}>
+                  &times;
+                </button>
+              </div>
             </div>
             <div className="modal-body">
-              <iframe
-                src={`${apiBaseUrl}/files/${(selectedFile as any).id || (selectedFile as any)._id}/binary`}
-                width="100%"
-                height="100%"
-                style={{ border: "none" }}
-                title={selectedFile.title}
-              ></iframe>
+              {selectedFile.contentType.startsWith("video/") ? (
+                <video
+                  src={`${apiBaseUrl}/files/${(selectedFile as any).id || (selectedFile as any)._id}/binary`}
+                  controls
+                  autoPlay
+                  style={{ width: "100%", maxHeight: "80vh" }}
+                />
+              ) : (
+                <iframe
+                  src={`${apiBaseUrl}/files/${(selectedFile as any).id || (selectedFile as any)._id}/binary`}
+                  width="100%"
+                  height="100%"
+                  style={{ border: "none" }}
+                  title={selectedFile.title}
+                  allowFullScreen={true}
+                ></iframe>
+              )}
             </div>
           </div>
         </div>
