@@ -1430,24 +1430,20 @@ img {
 
 .student-card {
   background: #fff;
-
   border-radius: var(--radius-lg);
-
   overflow: hidden;
-
   background: transparent;
-
   box-shadow: var(--card-shadow);
-
   transition: var(--transition);
-
   text-align: center;
+  position: relative; /* <-- add this */
+  margin-bottom: 16px; /* <-- optional: adds spacing below each card */
 }
 
 .student-card:hover {
   transform: translateY(-6px);
-
   box-shadow: 0 15px 30px rgba(0, 0, 0, 0.12);
+  z-index: 2; /* <-- add this */
 }
 
 .student-header {
@@ -1464,10 +1460,11 @@ img {
 
 .student-details {
   padding: 22px;
-
   border-bottom-left-radius: var(--radius-lg);
-
   border-bottom-right-radius: var(--radius-lg);
+  background: var(--surface); /* makes it pop above page bg */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); /* subtle elevation */
+  border-top: 1px solid var(--border); /* separates from header */
 }
 
 .student-avatar {
@@ -1606,11 +1603,12 @@ img {
 .content-section-title {
   font-size: 20px;
   font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 16px;
+  color: var(--primary);
+  margin-bottom: 0;
   display: flex;
   align-items: center;
   gap: 10px;
+  height: 40px;
 }
 
 .content-header {
@@ -1625,13 +1623,15 @@ img {
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
-  border: 1px solid var(--border-light);
-  background: var(--bg-light);
-  color: var(--text-secondary);
-  border-radius: 6px;
+  border: 1.5px solid var(--border);
+  background: var(--light-gray);
+  color: var(--dark);
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
   font-weight: 500;
+  font-size: 16px;
+  height: 40px;
 }
 
 .back-button:hover {
@@ -1651,19 +1651,22 @@ img {
   display: flex;
   align-items: center;
   padding: 20px;
-  background: var(--bg-light);
-  border: 1px solid var(--border-light);
+  background: var(--surface); /* stands out from page bg */
+  border: 2px solid var(--border); /* more visible border */
   border-radius: 12px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition:
+    box-shadow 0.25s,
+    border-color 0.2s,
+    background 0.2s;
   gap: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08); /* subtle elevation */
 }
 
 .subject-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-  border-color: var(--primary-light);
-  background: var(--primary-light);
+  border-color: var(--primary);
+  background: rgba(52, 152, 219, 0.04); /* gentle blue tint */
+  box-shadow: 0 8px 32px rgba(52, 152, 219, 0.12); /* stronger shadow */
 }
 
 .subject-icon {
@@ -1721,19 +1724,22 @@ img {
   display: flex;
   align-items: center;
   padding: 16px;
-  background: var(--bg-light);
-  border: 1px solid var(--border-light);
+  background: var(--surface); /* stands out from page bg */
+  border: 2px solid var(--border); /* more visible border */
   border-radius: 10px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition:
+    box-shadow 0.25s,
+    border-color 0.2s,
+    background 0.2s;
   gap: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07); /* subtle elevation */
 }
 
 .subtopic-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
-  border-color: var(--primary-light);
-  background: var(--primary-light);
+  border-color: var(--primary);
+  background: rgba(52, 152, 219, 0.04); /* gentle blue tint */
+  box-shadow: 0 6px 24px rgba(52, 152, 219, 0.12); /* stronger shadow */
 }
 
 .subtopic-icon {
@@ -1778,16 +1784,21 @@ img {
   display: flex;
   align-items: center;
   padding: 16px;
-  background: var(--bg-light);
-  border: 1px solid var(--border-light);
+  background: var(--surface); /* stands out from page bg */
+  border: 2px solid var(--border); /* more visible border */
   border-radius: 10px;
   gap: 16px;
-  transition: all 0.2s ease;
+  transition:
+    box-shadow 0.25s,
+    border-color 0.2s,
+    background 0.2s;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07); /* subtle elevation */
 }
 
 .file-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border-color: var(--primary-light);
+  border-color: var(--primary);
+  background: rgba(52, 152, 219, 0.04); /* gentle blue tint */
+  box-shadow: 0 6px 24px rgba(52, 152, 219, 0.12); /* stronger shadow */
 }
 
 .file-icon {
@@ -1835,10 +1846,40 @@ img {
   font-weight: 500;
 }
 
-.file-actions {
-  display: flex;
-  gap: 8px;
-  flex-shrink: 0;
+.file-actions .view-btn,
+.file-actions .download-btn {
+  padding: 10px 16px;
+  font-size: 14px;
+  border-radius: 8px;
+  font-weight: 600;
+  min-width: 100px;
+  text-align: center;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.file-actions .view-btn {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+}
+
+.file-actions .view-btn:hover {
+  background: var(--primary-dark);
+}
+
+.file-actions .download-btn {
+  background: var(--bg-light);
+  color: var(--primary);
+  border: 1.5px solid var(--primary);
+}
+
+.file-actions .download-btn:hover {
+  background: var(--primary-light);
+  color: #fff;
 }
 
 /* Modal Styles */
@@ -1965,6 +2006,57 @@ img {
 .upload-error {
   color: var(--danger);
   font-weight: 600;
+}
+
+.form-control,
+.chat-search input,
+.chat-input input,
+.comment-form textarea,
+.search-bar input {
+  background: #f8fbff; /* lighter, more visible background */
+  border: 2px solid var(--border); /* thicker border for visibility */
+  border-radius: 12px;
+  font-size: 16px;
+  color: var(--dark);
+  box-shadow: 0 2px 8px rgba(52, 152, 219, 0.1); /* subtle blue shadow */
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s,
+    background 0.2s;
+  padding: 14px 16px;
+}
+
+[data-theme="dark"] .form-control,
+[data-theme="dark"] .chat-search input,
+[data-theme="dark"] .chat-input input,
+[data-theme="dark"] .comment-form textarea,
+[data-theme="dark"] .search-bar input {
+  background: var(--surface-2); /* dark surface for dark mode */
+  color: var(--dark);
+  border: 2px solid var(--border);
+  box-shadow: 0 2px 8px rgba(52, 152, 219, 0.18);
+}
+
+.form-control:focus,
+.chat-search input:focus,
+.chat-input input:focus,
+.comment-form textarea:focus,
+.search-bar input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 4px 16px rgba(52, 152, 219, 0.18);
+  background: #eaf4fb; /* gentle highlight for light theme */
+  outline: none;
+}
+
+[data-theme="dark"] .form-control:focus,
+[data-theme="dark"] .chat-search input:focus,
+[data-theme="dark"] .chat-input input:focus,
+[data-theme="dark"] .comment-form textarea:focus,
+[data-theme="dark"] .search-bar input:focus {
+  background: #16213a;
+  border-color: var(--primary);
+  box-shadow: 0 4px 16px rgba(52, 152, 219, 0.28);
+  outline: none;
 }
 
 /* ------------------------------

@@ -219,7 +219,15 @@ const MyContent = () => {
                       {/* Show subjects when at root level */}
                       {!selectedSubject && (
                         <div className="subjects-container">
-                          <h3 className="content-section-title">Subjects</h3>
+                          <div className="content-header">
+                            <button
+                              className="back-button"
+                              onClick={handleBack}
+                            >
+                              <i className="fas fa-arrow-left"></i> Back
+                            </button>
+                            <h3 className="content-section-title">Subjects</h3>
+                          </div>
                           <div className="subjects-grid">
                             {Object.keys(grouped).map((subject) => (
                               <div
@@ -355,12 +363,16 @@ const MyContent = () => {
                                       </div>
                                     </div>
                                     <div className="file-actions">
-                                      <button
-                                        className="btn btn-sm btn-primary"
-                                        onClick={() => handleViewClick(file)}
-                                      >
-                                        <i className="fas fa-eye"></i> View
-                                      </button>
+                                      {VIEWABLE_MIME_TYPES.some((type) =>
+                                        file.contentType.startsWith(type),
+                                      ) && (
+                                        <button
+                                          className="btn btn-sm btn-primary"
+                                          onClick={() => handleViewClick(file)}
+                                        >
+                                          <i className="fas fa-eye"></i> View
+                                        </button>
+                                      )}
                                       <a
                                         href={`${apiBaseUrl}/files/${fileId}/binary?download=true`}
                                         className="btn btn-sm btn-outline"
