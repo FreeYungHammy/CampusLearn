@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 import { apiBaseUrl } from "../lib/api";
-import { getMyContent } from "../services/fileApi";
+import { deleteFile, getMyContent } from "../services/fileApi";
 import type { TutorUpload } from "../types/tutorUploads";
 
 // List of MIME types that can be safely displayed in a browser
@@ -29,8 +30,11 @@ const MyContent = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<TutorUpload | null>(null);
   const [currentPath, setCurrentPath] = useState<string[]>([]);
+  const navigate = useNavigate();
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
   const [selectedSubtopic, setSelectedSubtopic] = useState<string | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [fileToDelete, setFileToDelete] = useState<TutorUpload | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -84,6 +88,48 @@ const MyContent = () => {
       // For non-viewable files, open in a new tab to trigger download
       const fileId = (file as any).id || (file as any)._id;
       window.open(`${apiBaseUrl}/files/${fileId}/binary`, "_blank");
+    }
+  };
+
+  const handleDeleteClick = (file: TutorUpload) => {
+    setFileToDelete(file);
+    setIsDeleteModalOpen(true);
+  };
+
+  const closeDeleteModal = () => {
+    setFileToDelete(null);
+    setIsDeleteModalOpen(false);
+  };
+
+  const confirmDelete = async () => {
+    if (!fileToDelete || !token) return;
+
+    const fileId = (fileToDelete as any)._id || (fileToDelete as any).id;
+
+    try {
+      await deleteFile(token, fileId);
+      setItems(
+        items.filter(
+          (item) => ((item as any)._id || (item as any).id) !== fileId,
+        ),
+      );
+      closeDeleteModal();
+
+      // Check if the current subtopic is now empty
+      if (selectedSubject && selectedSubtopic) {
+        const remainingFilesInSubtopic = items.filter(
+          (item) =>
+            item.subject === selectedSubject &&
+            item.subtopic === selectedSubtopic &&
+            ((item as any)._id || (item as any).id) !== fileId,
+        );
+        if (remainingFilesInSubtopic.length === 0) {
+          navigateBack(); // Go back to the subject view
+        }
+      }
+    } catch (error) {
+      console.error("Failed to delete file:", error);
+      // Optionally, show an error message to the user
     }
   };
 
@@ -210,7 +256,10 @@ const MyContent = () => {
                     <div className="empty-state">
                       <i className="fas fa-folder-open"></i>
                       <p>No content yet. Start by uploading your first file!</p>
-                      <button className="btn btn-primary">
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => navigate("/upload")}
+                      >
                         <i className="fas fa-upload"></i> Upload Content
                       </button>
                     </div>
@@ -235,10 +284,7 @@ const MyContent = () => {
                                   </div>
                                   <div className="subject-info">
                                     <h4>{subject}</h4>
-                                    <p>
-                                      {Object.keys(grouped[subject]).length}{" "}
-                                      subtopic(s)
-                                    </p>
+
                                     <span className="file-count">
                                       {
                                         Object.values(grouped[subject]).flat()
@@ -369,14 +415,23 @@ const MyContent = () => {
                                           <i className="fas fa-eye"></i> View
                                         </button>
                                       )}
-                                      <a
-                                        href={`${apiBaseUrl}/files/${fileId}/binary?download=true`}
-                                        className="btn btn-sm btn-outline"
-                                        download
+                                      {file.contentType !==
+                                        "application/pdf" && (
+                                        <a
+                                          href={`${apiBaseUrl}/files/${fileId}/binary?download=true`}
+                                          className="btn btn-sm btn-outline"
+                                          download
+                                        >
+                                          <i className="fas fa-download"></i>{" "}
+                                          Download
+                                        </a>
+                                      )}
+                                      <button
+                                        className="btn btn-sm btn-danger"
+                                        onClick={() => handleDeleteClick(file)}
                                       >
-                                        <i className="fas fa-download"></i>{" "}
-                                        Download
-                                      </a>
+                                        <i className="fas fa-trash"></i> Delete
+                                      </button>
                                     </div>
                                   </div>
                                 );
@@ -400,13 +455,15 @@ const MyContent = () => {
             <div className="modal-header">
               <h3>{selectedFile.title}</h3>
               <div className="modal-actions">
-                <a
-                  href={`${apiBaseUrl}/files/${(selectedFile as any).id || (selectedFile as any)._id}/binary?download=true`}
-                  className="btn btn-sm btn-primary"
-                  download
-                >
-                  <i className="fas fa-download"></i> Download
-                </a>
+                {selectedFile.contentType !== "application/pdf" && (
+                  <a
+                    href={`${apiBaseUrl}/files/${(selectedFile as any).id || (selectedFile as any)._id}/binary?download=true`}
+                    className="btn btn-sm btn-primary"
+                    download
+                  >
+                    <i className="fas fa-download"></i> Download
+                  </a>
+                )}
                 <button className="modal-close-btn" onClick={closeModal}>
                   <i className="fas fa-times"></i>
                 </button>
@@ -430,6 +487,34 @@ const MyContent = () => {
                   allowFullScreen={true}
                 ></iframe>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isDeleteModalOpen && fileToDelete && (
+        <div className="modal-overlay" onClick={closeDeleteModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Confirm Deletion</h3>
+              <button className="modal-close-btn" onClick={closeDeleteModal}>
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+            <div className="modal-body">
+              <p>
+                Are you sure you want to delete the file:{" "}
+                <strong>{fileToDelete.title}</strong>?
+              </p>
+              <p className="text-danger">This action cannot be undone.</p>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={closeDeleteModal}>
+                Cancel
+              </button>
+              <button className="btn btn-danger" onClick={confirmDelete}>
+                Delete
+              </button>
             </div>
           </div>
         </div>

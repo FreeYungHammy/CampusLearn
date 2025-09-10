@@ -68,4 +68,18 @@ export const FileService = {
   remove(id: string) {
     return FileRepo.deleteById(id);
   },
+
+  async isOwner(userId: string, fileTutorId: string): Promise<boolean> {
+    const tutor = await FileRepo.findTutorByUserId(userId);
+    if (!tutor) {
+      return false;
+    }
+    const result =
+      tutor._id.toString() === fileTutorId || userId === fileTutorId;
+    return result;
+  },
+
+  findTutorByUserId(userId: string) {
+    return FileRepo.findTutorByUserId(userId);
+  },
 };

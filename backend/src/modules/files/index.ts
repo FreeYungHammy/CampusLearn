@@ -3,7 +3,7 @@ import { FileController } from "./file.controller";
 import { requireTutor } from "../../auth/auth.middleware";
 
 const r = Router();
-r.post("/", FileController.create);
+r.post("/", requireTutor, FileController.create);
 r.get("/", FileController.list);
 
 // Secure endpoint: current tutor's content (meta only, excludes binary)
@@ -15,6 +15,6 @@ r.get("/by-tutor/:tutorId", FileController.byTutor);
 r.get("/:id/binary", FileController.getBinary);
 r.get("/:id", FileController.getMeta);
 r.patch("/:id", FileController.update);
-r.delete("/:id", FileController.remove);
+r.delete("/:id", requireTutor, FileController.remove);
 
 export default r;

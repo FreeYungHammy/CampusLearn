@@ -21,9 +21,17 @@ const VIEWABLE_MIME_TYPES = [
 export const FileController = {
   create: [
     upload.single("file"),
-    async (req: Request, res: Response, next: NextFunction) => {
+    async (req: AuthedRequest, res: Response, next: NextFunction) => {
       try {
         const body = { ...req.body };
+        const tutor = await FileService.findTutorByUserId(req.user!.id);
+        if (!tutor) {
+          return res
+            .status(403)
+            .json({ message: "Forbidden: Only tutors can upload files." });
+        }
+        body.tutorId = tutor._id; // Use the actual tutor's _id
+
         if (req.file) {
           body.file = {
             buffer: req.file.buffer,
@@ -140,10 +148,28 @@ export const FileController = {
     }
   },
 
-  remove: async (req: Request, res: Response, next: NextFunction) => {
+  remove: async (req: AuthedRequest, res: Response, next: NextFunction) => {
     try {
-      const deleted = await FileService.remove(req.params.id);
+      const fileId = req.params.id;
+      const userId = req.user!.id;
+
+      const file = await FileService.getMeta(fileId);
+      if (!file) {
+        return res.status(404).json({ message: "File not found" });
+      }
+
+      const isOwner = await FileService.isOwner(
+        userId,
+        file.tutorId.toString(),
+      );
+
+      if (!isOwner) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+
+      const deleted = await FileService.remove(fileId);
       if (!deleted) return res.status(404).json({ message: "File not found" });
+
       res.status(204).send();
     } catch (e) {
       next(e);

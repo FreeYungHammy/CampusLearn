@@ -12,8 +12,9 @@ const Upload = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { user } = useAuthStore();
+  const { user, token } = useAuthStore();
   const tutorId = user?.role === "tutor" ? user._id : null; // Get tutorId from auth store
+  const tutorSubjects = user?.role === "tutor" ? user.subjects : [];
 
   useEffect(() => {
     if (file) {
@@ -75,6 +76,7 @@ const Upload = () => {
         const response = await api.post("/files", formData, {
           headers: {
             "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${token}`,
           },
         });
         console.log("Upload successful:", response.data);
@@ -162,10 +164,14 @@ const Upload = () => {
               onChange={(e) => setSubject(e.target.value)}
               value={subject}
             >
-              <option value="">Select a subject</option>
-              <option value="Mathematics">Mathematics</option>
-              <option value="Computer Science">Computer Science</option>
-              <option value="Business">Business</option>
+              <option value="" disabled>
+                Select a subject
+              </option>
+              {tutorSubjects.map((sub: string) => (
+                <option key={sub} value={sub}>
+                  {sub}
+                </option>
+              ))}
             </select>
             {errors.subject && (
               <div className="invalid-feedback d-block upload-error">
