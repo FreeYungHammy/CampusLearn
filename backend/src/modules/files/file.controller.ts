@@ -2,8 +2,21 @@ import { Request, Response, NextFunction } from "express";
 import { FileService } from "./file.service";
 import multer from "multer";
 import { AuthedRequest } from "../../auth/auth.middleware";
+import mime from "mime-types";
 
 const upload = multer({ storage: multer.memoryStorage() });
+
+// List of MIME types that can be safely displayed in a browser
+const VIEWABLE_MIME_TYPES = [
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "image/svg+xml",
+  "text/plain",
+  "text/html",
+];
 
 export const FileController = {
   create: [
@@ -60,11 +73,18 @@ export const FileController = {
       const item = await FileService.getWithBinary(req.params.id);
       if (!item) return res.status(404).json({ message: "File not found" });
 
-      // Return as binary stream (generic octet-stream; you can add mimeType later)
+      const extension = mime.extension(item.contentType);
+      const filename = `${item.title ?? "file"}.${extension || "bin"}`;
+
+      const isViewable = VIEWABLE_MIME_TYPES.some((type) =>
+        item.contentType.startsWith(type),
+      );
+      const disposition = isViewable ? "inline" : "attachment";
+
       res.setHeader("Content-Type", item.contentType);
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename="${item.title ?? "file"}"`,
+        `${disposition}; filename="${filename}"`,
       );
       res.send((item as any).content);
     } catch (e) {
