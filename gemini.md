@@ -204,7 +204,7 @@ The frontend is a React application built with Vite.
 - **Frontend Plan:**
   - **Routing:** Add a new protected route `/my-content` in `frontend/src/routes/index.tsx` that renders the `MyContent.tsx` component, ensuring it's only accessible to logged-in users.
   - **API Service:** Create a new file `frontend/src/services/fileApi.ts` containing a `getMyContent()` function to call the new backend endpoint.
-  - \*\*UI Implementation (`MyContent.tsx`):
+  - **UI Implementation (`MyContent.tsx`):**
     - **Styling:** The UI will be built using the modern and polished CSS classes and design patterns found in `demo.html` (specifically `.content-browser`, `.subject-item`, `.file-item`, etc.).
     - **Component Structure:** The display will be built using a modular, component-based approach (`SubjectFolder.tsx`, `SubtopicFolder.tsx`, `FileItem.tsx`) to keep the code clean and maintainable.
     - **Display Logic:** The core logic for displaying content will be as follows:
@@ -245,3 +245,44 @@ Result: Tutors with uploaded content now see their materials organized by subjec
 
 - **Next Steps (Phase 2):**
   - Once the display functionality is complete and approved, the next phase will be to implement the file deletion feature, which will include a secure backend endpoint and a confirmation modal on the frontend.
+
+### Session 7: Smart File Display and Download Logic
+
+- **Goal:** Replace the non-functional "Download" button with a "View" button that intelligently handles file rendering. For browser-viewable files (PDFs, images, text), it will display them in a modal. For other files (spreadsheets, documents), it will trigger a proper download with the correct file extension.
+
+- **Problem Diagnosis:**
+  - The primary issue was that the backend's `GET /api/files/:id/binary` endpoint was forcing a download for all file types by using `Content-Disposition: attachment`.
+  - It also failed to append a file extension to the downloaded file, making it unusable without manual renaming.
+  - The frontend was using a complex and insecure data-fetching method instead of the dedicated `getMyContent` service function.
+
+- **Execution Plan:**
+  - **Backend (`file.controller.ts`):**
+    1.  **Import `mime-types`:** Utilize the already-installed `mime-types` package.
+    2.  **Define Viewable Types:** Create a constant array `VIEWABLE_MIME_TYPES` (e.g., `application/pdf`, `image/png`, `text/plain`) to easily check if a file can be rendered by the browser.
+    3.  **Update `getBinary` Endpoint:**
+        - Dynamically determine the file extension using `mime.extension(contentType)`.
+        - Construct a full, user-friendly `filename` (e.g., `My-Document.pdf`).
+        - Check if the file's `contentType` is in the `VIEWABLE_MIME_TYPES` list.
+        - Set the `Content-Disposition` header to `inline; filename="..."` for viewable files to instruct the browser to display them.
+        - For all other file types, set the `Content-Disposition` to `attachment; filename="..."` to force a download.
+
+  - **Frontend (`MyContent.tsx`):**
+    1.  **State Management:** Introduce state to manage a modal's visibility and the URL of the currently selected file.
+        ```typescript
+        const [isModalOpen, setIsModalOpen] = useState(false);
+        const [selectedFile, setSelectedFile] = useState<TutorUpload | null>(
+          null,
+        );
+        ```
+    2.  **Refactor Data Fetching:** Replace the complex, multi-step data fetching logic in `useEffect` with a single, clean call to the `getMyContent(token)` function from `fileApi.ts`. This requires getting the auth token from the `useAuthStore`.
+    3.  **UI and Logic:**
+        - Rename the "Download" button to "View".
+        - Create a `handleViewClick` function that accepts the `file` object.
+        - Inside this function, check if the file's `contentType` is one of the viewable types.
+        - **If Viewable:** Set the `selectedFile` in state and set `isModalOpen` to `true`.
+        - **If Not Viewable:** Open the file's binary URL (`/api/files/:id/binary`) in a new tab, which will trigger the corrected download behavior from the backend.
+    4.  **Modal Component:**
+        - Implement a modal component that is displayed when `isModalOpen` is true.
+        - The modal will contain an `iframe` whose `src` is set to the binary URL of the `selectedFile`.
+        - Include a "Close" button on the modal to set `isModalOpen` to `false`.
+        - Add a title to the modal displaying the file's name.

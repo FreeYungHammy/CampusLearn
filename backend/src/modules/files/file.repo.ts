@@ -34,9 +34,7 @@ export const FileRepo = {
 
   // When you need the binary
   findByIdWithContent(id: string) {
-    return FileModel.findById(id)
-      .select("+content")
-      .lean<FileDoc | null>({ virtuals: true });
+    return FileModel.findById(id).select("+content");
   },
 
   findByTutor(tutorId: string, limit = 20, skip = 0) {
