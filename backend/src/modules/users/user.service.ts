@@ -105,6 +105,7 @@ export const UserService = {
       name: profile?.name,
       surname: profile?.surname,
       pfp: profile?.pfp,
+      subjects: profile?.subjects, // Add subjects here
     };
 
     return { token, user: userWithProfile };

@@ -7,3 +7,9 @@ export async function getMyContent(token: string): Promise<TutorUpload[]> {
   });
   return res.data as TutorUpload[];
 }
+
+export async function deleteFile(token: string, fileId: string): Promise<void> {
+  await api.delete(`/files/${fileId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}

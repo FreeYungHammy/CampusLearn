@@ -135,6 +135,31 @@
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
 }
 
+/* Styles for select options */
+.form-control option {
+  padding: 10px 15px; /* Add some padding for better hover area */
+  background-color: var(--white); /* Ensure background is consistent */
+  color: var(--dark); /* Default text color */
+}
+
+.form-control option:hover:not(:disabled) {
+  background-color: var(--primary); /* Blue background on hover */
+  color: var(--white); /* White text on hover */
+}
+
+.form-control option:disabled {
+  color: var(--gray); /* Dim the disabled option text */
+  background-color: var(--light-gray); /* Light gray background for disabled */
+}
+
+.form-control option:disabled:hover {
+  background-color: var(
+    --light-gray
+  ); /* Keep background light gray on hover for disabled */
+  color: var(--gray); /* Keep text color gray on hover for disabled */
+  cursor: not-allowed; /* Indicate it's not clickable */
+}
+
 .form-control:focus {
   outline: none;
   border-color: var(--primary);

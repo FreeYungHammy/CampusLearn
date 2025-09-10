@@ -94,4 +94,9 @@ export const FileRepo = {
   exists(filter: FilterQuery<FileDoc>) {
     return FileModel.exists(filter).lean();
   },
+
+  async findTutorByUserId(userId: string) {
+    const userObjectId = new Types.ObjectId(userId);
+    return TutorModel.findOne({ userId: userObjectId }).lean();
+  },
 };
