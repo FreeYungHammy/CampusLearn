@@ -218,39 +218,41 @@ const MyContent = () => {
                     <div className="content-grid">
                       {/* Show subjects when at root level */}
                       {!selectedSubject && (
-                        <div className="subjects-container">
-                          <div className="content-header">
+                        <>
+                          <div className="content-header justify-content-center">
                             <h3 className="content-section-title">Subjects</h3>
                           </div>
-                          <div className="subjects-grid">
-                            {Object.keys(grouped).map((subject) => (
-                              <div
-                                key={subject}
-                                className="subject-card"
-                                onClick={() => navigateToSubject(subject)}
-                              >
-                                <div className="subject-icon">
-                                  <i className="fas fa-book"></i>
+                          <div className="subjects-container">
+                            <div className="subjects-grid">
+                              {Object.keys(grouped).map((subject) => (
+                                <div
+                                  key={subject}
+                                  className="subject-card"
+                                  onClick={() => navigateToSubject(subject)}
+                                >
+                                  <div className="subject-icon">
+                                    <i className="fas fa-book"></i>
+                                  </div>
+                                  <div className="subject-info">
+                                    <h4>{subject}</h4>
+                                    <p>
+                                      {Object.keys(grouped[subject]).length}{" "}
+                                      subtopic(s)
+                                    </p>
+                                    <span className="file-count">
+                                      {
+                                        Object.values(grouped[subject]).flat()
+                                          .length
+                                      }{" "}
+                                      files
+                                    </span>
+                                  </div>
+                                  <i className="fas fa-chevron-right subject-arrow"></i>
                                 </div>
-                                <div className="subject-info">
-                                  <h4>{subject}</h4>
-                                  <p>
-                                    {Object.keys(grouped[subject]).length}{" "}
-                                    subtopic(s)
-                                  </p>
-                                  <span className="file-count">
-                                    {
-                                      Object.values(grouped[subject]).flat()
-                                        .length
-                                    }{" "}
-                                    files
-                                  </span>
-                                </div>
-                                <i className="fas fa-chevron-right subject-arrow"></i>
-                              </div>
-                            ))}
+                              ))}
+                            </div>
                           </div>
-                        </div>
+                        </>
                       )}
 
                       {/* Show subtopics when a subject is selected */}
@@ -416,7 +418,7 @@ const MyContent = () => {
                   src={`${apiBaseUrl}/files/${(selectedFile as any).id || (selectedFile as any)._id}/binary`}
                   controls
                   autoPlay
-                  style={{ width: "100%", maxHeight: "80vh" }}
+                  style={{ width: "100%", height: "100%" }}
                 />
               ) : (
                 <iframe
