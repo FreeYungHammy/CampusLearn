@@ -220,12 +220,6 @@ const MyContent = () => {
                       {!selectedSubject && (
                         <div className="subjects-container">
                           <div className="content-header">
-                            <button
-                              className="back-button"
-                              onClick={handleBack}
-                            >
-                              <i className="fas fa-arrow-left"></i> Back
-                            </button>
                             <h3 className="content-section-title">Subjects</h3>
                           </div>
                           <div className="subjects-grid">
