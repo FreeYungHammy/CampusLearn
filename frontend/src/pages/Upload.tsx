@@ -79,7 +79,6 @@ const Upload = () => {
             Authorization: `Bearer ${token}`,
           },
         });
-        console.log("Upload successful:", response.data);
         alert("File uploaded successfully!");
         // Clear form fields
         setFile(null);
