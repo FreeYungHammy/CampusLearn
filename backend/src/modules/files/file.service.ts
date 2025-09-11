@@ -2,6 +2,11 @@ import { FileRepo } from "./file.repo";
 import type { FileDoc } from "../../schemas/tutorUpload.schema";
 import mime from "mime-types";
 import { createLogger } from "../../config/logger";
+import zlib from "zlib";
+import { promisify } from "util";
+
+const gzip = promisify(zlib.gzip);
+const gunzip = promisify(zlib.gunzip);
 
 const logger = createLogger("FileService");
 
@@ -21,9 +26,18 @@ export const FileService = {
 
     const contentType = input.file.mimetype || "application/octet-stream";
 
+    // Compress the file content
+    logger.info(`Original size: ${input.file.buffer.length} bytes`);
+    const compressedContent = await gzip(input.file.buffer);
+    logger.info(`Compressed size: ${compressedContent.length} bytes`);
+
     const fileData = {
-      ...input,
-      content: input.file.buffer,
+      tutorId: input.tutorId,
+      subject: input.subject,
+      subtopic: input.subtopic,
+      title: input.title,
+      description: input.description,
+      content: compressedContent,
       contentType,
     };
 
@@ -46,9 +60,18 @@ export const FileService = {
     return FileRepo.findById(id);
   },
 
-  getWithBinary(id: string) {
+  async getWithBinary(id: string) {
     // explicitly include binary content
-    return FileRepo.findByIdWithContent(id);
+    const fileDoc = await FileRepo.findByIdWithContent(id);
+    if (!fileDoc) return null;
+
+    // Decompress the file content
+    const decompressedContent = await gunzip(fileDoc.content);
+
+    return {
+      ...fileDoc.toObject(),
+      content: decompressedContent,
+    };
   },
 
   byTutor(tutorId: string, limit = 20, skip = 0) {
