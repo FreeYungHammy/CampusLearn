@@ -32,6 +32,18 @@ As an AI software engineer on this project, my primary responsibilities will be:
 
 I will strive to adhere to the existing coding conventions and best practices of the project. I look forward to collaborating with the team over the next 8 weeks.
 
+## Future Architectural Strategy
+
+### Redis Integration
+
+The current development strategy is to prioritize the implementation of core application features, with performance optimization via a Redis caching layer planned for a later stage.
+
+To ensure a smooth future integration, all new backend and frontend logic should be written with this "optimize later" approach in mind. The existing application architecture is well-suited for this. The following principles should be maintained:
+
+- **Backend:** Continue to separate business logic into a distinct service layer. This allows caching to be cleanly added to service methods in the future without requiring significant refactoring of controllers or repositories.
+- **Frontend:** Continue to develop components that fetch all necessary data for a view in a single, centralized API call (e.g., on component load). This pattern works efficiently with a future backend caching layer.
+- **API Design:** Continue to design granular API endpoints that separate lightweight metadata from heavy binary content, allowing for fast retrieval of information needed to render a UI.
+
 ## Code Deep Dive & Snapshots
 
 To ensure continuity between sessions, here is a more detailed snapshot of the application's architecture and key code pathways.
@@ -286,3 +298,162 @@ Result: Tutors with uploaded content now see their materials organized by subjec
         - The modal will contain an `iframe` whose `src` is set to the binary URL of the `selectedFile`.
         - Include a "Close" button on the modal to set `isModalOpen` to `false`.
         - Add a title to the modal displaying the file's name.
+
+---
+
+### Forum Planning
+
+This section outlines the complete, multi-phase implementation plan for the forum feature.
+
+#### **Phase 1: Frontend - "Create Post" Modal**
+
+**Goal:** Create the user-facing entry point for making a new post.
+
+1.  **Enable Modal Control in `Forum.tsx`:**
+    - **File:** `frontend/src/pages/Forum.tsx`
+    - **Action:** Add state to manage the modal's visibility.
+    - **Code:** `const [isModalOpen, setIsModalOpen] = useState(false);`
+
+2.  **Modify "New Topic" Button in `Forum.tsx`:**
+    - **File:** `frontend/src/pages/Forum.tsx`
+    - **Action:** Convert the existing `<Link>` element to a `<button>` that opens the modal.
+    - **Before:** `<Link to="/new-topic" ...>`
+    - **After:** `<button onClick={() => setIsModalOpen(true)} ...>`
+
+3.  **Create `CreatePostModal.tsx` Component:**
+    - **File:** `frontend/src/components/forum/CreatePostModal.tsx` (new file)
+    - **Action:** Build a self-contained modal component.
+    - **Details:**
+      - Render a full-screen, semi-transparent overlay (`position: fixed`).
+      - Center a form element within the overlay.
+      - **Form Fields:**
+        - Title: `<input type="text" name="title" required />`
+        - Topic: `<select name="topic" required><option>Math</option><option>Programming</option><option>Databases</option></select>`
+        - Content: `<textarea name="content" required />`
+        - Anonymous: `<input type="checkbox" name="isAnonymous" />`
+      - **Actions:**
+        - "Cancel" button: Calls `props.onClose()`.
+        - "Submit Post" button: Type `submit`, initially disabled. Enabled via form validation.
+
+4.  **Integrate Modal into `Forum.tsx`:**
+    - **File:** `frontend/src/pages/Forum.tsx`
+    - **Action:** Conditionally render the new modal component.
+    - **Code:** `{isModalOpen && <CreatePostModal onClose={() => setIsModalOpen(false)} />}`
+
+#### **Phase 2: Backend - API Foundation**
+
+**Goal:** Establish the necessary database structure and API endpoints.
+
+1.  **Define Schemas:**
+    - **File 1:** `backend/src/schemas/forumPost.schema.ts` (new file)
+      - **Schema:** `ForumPostSchema` with fields: `title`, `content`, `topic`, `authorId` (ObjectId, no ref), `authorRole` (String enum), `isAnonymous` (Boolean), `upvotes` (Number), `replies` (Array of ObjectId with `ref: 'ForumReply'`)
+    - **File 2:** `backend/src/schemas/forumReply.schema.ts` (new file)
+      - **Schema:** `ForumReplySchema` with fields: `postId` (ObjectId, `ref: 'ForumPost'`), `content`, `authorId`, `authorRole`, `isAnonymous`, `upvotes`.
+
+2.  **Build Forum Module:**
+    - **Directory:** `backend/src/modules/forum/` (new directory)
+    - **Files:** Create `forum.controller.ts`, `forum.service.ts`, `forum.repo.ts`, and `index.ts` (for routes).
+
+3.  **Implement Service Layer (`forum.service.ts`):**
+    - **`createThread(user, data)`:**
+      - Accepts the authenticated `user` object from the JWT and `data` from the request body.
+      - Uses `user.role` to determine the model (`StudentModel` or `TutorModel`).
+      - Calls `findByUserId(user.id)` on that model to get the user's profile document.
+      - Creates and saves a new `ForumPost` document, using the `_id` of the profile document as `authorId`.
+    - **`getThreads()`:**
+      - Fetches all `ForumPost` documents.
+      - Performs the efficient manual population: groups `authorId`s by `authorRole`, runs two parallel queries (`StudentModel.find(...)` and `TutorModel.find(...)`), maps the results to a lookup object, and attaches the author profile to each post.
+    - **`getThreadById(threadId)`:**
+      - Same as `getThreads`, but for a single thread and all its replies, populating the author for the main post and each reply.
+
+4.  **Define Routes and Controller:**
+    - **File:** `backend/src/modules/forum/index.ts`
+    - **Action:** Define the routes and link them to controller methods.
+    - **Endpoints:**
+      - `POST /threads`: Calls `forumController.createThread`.
+      - `GET /threads`: Calls `forumController.getThreads`.
+      - `GET /threads/:threadId`: Calls `forumController.getThreadById`.
+    - **File:** `backend/src/routes/index.ts`
+    - **Action:** Register the new forum router: `r.use('/forum', forumRoutes);`
+
+#### **Phase 3: Frontend - API Integration**
+
+**Goal:** Connect the frontend UI to the backend API.
+
+1.  **Create `forumApi.ts`:**
+    - **File:** `frontend/src/services/forumApi.ts` (new file)
+    - **Action:** Create functions to interact with the backend.
+    - **Functions:** `createForumPost(postData, token)`, `getForumThreads()`, `getForumThreadById(threadId)`.
+
+2.  **Connect `CreatePostModal.tsx`:**
+    - **Action:** Implement the `handleSubmit` function.
+    - **Logic:**
+      1.  Prevent default form submission.
+      2.  Get auth token from `useAuthStore`.
+      3.  Call `createForumPost()` with form data and token.
+      4.  On success: call `props.onClose()` and trigger a refresh on the main forum page.
+      5.  On failure: display an error message within the modal.
+
+3.  **Display Real Data in `Forum.tsx`:**
+    - **Action:** Replace the hardcoded `topics` state with a `useEffect` hook.
+    - **Logic:** On component mount, call `getForumThreads()` and store the result in a `threads` state variable. Render this state.
+
+#### **Phase 4: Replies and Thread Viewing**
+
+**Goal:** Build the core discussion functionality.
+
+1.  **Implement Replies Endpoint:**
+    - **File:** `backend/src/modules/forum/index.ts` & `forum.controller.ts`
+    - **Endpoint:** `POST /threads/:threadId/replies`
+    - **File:** `backend/src/modules/forum/forum.service.ts`
+    - **Function:** `createReply(user, threadId, data)`: Creates a `ForumReply` and pushes its ID to the parent `ForumPost`'s `replies` array.
+
+2.  **Build `ForumTopic.tsx` Page:**
+    - **File:** `frontend/src/pages/ForumTopic.tsx`
+    - **Action:** Fetch and display a single thread and its replies.
+    - **Logic:**
+      1.  Get `threadId` from URL params.
+      2.  Call `getForumThreadById(threadId)` in a `useEffect`.
+      3.  Render the main post's content.
+      4.  Map over the `replies` array and render each one.
+      5.  Include a "Create Reply" form at the bottom that calls the new replies endpoint.
+
+#### **Phase 5: Real-Time with WebSockets**
+
+**Goal:** Make the forum feel live and interactive.
+
+1.  **Backend Emitters:**
+    - **File:** `backend/src/modules/forum/forum.service.ts`
+    - **Action:** After successfully saving data, emit socket events.
+    - **`createThread` success:** `io.emit('new_post', newPostWithAuthor)`
+    - **`createReply` success:** `io.to(threadId).emit('new_reply', newReplyWithAuthor)`
+
+2.  **Frontend Listeners:**
+    - **File:** `frontend/src/hooks/useForumSocket.ts` (new file)
+    - **Action:** Create a custom hook to manage socket connections and event listeners.
+    - **Logic:**
+      - Connect to the socket server.
+      - Listen for `new_post` and update the main thread list.
+      - Listen for `new_reply` and append the reply to the current thread view.
+      - Handle cleanup and disconnection on component unmount.
+
+#### **Phase 6: Performance Caching with Redis**
+
+**Goal:** Optimize the backend for speed and scalability.
+
+1.  **Implement Caching Strategy:**
+    - **File:** `backend/src/modules/forum/forum.service.ts`
+    - **Action:** Wrap data-fetching functions with caching logic.
+    - **`getThreadById` Logic:**
+      1.  Define cache key: `const key = `thread:${threadId}`;`
+      2.  `const cached = await redis.get(key);`
+      3.  If `cached`, `return JSON.parse(cached);`
+      4.  If not cached, fetch from DB.
+      5.  `await redis.set(key, JSON.stringify(dbData), 'EX', 3600);`
+      6.  Return `dbData`.
+
+2.  **Implement Cache Invalidation:**
+    - **File:** `backend/src/modules/forum/forum.service.ts`
+    - **Action:** Delete cache keys when data changes.
+    - **`createReply` Logic:** After saving the new reply to the DB, add: `await redis.del(`thread:${threadId}`);`
+    - This logic must be applied to any "write" operation (edit, delete, upvote, etc.).
