@@ -30,8 +30,23 @@ const Forum = () => {
         setThreads((prevThreads) => [newPost, ...prevThreads]);
       });
 
+      // New listener for reply count updates
+      socket.on("forum_reply_count_updated", ({ threadId, replyCount }) => {
+        console.log(
+          `Received forum_reply_count_updated for thread ${threadId}: new count ${replyCount}`,
+        );
+        setThreads((prevThreads) =>
+          prevThreads.map((thread) =>
+            thread._id === threadId
+              ? { ...thread, replies: Array(replyCount).fill(null) } // Update replies array with new length
+              : thread,
+          ),
+        );
+      });
+
       return () => {
         socket.off("new_post");
+        socket.off("forum_reply_count_updated"); // Clean up new listener
       };
     }
   }, [socket]);
@@ -72,11 +87,27 @@ const Forum = () => {
                 </div>
                 <div className="topic-author">
                   <div className="author-avatar">
-                    {thread.author ? thread.author.name.charAt(0) : "A"}
+                    {thread.isAnonymous ? (
+                      "A" // Default anonymous avatar initial
+                    ) : thread.author && thread.author.pfp ? (
+                      <img
+                        src={`data:${thread.author.pfp.contentType};base64,${thread.author.pfp.data}`}
+                        alt="Profile"
+                        className="pfp-avatar"
+                      />
+                    ) : thread.author ? (
+                      thread.author.name.charAt(0)
+                    ) : (
+                      "A"
+                    )}
                   </div>
                   <div className="author-details">
                     <span className="author-name">
-                      {thread.author ? thread.author.name : "Anonymous"}
+                      {thread.isAnonymous
+                        ? "Anonymous"
+                        : thread.author
+                          ? thread.author.name
+                          : "Anonymous"}
                     </span>
                     <span className="post-time">
                       {new Date(thread.createdAt).toLocaleString()}
