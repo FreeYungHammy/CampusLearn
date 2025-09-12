@@ -72,7 +72,17 @@ const Forum = () => {
                 </div>
                 <div className="topic-author">
                   <div className="author-avatar">
-                    {thread.author ? thread.author.name.charAt(0) : "A"}
+                    {thread.author && thread.author.pfp ? (
+                      <img
+                        src={`data:${thread.author.pfp.contentType};base64,${thread.author.pfp.data}`}
+                        alt="Profile"
+                        className="pfp-avatar"
+                      />
+                    ) : thread.author ? (
+                      thread.author.name.charAt(0)
+                    ) : (
+                      "A"
+                    )}
                   </div>
                   <div className="author-details">
                     <span className="author-name">

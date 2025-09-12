@@ -260,7 +260,7 @@ Result: Tutors with uploaded content now see their materials organized by subjec
 
 ### Session 7: Smart File Display and Download Logic
 
-- **Goal:** Replace the non-functional "Download" button with a "View" button that intelligently handles file rendering. For browser-viewable files (PDFs, images, text), it will display them in a modal. For other files (spreadsheets, documents), it will trigger a proper download with the correct file extension.
+- **Goal:** Implement the "View" button that intelligently handles file rendering. For browser-viewable files (PDFs, images, text), it will display them in a modal. For other files (spreadsheets, documents), it will trigger a proper download with the correct file extension.
 
 - **Problem Diagnosis:**
   - The primary issue was that the backend's `GET /api/files/:id/binary` endpoint was forcing a download for all file types by using `Content-Disposition: attachment`.
@@ -290,7 +290,7 @@ Result: Tutors with uploaded content now see their materials organized by subjec
     3.  **UI and Logic:**
         - Rename the "Download" button to "View".
         - Create a `handleViewClick` function that accepts the `file` object.
-        - Inside this function, check if the file's `contentType` is one of the viewable types.
+        - Inside this function, check if the file's `contentType` is in the `VIEWABLE_MIME_TYPES` list.
         - **If Viewable:** Set the `selectedFile` in state and set `isModalOpen` to `true`.
         - **If Not Viewable:** Open the file's binary URL (`/api/files/:id/binary`) in a new tab, which will trigger the corrected download behavior from the backend.
     4.  **Modal Component:**
@@ -300,6 +300,114 @@ Result: Tutors with uploaded content now see their materials organized by subjec
         - Add a title to the modal displaying the file's name.
 
 ---
+
+### Forum Feature Implementation
+
+The forum feature allows users (students and tutors) to create discussion threads, view existing threads, and post replies. It leverages a full-stack approach with real-time updates powered by WebSockets.
+
+#### **1. Frontend: User Interaction and Display**
+
+The frontend provides the user interface for interacting with the forum.
+
+- **`frontend/src/pages/Forum.tsx`**:
+  - This is the main forum page, displaying a list of all discussion threads.
+  - It manages the visibility of the `CreatePostModal` using `useState`.
+  - On component mount, it fetches existing threads using `getForumThreads()` from `forumApi.ts`.
+  - It uses the `useForumSocket` hook to listen for `new_post` events, dynamically adding new posts to the displayed list in real-time.
+  - Each thread is rendered as a `topic-card`, providing a link to the individual thread page (`/forum/:threadId`).
+- **`frontend/src/components/forum/CreatePostModal.tsx`**:
+  - A modal component that appears when the "New Topic" button is clicked on the `Forum.tsx` page.
+  - It contains a form for users to input the post's `title`, `topic`, `content`, and an `isAnonymous` checkbox.
+  - It uses local `useState` hooks to manage form input values.
+  - Upon submission, it calls `createForumPost()` from `forumApi.ts`, passing the form data and the user's authentication token (obtained from `useAuthStore`).
+  - After successful submission, it closes the modal and implicitly triggers a UI update on `Forum.tsx` via the WebSocket `new_post` event.
+- **`frontend/src/pages/ForumTopic.tsx`**:
+  - This page displays a single discussion thread and its associated replies.
+  - It extracts the `threadId` from the URL parameters.
+  - On component mount, it fetches the specific thread details using `getForumThreadById()` from `forumApi.ts`.
+  - It uses the `useForumSocket` hook, passing the `threadId` to join the specific thread's WebSocket room. It then listens for `new_reply` events, dynamically adding new replies to the thread in real-time.
+  - It includes a form for users to submit replies, calling `createForumReply()` from `forumApi.ts`.
+- **`frontend/src/services/forumApi.ts`**:
+  - This service centralizes all API calls related to the forum.
+  - `createForumPost(postData, token)`: Sends a `POST` request to `/api/forum/threads` to create a new thread.
+  - `getForumThreads()`: Sends a `GET` request to `/api/forum/threads` to retrieve all threads.
+  - `getForumThreadById(threadId)`: Sends a `GET` request to `/api/forum/threads/:threadId` to retrieve a specific thread and its replies.
+  - `createForumReply(threadId, replyData, token)`: Sends a `POST` request to `/api/forum/threads/:threadId/replies` to add a reply to a thread.
+- **`frontend/src/hooks/useForumSocket.ts`**:
+  - A custom React hook that manages the WebSocket connection to the backend.
+  - It initializes a Socket.IO client connection to the backend's WebSocket URL.
+  - If a `threadId` is provided (e.g., when viewing `ForumTopic.tsx`), it emits a `join_thread` event to the server, allowing the client to join a specific room for that thread.
+  - It handles connection, disconnection, and error events for the WebSocket.
+- **`frontend/src/types/Forum.ts`**:
+  - Currently a placeholder (`// TODO: replace with real backend fields once forum API exists`). This file should be updated to reflect the actual `ForumPost` and `ForumReply` types defined in the backend schemas for better type safety across the application.
+
+#### **2. Backend: API, Business Logic, and Data Persistence**
+
+The backend handles the creation, retrieval, and management of forum posts and replies, interacting with the MongoDB database.
+
+- **`backend/src/schemas/forumPost.schema.ts`**:
+  - Defines the Mongoose schema for `ForumPost` documents.
+  - Fields include `title`, `content`, `topic`, `authorId` (ObjectId), `authorRole` (enum: "student", "tutor"), `isAnonymous` (Boolean), `upvotes` (Number), and `replies` (an array of ObjectIds referencing `ForumReply` documents).
+  - `timestamps: true` automatically adds `createdAt` and `updatedAt` fields.
+- **`backend/src/schemas/forumReply.schema.ts`**:
+  - Defines the Mongoose schema for `ForumReply` documents.
+  - Fields include `postId` (ObjectId referencing `ForumPost`), `content`, `authorId`, `authorRole`, `isAnonymous`, and `upvotes`.
+  - `timestamps: true` automatically adds `createdAt` and `updatedAt` fields.
+- **`backend/src/modules/forum/index.ts`**:
+  - This file sets up the Express router for all forum-related API endpoints.
+  - It maps HTTP methods and paths to corresponding controller functions in `ForumController`.
+  - `POST /threads`: `ForumController.createThread` (requires authentication via `requireAuth`).
+  - `GET /threads`: `ForumController.getThreads`.
+  - `GET /threads/:threadId`: `ForumController.getThreadById`.
+  - `POST /threads/:threadId/replies`: `ForumController.createReply` (requires authentication).
+- **`backend/src/modules/forum/forum.controller.ts`**:
+  - Acts as the interface between the HTTP requests and the business logic in `ForumService`.
+  - It extracts data from `req.body`, `req.params`, and `req.user` (from `AuthedRequest` after `requireAuth` middleware).
+  - It calls the appropriate `ForumService` method and sends back the HTTP response (e.g., 201 Created, 200 OK, 404 Not Found, 500 Internal Server Error).
+- **`backend/src/modules/forum/forum.service.ts`**:
+  - Contains the core business logic for forum operations.
+  - **`createThread(user, data)`**:
+    - Identifies the author's profile (`Student` or `Tutor`) based on `user.role` and `user.id`.
+    - Creates a new `ForumPost` document using `ForumPostModel.create()`.
+    - After creation, it calls `getThreadById()` to fetch the newly created post with its author details populated.
+    - Crucially, it then emits a `new_post` WebSocket event to all connected clients using `io.emit("new_post", populatedPost)`.
+  - **`getThreads()`**:
+    - Fetches all `ForumPost` documents from the database.
+    - Performs **manual population** of author details: It collects all `authorId`s and `authorRole`s, then queries `StudentModel` and `TutorModel` in parallel to get the full author profiles. These profiles are then mapped back to the respective posts. This approach avoids deep population in Mongoose for potentially better performance.
+  - **`getThreadById(threadId)`**:
+    - Fetches a single `ForumPost` document by `threadId`.
+    - It uses Mongoose's `.populate("replies")` to include all associated `ForumReply` documents.
+    - Similar to `getThreads`, it performs **manual population** for the author of the main post and for each reply's author.
+  - **`createReply(user, threadId, data)`**:
+    - Identifies the author's profile.
+    - Creates a new `ForumReply` document using `ForumReplyModel.create()`.
+    - Updates the parent `ForumPost` document by pushing the new reply's `_id` into its `replies` array using `ForumPostModel.findByIdAndUpdate()`.
+    - Emits a `new_reply` WebSocket event specifically to the room associated with the `threadId` using `io.to(threadId).emit("new_reply", populatedReply)`.
+- **`backend/src/modules/forum/forum.repo.ts`**:
+  - This file exists but is currently **empty**. The `ForumService` directly interacts with the Mongoose models (`ForumPostModel`, `ForumReplyModel`, `StudentModel`, `TutorModel`). While functional, this deviates from a strict repository pattern where `ForumRepo` would encapsulate all database interactions for forum entities.
+- **`backend/src/routes/index.ts`**:
+  - The main API router that registers the `/forum` route to use the forum-specific router.
+- **`backend/src/config/socket.ts`**:
+  - Initializes the Socket.IO server, attaching it to the main HTTP server.
+  - Configures CORS for WebSocket connections.
+  - Contains a `socket.on("join_thread", (threadId) => { socket.join(threadId); })` listener, which is crucial for the room-based real-time updates for replies.
+  - Note: While this file sets up the socket server and generic listeners, the specific `new_post` and `new_reply` events are emitted directly from `forum.service.ts`.
+- **`backend/src/app.ts`**:
+  - The main Express application setup. It calls `connectMongo()` to establish the database connection and sets up middleware (CORS, JSON parsing) and routes. It passes the HTTP server to `createSocketServer` for WebSocket integration.
+
+#### **3. WebSocket Integration: Real-time Communication**
+
+The WebSocket implementation ensures that forum content updates instantly across all connected clients.
+
+- **Server-Side Emission (`forum.service.ts`)**:
+  - `io.emit('new_post', populatedPost)`: Broadcasts a newly created forum post to _all_ connected clients. This ensures that anyone on the main forum page sees the new thread appear immediately.
+  - `io.to(threadId).emit('new_reply', populatedReply)`: Emits a new reply _only_ to clients who have joined the specific room identified by `threadId`. This means only users currently viewing that particular discussion thread will receive the real-time update for new replies.
+- **Client-Side Listening (`useForumSocket.ts`, `Forum.tsx`, `ForumTopic.tsx`)**:
+  - Clients connect to the Socket.IO server via `useForumSocket`.
+  - `Forum.tsx` listens for `new_post` events to update its list of threads.
+  - `ForumTopic.tsx` emits `join_thread` to join a specific thread's room and listens for `new_reply` events to update the replies section.
+
+This comprehensive setup ensures a dynamic and interactive forum experience.
 
 ### Forum Planning
 

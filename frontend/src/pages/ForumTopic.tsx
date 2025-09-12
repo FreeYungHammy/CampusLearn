@@ -77,7 +77,17 @@ const ForumTopic = () => {
           <div className="topic-meta">
             <div className="topic-author">
               <div className="author-avatar">
-                {thread.author ? thread.author.name.charAt(0) : "A"}
+                {thread.author && thread.author.pfp ? (
+                  <img
+                    src={`data:${thread.author.pfp.contentType};base64,${thread.author.pfp.data}`}
+                    alt="Profile"
+                    className="pfp-avatar"
+                  />
+                ) : thread.author ? (
+                  thread.author.name.charAt(0)
+                ) : (
+                  "A"
+                )}
               </div>
               <div className="author-details">
                 <span className="author-name">
@@ -100,7 +110,17 @@ const ForumTopic = () => {
             <div className="topic-meta">
               <div className="topic-author">
                 <div className="author-avatar">
-                  {reply.author ? reply.author.name.charAt(0) : "A"}
+                  {reply.author && reply.author.pfp ? (
+                    <img
+                      src={`data:${reply.author.pfp.contentType};base64,${reply.author.pfp.data}`}
+                      alt="Profile"
+                      className="pfp-avatar"
+                    />
+                  ) : reply.author ? (
+                    reply.author.name.charAt(0)
+                  ) : (
+                    "A"
+                  )}
                 </div>
                 <div className="author-details">
                   <span className="author-name">
