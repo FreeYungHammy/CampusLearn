@@ -7,8 +7,22 @@ export const useForumSocket = (threadId?: string) => {
   const [socket, setSocket] = useState<Socket | null>(null);
 
   useEffect(() => {
-    const newSocket = io(`${SOCKET_URL}/forum`, {
+    const newSocket = io(SOCKET_URL, {
       transports: ["websocket"],
+    });
+
+    console.log(`Attempting to connect to Socket.IO at ${SOCKET_URL}/forum`);
+
+    newSocket.on("connect", () => {
+      console.log("Socket.IO connected!");
+    });
+
+    newSocket.on("disconnect", (reason) => {
+      console.log("Socket.IO disconnected:", reason);
+    });
+
+    newSocket.on("connect_error", (error) => {
+      console.error("Socket.IO connection error:", error.message);
     });
 
     setSocket(newSocket);

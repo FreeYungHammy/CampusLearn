@@ -1,3 +1,4 @@
+console.log("Server script started.");
 try {
   require("dotenv").config();
 } catch {}

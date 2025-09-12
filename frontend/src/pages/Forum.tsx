@@ -26,6 +26,7 @@ const Forum = () => {
   useEffect(() => {
     if (socket) {
       socket.on("new_post", (newPost) => {
+        console.log("Received new_post event:", newPost);
         setThreads((prevThreads) => [newPost, ...prevThreads]);
       });
 

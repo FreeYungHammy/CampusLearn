@@ -30,6 +30,7 @@ const ForumTopic = () => {
   useEffect(() => {
     if (socket) {
       socket.on("new_reply", (newReply) => {
+        console.log("Received new_reply event:", newReply);
         setThread((prevThread: any) => ({
           ...prevThread,
           replies: [...prevThread.replies, newReply],
