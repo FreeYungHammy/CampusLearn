@@ -1,13 +1,15 @@
 import { Server } from "socket.io";
 import type { Server as HttpServer } from "http";
 
+let io: Server;
+
 export function createSocketServer(httpServer: HttpServer) {
   const allowed = (process.env.CORS_ORIGIN || "")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
 
-  const io = new Server(httpServer, {
+  io = new Server(httpServer, {
     path: "/socket.io",
     transports: ["websocket", "polling"],
     allowUpgrades: true,
@@ -41,6 +43,10 @@ export function createSocketServer(httpServer: HttpServer) {
     });
 
     // send message
+    socket.on("join_thread", (threadId) => {
+      socket.join(threadId);
+    });
+
     socket.on("message:send", (msg) => {
       // echo to recipient and sender (rooming or direct lookup can be added)
       io.emit("message:receive", msg);
@@ -49,3 +55,5 @@ export function createSocketServer(httpServer: HttpServer) {
 
   return io;
 }
+
+export { io };

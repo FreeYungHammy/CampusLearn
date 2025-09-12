@@ -47,7 +47,7 @@ function App() {
               <Route path="/mystudents" element={<MyStudents />} />
               <Route path="/mycontent" element={<MyContent />} />
               <Route path="/forum" element={<Forum />} />
-              <Route path="/forum/:topicId" element={<ForumTopic />} />
+              <Route path="/forum/:threadId" element={<ForumTopic />} />
               <Route path="/messages" element={<Messages />} />
               <Route path="/upload" element={<Upload />} />
               <Route path="/settings" element={<Settings />} />
