@@ -85,7 +85,6 @@ const MyContent = () => {
       setSelectedFile(file);
       setIsModalOpen(true);
     } else {
-      // For non-viewable files, open in a new tab to trigger download
       const fileId = (file as any).id || (file as any)._id;
       window.open(`${apiBaseUrl}/files/${fileId}/binary`, "_blank");
     }
@@ -101,6 +100,7 @@ const MyContent = () => {
     setIsDeleteModalOpen(false);
   };
 
+  // ✅ FIXED confirmDelete with subject + subtopic edge cases
   const confirmDelete = async () => {
     if (!fileToDelete || !token) return;
 
@@ -108,28 +108,41 @@ const MyContent = () => {
 
     try {
       await deleteFile(token, fileId);
-      setItems(
-        items.filter(
-          (item) => ((item as any)._id || (item as any).id) !== fileId,
-        ),
+
+      // Update state
+      const updatedItems = items.filter(
+        (item) => ((item as any)._id || (item as any).id) !== fileId,
       );
+      setItems(updatedItems);
       closeDeleteModal();
 
-      // Check if the current subtopic is now empty
       if (selectedSubject && selectedSubtopic) {
-        const remainingFilesInSubtopic = items.filter(
+        // Check if the current subtopic is now empty
+        const remainingFilesInSubtopic = updatedItems.filter(
           (item) =>
             item.subject === selectedSubject &&
-            item.subtopic === selectedSubtopic &&
-            ((item as any)._id || (item as any).id) !== fileId,
+            item.subtopic === selectedSubtopic,
         );
+
         if (remainingFilesInSubtopic.length === 0) {
-          navigateBack(); // Go back to the subject view
+          // Subtopic empty → go back to subject
+          setSelectedSubtopic(null);
+          setCurrentPath([selectedSubject]);
+
+          // Now check if the whole subject is empty
+          const remainingFilesInSubject = updatedItems.filter(
+            (item) => item.subject === selectedSubject,
+          );
+
+          if (remainingFilesInSubject.length === 0) {
+            // Subject empty → go back to subject selector
+            setSelectedSubject(null);
+            setCurrentPath([]);
+          }
         }
       }
     } catch (error) {
       console.error("Failed to delete file:", error);
-      // Optionally, show an error message to the user
     }
   };
 

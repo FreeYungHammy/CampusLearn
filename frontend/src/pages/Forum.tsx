@@ -30,8 +30,23 @@ const Forum = () => {
         setThreads((prevThreads) => [newPost, ...prevThreads]);
       });
 
+      // New listener for reply count updates
+      socket.on("forum_reply_count_updated", ({ threadId, replyCount }) => {
+        console.log(
+          `Received forum_reply_count_updated for thread ${threadId}: new count ${replyCount}`,
+        );
+        setThreads((prevThreads) =>
+          prevThreads.map((thread) =>
+            thread._id === threadId
+              ? { ...thread, replies: Array(replyCount).fill(null) } // Update replies array with new length
+              : thread,
+          ),
+        );
+      });
+
       return () => {
         socket.off("new_post");
+        socket.off("forum_reply_count_updated"); // Clean up new listener
       };
     }
   }, [socket]);
