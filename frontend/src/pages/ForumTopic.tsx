@@ -77,7 +77,9 @@ const ForumTopic = () => {
           <div className="topic-meta">
             <div className="topic-author">
               <div className="author-avatar">
-                {thread.author && thread.author.pfp ? (
+                {thread.isAnonymous ? (
+                  "A" // Default anonymous avatar initial
+                ) : thread.author && thread.author.pfp ? (
                   <img
                     src={`data:${thread.author.pfp.contentType};base64,${thread.author.pfp.data}`}
                     alt="Profile"
@@ -91,7 +93,11 @@ const ForumTopic = () => {
               </div>
               <div className="author-details">
                 <span className="author-name">
-                  {thread.author ? thread.author.name : "Anonymous"}
+                  {thread.isAnonymous
+                    ? "Anonymous"
+                    : thread.author
+                      ? thread.author.name
+                      : "Anonymous"}
                 </span>
                 <span className="post-time">
                   {new Date(thread.createdAt).toLocaleString()}
@@ -110,7 +116,9 @@ const ForumTopic = () => {
             <div className="topic-meta">
               <div className="topic-author">
                 <div className="author-avatar">
-                  {reply.author && reply.author.pfp ? (
+                  {reply.isAnonymous ? (
+                    "A" // Default anonymous avatar initial
+                  ) : reply.author && reply.author.pfp ? (
                     <img
                       src={`data:${reply.author.pfp.contentType};base64,${reply.author.pfp.data}`}
                       alt="Profile"
@@ -124,7 +132,11 @@ const ForumTopic = () => {
                 </div>
                 <div className="author-details">
                   <span className="author-name">
-                    {reply.author ? reply.author.name : "Anonymous"}
+                    {reply.isAnonymous
+                      ? "Anonymous"
+                      : reply.author
+                        ? reply.author.name
+                        : "Anonymous"}
                   </span>
                   <span className="post-time">
                     {new Date(reply.createdAt).toLocaleString()}

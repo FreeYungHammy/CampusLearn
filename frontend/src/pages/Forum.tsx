@@ -87,7 +87,9 @@ const Forum = () => {
                 </div>
                 <div className="topic-author">
                   <div className="author-avatar">
-                    {thread.author && thread.author.pfp ? (
+                    {thread.isAnonymous ? (
+                      "A" // Default anonymous avatar initial
+                    ) : thread.author && thread.author.pfp ? (
                       <img
                         src={`data:${thread.author.pfp.contentType};base64,${thread.author.pfp.data}`}
                         alt="Profile"
@@ -101,7 +103,11 @@ const Forum = () => {
                   </div>
                   <div className="author-details">
                     <span className="author-name">
-                      {thread.author ? thread.author.name : "Anonymous"}
+                      {thread.isAnonymous
+                        ? "Anonymous"
+                        : thread.author
+                          ? thread.author.name
+                          : "Anonymous"}
                     </span>
                     <span className="post-time">
                       {new Date(thread.createdAt).toLocaleString()}
