@@ -111,6 +111,52 @@ export const UserService = {
     return { token, user: userWithProfile };
   },
 
+  async updatePfp(userId: string, pfp: string) {
+    const user = await UserRepo.findById(userId);
+    if (!user) throw new Error("User not found");
+
+    const [meta, data] = pfp.split(",");
+    const contentType = meta.split(";")[0].split(":")[1];
+
+    const pfpData = {
+      data: Buffer.from(data, "base64"),
+      contentType,
+    };
+
+    if (user.role === "student") {
+      await StudentRepo.update({ userId }, { pfp: pfpData });
+    } else if (user.role === "tutor") {
+      await TutorRepo.update({ userId }, { pfp: pfpData });
+    }
+  },
+
+  async updateProfile(userId: string, firstName: string, lastName: string) {
+    const user = await UserRepo.findById(userId);
+    if (!user) throw new Error("User not found");
+
+    const profileData = {
+      name: firstName,
+      surname: lastName,
+    };
+
+    if (user.role === "student") {
+      await StudentRepo.update({ userId }, profileData);
+    } else if (user.role === "tutor") {
+      await TutorRepo.update({ userId }, profileData);
+    }
+  },
+
+  async updatePassword(userId: string, current: string, newPass: string) {
+    const user = await UserRepo.findByIdWithPassword(userId);
+    if (!user) throw new Error("User not found");
+
+    const ok = await bcrypt.compare(current, (user as any).passwordHash);
+    if (!ok) throw new Error("Invalid credentials");
+
+    const passwordHash = await bcrypt.hash(newPass, 10);
+    await UserRepo.updateById(userId, { $set: { passwordHash } });
+  },
+
   list() {
     return UserRepo.find({});
   },

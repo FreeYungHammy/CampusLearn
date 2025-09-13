@@ -1,4 +1,18 @@
-import { Schema, model, type InferSchemaType } from "mongoose";
+import {
+  Schema,
+  model,
+  type InferSchemaType,
+  Model,
+  FilterQuery,
+  UpdateQuery,
+} from "mongoose";
+
+interface StudentModel extends Model<StudentDoc> {
+  update(
+    filter: FilterQuery<StudentDoc>,
+    update: UpdateQuery<StudentDoc>,
+  ): Promise<any>;
+}
 
 const StudentSchema = new Schema(
   {
@@ -23,6 +37,14 @@ StudentSchema.virtual("id").get(function () {
   // @ts-ignore
   return this._id?.toString();
 });
+
+StudentSchema.statics.update = function (
+  filter: FilterQuery<StudentDoc>,
+  update: UpdateQuery<StudentDoc>,
+) {
+  return this.updateOne(filter, update);
+};
+
 StudentSchema.set("toJSON", {
   virtuals: true,
   versionKey: false,
@@ -34,4 +56,7 @@ StudentSchema.set("toJSON", {
 StudentSchema.set("toObject", { virtuals: true });
 
 export type StudentDoc = InferSchemaType<typeof StudentSchema>;
-export const StudentModel = model<StudentDoc>("Student", StudentSchema);
+export const StudentModel = model<StudentDoc, StudentModel>(
+  "Student",
+  StudentSchema,
+);

@@ -31,6 +31,12 @@ export const UserRepo = {
       .lean<UserDoc | (UserDoc & { passwordHash: string }) | null>();
   },
 
+  findByIdWithPassword(id: string) {
+    return UserModel.findById(id)
+      .select("+passwordHash")
+      .lean<UserDoc | (UserDoc & { passwordHash: string }) | null>();
+  },
+
   // UPDATE
   updateById(id: string, update: UpdateQuery<UserDoc>) {
     if ((update as any).email)
