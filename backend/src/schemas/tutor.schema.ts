@@ -1,4 +1,11 @@
-import { Schema, model, type InferSchemaType, type Model } from "mongoose";
+import {
+  Schema,
+  model,
+  type InferSchemaType,
+  type Model,
+  FilterQuery,
+  UpdateQuery,
+} from "mongoose";
 
 // 1. Create an interface representing a document in MongoDB.
 export type TutorDoc = InferSchemaType<typeof TutorSchema>;
@@ -10,6 +17,10 @@ interface TutorModel extends Model<TutorDoc> {
   updateById(id: string, patch: any): Promise<TutorDoc | null>;
   deleteById(id: string): Promise<TutorDoc | null>;
   applyRating(id: string, score: number): Promise<TutorDoc | null>;
+  update(
+    filter: FilterQuery<TutorDoc>,
+    update: UpdateQuery<TutorDoc>,
+  ): Promise<any>;
 }
 
 const TutorSchema = new Schema(
@@ -69,6 +80,13 @@ TutorSchema.statics.applyRating = async function (id: string, score: number) {
   tutor.rating.count = newCount;
 
   return tutor.save();
+};
+
+TutorSchema.statics.update = function (
+  filter: FilterQuery<TutorDoc>,
+  update: UpdateQuery<TutorDoc>,
+) {
+  return this.updateOne(filter, update);
 };
 
 TutorSchema.set("toJSON", {

@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { UserService } from "./user.service";
+import { AuthedRequest } from "../../auth/auth.middleware";
 
 export const UserController = {
   register: async (req: Request, res: Response, next: NextFunction) => {
@@ -31,6 +32,50 @@ export const UserController = {
       res.clearCookie("jwt");
       res.status(200).json({ message: "Logged out successfully" });
     } catch (e) {
+      next(e);
+    }
+  },
+
+  updatePfp: async (req: AuthedRequest, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user!;
+      const { pfp } = req.body;
+      await UserService.updatePfp(user.id, pfp);
+      res.status(200).json({ message: "Profile picture updated successfully" });
+    } catch (e) {
+      next(e);
+    }
+  },
+
+  updateProfile: async (
+    req: AuthedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const user = req.user!;
+      const { firstName, lastName } = req.body;
+      await UserService.updateProfile(user.id, firstName, lastName);
+      res.status(200).json({ message: "Profile updated successfully" });
+    } catch (e) {
+      next(e);
+    }
+  },
+
+  updatePassword: async (
+    req: AuthedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const user = req.user!;
+      const { current, new: newPassword } = req.body;
+      await UserService.updatePassword(user.id, current, newPassword);
+      res.status(200).json({ message: "Password updated successfully" });
+    } catch (e: any) {
+      if (e.message === "Invalid credentials") {
+        return res.status(401).json({ message: e.message });
+      }
       next(e);
     }
   },

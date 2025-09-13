@@ -22,8 +22,8 @@ app.use(
 );
 
 /* ---------- Parsers ---------- */
-app.use(express.json({ limit: "1mb" }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 /* ---------- Diagnostics ---------- */
 app.get("/__ping", (_req, res) => res.status(200).send("All is operational."));

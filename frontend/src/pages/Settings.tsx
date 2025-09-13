@@ -3,6 +3,11 @@ import { useFormik } from "formik";
 import * as Yup from "yup";
 import { useAuthStore } from "../store/authStore";
 import "./Settings.css";
+import {
+  updatePassword,
+  updateProfile,
+  updateProfilePicture,
+} from "../services/settingsApi";
 
 const Settings = () => {
   const [notifications, setNotifications] = useState({
@@ -13,6 +18,14 @@ const Settings = () => {
 
   const [profilePicture, setProfilePicture] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const { user, token, setUser } = useAuthStore((state) => ({
+    user: state.user,
+    token: state.token,
+    setUser: state.setUser,
+  }));
 
   const checkPasswordStrength = (password: string) => {
     let strength = 0;
@@ -23,8 +36,6 @@ const Settings = () => {
     if (password.match(/[^a-zA-Z0-9]/)) strength++;
     return strength;
   };
-
-  const user = useAuthStore((state) => state.user);
 
   const profileFormik = useFormik({
     initialValues: {
@@ -49,8 +60,20 @@ const Settings = () => {
           },
         ),
     }),
-    onSubmit: (values) => {
-      console.log("Profile submitted", values);
+    onSubmit: async (values) => {
+      if (!token) return;
+
+      try {
+        await updateProfile(token, values.firstName, values.lastName);
+        const updatedUser = {
+          ...user!,
+          name: values.firstName,
+          surname: values.lastName,
+        };
+        setUser(updatedUser);
+      } catch (error) {
+        console.error("Failed to update profile", error);
+      }
     },
   });
 
@@ -71,8 +94,20 @@ const Settings = () => {
         .oneOf([Yup.ref("new"), null], "Passwords must match")
         .required("Required"),
     }),
-    onSubmit: (values) => {
-      console.log("Password submitted", values);
+    onSubmit: async (values, { setStatus, setSubmitting }) => {
+      if (!token) return;
+
+      try {
+        await updatePassword(token, values.current, values.new);
+        setStatus({ success: "Password updated successfully" });
+      } catch (error: any) {
+        if (error.response && error.response.status === 401) {
+          setStatus({ error: "Invalid current password" });
+        } else {
+          setStatus({ error: "Failed to update password. Please try again." });
+        }
+      }
+      setSubmitting(false);
     },
   });
 
@@ -87,6 +122,28 @@ const Settings = () => {
       const file = e.target.files[0];
       setProfilePicture(file);
       setPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleSavePfp = async () => {
+    if (!profilePicture || !token) return;
+
+    setIsUploading(true);
+    setUploadError(null);
+
+    try {
+      const base64String = await updateProfilePicture(token, profilePicture);
+      const base64Data = base64String.split(",")[1];
+      const updatedUser = {
+        ...user!,
+        pfp: { data: base64Data, contentType: profilePicture.type },
+      };
+      setUser(updatedUser);
+      setPreview(null);
+    } catch (error) {
+      setUploadError("Failed to upload profile picture. Please try again.");
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -118,7 +175,12 @@ const Settings = () => {
         </div>
         <div className="profile-picture-section">
           <img
-            src={preview || "https://via.placeholder.com/150"}
+            src={
+              preview ||
+              (user?.pfp?.data
+                ? `data:${user.pfp.contentType};base64,${user.pfp.data}`
+                : "https://via.placeholder.com/150")
+            }
             alt="Profile"
             className="profile-avatar"
           />
@@ -132,6 +194,16 @@ const Settings = () => {
           <label htmlFor="profilePictureInput" className="btn btn-secondary">
             Change Picture
           </label>
+          {preview && (
+            <button
+              onClick={handleSavePfp}
+              className="btn btn-primary"
+              disabled={isUploading}
+            >
+              {isUploading ? "Saving..." : "Save Picture"}
+            </button>
+          )}
+          {uploadError && <p className="text-danger">{uploadError}</p>}
         </div>
         <form onSubmit={profileFormik.handleSubmit}>
           <div className="form-grid">
@@ -272,10 +344,20 @@ const Settings = () => {
             </div>
           </div>
           <div className="card-footer">
-            <button type="submit" className="btn btn-primary">
-              Update Password
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={passwordFormik.isSubmitting}
+            >
+              {passwordFormik.isSubmitting ? "Updating..." : "Update Password"}
             </button>
           </div>
+          {passwordFormik.status && passwordFormik.status.success && (
+            <p className="text-success">{passwordFormik.status.success}</p>
+          )}
+          {passwordFormik.status && passwordFormik.status.error && (
+            <p className="text-danger">{passwordFormik.status.error}</p>
+          )}
         </form>
       </div>
 
