@@ -35,7 +35,7 @@ const TutorSchema = new Schema(
     surname: { type: String, required: true },
     subjects: [{ type: String, required: true }],
     rating: {
-      average: { type: Number, default: 0, min: 0, max: 5 },
+      totalScore: { type: Number, default: 0, min: 0 },
       count: { type: Number, default: 0, min: 0 },
     },
     pfp: {
@@ -72,12 +72,8 @@ TutorSchema.statics.applyRating = async function (id: string, score: number) {
   const tutor = await this.findById(id);
   if (!tutor) return null;
 
-  const currentRating = tutor.rating.average * tutor.rating.count;
-  const newCount = tutor.rating.count + 1;
-  const newAverage = (currentRating + score) / newCount;
-
-  tutor.rating.average = newAverage;
-  tutor.rating.count = newCount;
+  tutor.rating.totalScore += score;
+  tutor.rating.count += 1;
 
   return tutor.save();
 };

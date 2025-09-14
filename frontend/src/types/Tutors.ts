@@ -1,15 +1,20 @@
-export type TutorRating = {
-  average: number; // 0..5
-  count: number; // >=0
-};
-
-export type Tutor = {
+export interface Tutor {
   id: string;
-  userId: string; // references User._id
+  userId: string;
   name: string;
   surname: string;
-  subjects: string[]; // module codes / topics
-  rating: TutorRating;
-  createdAt?: string;
-  updatedAt?: string;
-};
+  subjects: string[];
+  rating: {
+    totalScore: number;
+    count: number;
+  };
+  pfp: {
+    data: {
+      type: "Buffer";
+      data: number[];
+    };
+    contentType: string;
+  } | null;
+  createdAt: string;
+  updatedAt: string;
+}

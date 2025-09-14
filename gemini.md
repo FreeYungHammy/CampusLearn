@@ -299,7 +299,45 @@ Result: Tutors with uploaded content now see their materials organized by subjec
         - Include a "Close" button on the modal to set `isModalOpen` to `false`.
         - Add a title to the modal displaying the file's name.
 
+### Session 8: User Settings Implementation (Profile & Security)
+
+- **Goal:** Implement the user settings page, allowing users to update their profile information (profile picture, name, surname) and change their password.
+
+- **Backend Implementation:**
+  - **Profile Picture Update:**
+    - Created a new route `PATCH /api/users/pfp` protected by authentication.
+    - Implemented a service function `updatePfp` that handles base64 image data, converts it to a Buffer, and updates the `pfp` field in the corresponding `Student` or `Tutor` document.
+    - Increased the Express body parser's payload limit to `10mb` in `app.ts` to accommodate larger image uploads, fixing the `413 (Payload Too Large)` error.
+  - **Profile Information Update:**
+    - Created a new route `PATCH /api/users/profile` protected by authentication.
+    - Implemented a service function `updateProfile` to update the `name` and `surname` fields in the `Student` or `Tutor` document.
+  - **Password Update:**
+    - Created a new route `PATCH /api/users/password` protected by authentication.
+    - Implemented a service function `updatePassword` that:
+      - Fetches the user with their password hash using a new `findByIdWithPassword` repository method.
+      - Verifies the provided "current password" using `bcrypt.compare`.
+      - Securely hashes the new password and updates the `passwordHash` in the `User` document.
+  - **Repo and Schema Updates:**
+    - Added an `update` static method to both the `Student` and `Tutor` schemas to correctly handle profile updates without breaking other repository methods, fixing a critical bug that caused the login to fail with a 500 error.
+    - Added a `findByIdWithPassword` method to the `UserRepo` to securely fetch user data for password verification.
+
+- **Frontend Implementation:**
+  - **Centralized API Service (`settingsApi.ts`):**
+    - Created a new `settingsApi.ts` service file to centralize all API calls related to user settings, promoting code organization and reusability.
+    - Implemented `updateProfilePicture`, `updateProfile`, and `updatePassword` functions within this service.
+  - **Settings Page (`Settings.tsx`):**
+    - Connected the "Profile Information" form to the `updateProfile` API call.
+    - Connected the "Change Picture" functionality to the `updateProfilePicture` API call, including state for loading and error handling.
+    - Connected the "Change Password" form to the `updatePassword` API call, with clear success and error messaging for the user.
+  - **Bug Fixing:**
+    - Resolved a `net::ERR_INVALID_URL` error by ensuring that only the raw base64 data is stored in the frontend state, and the `data:image/...` prefix is correctly applied in the `<img>` tag's `src` attribute.
+    - Fixed an initial `SyntaxError` by correcting the import statement for the `api` instance in `settingsApi.ts`.
+
+- **Overall Result:** The settings page is now fully functional, allowing users to securely update their profile picture, name, and password with a clear and responsive user interface. The backend is robust, with dedicated, secure endpoints for each action.
+
 ---
+
+### Forum Feature Implementation
 
 ### Forum Feature Implementation
 
