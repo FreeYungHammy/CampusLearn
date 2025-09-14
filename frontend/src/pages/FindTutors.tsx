@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { getTutors } from "../services/tutorApi";
 import { arrayBufferToBase64 } from "../utils/image";
 import type { Tutor } from "../types/Tutors";
@@ -182,9 +183,12 @@ const FindTutors = () => {
               </div>
 
               <div className="tutor-actions">
-                <a href="#" className="view-profile-btn">
+                <Link
+                  to={`/tutors/${tutor.id}/content`}
+                  className="view-profile-btn"
+                >
                   View Profile & Content
-                </a>
+                </Link>
                 <button className={`btn btn-sm btn-success`}>
                   <i className={`fas fa-plus`}></i>
                   Subscribe

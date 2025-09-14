@@ -1,15 +1,19 @@
 import api from "../lib/api";
-import { type TutorUpload } from "../types/tutorUploads";
 
-export async function getMyContent(token: string): Promise<TutorUpload[]> {
-  const res = await api.get("/files/my-content", {
+export const getMyContent = async (token: string) => {
+  const response = await api.get("/files/my-content", {
     headers: { Authorization: `Bearer ${token}` },
   });
-  return res.data as TutorUpload[];
-}
+  return response.data;
+};
 
-export async function deleteFile(token: string, fileId: string): Promise<void> {
+export const getTutorContent = async (tutorId: string) => {
+  const response = await api.get(`/files/by-tutor/${tutorId}`);
+  return response.data;
+};
+
+export const deleteFile = async (token: string, fileId: string) => {
   await api.delete(`/files/${fileId}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-}
+};
