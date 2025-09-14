@@ -118,4 +118,24 @@ export const UserController = {
       next(e);
     }
   },
+
+  forgotPassword: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await UserService.forgotPassword(req.body.email);
+      res
+        .status(200)
+        .json({ message: "Password reset link sent to your email." });
+    } catch (e) {
+      next(e);
+    }
+  },
+
+  resetPassword: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await UserService.resetPassword(req.params.token, req.body.password);
+      res.status(200).json({ message: "Password has been reset." });
+    } catch (e: any) {
+      res.status(400).json({ message: e.message });
+    }
+  },
 };

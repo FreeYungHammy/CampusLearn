@@ -565,3 +565,84 @@ This section outlines the complete, multi-phase implementation plan for the foru
     - **Action:** Delete cache keys when data changes.
     - **`createReply` Logic:** After saving the new reply to the DB, add: `await redis.del(`thread:${threadId}`);`
     - This logic must be applied to any "write" operation (edit, delete, upvote, etc.).
+
+---
+
+### Future Features Plan
+
+### Forgot Password Functionality
+
+**Phase 1: Backend Implementation**
+
+1.  **Schema Modification:**
+    - **File:** `backend/src/schemas/user.schema.ts`
+    - **Action:** Add fields to the `UserSchema` to store a password reset token and its expiry.
+    - **Fields:** `resetPasswordToken: String`, `resetPasswordExpires: Date`
+
+2.  **Service Layer (`user.service.ts`):**
+    - **`forgotPassword(email)`:**
+      - Find the user by email.
+      - If user exists, generate a unique token using `crypto.randomBytes`.
+      - Set `resetPasswordToken` and `resetPasswordExpires` (e.g., 1 hour from now).
+      - Save the updated user document.
+      - (Stretch Goal) Send an email to the user with a link containing the token (e.g., `http://localhost:5173/reset-password/TOKEN_HERE`). For now, we will log the token to the console.
+    - **`resetPassword(token, newPassword)`:**
+      - Find the.
+      - If user is found, hash the `newPassword`.
+      - Update the user's `passwordHash` and set `resetPasswordToken` and `resetPasswordExpires` to `undefined`.
+      - Save the updated user document.
+
+3.  **Controller Layer (`user.controller.ts`):**
+    - **`forgotPassword(req, res, next)`:**
+      - Call `UserService.forgotPassword(req.body.email)`.
+      - Return a success message.
+    - **`resetPassword(req, res, next)`:**
+      - Call `UserService.resetPassword(req.params.token, req.body.password)`.
+      - Return a success message.
+
+4.  **Routes (`/backend/src/modules/users/index.ts`):**
+    - `POST /forgot-password`: `UserController.forgotPassword`
+    - `POST /reset-password/:token`: `UserController.resetPassword`
+
+**Phase 2: Frontend Implementation**
+
+1.  **Create `ForgotPassword.tsx` Page:**
+    - **File:** `frontend/src/pages/Auth/ForgotPassword.tsx` (new file)
+    - **UI:** A simple form with an email input and a "Send Reset Link" button.
+    - **Logic:** On submit, call a new `forgotPassword` function in `frontend/src/services/authApi.ts` which will hit the `POST /api/users/forgot-password` endpoint.
+
+2.  **Create `ResetPassword.tsx` Page:**
+    - **File:** `frontend/src/pages/Auth/ResetPassword.tsx` (new file)
+    - **UI:** A form with a password input, a confirm password input, and a "Reset Password" button.
+    - **Logic:**
+      - Extract the token from the URL parameter.
+      - On submit, call a new `resetPassword` function in `frontend/src/services/authApi.ts` which will hit the `POST /api/users/reset-password/:token` endpoint.
+
+3.  **Routing (`frontend/src/App.tsx`):**
+    - Add new public routes for `/forgot-password` and `/reset-password/:token`.
+
+### Message Socketing (Real-time Chat)
+
+**Phase 1: Backend Implementation**
+
+1.  **Socket.IO Integration (`backend/src/config/socket.ts`):**
+    - Create a new namespace for chat: `const chatNamespace = io.of('/chat');`
+    - Listen for connections on the `chatNamespace`.
+    - On connection, listen for a `join_room` event, where the room name is the `chatId`.
+    - Listen for a `send_message` event, and broadcast the message to all users in that room.
+
+2.  **Service Layer (`backend/src/modules/chat/chat.service.ts`):**
+    - Modify the `createMessage` function to emit a `new_message` event to the corresponding chat room using the `chatNamespace`.
+
+**Phase 2: Frontend Implementation**
+
+1.  **Socket.IO Integration (`frontend/src/pages/Messages.tsx`):**
+    - Use a custom hook `useChatSocket` to manage the socket connection.
+    - **`useChatSocket.ts` (new file):**
+      - Connect to the `/chat` namespace.
+      - On component mount, emit a `join_room` event with the `chatId`.
+      - Listen for `new_message` events and update the local message state.
+      - On component unmount, disconnect the socket.
+
+2.  **UI (`frontend/src/pages/Messages.tsx`):**
+    - When a new message is received from the socket, append it to the message list in real-time.

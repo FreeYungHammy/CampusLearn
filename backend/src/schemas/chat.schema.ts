@@ -4,6 +4,7 @@ const ChatSchema = new Schema(
   {
     senderId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     receiverId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    chatId: { type: String, required: true },
     content: { type: String, required: true },
     upload: { type: Buffer },
     seen: { type: Boolean, default: false },

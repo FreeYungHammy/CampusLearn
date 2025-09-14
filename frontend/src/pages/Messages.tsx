@@ -1,12 +1,20 @@
 import React, { useState } from "react";
+import { useChatSocket } from "@/hooks/useChatSocket";
+import { useAuthStore } from "@/store/authStore";
+import type { SendMessagePayload } from "@/types/ChatMessage";
 
 const Messages: React.FC = () => {
-  const [messages, setMessages] = useState<string[]>([]);
   const [input, setInput] = useState("");
+  const chatId = "static-chat-id";
+  const { messages, sendMessage } = useChatSocket(chatId);
+  const { user } = useAuthStore();
 
   const handleSend = () => {
-    if (input.trim() === "") return;
-    setMessages([...messages, input]);
+    if (!user?.id) return;
+    const content = input.trim();
+    if (!content) return;
+    const payload: SendMessagePayload = { chatId, content, senderId: user.id };
+    sendMessage(payload);
     setInput("");
   };
 
@@ -15,6 +23,7 @@ const Messages: React.FC = () => {
       <h2 className="section-title">
         <i className="fas fa-envelope"></i> Messages (Static Test)
       </h2>
+
       <div className="chat-container">
         <div className="chat-main">
           <div className="chat-header">
@@ -27,13 +36,22 @@ const Messages: React.FC = () => {
             {messages.length === 0 && (
               <p className="placeholder">No messages yet. Type below!</p>
             )}
-            {messages.map((msg, index) => (
-              <div key={index} className="message sent">
+
+            {messages.map((msg, i) => (
+              <div
+                key={i}
+                className={`message ${
+                  msg.sender._id === user?.id ? "sent" : "received"
+                }`}
+              >
                 <div className="message-content">
-                  <p>{msg}</p>
+                  {msg.sender._id !== user?.id && (
+                    <div className="message-sender-name">{msg.sender.name}</div>
+                  )}
+                  <p>{msg.content}</p>
                 </div>
                 <div className="message-time">
-                  {new Date().toLocaleTimeString([], {
+                  {new Date(msg.createdAt).toLocaleTimeString([], {
                     hour: "2-digit",
                     minute: "2-digit",
                   })}
@@ -51,7 +69,7 @@ const Messages: React.FC = () => {
               onKeyDown={(e) => e.key === "Enter" && handleSend()}
             />
             <button className="send-btn" onClick={handleSend}>
-              <i className="fas fa-paper-plane"></i>
+              <i className="fas fa-paper-plane" />
             </button>
           </div>
         </div>

@@ -37,6 +37,7 @@ const Login = () => {
       setError("");
       try {
         const { token, user } = await login(values);
+        console.log("Login.tsx: User object received from backend:", user); // Add this line
         setToken(token);
         setUser(user);
         navigate("/schedule");
@@ -141,10 +142,10 @@ const Login = () => {
                 <i className="fas fa-question-circle"></i>
                 Need Help?
               </a>
-              <a href="#" className="login-link">
+              <Link to="/forgot-password" className="login-link">
                 <i className="fas fa-key"></i>
                 Forgot Password?
-              </a>
+              </Link>
             </div>
           </form>
         </div>
