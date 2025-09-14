@@ -52,10 +52,7 @@ const FindTutors = () => {
         personalizedTutors.sort((a, b) => b.relevanceScore - a.relevanceScore);
         setAllTutors(personalizedTutors);
 
-        const uniqueSubjects = [
-          ...new Set(fetchedTutors.flatMap((t) => t.subjects)),
-        ].sort();
-        setAvailableSubjects(uniqueSubjects);
+        setAvailableSubjects(studentSubjects.sort());
       } catch (error) {
         console.error("Failed to fetch and sort tutors:", error);
       }
