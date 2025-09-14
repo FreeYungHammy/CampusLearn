@@ -18,6 +18,10 @@ export const UserRepo = {
     return UserModel.findById(id).lean<UserDoc | null>();
   },
 
+  findOne(filter: FilterQuery<UserDoc>) {
+    return UserModel.findOne(filter).lean<UserDoc | null>();
+  },
+
   findByEmail(email: string) {
     return UserModel.findOne({
       email: email.toLowerCase(),
@@ -28,7 +32,9 @@ export const UserRepo = {
   findByEmailWithPassword(email: string) {
     return UserModel.findOne({ email: email.toLowerCase() })
       .select("+passwordHash")
-      .lean<UserDoc | (UserDoc & { passwordHash: string }) | null>();
+      .lean<
+        UserDoc | (UserDoc & { passwordHash: string }) | null
+      >({ virtuals: true });
   },
 
   findByIdWithPassword(id: string) {

@@ -1,5 +1,5 @@
 import api from "../lib/api";
-import { type User } from "../types/Users";
+import { type User } from "../types/Common";
 
 export const login = async (
   credentials: any,
@@ -15,4 +15,15 @@ export const register = async (details: any): Promise<User> => {
 
 export const logout = async (): Promise<void> => {
   await api.post("/users/logout");
+};
+
+export const forgotPassword = async (email: string): Promise<void> => {
+  await api.post("/users/forgot-password", { email });
+};
+
+export const resetPassword = async (
+  token: string,
+  password: string,
+): Promise<void> => {
+  await api.post(`/users/reset-password/${token}`, { password });
 };

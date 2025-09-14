@@ -90,6 +90,10 @@ TutorSchema.set("toJSON", {
   versionKey: false,
   transform: (_doc, ret) => {
     const { _id, ...rest } = ret;
+    // Explicitly add the 'id' property from _id
+    if (_doc._id) {
+      (rest as any).id = _doc._id.toString();
+    }
     return rest;
   },
 });

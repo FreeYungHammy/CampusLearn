@@ -26,3 +26,25 @@ export type AuthResponse = {
   token: string;
   user: User;
 };
+
+// Auth DTOs used by /users/login
+export type LoginCredentials = {
+  email: string;
+  password: string;
+};
+
+export type AuthResponse = {
+  token: string;
+  user: User;
+};
+
+// Auth DTOs used by /users/login
+export type LoginCredentials = {
+  email: string;
+  password: string;
+};
+
+export type AuthResponse = {
+  token: string;
+  user: User;
+};
