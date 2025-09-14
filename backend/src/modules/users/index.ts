@@ -14,4 +14,7 @@ r.get("/:id", UserController.get);
 r.patch("/:id", UserController.update);
 r.delete("/:id", UserController.remove);
 
+r.post("/forgot-password", UserController.forgotPassword);
+r.post("/reset-password/:token", UserController.resetPassword);
+
 export default r;

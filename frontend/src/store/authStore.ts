@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { type User } from "../types/Users";
+import { type User } from "../types/Common";
 import { logout as logoutApi } from "../services/authApi";
 
 interface AuthState {

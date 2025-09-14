@@ -299,7 +299,45 @@ Result: Tutors with uploaded content now see their materials organized by subjec
         - Include a "Close" button on the modal to set `isModalOpen` to `false`.
         - Add a title to the modal displaying the file's name.
 
+### Session 8: User Settings Implementation (Profile & Security)
+
+- **Goal:** Implement the user settings page, allowing users to update their profile information (profile picture, name, surname) and change their password.
+
+- **Backend Implementation:**
+  - **Profile Picture Update:**
+    - Created a new route `PATCH /api/users/pfp` protected by authentication.
+    - Implemented a service function `updatePfp` that handles base64 image data, converts it to a Buffer, and updates the `pfp` field in the corresponding `Student` or `Tutor` document.
+    - Increased the Express body parser's payload limit to `10mb` in `app.ts` to accommodate larger image uploads, fixing the `413 (Payload Too Large)` error.
+  - **Profile Information Update:**
+    - Created a new route `PATCH /api/users/profile` protected by authentication.
+    - Implemented a service function `updateProfile` to update the `name` and `surname` fields in the `Student` or `Tutor` document.
+  - **Password Update:**
+    - Created a new route `PATCH /api/users/password` protected by authentication.
+    - Implemented a service function `updatePassword` that:
+      - Fetches the user with their password hash using a new `findByIdWithPassword` repository method.
+      - Verifies the provided "current password" using `bcrypt.compare`.
+      - Securely hashes the new password and updates the `passwordHash` in the `User` document.
+  - **Repo and Schema Updates:**
+    - Added an `update` static method to both the `Student` and `Tutor` schemas to correctly handle profile updates without breaking other repository methods, fixing a critical bug that caused the login to fail with a 500 error.
+    - Added a `findByIdWithPassword` method to the `UserRepo` to securely fetch user data for password verification.
+
+- **Frontend Implementation:**
+  - **Centralized API Service (`settingsApi.ts`):**
+    - Created a new `settingsApi.ts` service file to centralize all API calls related to user settings, promoting code organization and reusability.
+    - Implemented `updateProfilePicture`, `updateProfile`, and `updatePassword` functions within this service.
+  - **Settings Page (`Settings.tsx`):**
+    - Connected the "Profile Information" form to the `updateProfile` API call.
+    - Connected the "Change Picture" functionality to the `updateProfilePicture` API call, including state for loading and error handling.
+    - Connected the "Change Password" form to the `updatePassword` API call, with clear success and error messaging for the user.
+  - **Bug Fixing:**
+    - Resolved a `net::ERR_INVALID_URL` error by ensuring that only the raw base64 data is stored in the frontend state, and the `data:image/...` prefix is correctly applied in the `<img>` tag's `src` attribute.
+    - Fixed an initial `SyntaxError` by correcting the import statement for the `api` instance in `settingsApi.ts`.
+
+- **Overall Result:** The settings page is now fully functional, allowing users to securely update their profile picture, name, and password with a clear and responsive user interface. The backend is robust, with dedicated, secure endpoints for each action.
+
 ---
+
+### Forum Feature Implementation
 
 ### Forum Feature Implementation
 
@@ -565,3 +603,84 @@ This section outlines the complete, multi-phase implementation plan for the foru
     - **Action:** Delete cache keys when data changes.
     - **`createReply` Logic:** After saving the new reply to the DB, add: `await redis.del(`thread:${threadId}`);`
     - This logic must be applied to any "write" operation (edit, delete, upvote, etc.).
+
+---
+
+### Future Features Plan
+
+### Forgot Password Functionality
+
+**Phase 1: Backend Implementation**
+
+1.  **Schema Modification:**
+    - **File:** `backend/src/schemas/user.schema.ts`
+    - **Action:** Add fields to the `UserSchema` to store a password reset token and its expiry.
+    - **Fields:** `resetPasswordToken: String`, `resetPasswordExpires: Date`
+
+2.  **Service Layer (`user.service.ts`):**
+    - **`forgotPassword(email)`:**
+      - Find the user by email.
+      - If user exists, generate a unique token using `crypto.randomBytes`.
+      - Set `resetPasswordToken` and `resetPasswordExpires` (e.g., 1 hour from now).
+      - Save the updated user document.
+      - (Stretch Goal) Send an email to the user with a link containing the token (e.g., `http://localhost:5173/reset-password/TOKEN_HERE`). For now, we will log the token to the console.
+    - **`resetPassword(token, newPassword)`:**
+      - Find the.
+      - If user is found, hash the `newPassword`.
+      - Update the user's `passwordHash` and set `resetPasswordToken` and `resetPasswordExpires` to `undefined`.
+      - Save the updated user document.
+
+3.  **Controller Layer (`user.controller.ts`):**
+    - **`forgotPassword(req, res, next)`:**
+      - Call `UserService.forgotPassword(req.body.email)`.
+      - Return a success message.
+    - **`resetPassword(req, res, next)`:**
+      - Call `UserService.resetPassword(req.params.token, req.body.password)`.
+      - Return a success message.
+
+4.  **Routes (`/backend/src/modules/users/index.ts`):**
+    - `POST /forgot-password`: `UserController.forgotPassword`
+    - `POST /reset-password/:token`: `UserController.resetPassword`
+
+**Phase 2: Frontend Implementation**
+
+1.  **Create `ForgotPassword.tsx` Page:**
+    - **File:** `frontend/src/pages/Auth/ForgotPassword.tsx` (new file)
+    - **UI:** A simple form with an email input and a "Send Reset Link" button.
+    - **Logic:** On submit, call a new `forgotPassword` function in `frontend/src/services/authApi.ts` which will hit the `POST /api/users/forgot-password` endpoint.
+
+2.  **Create `ResetPassword.tsx` Page:**
+    - **File:** `frontend/src/pages/Auth/ResetPassword.tsx` (new file)
+    - **UI:** A form with a password input, a confirm password input, and a "Reset Password" button.
+    - **Logic:**
+      - Extract the token from the URL parameter.
+      - On submit, call a new `resetPassword` function in `frontend/src/services/authApi.ts` which will hit the `POST /api/users/reset-password/:token` endpoint.
+
+3.  **Routing (`frontend/src/App.tsx`):**
+    - Add new public routes for `/forgot-password` and `/reset-password/:token`.
+
+### Message Socketing (Real-time Chat)
+
+**Phase 1: Backend Implementation**
+
+1.  **Socket.IO Integration (`backend/src/config/socket.ts`):**
+    - Create a new namespace for chat: `const chatNamespace = io.of('/chat');`
+    - Listen for connections on the `chatNamespace`.
+    - On connection, listen for a `join_room` event, where the room name is the `chatId`.
+    - Listen for a `send_message` event, and broadcast the message to all users in that room.
+
+2.  **Service Layer (`backend/src/modules/chat/chat.service.ts`):**
+    - Modify the `createMessage` function to emit a `new_message` event to the corresponding chat room using the `chatNamespace`.
+
+**Phase 2: Frontend Implementation**
+
+1.  **Socket.IO Integration (`frontend/src/pages/Messages.tsx`):**
+    - Use a custom hook `useChatSocket` to manage the socket connection.
+    - **`useChatSocket.ts` (new file):**
+      - Connect to the `/chat` namespace.
+      - On component mount, emit a `join_room` event with the `chatId`.
+      - Listen for `new_message` events and update the local message state.
+      - On component unmount, disconnect the socket.
+
+2.  **UI (`frontend/src/pages/Messages.tsx`):**
+    - When a new message is received from the socket, append it to the message list in real-time.

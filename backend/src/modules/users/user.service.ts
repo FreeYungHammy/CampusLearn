@@ -6,6 +6,7 @@ import { TutorRepo } from "../tutors/tutor.repo";
 import type { UserDoc } from "../../schemas/user.schema";
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 
 const ALLOWED_EMAIL_DOMAIN = "@student.belgiumcampus.ac.za";
 
@@ -102,10 +103,12 @@ export const UserService = {
     // Combine user and profile data
     const userWithProfile = {
       ...publicUser,
+      id: user._id.toString(), // Explicitly add the 'id' property
       name: profile?.name,
       surname: profile?.surname,
       pfp: profile?.pfp,
-      subjects: profile?.subjects, // Add subjects here
+      subjects: profile?.subjects, // For tutors
+      enrolledCourses: profile?.enrolledCourses, // For students
     };
 
     return { token, user: userWithProfile };
@@ -178,5 +181,56 @@ export const UserService = {
 
   remove(id: string) {
     return UserRepo.deleteById(id);
+  },
+
+  async forgotPassword(email: string) {
+    const user = await UserRepo.findByEmail(email);
+    if (!user) {
+      // Still return a success message to prevent email enumeration
+      return;
+    }
+
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const passwordResetToken = crypto
+      .createHash("sha256")
+      .update(resetToken)
+      .digest("hex");
+
+    const passwordResetExpires = new Date(Date.now() + 3600000); // 1 hour
+
+    await UserRepo.updateById(user._id, {
+      $set: {
+        resetPasswordToken: passwordResetToken,
+        resetPasswordExpires: passwordResetExpires,
+      },
+    });
+
+    // In a real app, you would send an email with the resetToken
+    console.log(`Password reset token for ${email}: ${resetToken}`);
+  },
+
+  async resetPassword(token: string, newPass: string) {
+    const resetPasswordToken = crypto
+      .createHash("sha256")
+      .update(token)
+      .digest("hex");
+
+    const user = await UserRepo.findOne({
+      resetPasswordToken,
+      resetPasswordExpires: { $gt: new Date() },
+    });
+
+    if (!user) {
+      throw new Error("Password reset token is invalid or has expired.");
+    }
+
+    const passwordHash = await bcrypt.hash(newPass, 10);
+    await UserRepo.updateById(user._id, {
+      $set: {
+        passwordHash,
+        resetPasswordToken: undefined,
+        resetPasswordExpires: undefined,
+      },
+    });
   },
 };

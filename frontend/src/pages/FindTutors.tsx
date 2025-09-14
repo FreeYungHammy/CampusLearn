@@ -1,51 +1,89 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { getTutors } from "../services/tutorApi";
+import { arrayBufferToBase64 } from "../utils/image";
+import type { Tutor } from "../types/Tutors";
+import { useAuthStore } from "../store/authStore";
 
 const FindTutors = () => {
-  const [subscribedTutors, setSubscribedTutors] = useState([]);
+  const [allTutors, setAllTutors] = useState<Tutor[]>([]);
+  const [displayedTutors, setDisplayedTutors] = useState<Tutor[]>([]);
+  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
+  const [ratingFilter, setRatingFilter] = useState(0);
+  const [availableSubjects, setAvailableSubjects] = useState<string[]>([]);
 
-  const toggleSubscription = (tutorId) => {
-    if (subscribedTutors.includes(tutorId)) {
-      setSubscribedTutors(subscribedTutors.filter((id) => id !== tutorId));
-    } else {
-      setSubscribedTutors([...subscribedTutors, tutorId]);
-    }
+  const { user } = useAuthStore();
+
+  const handleSubjectChange = (subject: string) => {
+    setSelectedSubjects((prev) =>
+      prev.includes(subject)
+        ? prev.filter((s) => s !== subject)
+        : [...prev, subject],
+    );
   };
 
-  const tutors = [
-    {
-      id: 1,
-      name: "Dr. Gideon Mbeki",
-      title: "Mathematics Professor",
-      rating: 4.8,
-      avatar: "https://randomuser.me/api/portraits/men/32.jpg",
-      subjects: 5,
-      students: 142,
-      subjectTags: ["MAT281", "PRG281", "MAT261", "MAT201", "MAT151"],
-      isSubscribed: false,
-    },
-    {
-      id: 2,
-      name: "Prof. Sarah Chen",
-      title: "Calculus Specialist",
-      rating: 4.9,
-      avatar: "https://randomuser.me/api/portraits/women/44.jpg",
-      subjects: 3,
-      students: 98,
-      subjectTags: ["MAT281", "MAT201", "MAT101"],
-      isSubscribed: false,
-    },
-    {
-      id: 3,
-      name: "Dr. James Okafor",
-      title: "Algebra Expert",
-      rating: 4.7,
-      avatar: "https://randomuser.me/api/portraits/men/22.jpg",
-      subjects: 4,
-      students: 117,
-      subjectTags: ["MAT261", "MAT201", "PRG281", "MAT101"],
-      isSubscribed: true,
-    },
-  ];
+  useEffect(() => {
+    const fetchAndPersonalizeTutors = async () => {
+      if (!user || user.role !== "student") return;
+
+      try {
+        const fetchedTutors = await getTutors();
+        const studentSubjects = user.enrolledCourses || [];
+
+        const personalizedTutors = fetchedTutors.map((tutor) => {
+          const matchingSubjects = tutor.subjects.filter((subject) =>
+            studentSubjects.includes(subject),
+          ).length;
+
+          const ratingForCalc = (() => {
+            if (!tutor.rating || tutor.rating.count === 0) return 3.0;
+            if (typeof tutor.rating.totalScore === "number") {
+              return tutor.rating.totalScore / tutor.rating.count;
+            }
+            if (typeof (tutor.rating as any).average === "number") {
+              return (tutor.rating as any).average;
+            }
+            return 0.0;
+          })();
+
+          const relevanceScore = 3 * matchingSubjects + 2 * ratingForCalc;
+          return { ...tutor, relevanceScore };
+        });
+
+        personalizedTutors.sort((a, b) => b.relevanceScore - a.relevanceScore);
+        setAllTutors(personalizedTutors);
+
+        setAvailableSubjects(studentSubjects.sort());
+      } catch (error) {
+        console.error("Failed to fetch and sort tutors:", error);
+      }
+    };
+
+    fetchAndPersonalizeTutors();
+  }, [user]);
+
+  useEffect(() => {
+    let filteredTutors = [...allTutors];
+
+    // Apply subject filter
+    if (selectedSubjects.length > 0) {
+      filteredTutors = filteredTutors.filter((tutor) =>
+        selectedSubjects.every((subject) => tutor.subjects.includes(subject)),
+      );
+    }
+
+    // Apply rating filter
+    if (ratingFilter > 0) {
+      filteredTutors = filteredTutors.filter((tutor) => {
+        const avgRating =
+          tutor.rating.count > 0
+            ? tutor.rating.totalScore / tutor.rating.count
+            : 0;
+        return avgRating >= ratingFilter;
+      });
+    }
+
+    setDisplayedTutors(filteredTutors);
+  }, [allTutors, selectedSubjects, ratingFilter]);
 
   return (
     <div className="content-view" id="tutors-view">
@@ -63,80 +101,98 @@ const FindTutors = () => {
       </div>
 
       <div className="filter-bar">
-        <div className="filter-group">
-          <label htmlFor="subject-filter">Filter by Subject</label>
-          <select id="subject-filter" className="form-control">
-            <option value="">All Subjects</option>
-            <option value="Mathematics">Mathematics</option>
-            <option value="Computer Science">Computer Science</option>
-            <option value="Business">Business</option>
-          </select>
+        <div className="filter-group subject-filter">
+          <label>Filter by Subject</label>
+          <div className="checkbox-group">
+            {availableSubjects.map((subject) => (
+              <div key={subject} className="checkbox-item">
+                <input
+                  type="checkbox"
+                  id={`subject-${subject}`}
+                  value={subject}
+                  checked={selectedSubjects.includes(subject)}
+                  onChange={() => handleSubjectChange(subject)}
+                />
+                <label htmlFor={`subject-${subject}`}>{subject}</label>
+              </div>
+            ))}
+          </div>
         </div>
         <div className="filter-group">
           <label htmlFor="rating-filter">Minimum Rating</label>
-          <select id="rating-filter" className="form-control">
+          <select
+            id="rating-filter"
+            className="form-control"
+            value={ratingFilter}
+            onChange={(e) => setRatingFilter(Number(e.target.value))}
+          >
             <option value="0">Any Rating</option>
-            <option value="4">4+ Stars</option>
-            <option value="4.5">4.5+ Stars</option>
+            <option value="2">+2 Stars</option>
+            <option value="3">+3 Stars</option>
+            <option value="4">+4 Stars</option>
+            <option value="4.5">+4.5 Stars</option>
           </select>
         </div>
       </div>
 
       <div className="tutor-grid">
-        {tutors.map((tutor) => (
-          <div key={tutor.id} className="tutor-card">
-            <div className="tutor-header">
-              <img
-                src={tutor.avatar}
-                alt={tutor.name}
-                className="tutor-avatar"
-              />
-              <div className="tutor-info">
-                <h3>{tutor.name}</h3>
-                <p>{tutor.title}</p>
-                <div className="rating">
-                  <i className="fas fa-star"></i> {tutor.rating}
+        {displayedTutors.map((tutor) => {
+          const pfpSrc = tutor.pfp
+            ? `data:${tutor.pfp.contentType};base64,${arrayBufferToBase64(tutor.pfp.data.data)}`
+            : "https://randomuser.me/api/portraits/men/32.jpg"; // Default avatar
+
+          return (
+            <div key={tutor.id} className="tutor-card">
+              <div className="tutor-header">
+                <img
+                  src={pfpSrc}
+                  alt={`${tutor.name} ${tutor.surname}`}
+                  className="tutor-avatar"
+                />
+                <div className="tutor-info">
+                  <h3>{`${tutor.name} ${tutor.surname}`}</h3>
+                  <div className="rating">
+                    <i className="fas fa-star"></i>{" "}
+                    {tutor.rating.count === 0
+                      ? "Unrated"
+                      : (tutor.rating.totalScore / tutor.rating.count).toFixed(
+                          1,
+                        )}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="tutor-stats">
-              <div className="stat">
-                <div className="stat-value">{tutor.subjects}</div>
-                <div className="stat-label">Subjects</div>
+              <div className="tutor-stats">
+                <div className="stat">
+                  <div className="stat-value">{tutor.subjects.length}</div>
+                  <div className="stat-label">Subjects</div>
+                </div>
+                <div className="stat">
+                  <div className="stat-value">0</div>
+                  <div className="stat-label">Students</div>
+                </div>
               </div>
-              <div className="stat">
-                <div className="stat-value">{tutor.students}</div>
-                <div className="stat-label">Students</div>
+
+              <div className="tutor-subjects">
+                {tutor.subjects.map((subject, index) => (
+                  <span key={index} className="subject-tag">
+                    {subject}
+                  </span>
+                ))}
+              </div>
+
+              <div className="tutor-actions">
+                <a href="#" className="view-profile-btn">
+                  View Profile & Content
+                </a>
+                <button className={`btn btn-sm btn-success`}>
+                  <i className={`fas fa-plus`}></i>
+                  Subscribe
+                </button>
               </div>
             </div>
-
-            <div className="tutor-subjects">
-              {tutor.subjectTags.map((subject, index) => (
-                <span key={index} className="subject-tag">
-                  {subject}
-                </span>
-              ))}
-            </div>
-
-            <div className="tutor-actions">
-              <a href="#" className="view-profile-btn">
-                View Profile & Content
-              </a>
-              <button
-                className={`btn btn-sm ${subscribedTutors.includes(tutor.id) ? "btn-danger" : "btn-success"}`}
-                onClick={() => toggleSubscription(tutor.id)}
-              >
-                <i
-                  className={`fas ${subscribedTutors.includes(tutor.id) ? "fa-times" : "fa-plus"}`}
-                ></i>
-                {subscribedTutors.includes(tutor.id)
-                  ? "Unsubscribe"
-                  : "Subscribe"}
-              </button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
