@@ -5,6 +5,7 @@ import api from "./routes/index";
 import { connectMongo } from "./infra/db/mongoose";
 
 const app = express();
+app.disable("etag");
 
 /* ---------- CORS ---------- */
 const allowed = (process.env.CORS_ORIGIN || "")

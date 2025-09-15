@@ -52,15 +52,18 @@ export const SubscriptionService = {
     const tutors = await SubscriptionRepo.findByStudentId(
       student._id.toString(),
     );
-    return tutors.map((tutor) => ({
-      ...tutor,
-      pfp: tutor.pfp
-        ? {
-            contentType: tutor.pfp.contentType,
-            data: Buffer.from(tutor.pfp.data).toString("base64"),
-          }
-        : undefined,
-    }));
+    return tutors.map((tutor) => {
+      const transformedTutor = {
+        ...tutor,
+        pfp: tutor.pfp
+          ? {
+              contentType: tutor.pfp.contentType,
+              data: tutor.pfp.data.buffer.toString("base64"),
+            }
+          : undefined,
+      };
+      return transformedTutor;
+    });
   },
 
   async getSubscribedStudents(tutorUserId: string) {

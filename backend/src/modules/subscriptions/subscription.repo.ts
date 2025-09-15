@@ -54,10 +54,7 @@ export const SubscriptionRepo = {
           surname: 1,
           subjects: 1,
           rating: 1,
-          pfp: {
-            contentType: "$pfp.contentType",
-            data: { $toString: "$pfp.data" }, // Convert Buffer to string (base64)
-          },
+          pfp: 1,
           studentCount: 1,
           createdAt: 1,
           updatedAt: 1,

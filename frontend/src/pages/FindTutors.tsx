@@ -5,7 +5,7 @@ import {
   subscribeToTutor,
   getMySubscribedTutors,
 } from "../services/subscriptionApi";
-import { arrayBufferToBase64 } from "../utils/image";
+
 import type { Tutor } from "../types/Tutors";
 import { useAuthStore } from "../store/authStore";
 
@@ -166,9 +166,7 @@ const FindTutors = () => {
       <div className="tutor-grid">
         {displayedTutors.map((tutor) => {
           const pfpSrc = tutor.pfp
-            ? `data:${tutor.pfp.contentType};base64,${arrayBufferToBase64(
-                tutor.pfp.data.data,
-              )}`
+            ? `data:${tutor.pfp.contentType};base64,${tutor.pfp.data}`
             : "https://randomuser.me/api/portraits/men/32.jpg"; // Default avatar
 
           return (

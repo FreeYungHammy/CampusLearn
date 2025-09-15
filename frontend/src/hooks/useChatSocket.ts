@@ -21,7 +21,6 @@ export const useChatSocket = (chatId: string) => {
     const s = io(`${SOCKET_URL}`, {
       path: "/socket.io",
       transports: ["websocket"],
-      nsp: "/chat",
     });
     socketRef.current = s;
 

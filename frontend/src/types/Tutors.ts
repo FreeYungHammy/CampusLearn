@@ -9,10 +9,7 @@ export interface Tutor {
     count: number;
   };
   pfp: {
-    data: {
-      type: "Buffer";
-      data: number[];
-    };
+    data: string;
     contentType: string;
   } | null;
   createdAt: string;

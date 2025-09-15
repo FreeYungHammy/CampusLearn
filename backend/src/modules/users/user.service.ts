@@ -106,7 +106,12 @@ export const UserService = {
       id: user._id.toString(), // Explicitly add the 'id' property
       name: profile?.name,
       surname: profile?.surname,
-      pfp: profile?.pfp,
+      pfp: profile?.pfp
+        ? {
+            contentType: profile.pfp.contentType,
+            data: profile.pfp.data.toString("base64"),
+          }
+        : undefined,
       subjects: profile?.subjects, // For tutors
       enrolledCourses: profile?.enrolledCourses, // For students
     };
