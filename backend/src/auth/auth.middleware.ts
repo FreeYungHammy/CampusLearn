@@ -42,3 +42,16 @@ export function requireTutor(
     next();
   });
 }
+
+export function requireStudent(
+  req: AuthedRequest,
+  res: Response,
+  next: NextFunction,
+) {
+  requireAuth(req, res, () => {
+    if (req.user?.role !== "student") {
+      return res.status(403).json({ message: "Student role required" });
+    }
+    next();
+  });
+}

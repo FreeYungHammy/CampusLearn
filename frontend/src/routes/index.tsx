@@ -3,6 +3,7 @@ import App from "../App";
 import Home from "../pages/Home";
 import Login from "../pages/Auth/Login";
 import Register from "../pages/Auth/Register";
+import FindTutors from "../pages/FindTutors";
 import TutorList from "../pages/Tutors/TutorList";
 import TutorProfile from "../pages/Tutors/TutorProfile";
 import TutorContentView from "../pages/Tutors/TutorContentView";
@@ -18,7 +19,8 @@ export const router = createBrowserRouter([
       { index: true, element: <Home /> },
       { path: "login", element: <Login /> },
       { path: "register", element: <Register /> },
-      { path: "tutors", element: <TutorList /> },
+      { path: "find-tutors", element: <FindTutors /> },
+      { path: "tutors", element: <FindTutors /> },
       { path: "tutors/:id", element: <TutorProfile /> },
       { path: "tutors/:tutorId/content", element: <TutorContentView /> },
       { path: "forum", element: <Threads /> },
