@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { getTutors } from "../services/tutorApi";
-import { arrayBufferToBase64 } from "../utils/image";
+import {
+  subscribeToTutor,
+  getMySubscribedTutors,
+} from "../services/subscriptionApi";
+
 import type { Tutor } from "../types/Tutors";
 import { useAuthStore } from "../store/authStore";
 
@@ -10,8 +15,7 @@ const FindTutors = () => {
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [ratingFilter, setRatingFilter] = useState(0);
   const [availableSubjects, setAvailableSubjects] = useState<string[]>([]);
-
-  const { user } = useAuthStore();
+  const { user, token } = useAuthStore();
 
   const handleSubjectChange = (subject: string) => {
     setSelectedSubjects((prev) =>
@@ -21,15 +25,39 @@ const FindTutors = () => {
     );
   };
 
+  const handleSubscribe = async (tutorId: string) => {
+    if (!token) return;
+    try {
+      await subscribeToTutor(tutorId, token);
+      // Optimistically remove the tutor from the list
+      setAllTutors((prev) => prev.filter((tutor) => tutor.id !== tutorId));
+    } catch (error) {
+      console.error("Failed to subscribe:", error);
+      // Handle error display to the user
+    }
+  };
+
   useEffect(() => {
     const fetchAndPersonalizeTutors = async () => {
-      if (!user || user.role !== "student") return;
+      if (!user || user.role !== "student" || !token) return;
 
       try {
-        const fetchedTutors = await getTutors();
+        const [fetchedTutors, subscribedTutors] = await Promise.all([
+          getTutors(),
+          getMySubscribedTutors(user.id, token).then((res) => res.data),
+        ]);
+
+        const subscribedTutorIds = new Set(
+          subscribedTutors.map((t: any) => t.id),
+        );
+
+        const availableTutors = fetchedTutors.filter(
+          (tutor: Tutor) => !subscribedTutorIds.has(tutor.id),
+        );
+
         const studentSubjects = user.enrolledCourses || [];
 
-        const personalizedTutors = fetchedTutors.map((tutor) => {
+        const personalizedTutors = availableTutors.map((tutor) => {
           const matchingSubjects = tutor.subjects.filter((subject) =>
             studentSubjects.includes(subject),
           ).length;
@@ -59,7 +87,7 @@ const FindTutors = () => {
     };
 
     fetchAndPersonalizeTutors();
-  }, [user]);
+  }, [user, token]);
 
   useEffect(() => {
     let filteredTutors = [...allTutors];
@@ -138,7 +166,7 @@ const FindTutors = () => {
       <div className="tutor-grid">
         {displayedTutors.map((tutor) => {
           const pfpSrc = tutor.pfp
-            ? `data:${tutor.pfp.contentType};base64,${arrayBufferToBase64(tutor.pfp.data.data)}`
+            ? `data:${tutor.pfp.contentType};base64,${tutor.pfp.data}`
             : "https://randomuser.me/api/portraits/men/32.jpg"; // Default avatar
 
           return (
@@ -164,11 +192,7 @@ const FindTutors = () => {
 
               <div className="tutor-stats">
                 <div className="stat">
-                  <div className="stat-value">{tutor.subjects.length}</div>
-                  <div className="stat-label">Subjects</div>
-                </div>
-                <div className="stat">
-                  <div className="stat-value">0</div>
+                  <div className="stat-value">{tutor.studentCount}</div>
                   <div className="stat-label">Students</div>
                 </div>
               </div>
@@ -182,10 +206,16 @@ const FindTutors = () => {
               </div>
 
               <div className="tutor-actions">
-                <a href="#" className="view-profile-btn">
+                <Link
+                  to={`/tutors/${tutor.id}/content`}
+                  className="view-profile-btn"
+                >
                   View Profile & Content
-                </a>
-                <button className={`btn btn-sm btn-success`}>
+                </Link>
+                <button
+                  className={`btn btn-sm btn-success`}
+                  onClick={() => handleSubscribe(tutor.id)}
+                >
                   <i className={`fas fa-plus`}></i>
                   Subscribe
                 </button>

@@ -9,6 +9,7 @@ import MyContent from "./pages/MyContent";
 import Forum from "./pages/Forum";
 import ForumTopic from "./pages/ForumTopic";
 import Upload from "./pages/Upload";
+import TutorContentView from "./pages/Tutors/TutorContentView";
 import Settings from "./pages/Settings";
 import Login from "./pages/Auth/Login";
 import Register from "./pages/Auth/Register";
@@ -48,6 +49,10 @@ function App() {
               <Route path="/schedule" element={<Dashboard />} />
               <Route path="/mytutors" element={<MyTutors />} />
               <Route path="/tutors" element={<FindTutors />} />
+              <Route
+                path="/tutors/:tutorId/content"
+                element={<TutorContentView />}
+              />
               <Route path="/mystudents" element={<MyStudents />} />
               <Route path="/mycontent" element={<MyContent />} />
               <Route path="/forum" element={<Forum />} />

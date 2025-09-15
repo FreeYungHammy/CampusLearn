@@ -5,6 +5,7 @@ import tutors from "../modules/tutors";
 import files from "../modules/files";
 import chat from "../modules/chat";
 import forum from "../modules/forum";
+import subscriptions from "../modules/subscriptions";
 import health from "./health";
 
 const r = Router();
@@ -20,6 +21,7 @@ r.use("/tutors", tutors);
 r.use("/files", files);
 r.use("/chat", chat);
 r.use("/forum", forum);
+r.use("/subscriptions", subscriptions);
 r.get("/v1/ping", (_req, res) => {
   res.json({ ok: true, ts: Date.now() });
 });

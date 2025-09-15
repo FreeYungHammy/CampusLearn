@@ -1,38 +1,43 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import {
+  getMySubscribedTutors,
+  unsubscribeFromTutor,
+} from "../services/subscriptionApi";
+import { useAuthStore } from "../store/authStore";
+import type { Tutor } from "../types/Tutors";
 
 const MyTutors = () => {
-  const [tutors, setTutors] = useState([
-    {
-      id: "gideon",
-      name: "Dr. Gideon Mbeki",
-      title: "Mathematics Professor",
-      rating: 4.8,
-      avatar: "https://randomuser.me/api/portraits/men/32.jpg",
-      subjects: 5,
-      students: 142,
-      subjectTags: ["MAT281", "PRG281", "MAT261", "MAT201", "MAT151"],
-      subscribed: true,
-    },
-    {
-      id: "sarah",
-      name: "Prof. Sarah Chen",
-      title: "Calculus Specialist",
-      rating: 4.9,
-      avatar: "https://randomuser.me/api/portraits/women/44.jpg",
-      subjects: 3,
-      students: 98,
-      subjectTags: ["MAT281", "MAT201", "MAT101"],
-      subscribed: true,
-    },
-  ]);
+  const [tutors, setTutors] = useState<Tutor[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { user, token } = useAuthStore();
 
-  const toggleSubscription = (id) => {
-    setTutors(
-      tutors.map((tutor) =>
-        tutor.id === id ? { ...tutor, subscribed: !tutor.subscribed } : tutor,
-      ),
-    );
+  const handleUnsubscribe = async (tutorId: string) => {
+    if (!token) return;
+    try {
+      await unsubscribeFromTutor(tutorId, token);
+      setTutors((prev) => prev.filter((tutor) => tutor.id !== tutorId));
+    } catch (error) {
+      console.error("Failed to unsubscribe:", error);
+    }
   };
+
+  useEffect(() => {
+    const fetchSubscribedTutors = async () => {
+      if (!user || !token) return;
+      try {
+        setIsLoading(true);
+        const response = await getMySubscribedTutors(user.id, token);
+        setTutors(response.data);
+      } catch (error) {
+        console.error("Failed to fetch subscribed tutors:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchSubscribedTutors();
+  }, [user, token]);
 
   return (
     <div className="content-view" id="mytutors-view">
@@ -42,60 +47,75 @@ const MyTutors = () => {
         </h2>
       </div>
 
-      <div className="tutor-grid">
-        {tutors.map((tutor) => (
-          <div key={tutor.id} className="tutor-card">
-            <div className="tutor-header">
-              <img
-                src={tutor.avatar}
-                alt={tutor.name}
-                className="tutor-avatar"
-              />
-              <div className="tutor-info">
-                <h3>{tutor.name}</h3>
-                <p>{tutor.title}</p>
-                <div className="rating">
-                  <i className="fas fa-star"></i> {tutor.rating}
+      {isLoading ? (
+        <p>Loading your tutors...</p>
+      ) : tutors.length === 0 ? (
+        <div className="empty-state">
+          <h3>No Subscriptions Yet</h3>
+          <p>You haven't subscribed to any tutors yet.</p>
+          <Link to="/tutors" className="btn btn-primary">
+            Find a Tutor
+          </Link>
+        </div>
+      ) : (
+        <div className="tutor-grid">
+          {tutors.map((tutor) => {
+            const pfpSrc = tutor.pfp
+              ? `data:${tutor.pfp.contentType};base64,${tutor.pfp.data}`
+              : "https://randomuser.me/api/portraits/men/32.jpg"; // Default avatar
+
+            return (
+              <div key={tutor.id} className="tutor-card">
+                <div className="tutor-header">
+                  <img src={pfpSrc} alt={tutor.name} className="tutor-avatar" />
+                  <div className="tutor-info">
+                    <h3>{`${tutor.name} ${tutor.surname}`}</h3>
+                    <div className="rating">
+                      <i className="fas fa-star"></i>{" "}
+                      {tutor.rating.count === 0
+                        ? "Unrated"
+                        : (
+                            tutor.rating.totalScore / tutor.rating.count
+                          ).toFixed(1)}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="tutor-stats">
+                  <div className="stat">
+                    <div className="stat-value">{tutor.studentCount}</div>
+                    <div className="stat-label">STUDENTS</div>
+                  </div>
+                </div>
+
+                <div className="tutor-subjects">
+                  {tutor.subjects.map((subject, index) => (
+                    <span key={index} className="subject-tag">
+                      {subject}
+                    </span>
+                  ))}
+                </div>
+
+                <div className="tutor-actions">
+                  <Link
+                    to={`/tutors/${tutor.id}/content`}
+                    className="view-profile-btn"
+                  >
+                    View Profile & Content
+                  </Link>
+                  <button
+                    className={`unsubscribe-btn subscribed`}
+                    onClick={() => handleUnsubscribe(tutor.id)}
+                  >
+                    <i className={`fas fa-user-minus`}></i>
+                    Unsubscribe
+                  </button>
                 </div>
               </div>
-            </div>
-
-            <div className="tutor-stats">
-              <div className="stat">
-                <div className="stat-value">{tutor.subjects}</div>
-                <div className="stat-label">SUBJECTS</div>
-              </div>
-              <div className="stat">
-                <div className="stat-value">{tutor.students}</div>
-                <div className="stat-label">STUDENTS</div>
-              </div>
-            </div>
-
-            <div className="tutor-subjects">
-              {tutor.subjectTags.map((subject, index) => (
-                <span key={index} className="subject-tag">
-                  {subject}
-                </span>
-              ))}
-            </div>
-
-            <div className="tutor-actions">
-              <a href="#" className="view-profile-btn">
-                View Profile & Content
-              </a>
-              <button
-                className={`unsubscribe-btn ${tutor.subscribed ? "subscribed" : ""}`}
-                onClick={() => toggleSubscription(tutor.id)}
-              >
-                <i
-                  className={`fas ${tutor.subscribed ? "fa-user-minus" : "fa-user-plus"}`}
-                ></i>
-                {tutor.subscribed ? "Unsubscribe" : "Subscribe"}
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

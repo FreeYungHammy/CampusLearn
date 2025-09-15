@@ -11,8 +11,20 @@ export const TutorService = {
     return TutorRepo.create(input);
   },
 
-  list() {
-    return TutorRepo.find({});
+  async list() {
+    const tutors = await TutorRepo.findAllWithStudentCount();
+    return tutors.map((tutor) => {
+      const transformedTutor = {
+        ...tutor,
+        pfp: tutor.pfp
+          ? {
+              contentType: tutor.pfp.contentType,
+              data: tutor.pfp.data.buffer.toString("base64"),
+            }
+          : undefined,
+      };
+      return transformedTutor;
+    });
   },
 
   get(id: string) {
