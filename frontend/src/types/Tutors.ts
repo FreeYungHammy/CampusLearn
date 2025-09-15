@@ -14,4 +14,6 @@ export interface Tutor {
   } | null;
   createdAt: string;
   updatedAt: string;
+  studentCount: number;
+  students?: any[];
 }

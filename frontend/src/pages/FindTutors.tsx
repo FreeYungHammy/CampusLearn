@@ -192,7 +192,7 @@ const FindTutors = () => {
 
               <div className="tutor-stats">
                 <div className="stat">
-                  <div className="stat-value">0</div>
+                  <div className="stat-value">{tutor.studentCount}</div>
                   <div className="stat-label">Students</div>
                 </div>
               </div>

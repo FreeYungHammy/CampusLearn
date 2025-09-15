@@ -83,13 +83,7 @@ const MyTutors = () => {
 
                 <div className="tutor-stats">
                   <div className="stat">
-                    <div className="stat-value">{tutor.subjects.length}</div>
-                    <div className="stat-label">SUBJECTS</div>
-                  </div>
-                  <div className="stat">
-                    <div className="stat-value">
-                      {tutor.students?.length || 0}
-                    </div>
+                    <div className="stat-value">{tutor.studentCount}</div>
                     <div className="stat-label">STUDENTS</div>
                   </div>
                 </div>
