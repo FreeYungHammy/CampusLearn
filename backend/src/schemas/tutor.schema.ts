@@ -21,6 +21,7 @@ interface TutorModel extends Model<TutorDoc> {
     filter: FilterQuery<TutorDoc>,
     update: UpdateQuery<TutorDoc>,
   ): Promise<any>;
+  findAllWithStudentCount(): Promise<any[]>;
 }
 
 const TutorSchema = new Schema(
@@ -83,6 +84,39 @@ TutorSchema.statics.update = function (
   update: UpdateQuery<TutorDoc>,
 ) {
   return this.updateOne(filter, update);
+};
+
+TutorSchema.statics.findAllWithStudentCount = function () {
+  return this.aggregate([
+    {
+      $lookup: {
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "tutorId",
+        as: "subscriptions",
+      },
+    },
+    {
+      $addFields: {
+        studentCount: { $size: "$subscriptions" },
+      },
+    },
+    {
+      $project: {
+        _id: 0, // Exclude _id
+        id: "$_id", // Add id field
+        userId: 1,
+        name: 1,
+        surname: 1,
+        subjects: 1,
+        rating: 1,
+        pfp: 1,
+        studentCount: 1,
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    },
+  ]);
 };
 
 TutorSchema.set("toJSON", {
