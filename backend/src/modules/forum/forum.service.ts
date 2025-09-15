@@ -1,4 +1,5 @@
-import mime from "mime-types";
+import { swearWords } from "../../utils/blacklist";
+import * as mime from "mime-types";
 import {
   ForumPostModel,
   type ForumPostDoc,
@@ -8,6 +9,8 @@ import { StudentModel } from "../../schemas/students.schema";
 import { TutorModel } from "../../schemas/tutor.schema";
 import { io } from "../../config/socket";
 import type { User } from "../../types/User";
+import { HuggingFaceService } from "../ai/huggingface/huggingface.service";
+import { HttpException } from "../../infra/http/HttpException";
 
 // Helper function to format PFP for frontend
 function formatPfpForFrontend(author: any) {
@@ -49,6 +52,40 @@ function formatPfpForFrontend(author: any) {
 
 export const ForumService = {
   async createThread(user: User, data: Partial<ForumPostDoc>) {
+    const { content, title } = data;
+    if (!content || !title) {
+      throw new HttpException(400, "Title and content are required.");
+    }
+
+    // Blacklist check
+    const combinedText = `${title} ${content}`.toLowerCase();
+    for (const word of swearWords) {
+      if (combinedText.includes(word)) {
+        throw new HttpException(
+          400,
+          `Your post contains a forbidden word: ${word}`,
+        );
+      }
+    }
+
+    const analysis = await HuggingFaceService.analyzeText(
+      `${title} ${content}`,
+    );
+    console.log("Hugging Face Analysis:", analysis);
+    if (analysis && analysis.labels && Array.isArray(analysis.scores)) {
+      for (let i = 0; i < analysis.labels.length; i++) {
+        console.log(
+          `Label: ${analysis.labels[i]}, Score: ${analysis.scores[i]}`,
+        );
+        if (analysis.scores[i] > 0.4) {
+          throw new HttpException(
+            400,
+            `Your post has been flagged as ${analysis.labels[i]}.`,
+          );
+        }
+      }
+    }
+
     let authorProfile;
     if (user.role === "student") {
       authorProfile = await StudentModel.findOne({ userId: user.id }).lean();
@@ -174,6 +211,38 @@ export const ForumService = {
   },
 
   async createReply(user: User, threadId: string, data: any) {
+    const { content } = data;
+    if (!content) {
+      throw new HttpException(400, "Content is required.");
+    }
+
+    // Blacklist check
+    const lowerCaseContent = content.toLowerCase();
+    for (const word of swearWords) {
+      if (lowerCaseContent.includes(word)) {
+        throw new HttpException(
+          400,
+          `Your reply contains a forbidden word: ${word}`,
+        );
+      }
+    }
+
+    const analysis = await HuggingFaceService.analyzeText(content);
+    console.log("Hugging Face Analysis for reply:", analysis);
+    if (analysis && analysis.labels && Array.isArray(analysis.scores)) {
+      for (let i = 0; i < analysis.labels.length; i++) {
+        console.log(
+          `Label: ${analysis.labels[i]}, Score: ${analysis.scores[i]}`,
+        );
+        if (analysis.scores[i] > 0.4) {
+          throw new HttpException(
+            400,
+            `Your reply has been flagged as ${analysis.labels[i]}.`,
+          );
+        }
+      }
+    }
+
     let authorProfile;
     if (user.role === "student") {
       authorProfile = await StudentModel.findOne({ userId: user.id }).lean();

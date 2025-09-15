@@ -2,6 +2,7 @@ import { type Request, type Response } from "express";
 import { type AuthedRequest } from "../../auth/auth.middleware";
 import { ForumService } from "./forum.service";
 import { type User } from "../../types/User";
+import { HttpException } from "../../infra/http/HttpException";
 
 export const ForumController = {
   async createThread(req: AuthedRequest, res: Response) {
@@ -10,7 +11,11 @@ export const ForumController = {
       const post = await ForumService.createThread(user, req.body);
       res.status(201).json(post);
     } catch (error: any) {
-      res.status(500).json({ message: error.message });
+      if (error instanceof HttpException) {
+        res.status(error.status).json({ message: error.message });
+      } else {
+        res.status(500).json({ message: "An unexpected error occurred." });
+      }
     }
   },
 
@@ -45,7 +50,11 @@ export const ForumController = {
       );
       res.status(201).json(reply);
     } catch (error: any) {
-      res.status(500).json({ message: error.message });
+      if (error instanceof HttpException) {
+        res.status(error.status).json({ message: error.message });
+      } else {
+        res.status(500).json({ message: "An unexpected error occurred." });
+      }
     }
   },
 };

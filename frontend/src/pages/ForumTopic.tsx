@@ -9,6 +9,7 @@ const ForumTopic = () => {
   const [thread, setThread] = useState<any>(null);
   const [replyContent, setReplyContent] = useState("");
   const [isAnonymous, setIsAnonymous] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { token } = useAuthStore();
   const socket = useForumSocket(threadId);
 
@@ -53,11 +54,12 @@ const ForumTopic = () => {
         { content: replyContent, isAnonymous },
         token,
       );
-      // The socket will handle updating the UI
       setReplyContent("");
       setIsAnonymous(false);
-    } catch (error) {
-      console.error("Failed to create reply", error);
+      setError(null);
+    } catch (err: any) {
+      console.error("Failed to create reply", err);
+      setError(err.response?.data?.message || "An unexpected error occurred.");
     }
   };
 
@@ -150,6 +152,7 @@ const ForumTopic = () => {
 
       <div className="reply-form-container">
         <h3>Add a Reply</h3>
+        {error && <div className="error-message">{error}</div>}
         <form onSubmit={handleReplySubmit}>
           <textarea
             value={replyContent}

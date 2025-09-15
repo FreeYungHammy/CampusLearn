@@ -12,22 +12,22 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ onClose }) => {
   const [topic, setTopic] = useState("Math");
   const [content, setContent] = useState("");
   const [isAnonymous, setIsAnonymous] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const { token } = useAuthStore();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token) {
-      // Handle case where user is not authenticated
+      setError("You must be logged in to create a post.");
       return;
     }
     try {
       await createForumPost({ title, topic, content, isAnonymous }, token);
       onClose();
-      // Optionally, trigger a refresh of the forum posts
-    } catch (error) {
-      console.error("Failed to create post", error);
-      // Handle error state in the modal
+    } catch (err: any) {
+      console.error("Failed to create post", err);
+      setError(err.response?.data?.message || "An unexpected error occurred.");
     }
   };
 
@@ -35,6 +35,7 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ onClose }) => {
     <div className="modal-overlay">
       <div className="modal-content">
         <h2>Create New Post</h2>
+        {error && <div className="error-message">{error}</div>}
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label htmlFor="title">Title</label>
