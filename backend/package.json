@@ -19,7 +19,8 @@
     "dotenv": "^16.4.5",
     "express": "^4.21.2",
     "multer": "^1.4.5-lts.1",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.1",
+    "@huggingface/inference": "^2.7.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
