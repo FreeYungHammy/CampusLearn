@@ -5,6 +5,23 @@ import "../components/forum/CreatePostModal.css";
 import { getForumThreads } from "../services/forumApi";
 import { useForumSocket } from "../hooks/useForumSocket";
 
+const formatSubjectClass = (subject: string) => {
+  const subjectMap: { [key: string]: string } = {
+    Programming: "programming",
+    Mathematics: "mathematics",
+    "Linear Programming": "linear-programming",
+    "Database Development": "database-development",
+    "Web Programming": "web-programming",
+    "Computer Architecture": "computer-architecture",
+    Statistics: "statistics",
+    "Software Testing": "software-testing",
+    "Network Development": "network-development",
+    "Machine Learning": "machine-learning",
+  };
+
+  return subjectMap[subject] || "";
+};
+
 const Forum = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [threads, setThreads] = useState<any[]>([]);
@@ -188,7 +205,7 @@ const Forum = () => {
                 <div className="topic-header">
                   <h2 className="topic-title">{thread.title}</h2>
                   <span
-                    className={`topic-subject ${thread.topic?.toLowerCase()}`}
+                    className={`topic-subject ${formatSubjectClass(thread.topic)}`}
                   >
                     {thread.topic}
                   </span>

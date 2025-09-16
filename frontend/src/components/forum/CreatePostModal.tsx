@@ -55,9 +55,18 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ onClose }) => {
               onChange={(e) => setTopic(e.target.value)}
               required
             >
-              <option value="Math">Math</option>
+              <option value="Mathematics">Mathematics</option>
               <option value="Programming">Programming</option>
-              <option value="Databases">Databases</option>
+              <option value="Database Design">Database Design</option>
+              <option value="Linear Programming">Linear Programming</option>
+              <option value="Web Programming">Web Programming</option>
+              <option value="Computer Architecture">
+                Computer Architecture
+              </option>
+              <option value="Statistics">Statistics</option>
+              <option value="Software Testing">Software Testing</option>
+              <option value="Network Development">Network Development</option>
+              <option value="Machine Learning">Machine Learning</option>
             </select>
           </div>
           <div className="form-group">
