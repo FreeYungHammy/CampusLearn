@@ -250,6 +250,10 @@ img {
   width: 100%;
   transition: background 0.25s ease;
 }
+.cl-mobile-nav .cl-nav-item span {
+  display: inline-block;
+  margin-left: 8px; /* Add some space between icon and text */
+}
 
 .cl-mobile-nav .cl-nav-item:hover,
 .cl-mobile-nav .cl-nav-item.active {
