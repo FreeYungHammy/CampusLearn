@@ -2317,6 +2317,13 @@ btn-success:hover {
   outline: none;
   box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.35);
 }
+.delete-warning {
+  color: #e53935;
+  font-weight: 500;
+  margin-bottom: 28px; /* Adds space below the warning */
+  text-align: center;
+  font-size: 1.05rem;
+}
 
 /* Motion-reduced users */
 @media (prefers-reduced-motion: reduce) {

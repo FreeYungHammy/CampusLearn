@@ -6,6 +6,7 @@ import "./Settings.css";
 import SaveProfileConfirmationModal from "../components/SaveProfileConfirmationModal";
 import UpdatePasswordConfirmationModal from "../components/UpdatePasswordConfirmationModal";
 import SavePictureConfirmationModal from "../components/SavePictureConfirmationModal";
+import DeleteAccountConfirmationModal from "../components/DeleteAccountConfirmationModal";
 import {
   updatePassword,
   updateProfile,
@@ -26,6 +27,8 @@ const Settings = () => {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showPictureModal, setShowPictureModal] = useState(false);
+  const [showSubjectsModal, setShowSubjectsModal] = useState(false);
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
 
   const { user, token, setUser } = useAuthStore((state) => ({
     user: state.user,
@@ -415,6 +418,60 @@ const Settings = () => {
           </form>
         </div>
 
+        <div className="settings-card">
+          <div className="card-header">
+            <h2 className="card-title">My Subjects</h2>
+          </div>
+          <div className="subjects-container">
+            {[
+              "Programming",
+              "Mathematics",
+              "Linear Programming",
+              "Database Development",
+              "Web Programming",
+              "Computer Architecture",
+              "Statistics",
+              "Software Testing",
+              "Network Development",
+              "Machine Learning",
+            ].map((subject) => (
+              <div key={subject}>
+                <input
+                  type="checkbox"
+                  id={subject}
+                  className="subject-checkbox"
+                  name="subjects"
+                  value={subject}
+                />
+                <label htmlFor={subject} className="subject-label">
+                  <i
+                    className={`fas ${
+                      {
+                        Programming: "fa-code",
+                        Mathematics: "fa-calculator",
+                        "Linear Programming": "fa-project-diagram",
+                        "Database Development": "fa-database",
+                        "Web Programming": "fa-laptop-code",
+                        "Computer Architecture": "fa-microchip",
+                        Statistics: "fa-chart-line",
+                        "Software Testing": "fa-bug",
+                        "Network Development": "fa-network-wired",
+                        "Machine Learning": "fa-robot",
+                      }[subject]
+                    }`}
+                  ></i>
+                  {subject}
+                </label>
+              </div>
+            ))}
+          </div>
+          <div className="card-footer">
+            <button type="submit" className="btn btn-primary">
+              Save Subjects
+            </button>
+          </div>
+        </div>
+
         {/* Notification Settings Card */}
         <div className="settings-card">
           <div className="card-header">
@@ -466,6 +523,25 @@ const Settings = () => {
               />
               <span className="slider"></span>
             </label>
+          </div>
+        </div>
+
+        {/* Delete Account Section */}
+        <div className="settings-card">
+          <div className="card-header">
+            <h2 className="card-title">Delete Account</h2>
+          </div>
+          <div className="card-body">
+            <p className="delete-warning">
+              Once you delete your account, there is no going back. Please be
+              certain.
+            </p>
+            <button
+              className="btn btn-danger"
+              onClick={() => setShowDeleteAccountModal(true)}
+            >
+              Delete Your Account
+            </button>
           </div>
         </div>
       </div>
