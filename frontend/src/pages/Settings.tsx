@@ -3,6 +3,8 @@ import { useFormik } from "formik";
 import * as Yup from "yup";
 import { useAuthStore } from "../store/authStore";
 import "./Settings.css";
+import SaveProfileConfirmationModal from "../components/SaveProfileConfirmationModal";
+import UpdatePasswordConfirmationModal from "../components/UpdatePasswordConfirmationModal";
 
 const Settings = () => {
   const [notifications, setNotifications] = useState({
@@ -13,6 +15,8 @@ const Settings = () => {
 
   const [profilePicture, setProfilePicture] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
 
   const checkPasswordStrength = (password: string) => {
     let strength = 0;
@@ -49,10 +53,15 @@ const Settings = () => {
           },
         ),
     }),
-    onSubmit: (values) => {
-      console.log("Profile submitted", values);
+    onSubmit: () => {
+      setShowProfileModal(true);
     },
   });
+
+  const handleConfirmSaveProfile = () => {
+    console.log("Profile submitted", profileFormik.values);
+    setShowProfileModal(false);
+  };
 
   const passwordFormik = useFormik({
     initialValues: {
@@ -72,9 +81,14 @@ const Settings = () => {
         .required("Required"),
     }),
     onSubmit: (values) => {
-      console.log("Password submitted", values);
+      setShowPasswordModal(true);
     },
   });
+
+  const handleConfirmUpdatePassword = () => {
+    console.log("Password submitted", passwordFormik.values);
+    setShowPasswordModal(false);
+  };
 
   const handleNotificationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setNotifications({ ...notifications, [e.target.name]: e.target.checked });
@@ -106,233 +120,249 @@ const Settings = () => {
   };
 
   return (
-    <div className="settings-container">
-      <div className="settings-header">
-        <h1 className="settings-title">Account Settings</h1>
-      </div>
+    <>
+      <SaveProfileConfirmationModal
+        show={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+        onConfirm={handleConfirmSaveProfile}
+        isSubmitting={profileFormik.isSubmitting}
+      />
+      <UpdatePasswordConfirmationModal
+        show={showPasswordModal}
+        onClose={() => setShowPasswordModal(false)}
+        onConfirm={handleConfirmUpdatePassword}
+        isSubmitting={passwordFormik.isSubmitting}
+      />
+      <div className="settings-container">
+        <div className="settings-header">
+          <h1 className="settings-title">Account Settings</h1>
+        </div>
 
-      {/* Profile Information Card */}
-      <div className="settings-card">
-        <div className="card-header">
-          <h2 className="card-title">Profile Information</h2>
-        </div>
-        <div className="profile-picture-section">
-          <img
-            src={preview || "https://via.placeholder.com/150"}
-            alt="Profile"
-            className="profile-avatar"
-          />
-          <input
-            type="file"
-            id="profilePictureInput"
-            accept="image/*"
-            onChange={handleProfilePictureChange}
-            style={{ display: "none" }}
-          />
-          <label htmlFor="profilePictureInput" className="btn btn-secondary">
-            Change Picture
-          </label>
-        </div>
-        <form onSubmit={profileFormik.handleSubmit}>
-          <div className="form-grid">
-            <div className="form-group">
-              <label className="form-label">First Name</label>
-              <input
-                id="firstName"
-                name="firstName"
-                type="text"
-                className={`form-control ${
-                  profileFormik.touched.firstName &&
-                  profileFormik.errors.firstName
-                    ? "is-invalid"
-                    : ""
-                }${
-                  profileFormik.touched.firstName &&
-                  !profileFormik.errors.firstName
-                    ? "is-valid"
-                    : ""
-                }`}
-                onChange={profileFormik.handleChange}
-                value={profileFormik.values.firstName}
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Last Name</label>
-              <input
-                id="lastName"
-                name="lastName"
-                type="text"
-                className={`form-control ${
-                  profileFormik.touched.lastName &&
-                  profileFormik.errors.lastName
-                    ? "is-invalid"
-                    : ""
-                }${
-                  profileFormik.touched.lastName &&
-                  !profileFormik.errors.lastName
-                    ? "is-valid"
-                    : ""
-                }`}
-                onChange={profileFormik.handleChange}
-                value={profileFormik.values.lastName}
-              />
-            </div>
+        {/* Profile Information Card */}
+        <div className="settings-card">
+          <div className="card-header">
+            <h2 className="card-title">Profile Information</h2>
           </div>
-          <div className="form-group">
-            <label className="form-label">Email Address</label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              className={`form-control ${
-                profileFormik.touched.email && profileFormik.errors.email
-                  ? "is-invalid"
-                  : ""
-              }${
-                profileFormik.touched.email && !profileFormik.errors.email
-                  ? "is-valid"
-                  : ""
-              }`}
-              onChange={profileFormik.handleChange}
-              value={profileFormik.values.email}
+          <div className="profile-picture-section">
+            <img
+              src={preview || "https://via.placeholder.com/150"}
+              alt="Profile"
+              className="profile-avatar"
             />
-          </div>
-          <div className="card-footer">
-            <button type="submit" className="btn btn-primary">
-              Save Profile
-            </button>
-          </div>
-        </form>
-      </div>
-
-      {/* Change Password Card */}
-      <div className="settings-card">
-        <div className="card-header">
-          <h2 className="card-title">Change Password</h2>
-        </div>
-        <form onSubmit={passwordFormik.handleSubmit}>
-          <div className="form-group">
-            <label className="form-label">Current Password</label>
             <input
-              id="current"
-              name="current"
-              type="password"
-              className="form-control"
-              onChange={passwordFormik.handleChange}
-              value={passwordFormik.values.current}
+              type="file"
+              id="profilePictureInput"
+              accept="image/*"
+              onChange={handleProfilePictureChange}
+              style={{ display: "none" }}
             />
+            <label htmlFor="profilePictureInput" className="btn btn-secondary">
+              Change Picture
+            </label>
           </div>
-          <div className="form-grid">
-            <div className="form-group form-group-full">
-              <label className="form-label">New Password</label>
-              <input
-                id="new"
-                name="new"
-                type="password"
-                className={`form-control ${
-                  passwordFormik.touched.new && passwordFormik.errors.new
-                    ? "is-invalid"
-                    : ""
-                }${
-                  passwordFormik.touched.new && !passwordFormik.errors.new
-                    ? "is-valid"
-                    : ""
-                }`}
-                onChange={passwordFormik.handleChange}
-                value={passwordFormik.values.new}
-              />
-              <div className="password-strength-meter">
-                <div
-                  className="strength-bar"
-                  data-strength={passwordStrength}
-                ></div>
+          <form onSubmit={profileFormik.handleSubmit}>
+            <div className="form-grid">
+              <div className="form-group">
+                <label className="form-label">First Name</label>
+                <input
+                  id="firstName"
+                  name="firstName"
+                  type="text"
+                  className={`form-control ${
+                    profileFormik.touched.firstName &&
+                    profileFormik.errors.firstName
+                      ? "is-invalid"
+                      : ""
+                  }${
+                    profileFormik.touched.firstName &&
+                    !profileFormik.errors.firstName
+                      ? "is-valid"
+                      : ""
+                  }`}
+                  onChange={profileFormik.handleChange}
+                  value={profileFormik.values.firstName}
+                />
               </div>
-              <div className="password-strength-text">{getStrengthText()}</div>
+              <div className="form-group">
+                <label className="form-label">Last Name</label>
+                <input
+                  id="lastName"
+                  name="lastName"
+                  type="text"
+                  className={`form-control ${
+                    profileFormik.touched.lastName &&
+                    profileFormik.errors.lastName
+                      ? "is-invalid"
+                      : ""
+                  }${
+                    profileFormik.touched.lastName &&
+                    !profileFormik.errors.lastName
+                      ? "is-valid"
+                      : ""
+                  }`}
+                  onChange={profileFormik.handleChange}
+                  value={profileFormik.values.lastName}
+                />
+              </div>
             </div>
-            <div className="form-group form-group-full">
-              <label className="form-label">Confirm New Password</label>
+            <div className="form-group">
+              <label className="form-label">Email Address</label>
               <input
-                id="confirm"
-                name="confirm"
-                type="password"
+                id="email"
+                name="email"
+                type="email"
                 className={`form-control ${
-                  passwordFormik.touched.confirm &&
-                  passwordFormik.errors.confirm
+                  profileFormik.touched.email && profileFormik.errors.email
                     ? "is-invalid"
                     : ""
                 }${
-                  passwordFormik.touched.confirm &&
-                  !passwordFormik.errors.confirm
+                  profileFormik.touched.email && !profileFormik.errors.email
                     ? "is-valid"
                     : ""
                 }`}
-                onChange={passwordFormik.handleChange}
-                value={passwordFormik.values.confirm}
+                onChange={profileFormik.handleChange}
+                value={profileFormik.values.email}
               />
             </div>
-          </div>
-          <div className="card-footer">
-            <button type="submit" className="btn btn-primary">
-              Update Password
-            </button>
-          </div>
-        </form>
-      </div>
+            <div className="card-footer">
+              <button type="submit" className="btn btn-primary">
+                Save Profile
+              </button>
+            </div>
+          </form>
+        </div>
 
-      {/* Notification Settings Card */}
-      <div className="settings-card">
-        <div className="card-header">
-          <h2 className="card-title">Notifications</h2>
-        </div>
-        <div className="notification-group">
-          <div>
-            <div className="notification-label">New Messages</div>
-            <p className="text-sm text-gray-500">
-              Notify me when I receive a new message.
-            </p>
+        {/* Change Password Card */}
+        <div className="settings-card">
+          <div className="card-header">
+            <h2 className="card-title">Change Password</h2>
           </div>
-          <label className="switch">
-            <input
-              type="checkbox"
-              name="newMessages"
-              checked={notifications.newMessages}
-              onChange={handleNotificationChange}
-            />
-            <span className="slider"></span>
-          </label>
+          <form onSubmit={passwordFormik.handleSubmit}>
+            <div className="form-group">
+              <label className="form-label">Current Password</label>
+              <input
+                id="current"
+                name="current"
+                type="password"
+                className="form-control"
+                onChange={passwordFormik.handleChange}
+                value={passwordFormik.values.current}
+              />
+            </div>
+            <div className="form-grid">
+              <div className="form-group form-group-full">
+                <label className="form-label">New Password</label>
+                <input
+                  id="new"
+                  name="new"
+                  type="password"
+                  className={`form-control ${
+                    passwordFormik.touched.new && passwordFormik.errors.new
+                      ? "is-invalid"
+                      : ""
+                  }${
+                    passwordFormik.touched.new && !passwordFormik.errors.new
+                      ? "is-valid"
+                      : ""
+                  }`}
+                  onChange={passwordFormik.handleChange}
+                  value={passwordFormik.values.new}
+                />
+                <div className="password-strength-meter">
+                  <div
+                    className="strength-bar"
+                    data-strength={passwordStrength}
+                  ></div>
+                </div>
+                <div className="password-strength-text">
+                  {getStrengthText()}
+                </div>
+              </div>
+              <div className="form-group form-group-full">
+                <label className="form-label">Confirm New Password</label>
+                <input
+                  id="confirm"
+                  name="confirm"
+                  type="password"
+                  className={`form-control ${
+                    passwordFormik.touched.confirm &&
+                    passwordFormik.errors.confirm
+                      ? "is-invalid"
+                      : ""
+                  }${
+                    passwordFormik.touched.confirm &&
+                    !passwordFormik.errors.confirm
+                      ? "is-valid"
+                      : ""
+                  }`}
+                  onChange={passwordFormik.handleChange}
+                  value={passwordFormik.values.confirm}
+                />
+              </div>
+            </div>
+            <div className="card-footer">
+              <button type="submit" className="btn btn-primary">
+                Update Password
+              </button>
+            </div>
+          </form>
         </div>
-        <div className="notification-group">
-          <div>
-            <div className="notification-label">Forum Replies</div>
-            <p>Notify me when someone replies to my forum posts.</p>
+
+        {/* Notification Settings Card */}
+        <div className="settings-card">
+          <div className="card-header">
+            <h2 className="card-title">Notifications</h2>
           </div>
-          <label className="switch">
-            <input
-              type="checkbox"
-              name="forumReplies"
-              checked={notifications.forumReplies}
-              onChange={handleNotificationChange}
-            />
-            <span className="slider"></span>
-          </label>
-        </div>
-        <div className="notification-group">
-          <div>
-            <div className="notification-label">Tutor Updates</div>
-            <p>Notify me about updates from my tutors.</p>
+          <div className="notification-group">
+            <div>
+              <div className="notification-label">New Messages</div>
+              <p className="text-sm text-gray-500">
+                Notify me when I receive a new message.
+              </p>
+            </div>
+            <label className="switch">
+              <input
+                type="checkbox"
+                name="newMessages"
+                checked={notifications.newMessages}
+                onChange={handleNotificationChange}
+              />
+              <span className="slider"></span>
+            </label>
           </div>
-          <label className="switch">
-            <input
-              type="checkbox"
-              name="tutorUpdates"
-              checked={notifications.tutorUpdates}
-              onChange={handleNotificationChange}
-            />
-            <span className="slider"></span>
-          </label>
+          <div className="notification-group">
+            <div>
+              <div className="notification-label">Forum Replies</div>
+              <p>Notify me when someone replies to my forum posts.</p>
+            </div>
+            <label className="switch">
+              <input
+                type="checkbox"
+                name="forumReplies"
+                checked={notifications.forumReplies}
+                onChange={handleNotificationChange}
+              />
+              <span className="slider"></span>
+            </label>
+          </div>
+          <div className="notification-group">
+            <div>
+              <div className="notification-label">Tutor Updates</div>
+              <p>Notify me about updates from my tutors.</p>
+            </div>
+            <label className="switch">
+              <input
+                type="checkbox"
+                name="tutorUpdates"
+                checked={notifications.tutorUpdates}
+                onChange={handleNotificationChange}
+              />
+              <span className="slider"></span>
+            </label>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

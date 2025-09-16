@@ -489,24 +489,38 @@ img {
   background: var(--primary);
   color: #fff;
 }
-.btn-success {
+btn-success:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(46, 204, 113, 0.4);
+}
+
+.btn-success-solid {
   background: linear-gradient(135deg, var(--secondary) 0%, #27ae60 100%);
   color: #fff;
   box-shadow: 0 4px 12px rgba(46, 204, 113, 0.3);
 }
-.btn-success:hover {
+
+.btn-success-solid:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(46, 204, 113, 0.4);
 }
-.btn-danger {
+
+.btn-danger-solid {
   background: linear-gradient(135deg, var(--danger) 0%, #c0392b 100%);
   color: #fff;
   box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
 }
+
+.btn-danger-solid:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(231, 76, 60, 0.4);
+}
+
 .btn-danger:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(231, 76, 60, 0.4);
 }
+
 .btn-sm {
   padding: 8px 14px;
   font-size: 14px;
@@ -526,10 +540,7 @@ img {
     transform 0.25s ease,
     box-shadow 0.25s ease;
 }
-.card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
-}
+
 .card-header {
   padding: 18px 22px;
   border-bottom: 1px solid var(--border);
