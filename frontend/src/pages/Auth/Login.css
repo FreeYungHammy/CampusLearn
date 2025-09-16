@@ -23,8 +23,17 @@
 }
 
 .login-container {
-  width: 800px;
+  width: 90%; /* Use a percentage width for responsiveness */
+  max-width: 800px; /* Set a maximum width */
   margin: 0 auto;
+  padding: 20px; /* Add some padding */
+}
+
+@media (max-width: 768px) {
+  .login-container {
+    width: 95%; /* Adjust width for smaller screens */
+    padding: 15px;
+  }
 }
 
 .logo {
