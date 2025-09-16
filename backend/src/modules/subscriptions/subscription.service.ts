@@ -1,13 +1,29 @@
 import { SubscriptionRepo } from "./subscription.repo";
 import { StudentRepo } from "../students/student.repo";
 import { TutorRepo } from "../tutors/tutor.repo";
+import { CacheService } from "../../services/cache.service";
+
+const SUBSCRIBED_TUTORS_CACHE_KEY = (studentId: string) =>
+  `subscriptions:student:${studentId}`;
+
+// Helper to format PFP and remove binary data before caching
+const formatTutorForCache = (tutor: any) => {
+  if (!tutor) return null;
+  const formatted = { ...tutor };
+  if (tutor.pfp && tutor.pfp.data instanceof Buffer) {
+    formatted.pfp = {
+      contentType: tutor.pfp.contentType,
+      data: tutor.pfp.data.toString("base64"),
+    };
+  }
+  return formatted;
+};
 
 export const SubscriptionService = {
   async createSubscription(
     user: { id: string; role: string },
     tutorId: string,
   ) {
-    // 1. Find the student profile from the user id
     const student = await StudentRepo.findOne({ userId: user.id });
     if (!student) {
       const err = new Error("Student profile not found");
@@ -15,7 +31,6 @@ export const SubscriptionService = {
       throw err;
     }
 
-    // 2. Verify the tutor exists
     const tutor = await TutorRepo.findById(tutorId);
     if (!tutor) {
       const err = new Error("Tutor not found");
@@ -23,7 +38,6 @@ export const SubscriptionService = {
       throw err;
     }
 
-    // 3. Check if subscription already exists
     const existingSubscription = await SubscriptionRepo.findOne({
       studentId: student._id,
       tutorId: tutor._id,
@@ -35,11 +49,15 @@ export const SubscriptionService = {
       throw err;
     }
 
-    // 4. Create subscription
-    return SubscriptionRepo.create({
+    const result = await SubscriptionRepo.create({
       studentId: student._id,
       tutorId: tutor._id,
     });
+
+    // Invalidate the student's subscribed tutors list
+    await CacheService.del(SUBSCRIBED_TUTORS_CACHE_KEY(student._id.toString()));
+
+    return result;
   },
 
   async getSubscribedTutors(studentUserId: string) {
@@ -49,21 +67,22 @@ export const SubscriptionService = {
       err.name = "NotFound";
       throw err;
     }
+
+    const cacheKey = SUBSCRIBED_TUTORS_CACHE_KEY(student._id.toString());
+    const cachedTutors = await CacheService.get<any[]>(cacheKey);
+    if (cachedTutors) {
+      return cachedTutors;
+    }
+
     const tutors = await SubscriptionRepo.findByStudentId(
       student._id.toString(),
     );
-    return tutors.map((tutor) => {
-      const transformedTutor = {
-        ...tutor,
-        pfp: tutor.pfp
-          ? {
-              contentType: tutor.pfp.contentType,
-              data: tutor.pfp.data.buffer.toString("base64"),
-            }
-          : undefined,
-      };
-      return transformedTutor;
-    });
+
+    const formattedTutors = tutors.map(formatTutorForCache);
+
+    await CacheService.set(cacheKey, formattedTutors, 1800); // 30 minute TTL
+
+    return formattedTutors;
   },
 
   async getSubscribedStudents(tutorUserId: string) {
@@ -76,7 +95,6 @@ export const SubscriptionService = {
     const subscriptions = await SubscriptionRepo.findByTutorId(
       tutor._id.toString(),
     );
-    // The repo already populates the studentId field
     return subscriptions.map((sub) => sub.studentId);
   },
 
@@ -95,9 +113,14 @@ export const SubscriptionService = {
       throw err;
     }
 
-    return SubscriptionRepo.deleteOne({
+    const result = await SubscriptionRepo.deleteOne({
       studentId: student._id,
       tutorId: tutor._id,
     });
+
+    // Invalidate the student's subscribed tutors list
+    await CacheService.del(SUBSCRIBED_TUTORS_CACHE_KEY(student._id.toString()));
+
+    return result;
   },
 };

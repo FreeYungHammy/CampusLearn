@@ -1,5 +1,5 @@
 import bcrypt from "bcrypt";
-import { signJwt } from "../../auth/jwt";
+import { signJwt, verifyJwt } from "../../auth/jwt";
 import { UserRepo } from "./user.repo";
 import { StudentRepo } from "../students/student.repo";
 import { TutorRepo } from "../tutors/tutor.repo";
@@ -7,10 +7,10 @@ import type { UserDoc } from "../../schemas/user.schema";
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
+import { CacheService } from "../../services/cache.service";
 
 const ALLOWED_EMAIL_DOMAIN = "@student.belgiumcampus.ac.za";
 
-// Read the base64 string from default.txt (sync since it's only once on startup)
 const defaultPfpBase64 = fs
   .readFileSync(path.join(__dirname, "default.txt"), "utf-8")
   .trim();
@@ -20,7 +20,27 @@ const defaultPfp = {
   contentType: "png",
 };
 
+const JWT_BLACKLIST_KEY = (token: string) => `jwt:blacklist:${token}`;
+
 export const UserService = {
+  async logout(token: string) {
+    const decoded = verifyJwt(token) as { exp?: number };
+    if (!decoded || !decoded.exp) {
+      return; // Invalid token or no expiry
+    }
+
+    const nowInSeconds = Math.floor(Date.now() / 1000);
+    const expiresIn = decoded.exp - nowInSeconds;
+
+    if (expiresIn > 0) {
+      await CacheService.set(
+        JWT_BLACKLIST_KEY(token),
+        "blacklisted",
+        expiresIn,
+      );
+    }
+  },
+
   async register(input: {
     email: string;
     password: string;
@@ -90,7 +110,6 @@ export const UserService = {
       email: user.email,
     });
 
-    // Fetch the user's profile to get their name
     let profile: any;
     if (user.role === "student") {
       profile = await StudentRepo.findOne({ userId: (user as any)._id });
@@ -100,10 +119,9 @@ export const UserService = {
 
     const { passwordHash: _ph, ...publicUser } = user as any;
 
-    // Combine user and profile data
     const userWithProfile = {
       ...publicUser,
-      id: user._id.toString(), // Explicitly add the 'id' property
+      id: user._id.toString(),
       name: profile?.name,
       surname: profile?.surname,
       pfp: profile?.pfp
@@ -112,8 +130,8 @@ export const UserService = {
             data: profile.pfp.data.toString("base64"),
           }
         : undefined,
-      subjects: profile?.subjects, // For tutors
-      enrolledCourses: profile?.enrolledCourses, // For students
+      subjects: profile?.subjects,
+      enrolledCourses: profile?.enrolledCourses,
     };
 
     return { token, user: userWithProfile };
@@ -191,7 +209,6 @@ export const UserService = {
   async forgotPassword(email: string) {
     const user = await UserRepo.findByEmail(email);
     if (!user) {
-      // Still return a success message to prevent email enumeration
       return;
     }
 
@@ -201,7 +218,7 @@ export const UserService = {
       .update(resetToken)
       .digest("hex");
 
-    const passwordResetExpires = new Date(Date.now() + 3600000); // 1 hour
+    const passwordResetExpires = new Date(Date.now() + 3600000);
 
     await UserRepo.updateById(user._id, {
       $set: {
@@ -210,7 +227,6 @@ export const UserService = {
       },
     });
 
-    // In a real app, you would send an email with the resetToken
     console.log(`Password reset token for ${email}: ${resetToken}`);
   },
 

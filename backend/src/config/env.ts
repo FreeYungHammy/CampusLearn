@@ -7,5 +7,6 @@ export const env = {
   jwtSecret:
     process.env.JWT_SECRET ??
     "Cw_e94TFCNIAWSe-e52FF4R9fqMV7ghJ6LZUL_JuZBhqne1mnP3Gv7bTNuDE3Hu5BC3xeONS52e-ZPMCLpVfwA",
+  redisUrl: process.env.REDIS_URL ?? "redis://localhost:6379",
   HUGGINGFACE_API_KEY: "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",
 };

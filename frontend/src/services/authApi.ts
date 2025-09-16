@@ -13,8 +13,17 @@ export const register = async (details: any): Promise<User> => {
   return response.data;
 };
 
-export const logout = async (): Promise<void> => {
-  await api.post("/users/logout");
+export const logout = async (token: string): Promise<void> => {
+  await api.post(
+    "/users/logout",
+    {},
+    {
+      // Send empty object instead of null
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
 };
 
 export const forgotPassword = async (email: string): Promise<void> => {
