@@ -14,7 +14,13 @@ const Forum = () => {
     const fetchThreads = async () => {
       try {
         const fetchedThreads = await getForumThreads();
-        setThreads(fetchedThreads);
+        // Initialize vote counts for each thread
+        const threadsWithVotes = fetchedThreads.map((thread) => ({
+          ...thread,
+          upvotes: thread.upvotes || 0,
+          userVote: thread.userVote || 0, // 0: no vote, 1: upvoted, -1: downvoted
+        }));
+        setThreads(threadsWithVotes);
       } catch (error) {
         console.error("Failed to fetch threads", error);
       }
@@ -27,7 +33,13 @@ const Forum = () => {
     if (socket) {
       socket.on("new_post", (newPost) => {
         console.log("Received new_post event:", newPost);
-        setThreads((prevThreads) => [newPost, ...prevThreads]);
+        // Initialize vote data for new posts
+        const postWithVotes = {
+          ...newPost,
+          upvotes: newPost.upvotes || 0,
+          userVote: newPost.userVote || 0,
+        };
+        setThreads((prevThreads) => [postWithVotes, ...prevThreads]);
       });
 
       // New listener for reply count updates
@@ -51,6 +63,88 @@ const Forum = () => {
     }
   }, [socket]);
 
+  // Handle upvote action
+  const handleUpvote = (threadId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    setThreads((prevThreads) =>
+      prevThreads.map((thread) => {
+        if (thread._id === threadId) {
+          // If already upvoted, remove the vote
+          if (thread.userVote === 1) {
+            return {
+              ...thread,
+              upvotes: thread.upvotes - 1,
+              userVote: 0,
+            };
+          }
+          // If downvoted, change to upvote (add 2 to account for removing downvote)
+          else if (thread.userVote === -1) {
+            return {
+              ...thread,
+              upvotes: thread.upvotes + 2,
+              userVote: 1,
+            };
+          }
+          // If no vote, add upvote
+          else {
+            return {
+              ...thread,
+              upvotes: thread.upvotes + 1,
+              userVote: 1,
+            };
+          }
+        }
+        return thread;
+      }),
+    );
+
+    // Here you would typically make an API call to persist the vote
+    // upvoteThread(threadId);
+  };
+
+  // Handle downvote action
+  const handleDownvote = (threadId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    setThreads((prevThreads) =>
+      prevThreads.map((thread) => {
+        if (thread._id === threadId) {
+          // If already downvoted, remove the vote
+          if (thread.userVote === -1) {
+            return {
+              ...thread,
+              upvotes: thread.upvotes + 1,
+              userVote: 0,
+            };
+          }
+          // If upvoted, change to downvote (subtract 2 to account for removing upvote)
+          else if (thread.userVote === 1) {
+            return {
+              ...thread,
+              upvotes: thread.upvotes - 2,
+              userVote: -1,
+            };
+          }
+          // If no vote, add downvote
+          else {
+            return {
+              ...thread,
+              upvotes: thread.upvotes - 1,
+              userVote: -1,
+            };
+          }
+        }
+        return thread;
+      }),
+    );
+
+    // Here you would typically make an API call to persist the vote
+    // downvoteThread(threadId);
+  };
+
   return (
     <div className="forum-container">
       <div className="forum-header">
@@ -70,11 +164,34 @@ const Forum = () => {
       <div className="topics-list">
         {threads.map((thread) => (
           <div key={thread._id} className="topic-card">
+            {/* Voting section */}
+            <div className="topic-vote">
+              <button
+                onClick={(e) => handleUpvote(thread._id, e)}
+                className={`upvote-btn ${thread.userVote === 1 ? "upvoted" : ""}`}
+                aria-label="Upvote"
+              >
+                <i className="fas fa-arrow-up"></i>
+              </button>
+              <span className="vote-count">{thread.upvotes}</span>
+              <button
+                onClick={(e) => handleDownvote(thread._id, e)}
+                className={`downvote-btn ${thread.userVote === -1 ? "downvoted" : ""}`}
+                aria-label="Downvote"
+              >
+                <i className="fas fa-arrow-down"></i>
+              </button>
+            </div>
+
             <div className="topic-content">
               <Link to={`/forum/${thread._id}`} className="topic-link">
                 <div className="topic-header">
                   <h2 className="topic-title">{thread.title}</h2>
-                  <span className="topic-subject">{thread.topic}</span>
+                  <span
+                    className={`topic-subject ${thread.topic?.toLowerCase()}`}
+                  >
+                    {thread.topic}
+                  </span>
                 </div>
                 <p className="topic-excerpt">{thread.content}</p>
               </Link>
