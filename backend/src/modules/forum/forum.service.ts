@@ -9,7 +9,7 @@ import { StudentModel } from "../../schemas/students.schema";
 import { TutorModel } from "../../schemas/tutor.schema";
 import { io } from "../../config/socket";
 import type { User } from "../../types/User";
-import { HuggingFaceService } from "../ai/huggingface/huggingface.service";
+import { HuggingFaceService } from "./huggingface.service";
 import { HttpException } from "../../infra/http/HttpException";
 import { CacheService } from "../../services/cache.service";
 import { createLogger } from "../../config/logger";
@@ -36,6 +36,26 @@ export const ForumService = {
     const { content, title } = data;
     if (!content || !title) {
       throw new HttpException(400, "Title and content are required.");
+    }
+
+    // Blacklist check
+    const combinedText = `${title} ${content}`.toLowerCase();
+    for (const word of swearWords) {
+      if (combinedText.includes(word)) {
+        throw new HttpException(
+          400,
+          `Your post contains a forbidden word: ${word}`,
+        );
+      }
+    }
+
+    const analysis = await HuggingFaceService.analyzeText(
+      `${title} ${content}`,
+    );
+    console.log("Hugging Face Analysis:", analysis);
+
+    if (HuggingFaceService.isToxic(analysis)) {
+      throw new HttpException(400, "Your post has been flagged as toxic.");
     }
 
     let authorProfile;
@@ -168,6 +188,24 @@ export const ForumService = {
     const { content } = data;
     if (!content) {
       throw new HttpException(400, "Content is required.");
+    }
+
+    // Blacklist check
+    const lowerCaseContent = content.toLowerCase();
+    for (const word of swearWords) {
+      if (lowerCaseContent.includes(word)) {
+        throw new HttpException(
+          400,
+          `Your reply contains a forbidden word: ${word}`,
+        );
+      }
+    }
+
+    const analysis = await HuggingFaceService.analyzeText(content);
+    console.log("Hugging Face Analysis for reply:", analysis);
+
+    if (HuggingFaceService.isToxic(analysis)) {
+      throw new HttpException(400, "Your reply has been flagged as toxic.");
     }
 
     let authorProfile;

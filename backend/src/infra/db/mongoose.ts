@@ -21,8 +21,8 @@ export async function connectMongo(): Promise<void> {
     throw err;
   }
 
-  mongoose.connection.on("disconnected", () =>
-    logger.warn("MongoDB disconnected"),
+  mongoose.connection.on("disconnected", (err) =>
+    logger.warn("MongoDB disconnected", err),
   );
   mongoose.connection.on("reconnected", () =>
     logger.info("MongoDB reconnected"),
