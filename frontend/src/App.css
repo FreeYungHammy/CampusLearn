@@ -120,6 +120,13 @@ img {
   justify-content: center; /* spreads items on wide screens */
   height: 100%;
 }
+
+.desktop-profile-menu {
+  display: flex;
+  align-items: center; /* vertical centering */
+  gap: 8px;
+}
+
 @media (max-width: 980px) {
   .cl-center.desktop-nav {
     display: none; /* Hide desktop nav */
@@ -142,10 +149,10 @@ img {
 }
 
 .cl-right {
-  position: relative;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 8px; /* space between logout + profile */
+  flex-direction: row; /* ensure horizontal layout */
 }
 
 .cl-hamburger-btn {
@@ -399,6 +406,35 @@ img {
 .logout-btn:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.35);
+}
+
+.logout-btn,
+.cl-profile-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  line-height: 1;
+}
+
+.logout-btn {
+  position: relative;
+  top: 1.2px; /* try 1px, adjust to 2px if needed */
+}
+
+/* give profile button a little breathing room for text */
+.cl-profile-btn {
+  padding: 0 12px;
+}
+
+/* make sure avatar centers properly */
+.user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  object-fit: cover;
+  margin-right: 8px;
+  display: block;
 }
 
 .cl-theme-btn:hover,
