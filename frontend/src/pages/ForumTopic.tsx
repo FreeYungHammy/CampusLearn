@@ -14,13 +14,39 @@ const ForumTopic = () => {
   const { token } = useAuthStore();
   const socket = useForumSocket(threadId);
 
+  const formatSubjectClass = (subject: string) => {
+    const subjectMap: { [key: string]: string } = {
+      Programming: "programming",
+      Mathematics: "mathematics",
+      "Linear Programming": "linear-programming",
+      "Database Development": "database-development",
+      "Web Programming": "web-programming",
+      "Computer Architecture": "computer-architecture",
+      Statistics: "statistics",
+      "Software Testing": "software-testing",
+      "Network Development": "network-development",
+      "Machine Learning": "machine-learning",
+    };
+
+    return subjectMap[subject] || "";
+  };
+
   useEffect(() => {
     const fetchThread = async () => {
       if (threadId) {
         try {
           setIsLoading(true);
           const fetchedThread = await getForumThreadById(threadId);
-          setThread(fetchedThread);
+          // Initialize vote counts for replies
+          const threadWithVotes = {
+            ...fetchedThread,
+            replies: fetchedThread.replies.map((reply: any) => ({
+              ...reply,
+              upvotes: reply.upvotes || 0,
+              userVote: reply.userVote || 0, // 0: no vote, 1: upvoted, -1: downvoted
+            })),
+          };
+          setThread(threadWithVotes);
         } catch (error) {
           console.error("Failed to fetch thread", error);
           setError("Failed to load thread. Please try again.");
@@ -37,9 +63,15 @@ const ForumTopic = () => {
     if (socket) {
       socket.on("new_reply", (newReply) => {
         console.log("Received new_reply event:", newReply);
+        // Initialize vote data for new replies
+        const replyWithVotes = {
+          ...newReply,
+          upvotes: newReply.upvotes || 0,
+          userVote: newReply.userVote || 0,
+        };
         setThread((prevThread: any) => ({
           ...prevThread,
-          replies: [...prevThread.replies, newReply],
+          replies: [...prevThread.replies, replyWithVotes],
         }));
       });
 
@@ -66,6 +98,90 @@ const ForumTopic = () => {
       console.error("Failed to create reply", err);
       setError(err.response?.data?.message || "An unexpected error occurred.");
     }
+  };
+
+  // Handle upvote action for replies
+  const handleReplyUpvote = (replyId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    setThread((prevThread: any) => ({
+      ...prevThread,
+      replies: prevThread.replies.map((reply: any) => {
+        if (reply._id === replyId) {
+          // If already upvoted, remove the vote
+          if (reply.userVote === 1) {
+            return {
+              ...reply,
+              upvotes: reply.upvotes - 1,
+              userVote: 0,
+            };
+          }
+          // If downvoted, change to upvote (add 2 to account for removing downvote)
+          else if (reply.userVote === -1) {
+            return {
+              ...reply,
+              upvotes: reply.upvotes + 2,
+              userVote: 1,
+            };
+          }
+          // If no vote, add upvote
+          else {
+            return {
+              ...reply,
+              upvotes: reply.upvotes + 1,
+              userVote: 1,
+            };
+          }
+        }
+        return reply;
+      }),
+    }));
+
+    // Here you would typically make an API call to persist the vote
+    // upvoteReply(replyId);
+  };
+
+  // Handle downvote action for replies
+  const handleReplyDownvote = (replyId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    setThread((prevThread: any) => ({
+      ...prevThread,
+      replies: prevThread.replies.map((reply: any) => {
+        if (reply._id === replyId) {
+          // If already downvoted, remove the vote
+          if (reply.userVote === -1) {
+            return {
+              ...reply,
+              upvotes: reply.upvotes + 1,
+              userVote: 0,
+            };
+          }
+          // If upvoted, change to downvote (subtract 2 to account for removing upvote)
+          else if (reply.userVote === 1) {
+            return {
+              ...reply,
+              upvotes: reply.upvotes - 2,
+              userVote: -1,
+            };
+          }
+          // If no vote, add downvote
+          else {
+            return {
+              ...reply,
+              upvotes: reply.upvotes - 1,
+              userVote: -1,
+            };
+          }
+        }
+        return reply;
+      }),
+    }));
+
+    // Here you would typically make an API call to persist the vote
+    // downvoteReply(replyId);
   };
 
   if (isLoading) {
@@ -109,7 +225,9 @@ const ForumTopic = () => {
         <div className="topic-content">
           <div className="topic-header">
             <h1 className="topic-title-main">{thread.title}</h1>
-            <span className={`topic-subject ${thread.topic?.toLowerCase()}`}>
+            <span
+              className={`topic-subject ${formatSubjectClass(thread.topic)}`}
+            >
               {thread.topic}
             </span>
           </div>
@@ -157,6 +275,45 @@ const ForumTopic = () => {
         </div>
       </div>
 
+      {/* Reply Form - Now placed above comments */}
+      <div className="reply-form-container card">
+        <div className="card-header">
+          <h3>
+            <i className="fas fa-pen"></i> Post a Reply
+          </h3>
+        </div>
+        <div className="card-body">
+          {error && <div className="error-message">{error}</div>}
+          <form onSubmit={handleReplySubmit} className="comment-form">
+            <div className="form-group">
+              <textarea
+                value={replyContent}
+                onChange={(e) => setReplyContent(e.target.value)}
+                placeholder="Write your reply..."
+                rows={5}
+                required
+                className="form-control"
+              ></textarea>
+            </div>
+            <div className="checkbox-group">
+              <input
+                type="checkbox"
+                id="reply-anonymous"
+                checked={isAnonymous}
+                onChange={(e) => setIsAnonymous(e.target.checked)}
+                className="form-checkbox"
+              />
+              <label htmlFor="reply-anonymous" className="checkbox-label">
+                Post as Anonymous
+              </label>
+            </div>
+            <button type="submit" className="btn btn-primary">
+              <i className="fas fa-paper-plane"></i> Submit Reply
+            </button>
+          </form>
+        </div>
+      </div>
+
       {/* Replies Section */}
       <div className="replies-section">
         <div className="section-header">
@@ -176,6 +333,25 @@ const ForumTopic = () => {
           <div className="replies-list">
             {thread.replies.map((reply: any) => (
               <div key={reply._id} className="reply-card">
+                {/* Voting section for replies */}
+                <div className="reply-vote">
+                  <button
+                    onClick={(e) => handleReplyUpvote(reply._id, e)}
+                    className={`upvote-btn ${reply.userVote === 1 ? "upvoted" : ""}`}
+                    aria-label="Upvote"
+                  >
+                    <i className="fas fa-arrow-up"></i>
+                  </button>
+                  <span className="vote-count">{reply.upvotes}</span>
+                  <button
+                    onClick={(e) => handleReplyDownvote(reply._id, e)}
+                    className={`downvote-btn ${reply.userVote === -1 ? "downvoted" : ""}`}
+                    aria-label="Downvote"
+                  >
+                    <i className="fas fa-arrow-down"></i>
+                  </button>
+                </div>
+
                 <div className="reply-content">
                   <p>{reply.content}</p>
                 </div>
@@ -214,45 +390,6 @@ const ForumTopic = () => {
             ))}
           </div>
         )}
-      </div>
-
-      {/* Reply Form */}
-      <div className="reply-form-container card">
-        <div className="card-header">
-          <h3>
-            <i className="fas fa-pen"></i> Post a Reply
-          </h3>
-        </div>
-        <div className="card-body">
-          {error && <div className="error-message">{error}</div>}
-          <form onSubmit={handleReplySubmit} className="comment-form">
-            <div className="form-group">
-              <textarea
-                value={replyContent}
-                onChange={(e) => setReplyContent(e.target.value)}
-                placeholder="Write your reply..."
-                rows={5}
-                required
-                className="form-control"
-              ></textarea>
-            </div>
-            <div className="checkbox-group">
-              <input
-                type="checkbox"
-                id="reply-anonymous"
-                checked={isAnonymous}
-                onChange={(e) => setIsAnonymous(e.target.checked)}
-                className="form-checkbox"
-              />
-              <label htmlFor="reply-anonymous" className="checkbox-label">
-                Post as Anonymous
-              </label>
-            </div>
-            <button type="submit" className="btn btn-primary">
-              <i className="fas fa-paper-plane"></i> Submit Reply
-            </button>
-          </form>
-        </div>
       </div>
     </div>
   );
