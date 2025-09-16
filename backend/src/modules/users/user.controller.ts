@@ -27,8 +27,12 @@ export const UserController = {
     }
   },
 
-  logout: async (req: Request, res: Response, next: NextFunction) => {
+  logout: async (req: AuthedRequest, res: Response, next: NextFunction) => {
     try {
+      const token = req.headers.authorization?.split(" ")[1];
+      if (token) {
+        await UserService.logout(token);
+      }
       res.clearCookie("jwt");
       res.status(200).json({ message: "Logged out successfully" });
     } catch (e) {

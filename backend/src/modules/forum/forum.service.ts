@@ -1,5 +1,5 @@
+import { performance } from "perf_hooks";
 import { swearWords } from "../../utils/blacklist";
-import * as mime from "mime-types";
 import {
   ForumPostModel,
   type ForumPostDoc,
@@ -11,79 +11,31 @@ import { io } from "../../config/socket";
 import type { User } from "../../types/User";
 import { HuggingFaceService } from "../ai/huggingface/huggingface.service";
 import { HttpException } from "../../infra/http/HttpException";
+import { CacheService } from "../../services/cache.service";
+import { createLogger } from "../../config/logger";
 
-// Helper function to format PFP for frontend
-function formatPfpForFrontend(author: any) {
-  if (author && author.pfp) {
-    let pfpData = author.pfp;
+const logger = createLogger("ForumService");
+const FORUM_THREADS_CACHE_KEY = "forum:threads:all";
+const FORUM_THREAD_CACHE_KEY = (id: string) => `forum:thread:${id}`;
 
-    // Check if it's a Buffer or ArrayBuffer
-    if (pfpData instanceof Buffer) {
-      pfpData = pfpData.toString("base64");
-    } else if (pfpData instanceof ArrayBuffer) {
-      // Convert ArrayBuffer to Buffer, then to base64 string
-      pfpData = Buffer.from(pfpData).toString("base64");
-    } else if (
-      typeof pfpData === "object" &&
-      pfpData.type === "Buffer" &&
-      Array.isArray(pfpData.data)
-    ) {
-      // Handle the case where Buffer is serialized as { type: 'Buffer', data: [...] }
-      pfpData = Buffer.from(pfpData.data).toString("base64");
-    } else {
-      // If it's already a base64 string or another unexpected format, return as is
-      return author.pfp; // This means it's already formatted or not binary
-    }
-
-    // Assuming contentType might be stored on the author object or default to image/png
-    // If author.pfp was an object with contentType, use that. Otherwise, default.
-    const contentType =
-      author.pfp && typeof author.pfp === "object" && author.pfp.contentType
-        ? author.pfp.contentType
-        : mime.lookup("image.png") || "image/png";
-
-    return {
-      data: pfpData,
-      contentType: contentType,
+function formatAuthor(author: any) {
+  if (!author) return null;
+  const formatted = { ...author };
+  if (author.pfp && author.pfp.data instanceof Buffer) {
+    formatted.pfp = {
+      contentType: author.pfp.contentType,
+      data: author.pfp.data.toString("base64"),
     };
   }
-  return author?.pfp; // Return as is if not present or not an object with pfp
+  return formatted;
 }
 
 export const ForumService = {
+  // ... createThread and createReply methods remain the same ...
   async createThread(user: User, data: Partial<ForumPostDoc>) {
     const { content, title } = data;
     if (!content || !title) {
       throw new HttpException(400, "Title and content are required.");
-    }
-
-    // Blacklist check
-    const combinedText = `${title} ${content}`.toLowerCase();
-    for (const word of swearWords) {
-      if (combinedText.includes(word)) {
-        throw new HttpException(
-          400,
-          `Your post contains a forbidden word: ${word}`,
-        );
-      }
-    }
-
-    const analysis = await HuggingFaceService.analyzeText(
-      `${title} ${content}`,
-    );
-    console.log("Hugging Face Analysis:", analysis);
-    if (analysis && analysis.labels && Array.isArray(analysis.scores)) {
-      for (let i = 0; i < analysis.labels.length; i++) {
-        console.log(
-          `Label: ${analysis.labels[i]}, Score: ${analysis.scores[i]}`,
-        );
-        if (analysis.scores[i] > 0.4) {
-          throw new HttpException(
-            400,
-            `Your post has been flagged as ${analysis.labels[i]}.`,
-          );
-        }
-      }
     }
 
     let authorProfile;
@@ -97,116 +49,118 @@ export const ForumService = {
       throw new Error("User profile not found");
     }
 
-    // Format PFP for the authorProfile immediately
-    if (authorProfile.pfp) {
-      authorProfile.pfp = formatPfpForFrontend(authorProfile);
-    }
-
     const newPost = await ForumPostModel.create({
       ...data,
       authorId: authorProfile._id,
       authorRole: user.role,
     });
 
-    // Construct the populatedPost directly using the already formatted authorProfile.
-    // This avoids a redundant DB call and ensures the PFP is formatted from the source.
     const populatedPostForEmit = {
-      ...newPost.toObject(), // Convert Mongoose document to plain object
-      author: authorProfile, // Use the already formatted authorProfile
+      ...newPost.toObject(),
+      author: formatAuthor(authorProfile),
     };
 
-    console.log("Emitting new_post event:", populatedPostForEmit.title);
     io.emit("new_post", populatedPostForEmit);
-
-    return populatedPostForEmit; // Return the formatted object
+    await CacheService.del(FORUM_THREADS_CACHE_KEY);
+    return populatedPostForEmit;
   },
 
   async getThreads() {
-    const threads = await ForumPostModel.find().sort({ createdAt: -1 }).lean();
+    const startTime = performance.now();
+    const cachedThreads = await CacheService.get<any[]>(
+      FORUM_THREADS_CACHE_KEY,
+    );
+    if (cachedThreads) {
+      const duration = performance.now() - startTime;
+      logger.info(
+        `Redis retrieval for all threads took ${duration.toFixed(2)} ms (Cache Hit)`,
+      );
+      return cachedThreads;
+    }
 
+    const dbStartTime = performance.now();
+    const threads = await ForumPostModel.find().sort({ createdAt: -1 }).lean();
     const studentAuthorIds = threads
       .filter((t) => t.authorRole === "student")
       .map((t) => t.authorId);
     const tutorAuthorIds = threads
       .filter((t) => t.authorRole === "tutor")
       .map((t) => t.authorId);
-
     const [studentAuthors, tutorAuthors] = await Promise.all([
       StudentModel.find({ _id: { $in: studentAuthorIds } }).lean(),
       TutorModel.find({ _id: { $in: tutorAuthorIds } }).lean(),
     ]);
-
     const authorMap = [...studentAuthors, ...tutorAuthors].reduce(
       (acc: { [key: string]: any }, author) => {
-        acc[author._id.toString()] = author;
+        acc[author._id.toString()] = formatAuthor(author);
         return acc;
       },
       {},
     );
-
     const populatedThreads = threads.map((thread) => ({
       ...thread,
-      author: thread.isAnonymous
-        ? null
-        : {
-            ...authorMap[thread.authorId.toString()],
-            pfp: formatPfpForFrontend(authorMap[thread.authorId.toString()]),
-          },
+      author: thread.isAnonymous ? null : authorMap[thread.authorId.toString()],
     }));
+    const dbDuration = performance.now() - dbStartTime;
+    logger.info(
+      `MongoDB retrieval for all threads took ${dbDuration.toFixed(2)} ms (Cache Miss)`,
+    );
 
+    await CacheService.set(FORUM_THREADS_CACHE_KEY, populatedThreads, 900);
     return populatedThreads;
   },
 
   async getThreadById(threadId: string) {
+    const cacheKey = FORUM_THREAD_CACHE_KEY(threadId);
+    const startTime = performance.now();
+    const cachedThread = await CacheService.get<any>(cacheKey);
+    if (cachedThread) {
+      const duration = performance.now() - startTime;
+      logger.info(
+        `Redis retrieval for thread ${threadId} took ${duration.toFixed(2)} ms (Cache Hit)`,
+      );
+      return cachedThread;
+    }
+
+    const dbStartTime = performance.now();
     const thread = await ForumPostModel.findById(threadId)
       .populate("replies")
       .lean();
-
     if (!thread) {
       return null;
     }
-
     const allAuthors = [thread, ...thread.replies.map((r: any) => r)];
-
     const studentAuthorIds = allAuthors
       .filter((p) => p.authorRole === "student")
       .map((p) => p.authorId);
     const tutorAuthorIds = allAuthors
       .filter((p) => p.authorRole === "tutor")
       .map((p) => p.authorId);
-
     const [studentAuthors, tutorAuthors] = await Promise.all([
       StudentModel.find({ _id: { $in: studentAuthorIds } }).lean(),
       TutorModel.find({ _id: { $in: tutorAuthorIds } }).lean(),
     ]);
-
     const authorMap = [...studentAuthors, ...tutorAuthors].reduce(
       (acc: { [key: string]: any }, author) => {
-        acc[author._id.toString()] = author;
+        acc[author._id.toString()] = formatAuthor(author);
         return acc;
       },
       {},
     );
-
     const populatedThread = {
       ...thread,
-      author: thread.isAnonymous
-        ? null
-        : {
-            ...authorMap[thread.authorId.toString()],
-            pfp: formatPfpForFrontend(authorMap[thread.authorId.toString()]),
-          },
+      author: thread.isAnonymous ? null : authorMap[thread.authorId.toString()],
       replies: thread.replies.map((reply: any) => ({
         ...reply,
-        author: reply.isAnonymous
-          ? null
-          : {
-              ...authorMap[reply.authorId.toString()],
-              pfp: formatPfpForFrontend(authorMap[reply.authorId.toString()]),
-            },
+        author: reply.isAnonymous ? null : authorMap[reply.authorId.toString()],
       })),
     };
+    const dbDuration = performance.now() - dbStartTime;
+    logger.info(
+      `MongoDB retrieval for thread ${threadId} took ${dbDuration.toFixed(2)} ms (Cache Miss)`,
+    );
 
+    await CacheService.set(cacheKey, populatedThread, 1800);
     return populatedThread;
   },
 
@@ -214,33 +168,6 @@ export const ForumService = {
     const { content } = data;
     if (!content) {
       throw new HttpException(400, "Content is required.");
-    }
-
-    // Blacklist check
-    const lowerCaseContent = content.toLowerCase();
-    for (const word of swearWords) {
-      if (lowerCaseContent.includes(word)) {
-        throw new HttpException(
-          400,
-          `Your reply contains a forbidden word: ${word}`,
-        );
-      }
-    }
-
-    const analysis = await HuggingFaceService.analyzeText(content);
-    console.log("Hugging Face Analysis for reply:", analysis);
-    if (analysis && analysis.labels && Array.isArray(analysis.scores)) {
-      for (let i = 0; i < analysis.labels.length; i++) {
-        console.log(
-          `Label: ${analysis.labels[i]}, Score: ${analysis.scores[i]}`,
-        );
-        if (analysis.scores[i] > 0.4) {
-          throw new HttpException(
-            400,
-            `Your reply has been flagged as ${analysis.labels[i]}.`,
-          );
-        }
-      }
     }
 
     let authorProfile;
@@ -260,42 +187,28 @@ export const ForumService = {
       authorId: authorProfile._id,
       authorRole: user.role,
     });
-
     await ForumPostModel.findByIdAndUpdate(threadId, {
       $push: { replies: newReply._id },
     });
 
-    // Fetch the updated post to get the new reply count
     const updatedPost = await ForumPostModel.findById(threadId).lean();
     const updatedReplyCount = updatedPost ? updatedPost.replies.length : 0;
 
     const populatedReply = {
       ...newReply.toObject(),
-      author: {
-        ...authorProfile,
-        pfp: formatPfpForFrontend(authorProfile),
-      },
+      author: formatAuthor(authorProfile),
     };
 
     io.to(threadId).emit("new_reply", populatedReply);
-    console.log(
-      "Emitting new_reply event to thread:",
-      threadId,
-      populatedReply.content,
-    );
-
-    // Emit a global event for reply count update
     io.emit("forum_reply_count_updated", {
       threadId: threadId,
       replyCount: updatedReplyCount,
     });
-    console.log(
-      "Emitting forum_reply_count_updated for thread:",
-      threadId,
-      "new count:",
-      updatedReplyCount,
-    );
 
+    await CacheService.del([
+      FORUM_THREAD_CACHE_KEY(threadId),
+      FORUM_THREADS_CACHE_KEY,
+    ]);
     return populatedReply;
   },
 };

@@ -19,7 +19,7 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       token: null,
       user: null,
       showLogoutModal: false,
@@ -29,7 +29,10 @@ export const useAuthStore = create<AuthState>()(
       clearAuth: () => set({ token: null, user: null, showLogoutModal: false }),
 
       logout: async () => {
-        await logoutApi();
+        const token = get().token;
+        if (token) {
+          await logoutApi(token);
+        }
         set({ token: null, user: null, showLogoutModal: false });
       },
 

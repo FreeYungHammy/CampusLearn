@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messages - CampusLearn™</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+    <style>
+        .message-thread:hover {
+            background-color: #f8fafc;
+        }
+        .message-thread.active {
+            background-color: #eff6ff;
+            border-right: 3px solid #3b82f6;
+        }
+        .chat-bubble {
+            max-width: 70%;
+            word-wrap: break-word;
+        }
+        .chat-input:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans">
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i data-feather="book-open" class="text-blue-500"></i>
+                <h1 class="text-xl font-bold text-blue-600">CampusLearn™</h1>
+                <span class="text-sm text-gray-500">Peer-Powered Learning</span>
+            </div>
+            <div class="flex items-center space-x-4">
+                <img src="https://randomuser.me/api/portraits/men/67.jpg" alt="User Avatar" class="w-10 h-10 rounded-full">
+                <span class="font-medium">Demo Student</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm">
+        <div class="container mx-auto px-4">
+            <div class="flex space-x-8 py-3 overflow-x-auto">
+                <a href="index.html" class="nav-link flex items-center space-x-1 text-gray-600 hover:text-blue-500 font-medium">
+                    <i data-feather="calendar" class="w-4 h-4"></i>
+                    <span>Schedule</span>
+                </a>
+                <a href="mytutors.html" class="nav-link flex items-center space-x-1 text-gray-600 hover:text-blue-500 font-medium">
+                    <i data-feather="users" class="w-4 h-4"></i>
+                    <span>My Tutors</span>
+                </a>
+                <a href="findtutors.html" class="nav-link flex items-center space-x-1 text-gray-600 hover:text-blue-500 font-medium">
+                    <i data-feather="search" class="w-4 h-4"></i>
+                    <span>Find Tutors</span>
+                </a>
+                <a href="forum.html" class="nav-link flex items-center space-x-1 text-gray-600 hover:text-blue-500 font-medium">
+                    <i data-feather="message-square" class="w-4 h-4"></i>
+                    <span>Forum</span>
+                </a>
+                <a href="messages.html" class="nav-link flex items-center space-x-1 text-blue-600 font-medium border-b-2 border-blue-600 pb-2">
+                    <i data-feather="message-circle" class="w-4 h-4"></i>
+                    <span>Messages</span>
+                </a>
+                <a href="resources.html" class="nav-link flex items-center space-x-1 text-gray-600 hover:text-blue-500 font-medium">
+                    <i data-feather="folder" class="w-4 h-4"></i>
+                    <span>Resources</span>
+                </a>
+                <a href="profile.html" class="nav-link flex items-center space-x-1 text-gray-600 hover:text-blue-500 font-medium">
+                    <i data-feather="user" class="w-4 h-4"></i>
+                    <span>Profile</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div class="flex h-[600px]">
+                <!-- Message Threads Sidebar -->
+                <div class="w-1/3 border-r bg-gray-50">
+                    <div class="p-4 border-b">
+                        <h2 class="text-xl font-bold text-gray-800">Messages</h2>
+                        <div class="relative mt-3">
+                            <input type="text" placeholder="Search conversations..." class="w-full px-4 py-2 pl-10 bg-gray-100 rounded-lg border-none focus:ring-2 focus:ring-blue-500">
+                            <i data-feather="search" class="absolute left-3 top-2.5 text-gray-400 w-4 h-4"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="overflow-y-auto h-[500px]">
+                        <!-- Active Thread -->
+                        <div class="message-thread active p-4 border-b cursor-pointer">
+                            <div class="flex items-center space-x-3">
+                                <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="Dr. Sarah Johnson" class="w-12 h-12 rounded-full">
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex justify-between items-center">
+                                        <h3 class="font-semibold text-gray-800 truncate">Dr. Sarah Johnson</h3>
+                                        <span class="text-xs text-gray-500">10:30 AM</span>
+                                    </div>
+                                    <p class="text-sm text-gray-600 truncate">Sure, I can help you with the calculus assignment. When would you like to...</p>
+                                    <span class="inline-block mt-1 bg-blue-500 text-white text-xs px-2 py-1 rounded-full">Mathematics</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Thread 2 -->
+                        <div class="message-thread p-4 border-b cursor-pointer hover:bg-gray-50">
+                            <div class="flex items-center space-x-3">
+                                <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Prof. Michael Chen" class="w-12 h-12 rounded-full">
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex justify-between items-center">
+                                        <h3 class="font-semibold text-gray-800 truncate">Prof. Michael Chen</h3>
+                                        <span class="text-xs text-gray-500">Yesterday</span>
+                                    </div>
+                                    <p class="text-sm text-gray-600 truncate">The research paper guidelines are attached. Let me know if you have any...</p>
+                                    <span class="inline-block mt-1 bg-green-500 text-white text-xs px-2 py-1 rounded-full">Research</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Thread 3 -->
+                        <div class="message-thread p-4 border-b cursor-pointer hover:bg-gray-50">
+                            <div class="flex items-center space-x-3">
+                                <img src="https://randomuser.me/api/portraits/women/68.jpg" alt="Dr. Emily Rodriguez" class="w-12 h-12 rounded-full">
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex justify-between items-center">
+                                        <h3 class="font-semibold text-gray-800 truncate">Dr. Emily Rodriguez</h3>
+                                        <span class="text-xs text-gray-500">2 days ago</span>
+                                    </div>
+                                    <p class="text-sm text-gray-600 truncate">Great progress on the programming project! Here are some additional resour...</p>
+                                    <span class="inline-block mt-1 bg-purple-500 text-white text-xs px-2 py-1 rounded-full">Programming</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Thread 4 -->
+                        <div class="message-thread p-4 border-b cursor-pointer hover:bg-gray-50">
+                            <div class="flex items-center space-x-3">
+                                <img src="https://randomuser.me/api/portraits/men/75.jpg" alt="Prof. David Wilson" class="w-12 h-12 rounded-full">
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex justify-between items-center">
+                                        <h3 class="font-semibold text-gray-800 truncate">Prof. David Wilson</h3>
+                                        <span class="text-xs text-gray-500">3 days ago</span>
+                                    </div>
+                                    <p class="text-sm text-gray-600 truncate">The business case study analysis looks good. Let's schedule a session to...</p>
+                                    <span class="inline-block mt-1 bg-yellow-500 text-white text-xs px-2 py-1 rounded-full">Business</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Thread 5 -->
+                        <div class="message-thread p-4 cursor-pointer hover:bg-gray-50">
+                            <div class="flex items-center space-x-3">
+                                <img src="https://randomuser.me/api/portraits/women/23.jpg" alt="Dr. Lisa Thompson" class="w-12 h-12 rounded-full">
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex justify-between items-center">
+                                        <h3 class="font-semibold text-gray-800 truncate">Dr. Lisa Thompson</h3>
+                                        <span class="text-xs text-gray-500">1 week ago</span>
+                                    </div>
+                                    <p class="text-sm text-gray-600 truncate">The statistics assignment feedback is ready. Please review and let me know...</p>
+                                    <span class="inline-block mt-1 bg-red-500 text-white text-xs px-2 py-1 rounded-full">Statistics</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chat Area -->
+                <div class="flex-1 flex flex-col">
+                    <!-- Chat Header -->
+                    <div class="p-4 border-b flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="Dr. Sarah Johnson" class="w-10 h-10 rounded-full">
+                            <div>
+                                <h3 class="font-semibold text-gray-800">Dr. Sarah Johnson</h3>
+                                <p class="text-sm text-gray-600">Mathematics Tutor • Online</p>
+                            </div>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="p-2 rounded-full hover:bg-gray-100">
+                                <i data-feather="phone" class="w-4 h-4 text-gray-600"></i>
+                            </button>
+                            <button class="p-2 rounded-full hover:bg-gray-100">
+                                <i data-feather="video" class="w-4 h-4 text-gray-600"></i>
+                            </button>
+                            <button class="p-2 rounded-full hover:bg-gray-100">
+                                <i data-feather="more-vertical" class="w-4 h-4 text-gray-600"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Messages -->
+                    <div class="flex-1 p-4 overflow-y-auto bg-gray-50">
+                        <!-- Tutor Message -->
+                        <div class="flex mb-4">
+                            <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="Dr. Sarah Johnson" class="w-8 h-8 rounded-full mr-3">
+                            <div class="chat-bubble bg-white rounded-2xl rounded-tl-none px-4 py-3 shadow-sm">
+                                <p class="text-gray-800">Hi there! I noticed you requested help with calculus. What specific topic are you struggling with?</p>
+                                <span class="text-xs text-gray-500 mt-1">10:15 AM</span>
+                            </div>
+                        </div>
+
+                        <!-- User Message -->
+                        <div class="flex mb-4 justify-end">
+                            <div class="chat-bubble bg-blue-500 text-white rounded-2xl rounded-tr-none px-4 py-3">
+                                <p>Hi Dr. Johnson! I'm having trouble with integration techniques, specifically trigonometric substitution.</p>
+                                <span class="text-xs opacity-80 mt-1">10:18 AM</span>
+                            </div>
+                        </div>
+
+                        <!-- Tutor Message -->
+                        <div class="flex mb-4">
+                            <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="Dr. Sarah Johnson" class="w-8 h-8 rounded-full mr-3">
+                            <div class="chat-bubble bg-white rounded-2xl rounded-tl-none px-4 py-3 shadow-sm">
+                                <p class="text-gray-800">Trigonometric substitution can be tricky! I've attached a PDF with some practice problems and solutions. Let's schedule a session to go through them together.</p>
+                                <div class="mt-2 p-3 bg-gray-100 rounded-lg">
+                                    <div class="flex items-center space-x-2">
+                                        <i data-feather="file-text" class="w-4 h-4 text-blue-500"></i>
+                                        <span class="text-sm font-medium">Calculus_Integration_Guide.pdf</span>
+                                    </div>
+                                    <span class="text-xs text-gray-500">2.4 MB • PDF Document</span>
+                                </div>
+                                <span class="text-xs text-gray-500 mt-1">10:22 AM</span>
+                            </div>
+                        </div>
+
+                        <!-- User Message -->
+                        <div class="flex mb-4 justify-end">
+                            <div class="chat-bubble bg-blue-500 text-white rounded-2xl rounded-tr-none px-4 py-3">
+                                <p>Thank you! The guide looks helpful. Would you be available tomorrow afternoon?</p>
+                                <span class="text-xs opacity-80 mt-1">10:25 AM</span>
+                            </div>
+                        </div>
+
+                        <!-- Tutor Message -->
+                        <div class="flex mb-4">
+                            <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="Dr. Sarah Johnson" class="w-8 h-8 rounded-full mr-3">
+                            <div class="chat-bubble bg-white rounded-2xl rounded-tl-none px-4 py-3 shadow-sm">
+                                <p class="text-gray-800">Sure, I can help you with the calculus assignment. When would you like to schedule our session? I have availability tomorrow from 2-4 PM.</p>
+                                <span class="text-xs text-gray-500 mt-1">10:30 AM</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Message Input -->
+                    <div class="p-4 border-t bg-white">
+                        <div class="flex items-center space-x-3">
+                            <button class="p-2 rounded-full hover:bg-gray-100">
+                                <i data-feather="paperclip" class="w-5 h-5 text-gray-400"></i>
+                            </button>
+                            <div class="flex-1 bg-gray-100 rounded-full">
+                                <input type="text" placeholder="Type your message..." class="chat-input w-full bg-transparent px-4 py-3 border-none focus:ring-0">
+                            </div>
+                            <button class="p-3 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors">
+                                <i data-feather="send" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t mt-12">
+        <div class="container mx-auto px-4 py-8">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <p class="text-gray-600">© 2025 CampusLearn™ - Peer-Powered Learning Platform</p>
+                </div>
+                <div class="flex space-x-6">
+                    <a href="#" class="text-gray-500 hover:text-blue-500">Privacy Policy</a>
+                    <a href="#" class="text-gray-500 hover:text-blue-500">Terms of Service</a>
+                    <a href="#" class="text-gray-500 hover:text-blue-500">Contact Us</a>
+                    <a href="#" class="text-gray-500 hover:text-blue-500">About</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        AOS.init();
+        feather.replace();
+
+        // Simple message sending functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const messageInput = document.querySelector('.chat-input');
+            const sendButton = document.querySelector('button:has(i[data-feather="send"])');
+            const messagesContainer = document.querySelector('.overflow-y-auto');
+
+            function sendMessage() {
+                const message = messageInput.value.trim();
+                if (message) {
+                    const messageHTML = `
+                        <div class="flex mb-4 justify-end">
+                            <div class="chat-bubble bg-blue-500 text-white rounded-2xl rounded-tr-none px-4 py-3">
+                                <p>${message}</p>
+                                <span class="text-xs opacity-80 mt-1">Just now</span>
+                            </div>
+                        </div>
+                    `;
+                    messagesContainer.insertAdjacentHTML('beforeend', messageHTML);
+                    messageInput.value = '';
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                }
+            }
+
+            sendButton.addEventListener('click', sendMessage);
+            messageInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

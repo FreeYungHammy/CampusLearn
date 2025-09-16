@@ -5,6 +5,7 @@ import {
   type Model,
   FilterQuery,
   UpdateQuery,
+  HydratedDocument,
 } from "mongoose";
 
 // 1. Create an interface representing a document in MongoDB.
@@ -12,11 +13,17 @@ export type TutorDoc = InferSchemaType<typeof TutorSchema>;
 
 // 2. Create a an interface for the Model with the custom static methods
 interface TutorModel extends Model<TutorDoc> {
-  findByUserId(userId: string): Promise<TutorDoc | null>;
-  searchBySubject(q: string): Promise<TutorDoc[]>;
-  updateById(id: string, patch: any): Promise<TutorDoc | null>;
-  deleteById(id: string): Promise<TutorDoc | null>;
-  applyRating(id: string, score: number): Promise<TutorDoc | null>;
+  findByUserId(userId: string): Promise<HydratedDocument<TutorDoc> | null>;
+  searchBySubject(q: string): Promise<HydratedDocument<TutorDoc>[]>;
+  updateById(
+    id: string,
+    patch: any,
+  ): Promise<HydratedDocument<TutorDoc> | null>;
+  deleteById(id: string): Promise<HydratedDocument<TutorDoc> | null>;
+  applyRating(
+    id: string,
+    score: number,
+  ): Promise<HydratedDocument<TutorDoc> | null>;
   update(
     filter: FilterQuery<TutorDoc>,
     update: UpdateQuery<TutorDoc>,

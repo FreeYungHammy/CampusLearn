@@ -5,7 +5,7 @@ import { requireAuth } from "../../auth/auth.middleware";
 const r = Router();
 r.post("/register", UserController.register);
 r.post("/login", UserController.login);
-r.post("/logout", UserController.logout);
+r.post("/logout", requireAuth, UserController.logout);
 r.patch("/pfp", requireAuth, UserController.updatePfp);
 r.patch("/profile", requireAuth, UserController.updateProfile);
 r.patch("/password", requireAuth, UserController.updatePassword);
