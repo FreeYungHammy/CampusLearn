@@ -36,13 +36,59 @@ I will strive to adhere to the existing coding conventions and best practices of
 
 ### Redis Integration
 
-The current development strategy is to prioritize the implementation of core application features, with performance optimization via a Redis caching layer planned for a later stage.
+The application now leverages Redis as a robust caching layer to significantly enhance read performance, reduce the load on the primary MongoDB database, and improve overall application responsiveness.
 
-To ensure a smooth future integration, all new backend and frontend logic should be written with this "optimize later" approach in mind. The existing application architecture is well-suited for this. The following principles should be maintained:
+The implementation adheres to a strict 30MB storage limit for the Redis instance, necessitating a highly selective and efficient caching strategy.
 
-- **Backend:** Continue to separate business logic into a distinct service layer. This allows caching to be cleanly added to service methods in the future without requiring significant refactoring of controllers or repositories.
-- **Frontend:** Continue to develop components that fetch all necessary data for a view in a single, centralized API call (e.g., on component load). This pattern works efficiently with a future backend caching layer.
-- **API Design:** Continue to design granular API endpoints that separate lightweight metadata from heavy binary content, allowing for fast retrieval of information needed to render a UI.
+**Key Principles Guiding Caching:**
+
+- **High Read-to-Write Ratio:** Prioritizing data frequently accessed.
+- **Low Volatility:** Focusing on data that changes infrequently.
+- **Small Data Footprint:** Ensuring individual cached items and the aggregate dataset remain within limits.
+- **Consistency Tolerance:** Utilizing TTLs for data that can tolerate slight staleness.
+- **Security:** Employing Redis for secure JWT blacklisting.
+
+**Implemented Caching Strategy:**
+
+- **User & Profile Metadata:**
+  - **Cached:** Individual `User`, `Student`, and `Tutor` objects (metadata only, **including base64 PFP data**).
+  - **Keys:** `user:<id>`, `student:<id>`, `student:user:<userId>`, `tutor:<id>`, `tutor:user:<userId>`.
+  - **TTL:** 30 minutes (1800 seconds).
+  - **Invalidation:** On any update, creation, or deletion of the respective user/profile.
+- **Tutor List (Find Tutors Page):**
+  - **Strategy:** The global `tutors:all` list cache has been **removed**. The `TutorService.list()` method now fetches the list directly from MongoDB on each request to ensure correctness for user-specific filtering.
+  - **Cache Warming:** After fetching the list, individual tutor profiles are proactively updated in the cache (`tutor:<id>`), ensuring fast subsequent access to individual tutor details.
+- **Forum Threads:**
+  - **Cached:** The main forum thread list and individual forum thread objects (including base64 PFP data for authors).
+  - **Keys:** `forum:threads:all`, `forum:thread:<threadId>`.
+  - **TTL:** 15 minutes (900 seconds) for lists, 30 minutes (1800 seconds) for individual threads.
+  - **Invalidation:** On new thread creation or new reply, the relevant caches are invalidated.
+- **Subscribed Tutors List:**
+  - **Cached:** The list of tutors a student is subscribed to.
+  - **Key:** `subscriptions:student:<studentId>`.
+  - **TTL:** 30 minutes (1800 seconds).
+  - **Invalidation:** On subscription creation or deletion.
+- **JWT Blacklist:**
+  - **Cached:** Invalidated JWT tokens upon user logout.
+  - **Key:** `jwt:blacklist:<token>`.
+  - **TTL:** Matches the original JWT expiry time.
+  - **Purpose:** Provides immediate token revocation for security.
+
+**What is NOT Cached (and why):**
+
+- **Binary File Content (`FileDoc.content`, raw `pfp` data):** Too large for the 30MB Redis limit.
+- **Full Chat Message History:** Highly volatile and can accumulate rapidly.
+- **Large Unfiltered Lists/Aggregations (except specific, managed cases):** Would exceed cache limits.
+- **Highly Dynamic/Real-time Data:** Leads to constant invalidation and thrashing.
+
+**Architectural Design Insights:**
+
+- **Centralized Cache Abstraction:** A dedicated `CacheService` encapsulates all Redis interactions, providing generic `get`, `set`, `del` methods.
+- **Service Layer Integration:** Caching logic is primarily integrated within the `service` layer.
+- **Consistent Key Naming:** Clear and consistent key naming conventions are used.
+- **Serialization:** Complex objects are serialized to JSON strings before storage and deserialized upon retrieval.
+- **Graceful Degradation:** Robust error handling ensures the application falls back to fetching data directly from MongoDB if Redis is unavailable.
+- **Monitoring:** Logging is in place to monitor Redis activity (hits, misses, sets, deletes) and retrieval times for performance analysis.
 
 ## Code Deep Dive & Snapshots
 
