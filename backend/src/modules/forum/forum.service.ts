@@ -138,15 +138,71 @@ export const ForumService = {
   },
 
   async getThreadById(threadId: string, user: User) {
-    const dbStartTime = performance.now();
-    const thread = await ForumPostModel.findById(threadId)
-      .populate("replies")
-      .lean();
-    if (!thread) {
-      return null;
+    const cacheKey = FORUM_THREAD_CACHE_KEY(threadId);
+    const startTime = performance.now();
+
+    // 1. Check cache for the BASE thread data (no votes)
+    let thread = await CacheService.get<any>(cacheKey);
+    let cacheHit = false;
+
+    if (thread) {
+      cacheHit = true;
+      const duration = performance.now() - startTime;
+      logger.info(
+        `Redis retrieval for thread ${threadId} took ${duration.toFixed(2)} ms (Cache Hit)`,
+      );
+    } else {
+      // Cache Miss. Fetch base data from DB.
+      const dbStartTime = performance.now();
+      thread = await ForumPostModel.findById(threadId)
+        .populate("replies")
+        .lean();
+      if (!thread) {
+        return null;
+      }
+
+      const allAuthors = [thread, ...thread.replies.map((r: any) => r)];
+      const studentAuthorIds = allAuthors
+        .filter((p) => p.authorRole === "student")
+        .map((p) => p.authorId);
+      const tutorAuthorIds = allAuthors
+        .filter((p) => p.authorRole === "tutor")
+        .map((p) => p.authorId);
+      const [studentAuthors, tutorAuthors] = await Promise.all([
+        StudentModel.find({ _id: { $in: studentAuthorIds } }).lean(),
+        TutorModel.find({ _id: { $in: tutorAuthorIds } }).lean(),
+      ]);
+      const authorMap = [...studentAuthors, ...tutorAuthors].reduce(
+        (acc: { [key: string]: any }, author) => {
+          acc[author._id.toString()] = formatAuthor(author);
+          return acc;
+        },
+        {},
+      );
+
+      const populatedThreadForCache = {
+        ...thread,
+        author: thread.isAnonymous
+          ? null
+          : authorMap[thread.authorId.toString()],
+        replies: thread.replies.map((reply: any) => ({
+          ...reply,
+          author: reply.isAnonymous
+            ? null
+            : authorMap[reply.authorId.toString()],
+        })),
+      };
+
+      await CacheService.set(cacheKey, populatedThreadForCache, 1800);
+      thread = populatedThreadForCache;
+
+      const dbDuration = performance.now() - dbStartTime;
+      logger.info(
+        `MongoDB retrieval for thread ${threadId} took ${dbDuration.toFixed(2)} ms (Cache Miss)`,
+      );
     }
 
-    // Fetch user votes for the thread and its replies
+    // 2. Fetch USER-SPECIFIC vote data (never cached)
     const targetIds = [thread._id, ...thread.replies.map((r: any) => r._id)];
     const userVotes = await UserVoteModel.find({
       userId: user.id,
@@ -157,40 +213,17 @@ export const ForumService = {
       return acc;
     }, {});
 
-    const allAuthors = [thread, ...thread.replies.map((r: any) => r)];
-    const studentAuthorIds = allAuthors
-      .filter((p) => p.authorRole === "student")
-      .map((p) => p.authorId);
-    const tutorAuthorIds = allAuthors
-      .filter((p) => p.authorRole === "tutor")
-      .map((p) => p.authorId);
-    const [studentAuthors, tutorAuthors] = await Promise.all([
-      StudentModel.find({ _id: { $in: studentAuthorIds } }).lean(),
-      TutorModel.find({ _id: { $in: tutorAuthorIds } }).lean(),
-    ]);
-    const authorMap = [...studentAuthors, ...tutorAuthors].reduce(
-      (acc: { [key: string]: any }, author) => {
-        acc[author._id.toString()] = formatAuthor(author);
-        return acc;
-      },
-      {},
-    );
-    const populatedThread = {
+    // 3. Combine base data and user-specific data
+    const finalPopulatedThread = {
       ...thread,
-      author: thread.isAnonymous ? null : authorMap[thread.authorId.toString()],
-      userVote: voteMap[thread._id.toString()] || 0, // Add user's vote to the main thread
+      userVote: voteMap[thread._id.toString()] || 0,
       replies: thread.replies.map((reply: any) => ({
         ...reply,
-        author: reply.isAnonymous ? null : authorMap[reply.authorId.toString()],
-        userVote: voteMap[reply._id.toString()] || 0, // Add user's vote to each reply
+        userVote: voteMap[reply._id.toString()] || 0,
       })),
     };
-    const dbDuration = performance.now() - dbStartTime;
-    logger.info(
-      `MongoDB retrieval for thread ${threadId} took ${dbDuration.toFixed(2)} ms`,
-    );
 
-    return populatedThread;
+    return finalPopulatedThread;
   },
 
   async createReply(user: User, threadId: string, data: any) {
@@ -256,6 +289,7 @@ export const ForumService = {
       replyCount: updatedReplyCount,
     });
 
+    await CacheService.del(FORUM_THREAD_CACHE_KEY(threadId));
     return populatedReply;
   },
 
@@ -333,6 +367,8 @@ export const ForumService = {
           ? targetId
           : // @ts-ignore
             targetDoc.postId.toString();
+
+      await CacheService.del(FORUM_THREAD_CACHE_KEY(parentThreadId));
 
       io.emit("vote_updated", {
         targetId,
