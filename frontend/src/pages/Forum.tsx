@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import CreatePostModal from "../components/forum/CreatePostModal";
 import "../components/forum/CreatePostModal.css";
-import { getForumThreads } from "../services/forumApi";
+import { getForumThreads, voteOnPost } from "../services/forumApi";
 import { useForumSocket } from "../hooks/useForumSocket";
 import { useAuthStore } from "../store/authStore";
 
@@ -76,9 +76,18 @@ const Forum = () => {
         );
       });
 
+      socket.on("vote_updated", ({ targetId, newScore }) => {
+        setThreads((prevThreads) =>
+          prevThreads.map((thread) =>
+            thread._id === targetId ? { ...thread, upvotes: newScore } : thread,
+          ),
+        );
+      });
+
       return () => {
         socket.off("new_post");
         socket.off("forum_reply_count_updated"); // Clean up new listener
+        socket.off("vote_updated");
       };
     }
   }, [socket]);
@@ -87,82 +96,86 @@ const Forum = () => {
   const handleUpvote = (threadId: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (!token) return;
 
     setThreads((prevThreads) =>
       prevThreads.map((thread) => {
         if (thread._id === threadId) {
-          // If already upvoted, remove the vote
-          if (thread.userVote === 1) {
-            return {
-              ...thread,
-              upvotes: thread.upvotes - 1,
-              userVote: 0,
-            };
+          const currentVote = thread.userVote;
+          let voteChange = 0;
+          let newUserVote = 0;
+
+          if (currentVote === 1) {
+            // User is removing their upvote
+            voteChange = -1;
+            newUserVote = 0;
+          } else if (currentVote === -1) {
+            // User is changing from downvote to upvote
+            voteChange = 2;
+            newUserVote = 1;
+          } else {
+            // User is adding a new upvote
+            voteChange = 1;
+            newUserVote = 1;
           }
-          // If downvoted, change to upvote (add 2 to account for removing downvote)
-          else if (thread.userVote === -1) {
-            return {
-              ...thread,
-              upvotes: thread.upvotes + 2,
-              userVote: 1,
-            };
-          }
-          // If no vote, add upvote
-          else {
-            return {
-              ...thread,
-              upvotes: thread.upvotes + 1,
-              userVote: 1,
-            };
-          }
+
+          return {
+            ...thread,
+            upvotes: thread.upvotes + voteChange,
+            userVote: newUserVote,
+          };
         }
         return thread;
       }),
     );
 
-    // Here you would typically make an API call to persist the vote
-    // upvoteThread(threadId);
+    voteOnPost(threadId, 1, token).catch((err) => {
+      console.error("Failed to upvote post", err);
+      // Here you could add logic to revert the optimistic UI update
+    });
   };
 
   // Handle downvote action
   const handleDownvote = (threadId: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (!token) return;
 
     setThreads((prevThreads) =>
       prevThreads.map((thread) => {
         if (thread._id === threadId) {
-          // If already downvoted, remove the vote
-          if (thread.userVote === -1) {
-            return {
-              ...thread,
-              upvotes: thread.upvotes + 1,
-              userVote: 0,
-            };
+          const currentVote = thread.userVote;
+          let voteChange = 0;
+          let newUserVote = 0;
+
+          if (currentVote === -1) {
+            // User is removing their downvote
+            voteChange = 1;
+            newUserVote = 0;
+          } else if (currentVote === 1) {
+            // User is changing from upvote to downvote
+            voteChange = -2;
+            newUserVote = -1;
+          } else {
+            // User is adding a new downvote
+            voteChange = -1;
+            newUserVote = -1;
           }
-          // If upvoted, change to downvote (subtract 2 to account for removing upvote)
-          else if (thread.userVote === 1) {
-            return {
-              ...thread,
-              upvotes: thread.upvotes - 2,
-              userVote: -1,
-            };
-          }
-          // If no vote, add downvote
-          else {
-            return {
-              ...thread,
-              upvotes: thread.upvotes - 1,
-              userVote: -1,
-            };
-          }
+
+          return {
+            ...thread,
+            upvotes: thread.upvotes + voteChange,
+            userVote: newUserVote,
+          };
         }
         return thread;
       }),
     );
 
-    // Here you would typically make an API call to persist the vote
-    // downvoteThread(threadId);
+    voteOnPost(threadId, -1, token).catch((err) => {
+      console.error("Failed to downvote post", err);
+      // Here you could add logic to revert the optimistic UI update
+    });
   };
 
   return (

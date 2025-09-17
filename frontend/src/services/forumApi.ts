@@ -35,3 +35,33 @@ export const createForumReply = async (
   );
   return response.data;
 };
+
+export const voteOnPost = async (
+  threadId: string,
+  voteType: number,
+  token: string,
+) => {
+  const response = await api.post(
+    `/forum/threads/${threadId}/vote`,
+    { voteType },
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  );
+  return response.data;
+};
+
+export const voteOnReply = async (
+  replyId: string,
+  voteType: number,
+  token: string,
+) => {
+  const response = await api.post(
+    `/forum/replies/${replyId}/vote`,
+    { voteType },
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  );
+  return response.data;
+};

@@ -727,6 +727,39 @@ This section outlines the complete, multi-phase implementation plan for the foru
 2.  **UI (`frontend/src/pages/Messages.tsx`):**
     - When a new message is received from the socket, append it to the message list in real-time.
 
+### Session 9: Forum Voting Backend & Auth Fixes
+
+- **Goal:** Implement the backend for the forum upvote/downvote feature and fix related persistence bugs.
+
+- **Backend (Voting Feature - Phase 1):**
+  - Created a new `UserVote` schema (`userVote.schema.ts`) to track individual user votes on posts and replies, ensuring a user can only vote once per item.
+  - Added two new authenticated API endpoints: `POST /api/forum/threads/:threadId/vote` and `POST /api/forum/replies/:replyId/vote`.
+  - Implemented a `castVote` method in `ForumService` using a database transaction to atomically handle vote creation, deletion (toggling a vote), and changing a vote (e.g., up to down). This service also prevents self-voting.
+  - Modified `getThreads` and `getThreadById` to be authenticated endpoints. They now query the `UserVote` collection to include the current user's vote status (`userVote: 1, -1, or 0`) on every post and reply returned to the frontend.
+
+- **Bug Fix (Forum Persistence):**
+  - Diagnosed and fixed a critical bug where new posts would disappear on refresh for the creator.
+  - The root cause was identified in the frontend: the API calls `getForumThreads` and `getForumThreadById` were not sending the user's authentication token, which the newly secured backend routes required.
+  - **Solution:** Modified the function signatures in `frontend/src/services/forumApi.ts` to accept the auth token and updated the components (`Forum.tsx` and `ForumTopic.tsx`) to provide it. This resolved all persistence and loading errors.
+  - As part of debugging, all Redis caching was removed from the forum's list and detail views to simplify the data flow and guarantee freshness, following patterns used elsewhere in the application.
+
+### Session 10: Forum Voting Frontend
+
+- **Goal:** Implement the frontend for the forum upvote/downvote feature (Phase 2), connecting it to the backend infrastructure.
+
+- **API Service (`forumApi.ts`):**
+  - Added new `voteOnPost` and `voteOnReply` functions to send vote data to the corresponding backend endpoints (`POST /api/forum/threads/:threadId/vote` and `POST /api/forum/replies/:replyId/vote`).
+
+- **Component Logic (`Forum.tsx` & `ForumTopic.tsx`):**
+  - Replaced the placeholder client-side voting logic in the `handleUpvote` and `handleDownvote` functions.
+  - The new implementation performs an "optimistic update" to the UI for immediate user feedback, then calls the new API functions to persist the vote.
+
+- **Real-Time Updates:**
+  - Implemented a WebSocket listener for the `vote_updated` event in both `Forum.tsx` and `ForumTopic.tsx`.
+  - This listener updates the vote scores on the relevant post or reply in real-time for all connected clients, ensuring a synchronized experience.
+
+- **Overall Result:** The forum voting feature is now complete, fully integrated, and provides a persistent, interactive, and real-time experience for users.
+
 ### Upvote/Downvote Feature Implementation Plan
 
 This section details the comprehensive plan for implementing upvote/downvote functionality for forum posts and replies, incorporating all discussions and decisions made.
