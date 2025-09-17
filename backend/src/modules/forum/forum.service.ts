@@ -9,7 +9,7 @@ import { StudentModel } from "../../schemas/students.schema";
 import { TutorModel } from "../../schemas/tutor.schema";
 import { io } from "../../config/socket";
 import type { User } from "../../types/User";
-import { HuggingFaceService } from "./huggingface.service";
+import ToxicityService from "./toxicity.service";
 import { HttpException } from "../../infra/http/HttpException";
 import { CacheService } from "../../services/cache.service";
 import { createLogger } from "../../config/logger";
@@ -49,12 +49,14 @@ export const ForumService = {
       }
     }
 
-    const analysis = await HuggingFaceService.analyzeText(
-      `${title} ${content}`,
-    );
-    console.log("Hugging Face Analysis:", analysis);
+    const analysis = await ToxicityService.checkToxicity(`${title} ${content}`);
+    console.log("Toxicity Analysis:", analysis);
 
-    if (HuggingFaceService.isToxic(analysis)) {
+    const isToxic = analysis.some(
+      (result: any) => result.label === "toxic" && result.score > 0.9,
+    );
+
+    if (isToxic) {
       throw new HttpException(400, "Your post has been flagged as toxic.");
     }
 
@@ -201,10 +203,14 @@ export const ForumService = {
       }
     }
 
-    const analysis = await HuggingFaceService.analyzeText(content);
-    console.log("Hugging Face Analysis for reply:", analysis);
+    const analysis = await ToxicityService.checkToxicity(content);
+    console.log("Toxicity Analysis for reply:", analysis);
 
-    if (HuggingFaceService.isToxic(analysis)) {
+    const isToxic = analysis.some(
+      (result: any) => result.label === "toxic" && result.score > 0.9,
+    );
+
+    if (isToxic) {
       throw new HttpException(400, "Your reply has been flagged as toxic.");
     }
 
