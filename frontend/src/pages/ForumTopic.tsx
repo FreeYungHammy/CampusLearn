@@ -33,10 +33,10 @@ const ForumTopic = () => {
 
   useEffect(() => {
     const fetchThread = async () => {
-      if (threadId) {
+      if (threadId && token) {
         try {
           setIsLoading(true);
-          const fetchedThread = await getForumThreadById(threadId);
+          const fetchedThread = await getForumThreadById(threadId, token);
           // Initialize vote counts for replies
           const threadWithVotes = {
             ...fetchedThread,

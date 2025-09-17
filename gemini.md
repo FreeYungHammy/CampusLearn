@@ -381,8 +381,6 @@ Result: Tutors with uploaded content now see their materials organized by subjec
 
 - **Overall Result:** The settings page is now fully functional, allowing users to securely update their profile picture, name, and password with a clear and responsive user interface. The backend is robust, with dedicated, secure endpoints for each action.
 
----
-
 ### Forum Feature Implementation
 
 ### Forum Feature Implementation
@@ -650,8 +648,6 @@ This section outlines the complete, multi-phase implementation plan for the foru
     - **`createReply` Logic:** After saving the new reply to the DB, add: `await redis.del(`thread:${threadId}`);`
     - This logic must be applied to any "write" operation (edit, delete, upvote, etc.).
 
----
-
 ### Future Features Plan
 
 ### Forgot Password Functionality
@@ -730,3 +726,164 @@ This section outlines the complete, multi-phase implementation plan for the foru
 
 2.  **UI (`frontend/src/pages/Messages.tsx`):**
     - When a new message is received from the socket, append it to the message list in real-time.
+
+### Upvote/Downvote Feature Implementation Plan
+
+This section details the comprehensive plan for implementing upvote/downvote functionality for forum posts and replies, incorporating all discussions and decisions made.
+
+**Requirements:**
+
+1.  **Upvote/Downvote Buttons:** Functionality for both.
+2.  **UI State:** Reflect user's current vote (upvoted, downvoted, or no vote).
+3.  **Persistence:** Votes must be saved to the database.
+4.  **Single Vote:** A user can only cast one vote (up or down) per post/reply.
+5.  **Vote Change:** Users can change their vote (e.g., from upvote to downvote, or remove a vote).
+6.  **No Self-Voting:** Users cannot upvote/downvote their own content.
+
+**Schema Analysis and Proposed Changes:**
+
+The existing `upvotes` field in `ForumPostSchema` and `ForumReplySchema` only stores the total net score. To enforce single-vote and vote-change rules, individual user votes must be tracked.
+
+**Decision:** Implement a new `UserVote` collection. This is the most robust and scalable solution for tracking individual user votes, allowing for easy checking of existing votes, updates, and aggregation.
+
+**Detailed Plan:**
+
+**Phase 1: Backend - Schema and API Endpoints**
+
+1.  **Create `UserVote.schema.ts`:**
+    - **File:** `backend/src/schemas/userVote.schema.ts` (new file)
+    - **Schema Definition:**
+
+      ```typescript
+      import { Schema, model, type InferSchemaType } from "mongoose";
+
+      const UserVoteSchema = new Schema(
+        {
+          userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+          targetId: { type: Schema.Types.ObjectId, required: true }, // Refers to ForumPost or ForumReply
+          targetType: {
+            type: String,
+            required: true,
+            enum: ["ForumPost", "ForumReply"],
+          },
+          voteType: { type: Number, required: true, enum: [1, -1] }, // 1 for upvote, -1 for downvote
+        },
+        { timestamps: true },
+      );
+
+      // Ensure a user can only vote once per target item
+      UserVoteSchema.index(
+        { userId: 1, targetId: 1, targetType: 1 },
+        { unique: true },
+      );
+
+      export type UserVoteDoc = InferSchemaType<typeof UserVoteSchema>;
+      export const UserVoteModel = model<UserVoteDoc>(
+        "UserVote",
+        UserVoteSchema,
+      );
+      ```
+
+2.  **Update `ForumPost.schema.ts` and `ForumReply.schema.ts`:**
+    - No functional changes to these schemas are required. The `upvotes` field will continue to exist and represent the net score, which will be updated by the `castVote` service method.
+    - **Action:** Add a comment to the `upvotes` field in both schemas to clarify its purpose as a derived net score from `UserVote` documents.
+
+3.  **Add new API Endpoints in `backend/src/modules/forum/index.ts`:**
+    - **Endpoint 1:** `POST /threads/:threadId/vote`
+      - **Purpose:** For authenticated users to cast votes on forum posts.
+      - **Protection:** Protected by `requireAuth` middleware.
+      - **Controller Method:** `ForumController.voteOnPost`
+    - **Endpoint 2:** `POST /replies/:replyId/vote`
+      - **Purpose:** For authenticated users to cast votes on forum replies.
+      - **Protection:** Protected by `requireAuth` middleware.
+      - **Controller Method:** `ForumController.voteOnReply`
+
+4.  **Implement `ForumController` methods (`forum.controller.ts`):**
+    - **`voteOnPost(req: AuthedRequest, res: Response)`:**
+      - Extract `threadId` from `req.params`.
+      - Extract `voteType` (1 or -1) from `req.body`.
+      - Get authenticated `user` from `req.user`.
+      - Validate `voteType` (must be 1 or -1).
+      - Call `ForumService.castVote(user, threadId, "ForumPost", voteType)`.
+      - Handle success (200 OK) and error responses (e.g., 400 for invalid input, 403 for self-voting, 404 for not found, 500 for unexpected errors).
+    - **`voteOnReply(req: AuthedRequest, res: Response)`:**
+      - Extract `replyId` from `req.params`.
+      - Extract `voteType` (1 or -1) from `req.body`.
+      - Get authenticated `user` from `req.user`.
+      - Validate `voteType`.
+      - Call `ForumService.castVote(user, replyId, "ForumReply", voteType)`.
+      - Handle success and error responses.
+
+5.  **Implement `ForumService.castVote` method (`forum.service.ts`):**
+    - **Signature:** `async castVote(user: User, targetId: string, targetType: 'ForumPost' | 'ForumReply', voteType: 1 | -1)`
+    - **Imports:** Ensure `mongoose`, `Types`, `UserVoteModel`, `ForumPostModel`, `ForumReplyModel`, `ForumPostDoc`, `ForumReplyDoc` are correctly imported.
+    - **Transaction:** Use Mongoose transactions (`session.startSession()`, `session.startTransaction()`, `session.commitTransaction()`, `session.abortTransaction()`) to ensure atomicity of vote operations.
+    - **Fetch Target Document:**
+      - Determine `Model` (ForumPostModel or ForumReplyModel) based on `targetType`.
+      - Fetch `targetDoc` (the post or reply being voted on) using `findById(targetId).session(session)`.
+      - If `targetDoc` is not found, throw a 404 `HttpException`.
+    - **No Self-Voting Check:**
+      - Compare `targetDoc.authorId.toString()` with `user.id`.
+      - If they match, throw a 403 `HttpException` ("You cannot vote on your own content.").
+    - **Find Existing Vote:**
+      - Query `UserVoteModel.findOne()` for a vote by `userId`, `targetId`, `targetType` within the current session.
+    - **Handle Vote Logic:**
+      - **If `existingVote` found:**
+        - **If `existingVote.voteType === voteType` (user clicks same vote again):**
+          - Delete the `UserVote` document (`UserVoteModel.deleteOne({ _id: existingVote._id }).session(session)`).
+          - `voteChange = -voteType;` (e.g., if un-upvoting, subtract 1; if un-downvoting, add 1).
+        - **If `existingVote.voteType !== voteType` (user changes vote, e.g., upvote to downvote):**
+          - Update `existingVote.voteType = voteType;` and `await existingVote.save({ session })`.
+          - `voteChange = voteType * 2;` (e.g., changing from -1 to 1 is a net change of +2; changing from 1 to -1 is a net change of -2).
+      - **If no `existingVote` found (new vote):**
+        - Create a new `UserVote` document (`UserVoteModel.create([{ ... }], { session })`).
+        - `voteChange = voteType;` (e.g., +1 for upvote, -1 for downvote).
+    - **Update Net Score:**
+      - Atomically update the `upvotes` field in the `ForumPost` or `ForumReply` document using `$inc`:
+        `await (Model as mongoose.Model<any>).findByIdAndUpdate(targetId, { $inc: { upvotes: voteChange } }, { new: true, session }).lean();`
+      - Store the result in `updatedTargetDoc`.
+    - **Cache Invalidation:**
+      - Invalidate `FORUM_THREADS_CACHE_KEY`.
+      - Invalidate the specific thread cache: `FORUM_THREAD_CACHE_KEY(targetType === "ForumPost" ? targetId : (targetDoc as ForumReplyDoc).postId.toString())`. (Using `targetDoc.postId` for replies to get the parent thread ID).
+    - **WebSocket Emission:**
+      - Emit a `vote_updated` event to notify clients in real-time about the vote change.
+      - Payload: `{ targetId, targetType, newUpvotes: updatedTargetDoc?.upvotes, userId: user.id, userVote: voteType }`.
+    - **Return:** The `updatedTargetDoc`.
+    - **Error Handling:** Catch errors, abort transaction, end session, and throw appropriate `HttpException`.
+
+**Phase 2: Frontend - UI and API Integration**
+
+1.  **Update `forumApi.ts`:**
+    - **`voteOnPost(threadId: string, voteType: 1 | -1, token: string)`:** Sends `POST` request to `/forum/threads/:threadId/vote`.
+    - **`voteOnReply(replyId: string, voteType: 1 | -1, token: string)`:** Sends `POST` request to `/forum/replies/:replyId/vote`.
+
+2.  **Update `Forum.tsx` (for posts):**
+    - **Modify `handleUpvote` and `handleDownvote`:**
+      - Call `forumApi.voteOnPost` with `thread._id` and `voteType`.
+      - Handle `try/catch` for API calls.
+    - **UI State Management:**
+      - The `threads` state will include a `userVote` property (0, 1, -1) for each thread.
+      - Update local `threads` state based on the API response or `vote_updated` WebSocket event.
+      - Apply CSS classes (`upvoted`, `downvoted`) to buttons based on `thread.userVote`.
+    - **WebSocket Listener:**
+      - Listen for `socket.on("vote_updated", (data) => { ... })`.
+      - Update the `upvotes` and `userVote` for the relevant thread in the `threads` state.
+
+3.  **Update `ForumTopic.tsx` (for replies):**
+    - **Modify `handleReplyUpvote` and `handleReplyDownvote`:**
+      - Call `forumApi.voteOnReply` with `reply._id` and `voteType`.
+      - Handle `try/catch` for API calls.
+    - **UI State Management:**
+      - The `thread.replies` state will include a `userVote` property for each reply.
+      - Update local `thread.replies` state based on the API response or `vote_updated` WebSocket event.
+      - Apply CSS classes (`upvoted`, `downvoted`) to buttons based on `reply.userVote`.
+    - **WebSocket Listener:**
+      - Listen for `socket.on("vote_updated", (data) => { ... })`.
+      - Update the `upvotes` and `userVote` for the relevant reply in the `thread.replies` state.
+
+4.  **Initial `userVote` state on load:**
+    - **Backend (`ForumService.getThreads()` and `ForumService.getThreadById()`):**
+      - When fetching threads/thread, perform an additional lookup in the `UserVote` collection for the currently authenticated user's vote on each post/reply.
+      - Include this `userVote` (1, -1, or 0 if no vote) in the returned data for each post/reply. This will require accessing `req.user` in `getThreads` and `getThreadById` (potentially requiring `requireAuth` for these endpoints or a separate authenticated endpoint for fetching user-specific vote data).
+
+This detailed plan covers all aspects of the upvote/downvote feature, from schema design to frontend UI and real-time updates, including the "no self-voting" rule and vote change logic.

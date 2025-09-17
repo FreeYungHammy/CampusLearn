@@ -4,6 +4,7 @@ import CreatePostModal from "../components/forum/CreatePostModal";
 import "../components/forum/CreatePostModal.css";
 import { getForumThreads } from "../services/forumApi";
 import { useForumSocket } from "../hooks/useForumSocket";
+import { useAuthStore } from "../store/authStore";
 
 const formatSubjectClass = (subject: string) => {
   const subjectMap: { [key: string]: string } = {
@@ -26,11 +27,13 @@ const Forum = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [threads, setThreads] = useState<any[]>([]);
   const socket = useForumSocket();
+  const { token } = useAuthStore();
 
   useEffect(() => {
     const fetchThreads = async () => {
+      if (!token) return;
       try {
-        const fetchedThreads = await getForumThreads();
+        const fetchedThreads = await getForumThreads(token);
         // Initialize vote counts for each thread
         const threadsWithVotes = fetchedThreads.map((thread) => ({
           ...thread,

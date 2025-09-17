@@ -4,7 +4,10 @@ import {
   ForumPostModel,
   type ForumPostDoc,
 } from "../../schemas/forumPost.schema";
-import { ForumReplyModel } from "../../schemas/forumReply.schema";
+import {
+  ForumReplyModel,
+  type ForumReplyDoc,
+} from "../../schemas/forumReply.schema";
 import { StudentModel } from "../../schemas/students.schema";
 import { TutorModel } from "../../schemas/tutor.schema";
 import { io } from "../../config/socket";
@@ -13,6 +16,8 @@ import { HuggingFaceService } from "./huggingface.service";
 import { HttpException } from "../../infra/http/HttpException";
 import { CacheService } from "../../services/cache.service";
 import { createLogger } from "../../config/logger";
+import { UserVoteModel } from "../../schemas/userVote.schema";
+import mongoose from "mongoose";
 
 const logger = createLogger("ForumService");
 const FORUM_THREADS_CACHE_KEY = "forum:threads:all";
@@ -81,25 +86,25 @@ export const ForumService = {
     };
 
     io.emit("new_post", populatedPostForEmit);
-    await CacheService.del(FORUM_THREADS_CACHE_KEY);
     return populatedPostForEmit;
   },
 
-  async getThreads() {
-    const startTime = performance.now();
-    const cachedThreads = await CacheService.get<any[]>(
-      FORUM_THREADS_CACHE_KEY,
-    );
-    if (cachedThreads) {
-      const duration = performance.now() - startTime;
-      logger.info(
-        `Redis retrieval for all threads took ${duration.toFixed(2)} ms (Cache Hit)`,
-      );
-      return cachedThreads;
-    }
-
+  async getThreads(user: User) {
     const dbStartTime = performance.now();
     const threads = await ForumPostModel.find().sort({ createdAt: -1 }).lean();
+
+    // Fetch user votes
+    const threadIds = threads.map((t) => t._id);
+    const userVotes = await UserVoteModel.find({
+      userId: user.id,
+      targetId: { $in: threadIds },
+      targetType: "ForumPost",
+    }).lean();
+    const voteMap = userVotes.reduce((acc: { [key: string]: any }, vote) => {
+      acc[vote.targetId.toString()] = vote.voteType;
+      return acc;
+    }, {});
+
     const studentAuthorIds = threads
       .filter((t) => t.authorRole === "student")
       .map((t) => t.authorId);
@@ -120,28 +125,17 @@ export const ForumService = {
     const populatedThreads = threads.map((thread) => ({
       ...thread,
       author: thread.isAnonymous ? null : authorMap[thread.authorId.toString()],
+      userVote: voteMap[thread._id.toString()] || 0, // Add user's vote
     }));
     const dbDuration = performance.now() - dbStartTime;
     logger.info(
-      `MongoDB retrieval for all threads took ${dbDuration.toFixed(2)} ms (Cache Miss)`,
+      `MongoDB retrieval for all threads took ${dbDuration.toFixed(2)} ms`,
     );
 
-    await CacheService.set(FORUM_THREADS_CACHE_KEY, populatedThreads, 900);
     return populatedThreads;
   },
 
-  async getThreadById(threadId: string) {
-    const cacheKey = FORUM_THREAD_CACHE_KEY(threadId);
-    const startTime = performance.now();
-    const cachedThread = await CacheService.get<any>(cacheKey);
-    if (cachedThread) {
-      const duration = performance.now() - startTime;
-      logger.info(
-        `Redis retrieval for thread ${threadId} took ${duration.toFixed(2)} ms (Cache Hit)`,
-      );
-      return cachedThread;
-    }
-
+  async getThreadById(threadId: string, user: User) {
     const dbStartTime = performance.now();
     const thread = await ForumPostModel.findById(threadId)
       .populate("replies")
@@ -149,6 +143,18 @@ export const ForumService = {
     if (!thread) {
       return null;
     }
+
+    // Fetch user votes for the thread and its replies
+    const targetIds = [thread._id, ...thread.replies.map((r: any) => r._id)];
+    const userVotes = await UserVoteModel.find({
+      userId: user.id,
+      targetId: { $in: targetIds },
+    }).lean();
+    const voteMap = userVotes.reduce((acc: { [key: string]: any }, vote) => {
+      acc[vote.targetId.toString()] = vote.voteType;
+      return acc;
+    }, {});
+
     const allAuthors = [thread, ...thread.replies.map((r: any) => r)];
     const studentAuthorIds = allAuthors
       .filter((p) => p.authorRole === "student")
@@ -170,17 +176,18 @@ export const ForumService = {
     const populatedThread = {
       ...thread,
       author: thread.isAnonymous ? null : authorMap[thread.authorId.toString()],
+      userVote: voteMap[thread._id.toString()] || 0, // Add user's vote to the main thread
       replies: thread.replies.map((reply: any) => ({
         ...reply,
         author: reply.isAnonymous ? null : authorMap[reply.authorId.toString()],
+        userVote: voteMap[reply._id.toString()] || 0, // Add user's vote to each reply
       })),
     };
     const dbDuration = performance.now() - dbStartTime;
     logger.info(
-      `MongoDB retrieval for thread ${threadId} took ${dbDuration.toFixed(2)} ms (Cache Miss)`,
+      `MongoDB retrieval for thread ${threadId} took ${dbDuration.toFixed(2)} ms`,
     );
 
-    await CacheService.set(cacheKey, populatedThread, 1800);
     return populatedThread;
   },
 
@@ -243,10 +250,96 @@ export const ForumService = {
       replyCount: updatedReplyCount,
     });
 
-    await CacheService.del([
-      FORUM_THREAD_CACHE_KEY(threadId),
-      FORUM_THREADS_CACHE_KEY,
-    ]);
     return populatedReply;
+  },
+
+  async castVote(
+    user: User,
+    targetId: string,
+    targetType: "ForumPost" | "ForumReply",
+    voteType: 1 | -1,
+  ) {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+      const Model = (
+        targetType === "ForumPost" ? ForumPostModel : ForumReplyModel
+      ) as mongoose.Model<any>;
+      const targetDoc = await Model.findById(targetId).session(session);
+
+      if (!targetDoc) {
+        throw new HttpException(404, `${targetType} not found`);
+      }
+
+      // @ts-ignore
+      if (targetDoc.authorId.toString() === user.id) {
+        throw new HttpException(403, "You cannot vote on your own content.");
+      }
+
+      const existingVote = await UserVoteModel.findOne({
+        userId: user.id,
+        targetId,
+        targetType,
+      }).session(session);
+
+      let voteChange = 0;
+
+      if (existingVote) {
+        if (existingVote.voteType === voteType) {
+          // User is removing their vote
+          await UserVoteModel.deleteOne({ _id: existingVote._id }).session(
+            session,
+          );
+          voteChange = -voteType; // e.g., if un-upvoting, subtract 1
+        } else {
+          // User is changing their vote
+          existingVote.voteType = voteType;
+          await existingVote.save({ session });
+          voteChange = voteType * 2; // e.g., from -1 to 1 is a change of +2
+        }
+      } else {
+        // New vote
+        await UserVoteModel.create(
+          [
+            {
+              userId: user.id,
+              targetId,
+              targetType,
+              voteType,
+            },
+          ],
+          { session },
+        );
+        voteChange = voteType;
+      }
+
+      const updatedTarget = (await Model.findByIdAndUpdate(
+        targetId,
+        { $inc: { upvotes: voteChange } },
+        { new: true, session },
+      ).lean()) as ForumPostDoc | ForumReplyDoc | null;
+
+      await session.commitTransaction();
+
+      // Invalidate cache and emit event after transaction commits
+      const parentThreadId =
+        targetType === "ForumPost"
+          ? targetId
+          : // @ts-ignore
+            targetDoc.postId.toString();
+
+      io.emit("vote_updated", {
+        targetId,
+        targetType,
+        newScore: updatedTarget?.upvotes,
+      });
+
+      return updatedTarget;
+    } catch (error) {
+      await session.abortTransaction();
+      throw error; // Re-throw the original error
+    } finally {
+      session.endSession();
+    }
   },
 };
