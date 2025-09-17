@@ -57,25 +57,35 @@ const FindTutors = () => {
 
         const studentSubjects = user.enrolledCourses || [];
 
-        const personalizedTutors = availableTutors.map((tutor) => {
-          const matchingSubjects = tutor.subjects.filter((subject) =>
-            studentSubjects.includes(subject),
-          ).length;
+        const personalizedTutors = availableTutors
+          .map((tutor) => {
+            const matchingSubjects = tutor.subjects.filter((subject) =>
+              studentSubjects.includes(subject),
+            ).length;
 
-          const ratingForCalc = (() => {
-            if (!tutor.rating || tutor.rating.count === 0) return 3.0;
-            if (typeof tutor.rating.totalScore === "number") {
-              return tutor.rating.totalScore / tutor.rating.count;
-            }
-            if (typeof (tutor.rating as any).average === "number") {
-              return (tutor.rating as any).average;
-            }
-            return 0.0;
-          })();
+            const ratingForCalc = (() => {
+              if (!tutor.rating || tutor.rating.count === 0) return 3.0;
+              if (typeof tutor.rating.totalScore === "number") {
+                return tutor.rating.totalScore / tutor.rating.count;
+              }
+              if (typeof (tutor.rating as any).average === "number") {
+                return (tutor.rating as any).average;
+              }
+              return 0.0;
+            })();
 
-          const relevanceScore = 3 * matchingSubjects + 2 * ratingForCalc;
-          return { ...tutor, relevanceScore };
-        });
+            // Only include tutors that have at least one matching subject
+            if (matchingSubjects === 0) {
+              return null;
+            }
+
+            const relevanceScore = 3 * matchingSubjects + 2 * ratingForCalc;
+            return { ...tutor, relevanceScore };
+          })
+          .filter(
+            (tutor): tutor is Tutor & { relevanceScore: number } =>
+              tutor !== null,
+          );
 
         personalizedTutors.sort((a, b) => b.relevanceScore - a.relevanceScore);
         setAllTutors(personalizedTutors);

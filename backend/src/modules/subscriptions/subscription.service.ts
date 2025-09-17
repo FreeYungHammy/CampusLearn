@@ -1,7 +1,8 @@
 import { SubscriptionRepo } from "./subscription.repo";
-import { StudentRepo } from "../students/student.repo";
+import { StudentService } from "../students/student.service";
 import { TutorRepo } from "../tutors/tutor.repo";
 import { CacheService } from "../../services/cache.service";
+import { TUTOR_CACHE_KEY } from "../tutors/tutor.service";
 
 const SUBSCRIBED_TUTORS_CACHE_KEY = (studentId: string) =>
   `subscriptions:student:${studentId}`;
@@ -24,7 +25,7 @@ export const SubscriptionService = {
     user: { id: string; role: string },
     tutorId: string,
   ) {
-    const student = await StudentRepo.findOne({ userId: user.id });
+    const student = await StudentService.byUser(user.id);
     if (!student) {
       const err = new Error("Student profile not found");
       err.name = "NotFound";
@@ -61,7 +62,7 @@ export const SubscriptionService = {
   },
 
   async getSubscribedTutors(studentUserId: string) {
-    const student = await StudentRepo.findOne({ userId: studentUserId });
+    const student = await StudentService.byUser(studentUserId);
     if (!student) {
       const err = new Error("Student profile not found");
       err.name = "NotFound";
@@ -80,7 +81,20 @@ export const SubscriptionService = {
 
     const formattedTutors = tutors.map(formatTutorForCache);
 
+    // Cache the list of subscribed tutors
     await CacheService.set(cacheKey, formattedTutors, 1800); // 30 minute TTL
+
+    // Also cache each individual tutor for faster access elsewhere
+    if (formattedTutors.length > 0) {
+      const promises = formattedTutors.map((tutor) => {
+        if (tutor && tutor.id) {
+          const individualTutorCacheKey = TUTOR_CACHE_KEY(tutor.id.toString());
+          return CacheService.set(individualTutorCacheKey, tutor, 1800);
+        }
+        return Promise.resolve();
+      });
+      await Promise.all(promises);
+    }
 
     return formattedTutors;
   },
@@ -99,7 +113,7 @@ export const SubscriptionService = {
   },
 
   async unsubscribe(user: { id: string }, tutorId: string) {
-    const student = await StudentRepo.findOne({ userId: user.id });
+    const student = await StudentService.byUser(user.id);
     if (!student) {
       const err = new Error("Student profile not found");
       err.name = "NotFound";
@@ -120,6 +134,9 @@ export const SubscriptionService = {
 
     // Invalidate the student's subscribed tutors list
     await CacheService.del(SUBSCRIBED_TUTORS_CACHE_KEY(student._id.toString()));
+
+    // Also invalidate the individual tutor's cache entry
+    await CacheService.del(TUTOR_CACHE_KEY(tutorId));
 
     return result;
   },

@@ -5,6 +5,7 @@ import {
   Model,
   FilterQuery,
   UpdateQuery,
+  Types,
 } from "mongoose";
 
 interface StudentModel extends Model<StudentDoc> {
@@ -59,7 +60,11 @@ StudentSchema.set("toJSON", {
 });
 StudentSchema.set("toObject", { virtuals: true });
 
-export type StudentDoc = InferSchemaType<typeof StudentSchema>;
+// Manually add the _id property to the type, as InferSchemaType doesn't always include it reliably.
+export type StudentDoc = InferSchemaType<typeof StudentSchema> & {
+  _id: Types.ObjectId;
+};
+
 export const StudentModel = model<StudentDoc, StudentModel>(
   "Student",
   StudentSchema,
