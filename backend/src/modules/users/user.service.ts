@@ -2,6 +2,7 @@ import bcrypt from "bcrypt";
 import { signJwt, verifyJwt } from "../../auth/jwt";
 import { UserRepo } from "./user.repo";
 import { StudentRepo } from "../students/student.repo";
+import { StudentService } from "../students/student.service";
 import { TutorRepo } from "../tutors/tutor.repo";
 import type { UserDoc } from "../../schemas/user.schema";
 import fs from "fs";
@@ -83,6 +84,8 @@ export const UserService = {
         enrolledCourses: input.subjects,
         pfp: defaultPfp,
       });
+      // Invalidate student cache on registration
+      await StudentService.invalidateCache(user._id.toString());
     } else if (input.role === "tutor") {
       await TutorRepo.create({
         userId: user._id,
@@ -151,6 +154,8 @@ export const UserService = {
 
     if (user.role === "student") {
       await StudentRepo.update({ userId }, { pfp: pfpData });
+      // Invalidate student cache on update
+      await StudentService.invalidateCache(userId);
     } else if (user.role === "tutor") {
       await TutorRepo.update({ userId }, { pfp: pfpData });
     }
@@ -167,6 +172,8 @@ export const UserService = {
 
     if (user.role === "student") {
       await StudentRepo.update({ userId }, profileData);
+      // Invalidate student cache on update
+      await StudentService.invalidateCache(userId);
     } else if (user.role === "tutor") {
       await TutorRepo.update({ userId }, profileData);
     }

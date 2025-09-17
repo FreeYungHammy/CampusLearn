@@ -2,20 +2,51 @@ import { TutorRepo } from "./tutor.repo";
 import type { TutorDoc } from "../../schemas/tutor.schema";
 import { CacheService } from "../../services/cache.service";
 
-const TUTOR_CACHE_KEY = (id: string) => `tutor:${id}`;
+export const TUTOR_CACHE_KEY = (id: string) => `tutor:${id}`;
 const TUTOR_BY_USER_CACHE_KEY = (userId: string) => `tutor:user:${userId}`;
 
-// Helper to format PFP and remove binary data before caching
-const formatTutorForCache = (tutor: any) => {
+/**
+ * Formats tutor data for display.
+ * - Converts the PFP data buffer to a base64 string for frontend rendering.
+ * - Handles the BSON Binary type that comes from aggregations.
+ */
+const formatTutorForDisplay = (tutor: any) => {
   if (!tutor) return null;
   const formatted = { ...tutor };
-  if (tutor.pfp && tutor.pfp.data instanceof Buffer) {
-    formatted.pfp = {
-      contentType: tutor.pfp.contentType,
-      data: tutor.pfp.data.toString("base64"),
-    };
+
+  if (tutor.pfp && tutor.pfp.data) {
+    // Data from a findOne/findById query is a Buffer.
+    // Data from an aggregate query is a BSON Binary object.
+    // We handle both by ensuring we have a buffer, then converting to base64.
+    const dataAsBuffer = tutor.pfp.data.buffer || tutor.pfp.data;
+
+    if (dataAsBuffer.length > 0) {
+      formatted.pfp = {
+        contentType: tutor.pfp.contentType,
+        data: Buffer.from(dataAsBuffer).toString("base64"),
+      };
+    } else {
+      delete formatted.pfp; // Remove pfp if data is empty
+    }
+  } else {
+    delete formatted.pfp; // Remove pfp if it exists but has no data
   }
   return formatted;
+};
+
+/**
+ * Prepares a cached tutor object for hydration.
+ * - Converts the base64 PFP data string back into a Buffer for Mongoose.
+ */
+const prepareForHydration = (cachedTutor: any) => {
+  if (
+    cachedTutor &&
+    cachedTutor.pfp &&
+    typeof cachedTutor.pfp.data === "string"
+  ) {
+    cachedTutor.pfp.data = Buffer.from(cachedTutor.pfp.data, "base64");
+  }
+  return cachedTutor;
 };
 
 export const TutorService = {
@@ -26,58 +57,66 @@ export const TutorService = {
     if (!input.subjects || input.subjects.length === 0)
       throw new Error("subjects required");
 
-    // No need to invalidate tutors:all anymore
     return TutorRepo.create(input);
   },
 
   async list() {
-    // Caching for the main list has been removed for robustness and user-specific filtering.
-    // The aggregation will run on every request to ensure correctness.
-    const tutors = await TutorRepo.findAllWithStudentCount();
-    const formattedTutors = tutors.map(formatTutorForCache);
+    console.time("Mongo retrieval time (All Tutors)");
+    const tutorsFromDb = await TutorRepo.findAllWithStudentCount();
+    console.timeEnd("Mongo retrieval time (All Tutors)");
 
-    // Proactively update the cache for each individual tutor.
-    // This warms the cache so that subsequent detail views are fast.
-    if (formattedTutors.length > 0) {
-      const promises = formattedTutors.map((tutor) => {
-        if (tutor && tutor.id) {
-          const cacheKey = TUTOR_CACHE_KEY(tutor.id.toString());
-          return CacheService.set(cacheKey, tutor, 1800); // 30 minute TTL
-        }
-        return Promise.resolve();
-      });
-      await Promise.all(promises);
-    }
+    const formattedTutors = tutorsFromDb.map(formatTutorForDisplay);
 
     return formattedTutors;
   },
 
   async get(id: string) {
     const cacheKey = TUTOR_CACHE_KEY(id);
-    const cachedTutor = await CacheService.get(cacheKey);
-    if (cachedTutor) return cachedTutor;
+    console.time(`Redis retrieval time (Tutor by ID: ${id})`);
+    let cachedTutor = await CacheService.get<any>(cacheKey);
+    console.timeEnd(`Redis retrieval time (Tutor by ID: ${id})`);
 
-    const tutor = await TutorRepo.findById(id);
-    if (tutor) {
-      const formattedTutor = formatTutorForCache(tutor.toObject());
-      await CacheService.set(cacheKey, formattedTutor, 1800); // 30 minute TTL
-      return formattedTutor;
+    if (cachedTutor) {
+      cachedTutor = prepareForHydration(cachedTutor);
+      return TutorRepo.hydrate(cachedTutor);
     }
-    return null;
+
+    console.time(`Mongo retrieval time (Tutor by ID: ${id})`);
+    const tutorFromDb = await TutorRepo.findById(id);
+    console.timeEnd(`Mongo retrieval time (Tutor by ID: ${id})`);
+
+    if (!tutorFromDb) return null;
+
+    const formattedTutor = formatTutorForDisplay(tutorFromDb.toObject());
+    await CacheService.set(cacheKey, formattedTutor, 1800);
+
+    // Return the hydrated document for consistency
+    const prepared = prepareForHydration(formattedTutor);
+    return TutorRepo.hydrate(prepared);
   },
 
   async byUser(userId: string) {
     const cacheKey = TUTOR_BY_USER_CACHE_KEY(userId);
-    const cachedTutor = await CacheService.get(cacheKey);
-    if (cachedTutor) return cachedTutor;
+    console.time(`Redis retrieval time (Tutor by User: ${userId})`);
+    let cachedTutor = await CacheService.get<any>(cacheKey);
+    console.timeEnd(`Redis retrieval time (Tutor by User: ${userId})`);
 
-    const tutor = await TutorRepo.findByUserId(userId);
-    if (tutor) {
-      const formattedTutor = formatTutorForCache(tutor.toObject());
-      await CacheService.set(cacheKey, formattedTutor, 1800); // 30 minute TTL
-      return formattedTutor;
+    if (cachedTutor) {
+      cachedTutor = prepareForHydration(cachedTutor);
+      return TutorRepo.hydrate(cachedTutor);
     }
-    return null;
+
+    console.time(`Mongo retrieval time (Tutor by User: ${userId})`);
+    const tutorFromDb = await TutorRepo.findByUserId(userId);
+    console.timeEnd(`Mongo retrieval time (Tutor by User: ${userId})`);
+
+    if (!tutorFromDb) return null;
+
+    const formattedTutor = formatTutorForDisplay(tutorFromDb.toObject());
+    await CacheService.set(cacheKey, formattedTutor, 1800);
+
+    const prepared = prepareForHydration(formattedTutor);
+    return TutorRepo.hydrate(prepared);
   },
 
   searchSubject(q: string) {
@@ -87,7 +126,6 @@ export const TutorService = {
   async update(id: string, patch: Partial<TutorDoc>) {
     const updatedTutor = await TutorRepo.updateById(id, { $set: patch });
     if (updatedTutor) {
-      // Invalidate only the specific tutor caches
       await CacheService.del([
         TUTOR_CACHE_KEY(id),
         TUTOR_BY_USER_CACHE_KEY(updatedTutor.userId.toString()),
