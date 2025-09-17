@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { getForumThreadById, createForumReply } from "../services/forumApi";
+import {
+  getForumThreadById,
+  createForumReply,
+  voteOnReply,
+} from "../services/forumApi";
 import { useAuthStore } from "../store/authStore";
 import { useForumSocket } from "../hooks/useForumSocket";
 
@@ -33,10 +37,10 @@ const ForumTopic = () => {
 
   useEffect(() => {
     const fetchThread = async () => {
-      if (threadId) {
+      if (threadId && token) {
         try {
           setIsLoading(true);
-          const fetchedThread = await getForumThreadById(threadId);
+          const fetchedThread = await getForumThreadById(threadId, token);
           // Initialize vote counts for replies
           const threadWithVotes = {
             ...fetchedThread,
@@ -75,8 +79,29 @@ const ForumTopic = () => {
         }));
       });
 
+      socket.on("vote_updated", ({ targetId, newScore }) => {
+        setThread((prevThread: any) => {
+          if (!prevThread) return null;
+
+          // Check if the main thread was voted on
+          const updatedThread = {
+            ...prevThread,
+            upvotes:
+              prevThread._id === targetId ? newScore : prevThread.upvotes,
+          };
+
+          // Check if a reply was voted on
+          updatedThread.replies = updatedThread.replies.map((reply: any) =>
+            reply._id === targetId ? { ...reply, upvotes: newScore } : reply,
+          );
+
+          return updatedThread;
+        });
+      });
+
       return () => {
         socket.off("new_reply");
+        socket.off("vote_updated");
       };
     }
   }, [socket]);
@@ -104,84 +129,78 @@ const ForumTopic = () => {
   const handleReplyUpvote = (replyId: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (!token) return;
 
     setThread((prevThread: any) => ({
       ...prevThread,
       replies: prevThread.replies.map((reply: any) => {
         if (reply._id === replyId) {
-          // If already upvoted, remove the vote
-          if (reply.userVote === 1) {
-            return {
-              ...reply,
-              upvotes: reply.upvotes - 1,
-              userVote: 0,
-            };
+          const currentVote = reply.userVote;
+          let voteChange = 0;
+          let newUserVote = 0;
+
+          if (currentVote === 1) {
+            voteChange = -1;
+            newUserVote = 0;
+          } else if (currentVote === -1) {
+            voteChange = 2;
+            newUserVote = 1;
+          } else {
+            voteChange = 1;
+            newUserVote = 1;
           }
-          // If downvoted, change to upvote (add 2 to account for removing downvote)
-          else if (reply.userVote === -1) {
-            return {
-              ...reply,
-              upvotes: reply.upvotes + 2,
-              userVote: 1,
-            };
-          }
-          // If no vote, add upvote
-          else {
-            return {
-              ...reply,
-              upvotes: reply.upvotes + 1,
-              userVote: 1,
-            };
-          }
+          return {
+            ...reply,
+            upvotes: reply.upvotes + voteChange,
+            userVote: newUserVote,
+          };
         }
         return reply;
       }),
     }));
 
-    // Here you would typically make an API call to persist the vote
-    // upvoteReply(replyId);
+    voteOnReply(replyId, 1, token).catch((err) => {
+      console.error("Failed to upvote reply", err);
+    });
   };
 
   // Handle downvote action for replies
   const handleReplyDownvote = (replyId: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (!token) return;
 
     setThread((prevThread: any) => ({
       ...prevThread,
       replies: prevThread.replies.map((reply: any) => {
         if (reply._id === replyId) {
-          // If already downvoted, remove the vote
-          if (reply.userVote === -1) {
-            return {
-              ...reply,
-              upvotes: reply.upvotes + 1,
-              userVote: 0,
-            };
+          const currentVote = reply.userVote;
+          let voteChange = 0;
+          let newUserVote = 0;
+
+          if (currentVote === -1) {
+            voteChange = 1;
+            newUserVote = 0;
+          } else if (currentVote === 1) {
+            voteChange = -2;
+            newUserVote = -1;
+          } else {
+            voteChange = -1;
+            newUserVote = -1;
           }
-          // If upvoted, change to downvote (subtract 2 to account for removing upvote)
-          else if (reply.userVote === 1) {
-            return {
-              ...reply,
-              upvotes: reply.upvotes - 2,
-              userVote: -1,
-            };
-          }
-          // If no vote, add downvote
-          else {
-            return {
-              ...reply,
-              upvotes: reply.upvotes - 1,
-              userVote: -1,
-            };
-          }
+          return {
+            ...reply,
+            upvotes: reply.upvotes + voteChange,
+            userVote: newUserVote,
+          };
         }
         return reply;
       }),
     }));
 
-    // Here you would typically make an API call to persist the vote
-    // downvoteReply(replyId);
+    voteOnReply(replyId, -1, token).catch((err) => {
+      console.error("Failed to downvote reply", err);
+    });
   };
 
   if (isLoading) {

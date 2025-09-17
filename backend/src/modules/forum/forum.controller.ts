@@ -19,18 +19,23 @@ export const ForumController = {
     }
   },
 
-  async getThreads(req: Request, res: Response) {
+  async getThreads(req: AuthedRequest, res: Response) {
     try {
-      const threads = await ForumService.getThreads();
+      const user = req.user as User;
+      const threads = await ForumService.getThreads(user);
       res.status(200).json(threads);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
   },
 
-  async getThreadById(req: Request, res: Response) {
+  async getThreadById(req: AuthedRequest, res: Response) {
     try {
-      const thread = await ForumService.getThreadById(req.params.threadId);
+      const user = req.user as User;
+      const thread = await ForumService.getThreadById(
+        req.params.threadId,
+        user,
+      );
       if (!thread) {
         return res.status(404).json({ message: "Thread not found" });
       }
@@ -49,6 +54,58 @@ export const ForumController = {
         req.body,
       );
       res.status(201).json(reply);
+    } catch (error: any) {
+      if (error instanceof HttpException) {
+        res.status(error.status).json({ message: error.message });
+      } else {
+        res.status(500).json({ message: "An unexpected error occurred." });
+      }
+    }
+  },
+
+  async voteOnPost(req: AuthedRequest, res: Response) {
+    try {
+      const user = req.user as User;
+      const { threadId } = req.params;
+      const { voteType } = req.body;
+
+      if (![1, -1].includes(voteType)) {
+        throw new HttpException(400, "Invalid vote type.");
+      }
+
+      const updatedPost = await ForumService.castVote(
+        user,
+        threadId,
+        "ForumPost",
+        voteType,
+      );
+      res.status(200).json(updatedPost);
+    } catch (error: any) {
+      if (error instanceof HttpException) {
+        res.status(error.status).json({ message: error.message });
+      } else {
+        res.status(500).json({ message: "An unexpected error occurred." });
+      }
+    }
+  },
+
+  async voteOnReply(req: AuthedRequest, res: Response) {
+    try {
+      const user = req.user as User;
+      const { replyId } = req.params;
+      const { voteType } = req.body;
+
+      if (![1, -1].includes(voteType)) {
+        throw new HttpException(400, "Invalid vote type.");
+      }
+
+      const updatedReply = await ForumService.castVote(
+        user,
+        replyId,
+        "ForumReply",
+        voteType,
+      );
+      res.status(200).json(updatedReply);
     } catch (error: any) {
       if (error instanceof HttpException) {
         res.status(error.status).json({ message: error.message });

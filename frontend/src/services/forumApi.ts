@@ -7,13 +7,17 @@ export const createForumPost = async (postData: any, token: string) => {
   return response.data;
 };
 
-export const getForumThreads = async () => {
-  const response = await api.get("/forum/threads");
+export const getForumThreads = async (token: string) => {
+  const response = await api.get("/forum/threads", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
   return response.data;
 };
 
-export const getForumThreadById = async (threadId: string) => {
-  const response = await api.get(`/forum/threads/${threadId}`);
+export const getForumThreadById = async (threadId: string, token: string) => {
+  const response = await api.get(`/forum/threads/${threadId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
   return response.data;
 };
 
@@ -25,6 +29,36 @@ export const createForumReply = async (
   const response = await api.post(
     `/forum/threads/${threadId}/replies`,
     replyData,
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  );
+  return response.data;
+};
+
+export const voteOnPost = async (
+  threadId: string,
+  voteType: number,
+  token: string,
+) => {
+  const response = await api.post(
+    `/forum/threads/${threadId}/vote`,
+    { voteType },
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  );
+  return response.data;
+};
+
+export const voteOnReply = async (
+  replyId: string,
+  voteType: number,
+  token: string,
+) => {
+  const response = await api.post(
+    `/forum/replies/${replyId}/vote`,
+    { voteType },
     {
       headers: { Authorization: `Bearer ${token}` },
     },
