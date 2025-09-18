@@ -22,6 +22,7 @@ import mongoose from "mongoose";
 const logger = createLogger("ForumService");
 const FORUM_THREADS_CACHE_KEY = "forum:threads:all";
 const FORUM_THREAD_CACHE_KEY = (id: string) => `forum:thread:${id}`;
+const PFP_CACHE_KEY = (role: string, id: string) => `pfp:${role}:${id}`;
 
 function formatAuthor(author: any) {
   if (!author) return null;
@@ -33,6 +34,45 @@ function formatAuthor(author: any) {
     };
   }
   return formatted;
+}
+
+function stripPfp(author: any) {
+  if (!author) return null;
+  const { pfp, ...rest } = author;
+  return rest;
+}
+
+async function getPfpFromCacheOrDb(
+  role: "student" | "tutor",
+  authorId: string,
+) {
+  const cacheKey = PFP_CACHE_KEY(role, authorId);
+  const cached = await CacheService.get<any>(cacheKey);
+  if (cached) return cached;
+
+  // Fetch only the pfp field from DB
+  let doc: any = null;
+  if (role === "student") {
+    doc = await StudentModel.findById(authorId, { pfp: 1 }).lean();
+  } else {
+    doc = await TutorModel.findById(authorId, { pfp: 1 }).lean();
+  }
+
+  if (!doc || !doc.pfp) {
+    await CacheService.set(cacheKey, null, 1800);
+    return null;
+  }
+
+  const pfp =
+    doc.pfp && doc.pfp.data instanceof Buffer
+      ? {
+          contentType: doc.pfp.contentType,
+          data: doc.pfp.data.toString("base64"),
+        }
+      : doc.pfp;
+
+  await CacheService.set(cacheKey, pfp, 1800);
+  return pfp;
 }
 
 export const ForumService = {
@@ -117,16 +157,57 @@ export const ForumService = {
       StudentModel.find({ _id: { $in: studentAuthorIds } }).lean(),
       TutorModel.find({ _id: { $in: tutorAuthorIds } }).lean(),
     ]);
-    const authorMap = [...studentAuthors, ...tutorAuthors].reduce(
+
+    // Base author map without pfp to avoid duplicating binary data in memory/cache
+    const baseAuthorMap = [...studentAuthors, ...tutorAuthors].reduce(
       (acc: { [key: string]: any }, author) => {
-        acc[author._id.toString()] = formatAuthor(author);
+        const formatted = formatAuthor(author);
+        acc[author._id.toString()] = stripPfp(formatted);
         return acc;
       },
       {},
     );
+
+    // Collect unique author refs for PFP fetch
+    const authorRefs = threads
+      .filter((t) => !t.isAnonymous)
+      .map((t) => ({
+        role: t.authorRole as "student" | "tutor",
+        id: t.authorId.toString(),
+      }));
+    const uniqueKeys = new Set<string>();
+    const uniqueRefs = authorRefs.filter((ref) => {
+      const key = `${ref.role}:${ref.id}`;
+      if (uniqueKeys.has(key)) return false;
+      uniqueKeys.add(key);
+      return true;
+    });
+    const pfpEntries = await Promise.all(
+      uniqueRefs.map(async (ref) => {
+        const pfp = await getPfpFromCacheOrDb(ref.role, ref.id);
+        return [`${ref.role}:${ref.id}`, pfp] as const;
+      }),
+    );
+    const pfpMap = pfpEntries.reduce(
+      (acc: any, [k, v]) => {
+        acc[k] = v;
+        return acc;
+      },
+      {} as Record<string, any>,
+    );
+
+    const enrichedAuthor = (role: string, authorId: any) => {
+      const base = baseAuthorMap[authorId.toString()];
+      if (!base) return null;
+      const pfp = pfpMap[`${role}:${authorId.toString()}`] || null;
+      return pfp ? { ...base, pfp } : base;
+    };
+
     const populatedThreads = threads.map((thread) => ({
       ...thread,
-      author: thread.isAnonymous ? null : authorMap[thread.authorId.toString()],
+      author: thread.isAnonymous
+        ? null
+        : enrichedAuthor(thread.authorRole, thread.authorId),
       userVote: voteMap[thread._id.toString()] || 0, // Add user's vote
     }));
     const dbDuration = performance.now() - dbStartTime;
@@ -180,16 +261,22 @@ export const ForumService = {
         {},
       );
 
+      const authorForThread = thread.isAnonymous
+        ? null
+        : authorMap[thread.authorId.toString()];
+
+      const repliesWithAuthors = thread.replies.map((reply: any) => ({
+        ...reply,
+        author: reply.isAnonymous ? null : authorMap[reply.authorId.toString()],
+      }));
+
+      // IMPORTANT: do not cache pfp with thread metadata
       const populatedThreadForCache = {
         ...thread,
-        author: thread.isAnonymous
-          ? null
-          : authorMap[thread.authorId.toString()],
-        replies: thread.replies.map((reply: any) => ({
-          ...reply,
-          author: reply.isAnonymous
-            ? null
-            : authorMap[reply.authorId.toString()],
+        author: authorForThread ? stripPfp(authorForThread) : null,
+        replies: repliesWithAuthors.map((r: any) => ({
+          ...r,
+          author: r.author ? stripPfp(r.author) : null,
         })),
       };
 
@@ -213,12 +300,60 @@ export const ForumService = {
       return acc;
     }, {});
 
-    // 3. Combine base data and user-specific data
+    // 3. Enrich authors with PFP from separate cache, then combine with user-specific data
+    const authorRefs: Array<{ role: "student" | "tutor"; id: string }> = [];
+    if (thread.author && !thread.isAnonymous) {
+      authorRefs.push({
+        role: thread.authorRole,
+        id: thread.authorId.toString(),
+      });
+    }
+    thread.replies.forEach((r: any) => {
+      if (r.author && !r.isAnonymous) {
+        authorRefs.push({ role: r.authorRole, id: r.authorId.toString() });
+      }
+    });
+
+    // Deduplicate author refs
+    const uniqueKeys = new Set<string>();
+    const uniqueRefs = authorRefs.filter((ref) => {
+      const key = `${ref.role}:${ref.id}`;
+      if (uniqueKeys.has(key)) return false;
+      uniqueKeys.add(key);
+      return true;
+    });
+
+    const pfpMapEntries = await Promise.all(
+      uniqueRefs.map(async (ref) => {
+        const pfp = await getPfpFromCacheOrDb(ref.role, ref.id);
+        return [`${ref.role}:${ref.id}`, pfp] as const;
+      }),
+    );
+    const pfpMap = pfpMapEntries.reduce(
+      (acc: any, [k, v]) => {
+        acc[k] = v;
+        return acc;
+      },
+      {} as Record<string, any>,
+    );
+
+    const enrichedAuthor = (role: string, authorId: any, baseAuthor: any) => {
+      if (!baseAuthor) return null;
+      const pfp = pfpMap[`${role}:${authorId.toString()}`] || null;
+      return pfp ? { ...baseAuthor, pfp } : baseAuthor;
+    };
+
     const finalPopulatedThread = {
       ...thread,
+      author: thread.isAnonymous
+        ? null
+        : enrichedAuthor(thread.authorRole, thread.authorId, thread.author),
       userVote: voteMap[thread._id.toString()] || 0,
       replies: thread.replies.map((reply: any) => ({
         ...reply,
+        author: reply.isAnonymous
+          ? null
+          : enrichedAuthor(reply.authorRole, reply.authorId, reply.author),
         userVote: voteMap[reply._id.toString()] || 0,
       })),
     };
