@@ -156,8 +156,20 @@ export const UserService = {
       await StudentRepo.update({ userId }, { pfp: pfpData });
       // Invalidate student cache on update
       await StudentService.invalidateCache(userId);
+      // Invalidate PFP cache used by forum responses
+      const student = await StudentRepo.findOne({ userId });
+      if (student) {
+        const key = `pfp:student:${(student as any)._id.toString()}`;
+        await CacheService.del(key);
+      }
     } else if (user.role === "tutor") {
       await TutorRepo.update({ userId }, { pfp: pfpData });
+      // Invalidate PFP cache used by forum responses
+      const tutor = await TutorRepo.findOne({ userId });
+      if (tutor) {
+        const key = `pfp:tutor:${(tutor as any)._id.toString()}`;
+        await CacheService.del(key);
+      }
     }
   },
 
