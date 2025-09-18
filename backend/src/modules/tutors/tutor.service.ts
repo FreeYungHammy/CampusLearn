@@ -77,6 +77,8 @@ export const TutorService = {
     console.timeEnd(`Redis retrieval time (Tutor by ID: ${id})`);
 
     if (cachedTutor) {
+      // Extend TTL on cache hit to keep frequently accessed tutors in cache
+      await CacheService.set(cacheKey, cachedTutor, 1800);
       cachedTutor = prepareForHydration(cachedTutor);
       return TutorRepo.hydrate(cachedTutor);
     }
@@ -102,6 +104,8 @@ export const TutorService = {
     console.timeEnd(`Redis retrieval time (Tutor by User: ${userId})`);
 
     if (cachedTutor) {
+      // Extend TTL on cache hit to keep frequently accessed tutors in cache
+      await CacheService.set(cacheKey, cachedTutor, 1800);
       cachedTutor = prepareForHydration(cachedTutor);
       return TutorRepo.hydrate(cachedTutor);
     }

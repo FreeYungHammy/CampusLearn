@@ -29,7 +29,11 @@ export const StudentService = {
   async get(id: string) {
     const cacheKey = STUDENT_CACHE_KEY(id);
     const cachedStudent = await CacheService.get(cacheKey);
-    if (cachedStudent) return cachedStudent;
+    if (cachedStudent) {
+      // Extend TTL on cache hit to keep frequently accessed students in cache
+      await CacheService.set(cacheKey, cachedStudent, 1800);
+      return cachedStudent;
+    }
 
     const student = await StudentRepo.findById(id);
     if (student) {
@@ -41,7 +45,11 @@ export const StudentService = {
   async getByUser(userId: string) {
     const cacheKey = STUDENT_BY_USER_CACHE_KEY(userId);
     const cachedStudent = await CacheService.get(cacheKey);
-    if (cachedStudent) return cachedStudent;
+    if (cachedStudent) {
+      // Extend TTL on cache hit to keep frequently accessed students in cache
+      await CacheService.set(cacheKey, cachedStudent, 1800);
+      return cachedStudent;
+    }
 
     const student = await StudentRepo.findByUserId(userId);
     if (student) {

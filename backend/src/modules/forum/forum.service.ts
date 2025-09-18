@@ -48,7 +48,11 @@ async function getPfpFromCacheOrDb(
 ) {
   const cacheKey = PFP_CACHE_KEY(role, authorId);
   const cached = await CacheService.get<any>(cacheKey);
-  if (cached) return cached;
+  if (cached) {
+    // Extend TTL on cache hit to keep frequently accessed PFPs in cache
+    await CacheService.set(cacheKey, cached, 1800);
+    return cached;
+  }
 
   // Fetch only the pfp field from DB
   let doc: any = null;
