@@ -34,11 +34,10 @@ const Forum = () => {
       if (!token) return;
       try {
         const fetchedThreads = await getForumThreads(token);
-        // Initialize vote counts for each thread
         const threadsWithVotes = fetchedThreads.map((thread) => ({
           ...thread,
           upvotes: thread.upvotes || 0,
-          userVote: thread.userVote || 0, // 0: no vote, 1: upvoted, -1: downvoted
+          userVote: thread.userVote || 0,
         }));
         setThreads(threadsWithVotes);
       } catch (error) {
@@ -47,13 +46,11 @@ const Forum = () => {
     };
 
     fetchThreads();
-  }, []);
+  }, [token]);
 
   useEffect(() => {
     if (socket) {
       socket.on("new_post", (newPost) => {
-        console.log("Received new_post event:", newPost);
-        // Initialize vote data for new posts
         const postWithVotes = {
           ...newPost,
           upvotes: newPost.upvotes || 0,
@@ -62,15 +59,11 @@ const Forum = () => {
         setThreads((prevThreads) => [postWithVotes, ...prevThreads]);
       });
 
-      // New listener for reply count updates
       socket.on("forum_reply_count_updated", ({ threadId, replyCount }) => {
-        console.log(
-          `Received forum_reply_count_updated for thread ${threadId}: new count ${replyCount}`,
-        );
         setThreads((prevThreads) =>
           prevThreads.map((thread) =>
             thread._id === threadId
-              ? { ...thread, replies: Array(replyCount).fill(null) } // Update replies array with new length
+              ? { ...thread, replies: Array(replyCount).fill(null) }
               : thread,
           ),
         );
@@ -86,13 +79,12 @@ const Forum = () => {
 
       return () => {
         socket.off("new_post");
-        socket.off("forum_reply_count_updated"); // Clean up new listener
+        socket.off("forum_reply_count_updated");
         socket.off("vote_updated");
       };
     }
   }, [socket]);
 
-  // Handle upvote action
   const handleUpvote = (threadId: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -106,15 +98,12 @@ const Forum = () => {
           let newUserVote = 0;
 
           if (currentVote === 1) {
-            // User is removing their upvote
             voteChange = -1;
             newUserVote = 0;
           } else if (currentVote === -1) {
-            // User is changing from downvote to upvote
             voteChange = 2;
             newUserVote = 1;
           } else {
-            // User is adding a new upvote
             voteChange = 1;
             newUserVote = 1;
           }
@@ -131,11 +120,9 @@ const Forum = () => {
 
     voteOnPost(threadId, 1, token).catch((err) => {
       console.error("Failed to upvote post", err);
-      // Here you could add logic to revert the optimistic UI update
     });
   };
 
-  // Handle downvote action
   const handleDownvote = (threadId: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -149,15 +136,12 @@ const Forum = () => {
           let newUserVote = 0;
 
           if (currentVote === -1) {
-            // User is removing their downvote
             voteChange = 1;
             newUserVote = 0;
           } else if (currentVote === 1) {
-            // User is changing from upvote to downvote
             voteChange = -2;
             newUserVote = -1;
           } else {
-            // User is adding a new downvote
             voteChange = -1;
             newUserVote = -1;
           }
@@ -174,7 +158,6 @@ const Forum = () => {
 
     voteOnPost(threadId, -1, token).catch((err) => {
       console.error("Failed to downvote post", err);
-      // Here you could add logic to revert the optimistic UI update
     });
   };
 
@@ -197,7 +180,6 @@ const Forum = () => {
       <div className="topics-list">
         {threads.map((thread) => (
           <div key={thread._id} className="topic-card">
-            {/* Voting section */}
             <div className="topic-vote">
               <button
                 onClick={(e) => handleUpvote(thread._id, e)}
@@ -238,17 +220,13 @@ const Forum = () => {
                 <div className="topic-author">
                   <div className="author-avatar">
                     {thread.isAnonymous ? (
-                      "A" // Default anonymous avatar initial
-                    ) : thread.author && thread.author.pfp ? (
+                      "A"
+                    ) : (
                       <img
-                        src={`data:${thread.author.pfp.contentType};base64,${thread.author.pfp.data}`}
+                        src={`/api/users/${thread.author.userId}/pfp`}
                         alt="Profile"
                         className="pfp-avatar"
                       />
-                    ) : thread.author ? (
-                      thread.author.name.charAt(0)
-                    ) : (
-                      "A"
                     )}
                   </div>
                   <div className="author-details">
@@ -256,8 +234,8 @@ const Forum = () => {
                       {thread.isAnonymous
                         ? "Anonymous"
                         : thread.author
-                          ? thread.author.name
-                          : "Anonymous"}
+                        ? thread.author.name
+                        : "Anonymous"}
                     </span>
                     <span className="post-time">
                       {new Date(thread.createdAt).toLocaleString()}

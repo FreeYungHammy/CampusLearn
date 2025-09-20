@@ -41,13 +41,12 @@ const ForumTopic = () => {
         try {
           setIsLoading(true);
           const fetchedThread = await getForumThreadById(threadId, token);
-          // Initialize vote counts for replies
           const threadWithVotes = {
             ...fetchedThread,
             replies: fetchedThread.replies.map((reply: any) => ({
               ...reply,
               upvotes: reply.upvotes || 0,
-              userVote: reply.userVote || 0, // 0: no vote, 1: upvoted, -1: downvoted
+              userVote: reply.userVote || 0,
             })),
           };
           setThread(threadWithVotes);
@@ -61,13 +60,11 @@ const ForumTopic = () => {
     };
 
     fetchThread();
-  }, [threadId]);
+  }, [threadId, token]);
 
   useEffect(() => {
     if (socket) {
       socket.on("new_reply", (newReply) => {
-        console.log("Received new_reply event:", newReply);
-        // Initialize vote data for new replies
         const replyWithVotes = {
           ...newReply,
           upvotes: newReply.upvotes || 0,
@@ -83,14 +80,12 @@ const ForumTopic = () => {
         setThread((prevThread: any) => {
           if (!prevThread) return null;
 
-          // Check if the main thread was voted on
           const updatedThread = {
             ...prevThread,
             upvotes:
               prevThread._id === targetId ? newScore : prevThread.upvotes,
           };
 
-          // Check if a reply was voted on
           updatedThread.replies = updatedThread.replies.map((reply: any) =>
             reply._id === targetId ? { ...reply, upvotes: newScore } : reply,
           );
@@ -125,7 +120,6 @@ const ForumTopic = () => {
     }
   };
 
-  // Handle upvote action for replies
   const handleReplyUpvote = (replyId: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -164,7 +158,6 @@ const ForumTopic = () => {
     });
   };
 
-  // Handle downvote action for replies
   const handleReplyDownvote = (replyId: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -230,7 +223,6 @@ const ForumTopic = () => {
 
   return (
     <div className="forum-container">
-      {/* Forum-specific Breadcrumb Navigation */}
       <div className="forum-breadcrumb-nav">
         <Link to="/forum" className="forum-breadcrumb-item">
           <i className="fas fa-comments"></i> Forum
@@ -239,7 +231,6 @@ const ForumTopic = () => {
         <span className="forum-breadcrumb-item active">{thread.title}</span>
       </div>
 
-      {/* Main Thread Content */}
       <div className="topic-card detailed-view">
         <div className="topic-content">
           <div className="topic-header">
@@ -265,16 +256,12 @@ const ForumTopic = () => {
               <div className="author-avatar">
                 {thread.isAnonymous ? (
                   <div className="anonymous-avatar">A</div>
-                ) : thread.author && thread.author.pfp ? (
+                ) : (
                   <img
-                    src={`data:${thread.author.pfp.contentType};base64,${thread.author.pfp.data}`}
+                    src={`/api/users/${thread.author.userId}/pfp`}
                     alt="Profile"
                     className="pfp-avatar"
                   />
-                ) : thread.author ? (
-                  thread.author.name.charAt(0)
-                ) : (
-                  <div className="anonymous-avatar">A</div>
                 )}
               </div>
               <div className="author-details">
@@ -282,8 +269,8 @@ const ForumTopic = () => {
                   {thread.isAnonymous
                     ? "Anonymous"
                     : thread.author
-                      ? thread.author.name
-                      : "Anonymous"}
+                    ? thread.author.name
+                    : "Anonymous"}
                 </span>
                 <span className="post-time">
                   {new Date(thread.createdAt).toLocaleString()}
@@ -294,7 +281,6 @@ const ForumTopic = () => {
         </div>
       </div>
 
-      {/* Reply Form - Now placed above comments */}
       <div className="reply-form-container card">
         <div className="card-header">
           <h3>
@@ -333,7 +319,6 @@ const ForumTopic = () => {
         </div>
       </div>
 
-      {/* Replies Section */}
       <div className="replies-section">
         <div className="section-header">
           <h3>
@@ -352,11 +337,12 @@ const ForumTopic = () => {
           <div className="replies-list">
             {thread.replies.map((reply: any) => (
               <div key={reply._id} className="reply-card">
-                {/* Voting section for replies */}
                 <div className="reply-vote">
                   <button
                     onClick={(e) => handleReplyUpvote(reply._id, e)}
-                    className={`upvote-btn ${reply.userVote === 1 ? "upvoted" : ""}`}
+                    className={`upvote-btn ${
+                      reply.userVote === 1 ? "upvoted" : ""
+                    }`}
                     aria-label="Upvote"
                   >
                     <i className="fas fa-arrow-up"></i>
@@ -364,7 +350,9 @@ const ForumTopic = () => {
                   <span className="vote-count">{reply.upvotes}</span>
                   <button
                     onClick={(e) => handleReplyDownvote(reply._id, e)}
-                    className={`downvote-btn ${reply.userVote === -1 ? "downvoted" : ""}`}
+                    className={`downvote-btn ${
+                      reply.userVote === -1 ? "downvoted" : ""
+                    }`}
                     aria-label="Downvote"
                   >
                     <i className="fas fa-arrow-down"></i>
@@ -379,16 +367,12 @@ const ForumTopic = () => {
                     <div className="author-avatar small">
                       {reply.isAnonymous ? (
                         <div className="anonymous-avatar">A</div>
-                      ) : reply.author && reply.author.pfp ? (
+                      ) : (
                         <img
-                          src={`data:${reply.author.pfp.contentType};base64,${reply.author.pfp.data}`}
+                          src={`/api/users/${reply.author.userId}/pfp`}
                           alt="Profile"
                           className="pfp-avatar"
                         />
-                      ) : reply.author ? (
-                        reply.author.name.charAt(0)
-                      ) : (
-                        <div className="anonymous-avatar">A</div>
                       )}
                     </div>
                     <div className="author-details">
@@ -396,8 +380,8 @@ const ForumTopic = () => {
                         {reply.isAnonymous
                           ? "Anonymous"
                           : reply.author
-                            ? reply.author.name
-                            : "Anonymous"}
+                          ? reply.author.name
+                          : "Anonymous"}
                       </span>
                       <span className="post-time">
                         {new Date(reply.createdAt).toLocaleString()}

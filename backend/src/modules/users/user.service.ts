@@ -9,6 +9,11 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import { CacheService } from "../../services/cache.service";
+import { HttpException } from "../../infra/http/HttpException";
+import { createLogger } from "../../config/logger";
+
+const logger = createLogger("UserService");
+const sharp = require('sharp');
 
 const ALLOWED_EMAIL_DOMAIN = "@student.belgiumcampus.ac.za";
 
@@ -140,6 +145,50 @@ export const UserService = {
     return { token, user: userWithProfile };
   },
 
+  async getPfp(userId: string) {
+    const cacheKey = `pfp:user:${userId}`;
+
+    const cachedPfp = await CacheService.get<{ data: string; contentType: string }>(cacheKey);
+    if (cachedPfp) {
+      if (cachedPfp.data) {
+        return {
+          ...cachedPfp,
+          data: Buffer.from(cachedPfp.data, "base64"),
+        };
+      }
+      return null; // Cached null
+    }
+
+    const user = await UserRepo.findById(userId);
+    if (!user) {
+      await CacheService.set(cacheKey, null, 300);
+      return null;
+    }
+
+    let profile: { pfp?: { data: Buffer; contentType: string } } | null = null;
+    if (user.role === "student") {
+      profile = await StudentRepo.findOne({ userId: user._id }, { pfp: 1 });
+    } else if (user.role === "tutor") {
+      profile = await TutorRepo.findOne({ userId: user._id }, { pfp: 1 });
+    }
+
+    const pfp = profile?.pfp || null;
+
+    console.log("PFP object before caching:", pfp);
+
+    if (pfp && pfp.data) {
+      const pfpToCache = {
+        ...pfp,
+        data: pfp.data.toString("base64"),
+      };
+      await CacheService.set(cacheKey, pfpToCache, 1800);
+    } else {
+      await CacheService.set(cacheKey, null, 300);
+    }
+
+    return pfp;
+  },
+
   async updatePfp(userId: string, pfp: string) {
     const user = await UserRepo.findById(userId);
     if (!user) throw new Error("User not found");
@@ -147,10 +196,39 @@ export const UserService = {
     const [meta, data] = pfp.split(",");
     const contentType = meta.split(";")[0].split(":")[1];
 
+    const ALLOWED_IMAGE_MIME_TYPES = [
+      "image/jpeg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+      "image/bmp",
+      "image/svg+xml",
+    ];
+
+    if (!ALLOWED_IMAGE_MIME_TYPES.includes(contentType)) {
+      throw new HttpException(400, `Unsupported image type: ${contentType}. Only JPEG, PNG, GIF, WEBP, BMP, SVG are allowed.`);
+    }
+
     const pfpData = {
       data: Buffer.from(data, "base64"),
       contentType,
     };
+
+    // Resize image using sharp
+    try {
+      const originalSize = pfpData.data.length;
+      const resizedBuffer = await sharp(pfpData.data)
+        .resize(250, 250, { fit: "inside", withoutEnlargement: true })
+        .toBuffer();
+      pfpData.data = resizedBuffer;
+      const resizedSize = pfpData.data.length;
+      const savedPercentage = ((originalSize - resizedSize) / originalSize) * 100;
+      logger.info(`PFP resized: Original size ${originalSize} bytes, Resized size ${resizedSize} bytes. Saved ${savedPercentage.toFixed(2)}%`);
+    } catch (error) {
+      logger.error("Error resizing PFP:", error);
+      // Optionally, throw an error or use original image if resizing fails
+      // For now, we'll proceed with the original if resizing fails
+    }
 
     if (user.role === "student") {
       await StudentRepo.update({ userId }, { pfp: pfpData });

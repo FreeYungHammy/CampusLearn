@@ -60,9 +60,7 @@ const MyTutors = () => {
       ) : (
         <div className="tutor-grid">
           {tutors.map((tutor) => {
-            const pfpSrc = tutor.pfp
-              ? `data:${tutor.pfp.contentType};base64,${tutor.pfp.data}`
-              : "https://randomuser.me/api/portraits/men/32.jpg"; // Default avatar
+            const pfpSrc = `/api/users/${tutor.userId}/pfp`;
 
             return (
               <div key={tutor.id} className="tutor-card">

@@ -79,7 +79,11 @@ export const SubscriptionService = {
       student._id.toString(),
     );
 
-    const formattedTutors = tutors.map(formatTutorForCache);
+    const formattedTutors = tutors.map((tutor) => {
+      if (!tutor) return null;
+      const { pfp, ...rest } = tutor.toObject ? tutor.toObject() : tutor;
+      return rest;
+    }).filter(Boolean);
 
     // Cache the list of subscribed tutors
     await CacheService.set(cacheKey, formattedTutors, 1800); // 30 minute TTL

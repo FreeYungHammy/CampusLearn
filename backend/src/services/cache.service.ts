@@ -8,10 +8,10 @@ export const CacheService = {
     try {
       const data = await redis.get(key);
       if (data) {
-        logger.debug(`Cache hit for key: ${key}`);
+        // logger.debug(`Cache hit for key: ${key}`);
         return JSON.parse(data) as T;
       }
-      logger.debug(`Cache miss for key: ${key}`);
+      // logger.debug(`Cache miss for key: ${key}`);
       return null;
     } catch (error) {
       logger.error(`Error getting from cache for key ${key}:`, error);
@@ -24,6 +24,7 @@ export const CacheService = {
     value: T,
     ttlSeconds: number = 3600,
   ): Promise<void> {
+    logger.info(`Attempting to set cache for key: ${key}`);
     try {
       await redis.setex(key, ttlSeconds, JSON.stringify(value));
       logger.debug(`Cache set for key: ${key} with TTL: ${ttlSeconds}s`);

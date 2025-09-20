@@ -65,7 +65,10 @@ export const TutorService = {
     const tutorsFromDb = await TutorRepo.findAllWithStudentCount();
     console.timeEnd("Mongo retrieval time (All Tutors)");
 
-    const formattedTutors = tutorsFromDb.map(formatTutorForDisplay);
+    const formattedTutors = tutorsFromDb.map((tutor) => {
+      const { pfp, ...rest } = tutor;
+      return rest;
+    });
 
     return formattedTutors;
   },
