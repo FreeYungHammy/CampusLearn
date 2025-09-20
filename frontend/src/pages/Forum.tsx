@@ -221,16 +221,12 @@ const Forum = () => {
                   <div className="author-avatar">
                     {thread.isAnonymous ? (
                       "A"
-                    ) : thread.author && thread.author.userId ? (
+                    ) : (
                       <img
                         src={`/api/users/${thread.author.userId}/pfp`}
                         alt="Profile"
                         className="pfp-avatar"
                       />
-                    ) : thread.author ? (
-                      thread.author.name.charAt(0)
-                    ) : (
-                      "A"
                     )}
                   </div>
                   <div className="author-details">
