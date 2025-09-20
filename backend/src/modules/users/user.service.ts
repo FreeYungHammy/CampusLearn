@@ -140,6 +140,48 @@ export const UserService = {
     return { token, user: userWithProfile };
   },
 
+  async getPfp(userId: string) {
+    const cacheKey = `pfp:user:${userId}`;
+
+    const cachedPfp = await CacheService.get<{ data: string; contentType: string }>(cacheKey);
+    if (cachedPfp) {
+      if (cachedPfp.data) {
+        return {
+          ...cachedPfp,
+          data: Buffer.from(cachedPfp.data, "base64"),
+        };
+      }
+      return null; // Cached null
+    }
+
+    const user = await UserRepo.findById(userId);
+    if (!user) {
+      await CacheService.set(cacheKey, null, 300);
+      return null;
+    }
+
+    let profile: { pfp?: { data: Buffer; contentType: string } } | null = null;
+    if (user.role === "student") {
+      profile = await StudentRepo.findOne({ userId: user._id }, { pfp: 1 });
+    } else if (user.role === "tutor") {
+      profile = await TutorRepo.findOne({ userId: user._id }, { pfp: 1 });
+    }
+
+    const pfp = profile?.pfp || null;
+
+    if (pfp && pfp.data) {
+      const pfpToCache = {
+        ...pfp,
+        data: pfp.data.toString("base64"),
+      };
+      await CacheService.set(cacheKey, pfpToCache, 1800);
+    } else {
+      await CacheService.set(cacheKey, null, 300);
+    }
+
+    return pfp;
+  },
+
   async updatePfp(userId: string, pfp: string) {
     const user = await UserRepo.findById(userId);
     if (!user) throw new Error("User not found");

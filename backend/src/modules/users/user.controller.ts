@@ -84,6 +84,19 @@ export const UserController = {
     }
   },
 
+  getPfp: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const pfp = await UserService.getPfp(req.params.userId);
+      if (!pfp || !pfp.data) {
+        return res.status(404).json({ message: "Profile picture not found" });
+      }
+      res.setHeader("Content-Type", pfp.contentType);
+      res.send(pfp.data);
+    } catch (e) {
+      next(e);
+    }
+  },
+
   list: async (_: Request, res: Response, next: NextFunction) => {
     try {
       const users = await UserService.list();

@@ -265,9 +265,9 @@ const ForumTopic = () => {
               <div className="author-avatar">
                 {thread.isAnonymous ? (
                   <div className="anonymous-avatar">A</div>
-                ) : thread.author && thread.author.pfp ? (
+                ) : thread.author && thread.author.userId ? (
                   <img
-                    src={`data:${thread.author.pfp.contentType};base64,${thread.author.pfp.data}`}
+                    src={`/api/users/${thread.author.userId}/pfp`}
                     alt="Profile"
                     className="pfp-avatar"
                   />
@@ -379,9 +379,9 @@ const ForumTopic = () => {
                     <div className="author-avatar small">
                       {reply.isAnonymous ? (
                         <div className="anonymous-avatar">A</div>
-                      ) : reply.author && reply.author.pfp ? (
+                      ) : reply.author && reply.author.userId ? (
                         <img
-                          src={`data:${reply.author.pfp.contentType};base64,${reply.author.pfp.data}`}
+                          src={`/api/users/${reply.author.userId}/pfp`}
                           alt="Profile"
                           className="pfp-avatar"
                         />

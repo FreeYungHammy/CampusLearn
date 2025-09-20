@@ -8,10 +8,10 @@ export const CacheService = {
     try {
       const data = await redis.get(key);
       if (data) {
-        logger.debug(`Cache hit for key: ${key}`);
+        // logger.debug(`Cache hit for key: ${key}`);
         return JSON.parse(data) as T;
       }
-      logger.debug(`Cache miss for key: ${key}`);
+      // logger.debug(`Cache miss for key: ${key}`);
       return null;
     } catch (error) {
       logger.error(`Error getting from cache for key ${key}:`, error);
