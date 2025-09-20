@@ -9,6 +9,11 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import { CacheService } from "../../services/cache.service";
+import { HttpException } from "../../infra/http/HttpException";
+import { createLogger } from "../../config/logger";
+
+const logger = createLogger("UserService");
+const sharp = require('sharp');
 
 const ALLOWED_EMAIL_DOMAIN = "@student.belgiumcampus.ac.za";
 
@@ -191,10 +196,39 @@ export const UserService = {
     const [meta, data] = pfp.split(",");
     const contentType = meta.split(";")[0].split(":")[1];
 
+    const ALLOWED_IMAGE_MIME_TYPES = [
+      "image/jpeg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+      "image/bmp",
+      "image/svg+xml",
+    ];
+
+    if (!ALLOWED_IMAGE_MIME_TYPES.includes(contentType)) {
+      throw new HttpException(400, `Unsupported image type: ${contentType}. Only JPEG, PNG, GIF, WEBP, BMP, SVG are allowed.`);
+    }
+
     const pfpData = {
       data: Buffer.from(data, "base64"),
       contentType,
     };
+
+    // Resize image using sharp
+    try {
+      const originalSize = pfpData.data.length;
+      const resizedBuffer = await sharp(pfpData.data)
+        .resize(250, 250, { fit: "inside", withoutEnlargement: true })
+        .toBuffer();
+      pfpData.data = resizedBuffer;
+      const resizedSize = pfpData.data.length;
+      const savedPercentage = ((originalSize - resizedSize) / originalSize) * 100;
+      logger.info(`PFP resized: Original size ${originalSize} bytes, Resized size ${resizedSize} bytes. Saved ${savedPercentage.toFixed(2)}%`);
+    } catch (error) {
+      logger.error("Error resizing PFP:", error);
+      // Optionally, throw an error or use original image if resizing fails
+      // For now, we'll proceed with the original if resizing fails
+    }
 
     if (user.role === "student") {
       await StudentRepo.update({ userId }, { pfp: pfpData });
