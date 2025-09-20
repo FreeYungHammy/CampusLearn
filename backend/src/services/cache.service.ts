@@ -24,6 +24,7 @@ export const CacheService = {
     value: T,
     ttlSeconds: number = 3600,
   ): Promise<void> {
+    logger.info(`Attempting to set cache for key: ${key}`);
     try {
       await redis.setex(key, ttlSeconds, JSON.stringify(value));
       logger.debug(`Cache set for key: ${key} with TTL: ${ttlSeconds}s`);

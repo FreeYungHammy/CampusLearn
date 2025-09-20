@@ -85,12 +85,14 @@ export const UserController = {
   },
 
   getPfp: async (req: Request, res: Response, next: NextFunction) => {
+    console.log("UserController.getPfp called for userId:", req.params.userId);
     try {
       const pfp = await UserService.getPfp(req.params.userId);
       if (!pfp || !pfp.data) {
         return res.status(404).json({ message: "Profile picture not found" });
       }
       res.setHeader("Content-Type", pfp.contentType);
+      res.setHeader("Cache-Control", "public, max-age=1800"); // 30 minute browser cache
       res.send(pfp.data);
     } catch (e) {
       next(e);

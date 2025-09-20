@@ -303,7 +303,7 @@ export const ForumService = {
 
     const populatedReply = {
       ...newReply.toObject(),
-      author: formatAuthor(authorProfile),
+      author: stripPfp(formatAuthor(authorProfile)),
     };
 
     io.to(threadId).emit("new_reply", populatedReply);

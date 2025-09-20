@@ -169,6 +169,8 @@ export const UserService = {
 
     const pfp = profile?.pfp || null;
 
+    console.log("PFP object before caching:", pfp);
+
     if (pfp && pfp.data) {
       const pfpToCache = {
         ...pfp,
