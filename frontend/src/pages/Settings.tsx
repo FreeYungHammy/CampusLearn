@@ -460,7 +460,7 @@ const Settings = () => {
                       }[subject]
                     }`}
                   ></i>
-                  {subject}
+                  <span className="subject-text">{subject}</span>
                 </label>
               </div>
             ))}

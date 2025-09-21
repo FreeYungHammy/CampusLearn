@@ -305,7 +305,7 @@ const Register = () => {
                       }
                     `}
                     ></i>
-                    {subject}
+                    <span className="subject-text">{subject}</span>
                   </label>
                 </div>
               ))}
