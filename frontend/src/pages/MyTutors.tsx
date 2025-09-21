@@ -10,7 +10,7 @@ import type { Tutor } from "../types/Tutors";
 const MyTutors = () => {
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { user, token } = useAuthStore();
+  const { user, token, pfpTimestamp } = useAuthStore();
 
   const handleUnsubscribe = async (tutorId: string) => {
     if (!token) return;
@@ -60,7 +60,7 @@ const MyTutors = () => {
       ) : (
         <div className="tutor-grid">
           {tutors.map((tutor) => {
-            const pfpSrc = `/api/users/${tutor.userId}/pfp`;
+            const pfpSrc = `/api/users/${tutor.userId}/pfp?t=${pfpTimestamp}`;
 
             return (
               <div key={tutor.id} className="tutor-card">

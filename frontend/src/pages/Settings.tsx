@@ -30,11 +30,15 @@ const Settings = () => {
   const [showSubjectsModal, setShowSubjectsModal] = useState(false);
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
 
-  const { user, token, setUser } = useAuthStore((state) => ({
-    user: state.user,
-    token: state.token,
-    setUser: state.setUser,
-  }));
+  const { user, token, setUser, pfpTimestamp, refreshPfpTimestamp } = useAuthStore(
+    (state) => ({
+      user: state.user,
+      token: state.token,
+      setUser: state.setUser,
+      pfpTimestamp: state.pfpTimestamp,
+      refreshPfpTimestamp: state.refreshPfpTimestamp,
+    }),
+  );
 
   const checkPasswordStrength = (password: string) => {
     let strength = 0;
@@ -172,6 +176,7 @@ const Settings = () => {
         pfp: { data: base64Data, contentType: profilePicture.type },
       };
       setUser(updatedUser);
+      refreshPfpTimestamp(); // Bust the cache
       setPreview(null);
     } catch (error) {
       setUploadError("Failed to upload profile picture. Please try again.");
@@ -195,6 +200,8 @@ const Settings = () => {
     }
     return <span style={{ color: "var(--secondary)" }}>Strong</span>;
   };
+
+  const pfpUrl = user ? `/api/users/${user.id}/pfp?t=${pfpTimestamp}` : "";
 
   return (
     <>
@@ -228,12 +235,7 @@ const Settings = () => {
           </div>
           <div className="profile-picture-section">
             <img
-              src={
-                preview ||
-                (user?.pfp?.data
-                  ? `data:${user.pfp.contentType};base64,${user.pfp.data}`
-                  : "https://via.placeholder.com/150")
-              }
+              src={preview || pfpUrl || "https://via.placeholder.com/150"}
               alt="Profile"
               className="profile-avatar"
             />

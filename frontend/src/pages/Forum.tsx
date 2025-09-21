@@ -33,7 +33,7 @@ const Forum = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [threads, setThreads] = useState<any[]>([]);
   const socket = useForumSocket();
-  const { token, user } = useAuthStore();
+  const { token, user, pfpTimestamp } = useAuthStore();
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState("");
@@ -303,7 +303,7 @@ const Forum = () => {
                       "A"
                     ) : (
                       <img
-                        src={`/api/users/${thread.author.userId}/pfp`}
+                        src={`/api/users/${thread.author.userId}/pfp?t=${pfpTimestamp}`}
                         alt="Profile"
                         className="pfp-avatar"
                       />

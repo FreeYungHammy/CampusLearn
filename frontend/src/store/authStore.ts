@@ -7,10 +7,12 @@ interface AuthState {
   token: string | null;
   user: User | null;
   showLogoutModal: boolean;
+  pfpTimestamp: number;
 
   setToken: (token: string | null) => void;
   setUser: (user: User | null) => void;
   clearAuth: () => void;
+  refreshPfpTimestamp: () => void;
 
   logout: () => Promise<void>;
   openLogoutModal: () => void;
@@ -23,10 +25,13 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       user: null,
       showLogoutModal: false,
+      pfpTimestamp: Date.now(),
 
       setToken: (token) => set({ token }),
-      setUser: (user) => set({ user }),
-      clearAuth: () => set({ token: null, user: null, showLogoutModal: false }),
+      setUser: (user) => set({ user, pfpTimestamp: Date.now() }),
+      clearAuth: () =>
+        set({ token: null, user: null, showLogoutModal: false }),
+      refreshPfpTimestamp: () => set({ pfpTimestamp: Date.now() }),
 
       logout: async () => {
         const token = get().token;
