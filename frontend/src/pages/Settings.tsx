@@ -30,13 +30,13 @@ const Settings = () => {
   const [showSubjectsModal, setShowSubjectsModal] = useState(false);
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
 
-  const { user, token, setUser, pfpTimestamp, refreshPfpTimestamp } = useAuthStore(
+  const { user, token, setUser, pfpTimestamps, refreshPfpForUser } = useAuthStore(
     (state) => ({
       user: state.user,
       token: state.token,
       setUser: state.setUser,
-      pfpTimestamp: state.pfpTimestamp,
-      refreshPfpTimestamp: state.refreshPfpTimestamp,
+      pfpTimestamps: state.pfpTimestamps,
+      refreshPfpForUser: state.refreshPfpForUser,
     }),
   );
 
@@ -163,20 +163,14 @@ const Settings = () => {
   };
 
   const handleConfirmSavePfp = async () => {
-    if (!profilePicture || !token) return;
+    if (!profilePicture || !token || !user) return;
 
     setIsUploading(true);
     setUploadError(null);
 
     try {
-      const base64String = await updateProfilePicture(token, profilePicture);
-      const base64Data = base64String.split(",")[1];
-      const updatedUser = {
-        ...user!,
-        pfp: { data: base64Data, contentType: profilePicture.type },
-      };
-      setUser(updatedUser);
-      refreshPfpTimestamp(); // Bust the cache
+      await updateProfilePicture(token, profilePicture);
+      // The websocket event will trigger the timestamp update
       setPreview(null);
     } catch (error) {
       setUploadError("Failed to upload profile picture. Please try again.");
@@ -201,7 +195,7 @@ const Settings = () => {
     return <span style={{ color: "var(--secondary)" }}>Strong</span>;
   };
 
-  const pfpUrl = user ? `/api/users/${user.id}/pfp?t=${pfpTimestamp}` : "";
+  const pfpUrl = user ? `/api/users/${user.id}/pfp?t=${pfpTimestamps[user.id] || 0}` : "";
 
   return (
     <>

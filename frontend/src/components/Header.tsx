@@ -7,9 +7,9 @@ import LogoutConfirmationModal from "./LogoutConfirmationModal";
 type Theme = "light" | "dark";
 
 const Header = () => {
-  const { user, pfpTimestamp } = useAuthStore((s) => ({
+  const { user, pfpTimestamps } = useAuthStore((s) => ({
     user: s.user,
-    pfpTimestamp: s.pfpTimestamp,
+    pfpTimestamps: s.pfpTimestamps,
   }));
   const openLogoutModal = useAuthStore((s) => s.openLogoutModal);
   const isTutor = user?.role === "tutor";
@@ -53,7 +53,7 @@ const Header = () => {
     localStorage.setItem("cl-theme", next);
   };
 
-  const pfpUrl = user ? `/api/users/${user.id}/pfp?t=${pfpTimestamp}` : "";
+  const pfpUrl = user ? `/api/users/${user.id}/pfp?t=${pfpTimestamps[user.id] || 0}` : "";
 
   return (
     <>

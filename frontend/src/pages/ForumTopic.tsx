@@ -21,7 +21,7 @@ const ForumTopic = () => {
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { token, user, pfpTimestamp } = useAuthStore();
+  const { token, user, pfpTimestamps } = useAuthStore();
   const socket = useForumSocket(threadId);
 
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -365,7 +365,7 @@ const ForumTopic = () => {
                   <div className="anonymous-avatar">A</div>
                 ) : (
                   <img
-                    src={`/api/users/${thread.author.userId}/pfp?t=${pfpTimestamp}`}
+                    src={`/api/users/${thread.author.userId}/pfp?t=${pfpTimestamps[thread.author.userId] || 0}`}
                     alt="Profile"
                     className="pfp-avatar"
                   />
@@ -508,7 +508,7 @@ const ForumTopic = () => {
                         <div className="anonymous-avatar">A</div>
                       ) : (
                         <img
-                          src={`/api/users/${reply.author.userId}/pfp?t=${pfpTimestamp}`}
+                          src={`/api/users/${reply.author.userId}/pfp?t=${pfpTimestamps[reply.author.userId] || 0}`}
                           alt="Profile"
                           className="pfp-avatar"
                         />

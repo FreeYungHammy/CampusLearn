@@ -11,6 +11,7 @@ import crypto from "crypto";
 import { CacheService } from "../../services/cache.service";
 import { HttpException } from "../../infra/http/HttpException";
 import { createLogger } from "../../config/logger";
+import { io } from "../../config/socket";
 
 const logger = createLogger("UserService");
 const sharp = require('sharp');
@@ -252,6 +253,9 @@ export const UserService = {
     const cacheKey = `pfp:user:${userId}`;
     await CacheService.del(cacheKey);
     logger.info(`Invalidated PFP cache for user ${userId}`);
+
+    // Emit event to all clients
+    io.emit("pfp_updated", { userId });
   },
 
   async updateProfile(userId: string, firstName: string, lastName: string) {
