@@ -117,6 +117,19 @@ const Header = () => {
           {/* Right: Logout icon + Profile menu (theme toggle moved inside) */}
           <div className="cl-right" ref={menuRef}>
             {user && (
+              <div className="cl-mobile-profile-pfp">
+                <img
+                  src={
+                    user.pfp
+                      ? `data:${user.pfp.contentType};base64,${user.pfp.data}`
+                      : "https://randomuser.me/api/portraits/men/67.jpg"
+                  }
+                  alt="User Avatar"
+                  className="user-avatar"
+                />
+              </div>
+            )}
+            {user && (
               <button
                 className="cl-hamburger-btn"
                 aria-label="Open menu"
