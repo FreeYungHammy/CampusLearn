@@ -15,6 +15,7 @@ const FindTutors = () => {
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [ratingFilter, setRatingFilter] = useState(0);
   const [availableSubjects, setAvailableSubjects] = useState<string[]>([]);
+
   const [showSubscribeModal, setShowSubscribeModal] = useState(false);
   const [selectedTutor, setSelectedTutor] = useState<Tutor | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -22,7 +23,7 @@ const FindTutors = () => {
   const [showRatingDropdown, setShowRatingDropdown] = useState(false);
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [sortBy, setSortBy] = useState("relevance");
-  const { user, token } = useAuthStore();
+  const { user, token, pfpTimestamps } = useAuthStore();
 
   const ratingOptions = [
     { value: 0, label: "Any Rating" },
@@ -422,12 +423,11 @@ const FindTutors = () => {
 
       <div className="tutor-grid">
         {displayedTutors.map((tutor) => {
-          const pfpSrc = `/api/users/${tutor.userId}/pfp`;
+          const pfpSrc = `/api/users/${tutor.userId}/pfp?t=${pfpTimestamps[tutor.userId] || 0}`;
           const avgRating =
             tutor.rating.count > 0
               ? (tutor.rating.totalScore / tutor.rating.count).toFixed(1)
               : "Unrated";
-
           return (
             <div key={tutor.id} className="tutor-card">
               <div className="tutor-header">

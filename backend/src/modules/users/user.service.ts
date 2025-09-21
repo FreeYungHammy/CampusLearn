@@ -11,6 +11,7 @@ import crypto from "crypto";
 import { CacheService } from "../../services/cache.service";
 import { HttpException } from "../../infra/http/HttpException";
 import { createLogger } from "../../config/logger";
+import { io } from "../../config/socket";
 
 const logger = createLogger("UserService");
 const sharp = require('sharp');
@@ -241,23 +242,20 @@ export const UserService = {
 
     if (user.role === "student") {
       await StudentRepo.update({ userId }, { pfp: pfpData });
-      // Invalidate student cache on update
+      // Invalidate student profile cache
       await StudentService.invalidateCache(userId);
-      // Invalidate PFP cache used by forum responses
-      const student = await StudentRepo.findOne({ userId });
-      if (student) {
-        const key = `pfp:student:${(student as any)._id.toString()}`;
-        await CacheService.del(key);
-      }
     } else if (user.role === "tutor") {
       await TutorRepo.update({ userId }, { pfp: pfpData });
-      // Invalidate PFP cache used by forum responses
-      const tutor = await TutorRepo.findOne({ userId });
-      if (tutor) {
-        const key = `pfp:tutor:${(tutor as any)._id.toString()}`;
-        await CacheService.del(key);
-      }
+      // Invalidate tutor profile cache if it exists
     }
+
+    // Invalidate the main PFP cache for this user
+    const cacheKey = `pfp:user:${userId}`;
+    await CacheService.del(cacheKey);
+    logger.info(`Invalidated PFP cache for user ${userId}`);
+
+    // Emit event to all clients
+    io.emit("pfp_updated", { userId });
   },
 
   async updateProfile(userId: string, firstName: string, lastName: string) {

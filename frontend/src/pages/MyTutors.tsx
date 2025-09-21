@@ -11,9 +11,10 @@ import UnsubscribeConfirmationModal from "../components/UnsubscribeConfirmationM
 const MyTutors = () => {
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
   const [showUnsubscribeModal, setShowUnsubscribeModal] = useState(false);
   const [selectedTutor, setSelectedTutor] = useState<Tutor | null>(null);
-  const { user, token } = useAuthStore();
+  const { user, token, pfpTimestamps } = useAuthStore();
 
   const handleUnsubscribe = (tutor: Tutor) => {
     setSelectedTutor(tutor);
@@ -73,7 +74,7 @@ const MyTutors = () => {
       ) : (
         <div className="tutor-grid">
           {tutors.map((tutor) => {
-            const pfpSrc = `/api/users/${tutor.userId}/pfp`;
+            const pfpSrc = `/api/users/${tutor.userId}/pfp?t=${pfpTimestamps[tutor.userId] || 0}`;
 
             return (
               <div key={tutor.id} className="tutor-card">

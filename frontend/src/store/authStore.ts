@@ -7,10 +7,12 @@ interface AuthState {
   token: string | null;
   user: User | null;
   showLogoutModal: boolean;
+  pfpTimestamps: { [userId: string]: number };
 
   setToken: (token: string | null) => void;
   setUser: (user: User | null) => void;
   clearAuth: () => void;
+  refreshPfpForUser: (userId: string) => void;
 
   logout: () => Promise<void>;
   openLogoutModal: () => void;
@@ -23,17 +25,32 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       user: null,
       showLogoutModal: false,
+      pfpTimestamps: {},
 
       setToken: (token) => set({ token }),
-      setUser: (user) => set({ user }),
-      clearAuth: () => set({ token: null, user: null, showLogoutModal: false }),
+      setUser: (user) => {
+        if (user) {
+          set((state) => ({
+            user,
+            pfpTimestamps: { ...state.pfpTimestamps, [user.id]: Date.now() },
+          }));
+        } else {
+          set({ user: null });
+        }
+      },
+      clearAuth: () =>
+        set({ token: null, user: null, showLogoutModal: false, pfpTimestamps: {} }),
+      refreshPfpForUser: (userId: string) =>
+        set((state) => ({
+          pfpTimestamps: { ...state.pfpTimestamps, [userId]: Date.now() },
+        })),
 
       logout: async () => {
         const token = get().token;
         if (token) {
           await logoutApi(token);
         }
-        set({ token: null, user: null, showLogoutModal: false });
+        set({ token: null, user: null, showLogoutModal: false, pfpTimestamps: {} });
       },
 
       openLogoutModal: () => set({ showLogoutModal: true }),
@@ -41,10 +58,11 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: "auth-storage",
-      // Persist only auth identity; avoid persisting transient UI like the modal flag
+      // Persist only auth identity and timestamps
       partialize: (state) => ({
         token: state.token,
         user: state.user,
+        pfpTimestamps: state.pfpTimestamps,
       }),
     },
   ),

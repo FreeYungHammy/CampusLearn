@@ -33,6 +33,7 @@ type UseSocket = {
   sendMessage: (to: string, content: string) => void;
   getMessages: (withUserId: string) => void;
   clearMessages: () => void;
+  socket: Socket | null; // Add the raw socket instance
 };
 
 const SOCKET_URL =
@@ -196,5 +197,6 @@ export function useSocket(currentUserId: string): UseSocket {
     sendMessage,
     getMessages,
     clearMessages,
+    socket: socketRef.current, // Expose the raw socket instance
   };
 }
