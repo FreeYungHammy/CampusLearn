@@ -29,16 +29,32 @@ const Settings = () => {
   const [showPictureModal, setShowPictureModal] = useState(false);
   const [showSubjectsModal, setShowSubjectsModal] = useState(false);
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
-  const { user, token, setUser, pfpTimestamps, refreshPfpForUser } = useAuthStore(
-    (state) => ({
+  const { user, token, setUser, pfpTimestamps, refreshPfpForUser } =
+    useAuthStore((state) => ({
       user: state.user,
       token: state.token,
       setUser: state.setUser,
       pfpTimestamps: state.pfpTimestamps,
       refreshPfpForUser: state.refreshPfpForUser,
-    }),
-  );
+    }));
+
+  const handleConfirmDeleteAccount = async () => {
+    if (!token) return;
+
+    setIsDeletingAccount(true);
+    try {
+      // await deleteAccount(token); // This will be implemented later
+      console.log("Account deletion confirmed");
+      // logout(); // This will be implemented later
+    } catch (error) {
+      console.error("Failed to delete account", error);
+    } finally {
+      setIsDeletingAccount(false);
+      setShowDeleteAccountModal(false);
+    }
+  };
 
   const checkPasswordStrength = (password: string) => {
     let strength = 0;
@@ -198,7 +214,9 @@ const Settings = () => {
     return <span style={{ color: "var(--secondary)" }}>Very Strong</span>;
   };
 
-  const pfpUrl = user ? `/api/users/${user.id}/pfp?t=${pfpTimestamps[user.id] || 0}` : "";
+  const pfpUrl = user
+    ? `/api/users/${user.id}/pfp?t=${pfpTimestamps[user.id] || 0}`
+    : "";
 
   return (
     <>
@@ -219,6 +237,12 @@ const Settings = () => {
         onClose={() => setShowPictureModal(false)}
         onConfirm={handleConfirmSavePfp}
         isSubmitting={isUploading}
+      />
+      <DeleteAccountConfirmationModal
+        show={showDeleteAccountModal}
+        onClose={() => setShowDeleteAccountModal(false)}
+        onConfirm={handleConfirmDeleteAccount}
+        isSubmitting={isDeletingAccount}
       />
       <div className="settings-container">
         <div className="settings-header">
