@@ -15,7 +15,7 @@ const FindTutors = () => {
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [ratingFilter, setRatingFilter] = useState(0);
   const [availableSubjects, setAvailableSubjects] = useState<string[]>([]);
-  const { user, token } = useAuthStore();
+  const { user, token, pfpTimestamps } = useAuthStore();
 
   const handleSubjectChange = (subject: string) => {
     setSelectedSubjects((prev) =>
@@ -175,7 +175,7 @@ const FindTutors = () => {
 
       <div className="tutor-grid">
         {displayedTutors.map((tutor) => {
-          const pfpSrc = `/api/users/${tutor.userId}/pfp`;
+          const pfpSrc = `/api/users/${tutor.userId}/pfp?t=${pfpTimestamps[tutor.userId] || 0}`;
 
           return (
             <div key={tutor.id} className="tutor-card">

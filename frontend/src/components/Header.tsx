@@ -7,7 +7,10 @@ import LogoutConfirmationModal from "./LogoutConfirmationModal";
 type Theme = "light" | "dark";
 
 const Header = () => {
-  const user = useAuthStore((s) => s.user);
+  const { user, pfpTimestamps } = useAuthStore((s) => ({
+    user: s.user,
+    pfpTimestamps: s.pfpTimestamps,
+  }));
   const openLogoutModal = useAuthStore((s) => s.openLogoutModal);
   const isTutor = user?.role === "tutor";
 
@@ -49,6 +52,8 @@ const Header = () => {
     document.documentElement.setAttribute("data-theme", next);
     localStorage.setItem("cl-theme", next);
   };
+
+  const pfpUrl = user ? `/api/users/${user.id}/pfp?t=${pfpTimestamps[user.id] || 0}` : "";
 
   return (
     <>
@@ -163,11 +168,7 @@ const Header = () => {
                     title="Account menu"
                   >
                     <img
-                      src={
-                        user.pfp
-                          ? `data:${user.pfp.contentType};base64,${user.pfp.data}`
-                          : "https://randomuser.me/api/portraits/men/67.jpg"
-                      }
+                      src={pfpUrl}
                       alt="User Avatar"
                       className="user-avatar"
                     />
@@ -237,11 +238,7 @@ const Header = () => {
           <div className="cl-mobile-menu-header">
             <div className="cl-mobile-menu-user">
               <img
-                src={
-                  user?.pfp
-                    ? `data:${user.pfp.contentType};base64,${user.pfp.data}`
-                    : "https://randomuser.me/api/portraits/men/67.jpg"
-                }
+                src={pfpUrl}
                 alt="User Avatar"
                 className="user-avatar"
               />
