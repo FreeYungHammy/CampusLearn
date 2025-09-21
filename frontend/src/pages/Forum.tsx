@@ -37,6 +37,7 @@ const Forum = () => {
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState("");
+  const [isVoting, setIsVoting] = useState<{ [key: string]: boolean }>({});
 
   useEffect(() => {
     const fetchThreads = async () => {
@@ -113,7 +114,9 @@ const Forum = () => {
   const handleUpvote = (threadId: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!token) return;
+    if (!token || isVoting[threadId]) return;
+
+    setIsVoting((prev) => ({ ...prev, [threadId]: true }));
 
     setThreads((prevThreads) =>
       prevThreads.map((thread) => {
@@ -146,12 +149,18 @@ const Forum = () => {
     voteOnPost(threadId, 1, token).catch((err) => {
       console.error("Failed to upvote post", err);
     });
+
+    setTimeout(() => {
+      setIsVoting((prev) => ({ ...prev, [threadId]: false }));
+    }, 100);
   };
 
   const handleDownvote = (threadId: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!token) return;
+    if (!token || isVoting[threadId]) return;
+
+    setIsVoting((prev) => ({ ...prev, [threadId]: true }));
 
     setThreads((prevThreads) =>
       prevThreads.map((thread) => {
@@ -184,6 +193,10 @@ const Forum = () => {
     voteOnPost(threadId, -1, token).catch((err) => {
       console.error("Failed to downvote post", err);
     });
+
+    setTimeout(() => {
+      setIsVoting((prev) => ({ ...prev, [threadId]: false }));
+    }, 100);
   };
 
   const handleDeleteThread = async (threadId: string) => {
@@ -242,6 +255,7 @@ const Forum = () => {
                 onClick={(e) => handleUpvote(thread._id, e)}
                 className={`upvote-btn ${thread.userVote === 1 ? "upvoted" : ""}`}
                 aria-label="Upvote"
+                disabled={isVoting[thread._id]}
               >
                 <i className="fas fa-arrow-up"></i>
               </button>
@@ -250,6 +264,7 @@ const Forum = () => {
                 onClick={(e) => handleDownvote(thread._id, e)}
                 className={`downvote-btn ${thread.userVote === -1 ? "downvoted" : ""}`}
                 aria-label="Downvote"
+                disabled={isVoting[thread._id]}
               >
                 <i className="fas fa-arrow-down"></i>
               </button>
@@ -314,8 +329,8 @@ const Forum = () => {
                       {thread.isAnonymous
                         ? "Anonymous"
                         : thread.author
-                        ? thread.author.name
-                        : "Anonymous"}
+                          ? thread.author.name
+                          : "Anonymous"}
                     </span>
                     <span className="post-time">
                       {new Date(thread.createdAt).toLocaleString()}

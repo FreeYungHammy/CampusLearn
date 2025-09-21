@@ -26,6 +26,8 @@ const ForumTopic = () => {
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState("");
+  const [isVoting, setIsVoting] = useState<{ [key: string]: boolean }>({});
+  const [isSubmittingReply, setIsSubmittingReply] = useState(false);
 
   const formatSubjectClass = (subject: string) => {
     const subjectMap: { [key: string]: string } = {
@@ -147,8 +149,9 @@ const ForumTopic = () => {
 
   const handleReplySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!token || !threadId) return;
+    if (!token || !threadId || isSubmittingReply) return;
 
+    setIsSubmittingReply(true);
     try {
       await createForumReply(
         threadId,
@@ -161,13 +164,17 @@ const ForumTopic = () => {
     } catch (err: any) {
       console.error("Failed to create reply", err);
       setError(err.response?.data?.message || "An unexpected error occurred.");
+    } finally {
+      setIsSubmittingReply(false);
     }
   };
 
   const handleReplyUpvote = (replyId: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!token) return;
+    if (!token || isVoting[replyId]) return;
+
+    setIsVoting((prev) => ({ ...prev, [replyId]: true }));
 
     setThread((prevThread: any) => ({
       ...prevThread,
@@ -200,12 +207,18 @@ const ForumTopic = () => {
     voteOnReply(replyId, 1, token).catch((err) => {
       console.error("Failed to upvote reply", err);
     });
+
+    setTimeout(() => {
+      setIsVoting((prev) => ({ ...prev, [replyId]: false }));
+    }, 100);
   };
 
   const handleReplyDownvote = (replyId: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!token) return;
+    if (!token || isVoting[replyId]) return;
+
+    setIsVoting((prev) => ({ ...prev, [replyId]: true }));
 
     setThread((prevThread: any) => ({
       ...prevThread,
@@ -238,6 +251,10 @@ const ForumTopic = () => {
     voteOnReply(replyId, -1, token).catch((err) => {
       console.error("Failed to downvote reply", err);
     });
+
+    setTimeout(() => {
+      setIsVoting((prev) => ({ ...prev, [replyId]: false }));
+    }, 100);
   };
 
   const handleDeleteThread = async () => {
@@ -376,8 +393,8 @@ const ForumTopic = () => {
                   {thread.isAnonymous
                     ? "Anonymous"
                     : thread.author
-                    ? thread.author.name
-                    : "Anonymous"}
+                      ? thread.author.name
+                      : "Anonymous"}
                 </span>
                 <span className="post-time">
                   {new Date(thread.createdAt).toLocaleString()}
@@ -427,8 +444,20 @@ const ForumTopic = () => {
                 Post as Anonymous
               </label>
             </div>
-            <button type="submit" className="btn btn-primary">
-              <i className="fas fa-paper-plane"></i> Submit Reply
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={isSubmittingReply}
+            >
+              {isSubmittingReply ? (
+                <>
+                  <i className="fas fa-spinner fa-spin"></i> Submitting...
+                </>
+              ) : (
+                <>
+                  <i className="fas fa-paper-plane"></i> Submit Reply
+                </>
+              )}
             </button>
           </form>
         </div>
@@ -459,6 +488,7 @@ const ForumTopic = () => {
                       reply.userVote === 1 ? "upvoted" : ""
                     }`}
                     aria-label="Upvote"
+                    disabled={isVoting[reply._id]}
                   >
                     <i className="fas fa-arrow-up"></i>
                   </button>
@@ -469,6 +499,7 @@ const ForumTopic = () => {
                       reply.userVote === -1 ? "downvoted" : ""
                     }`}
                     aria-label="Downvote"
+                    disabled={isVoting[reply._id]}
                   >
                     <i className="fas fa-arrow-down"></i>
                   </button>
@@ -519,8 +550,8 @@ const ForumTopic = () => {
                         {reply.isAnonymous
                           ? "Anonymous"
                           : reply.author
-                          ? reply.author.name
-                          : "Anonymous"}
+                            ? reply.author.name
+                            : "Anonymous"}
                       </span>
                       <span className="post-time">
                         {new Date(reply.createdAt).toLocaleString()}
