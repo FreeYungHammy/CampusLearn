@@ -13,6 +13,7 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ onClose }) => {
   const [content, setContent] = useState("");
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { token } = useAuthStore();
 
@@ -22,12 +23,15 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ onClose }) => {
       setError("You must be logged in to create a post.");
       return;
     }
+    setIsSubmitting(true);
     try {
       await createForumPost({ title, topic, content, isAnonymous }, token);
       onClose();
     } catch (err: any) {
       console.error("Failed to create post", err);
       setError(err.response?.data?.message || "An unexpected error occurred.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -91,8 +95,12 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ onClose }) => {
             <button type="button" onClick={onClose} className="btn-cancel">
               Cancel
             </button>
-            <button type="submit" className="btn-submit">
-              Submit Post
+            <button
+              type="submit"
+              className="btn-submit"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Submitting..." : "Submit Post"}
             </button>
           </div>
         </form>
