@@ -8,6 +8,7 @@ import {
 
 import type { Tutor } from "../types/Tutors";
 import { useAuthStore } from "../store/authStore";
+import SubscribeConfirmationModal from "../components/SubscribeConfirmationModal";
 
 const FindTutors = () => {
   const [allTutors, setAllTutors] = useState<Tutor[]>([]);
@@ -15,6 +16,8 @@ const FindTutors = () => {
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [ratingFilter, setRatingFilter] = useState(0);
   const [availableSubjects, setAvailableSubjects] = useState<string[]>([]);
+  const [showSubscribeModal, setShowSubscribeModal] = useState(false);
+  const [selectedTutor, setSelectedTutor] = useState<Tutor | null>(null);
   const { user, token } = useAuthStore();
 
   const handleSubjectChange = (subject: string) => {
@@ -25,15 +28,25 @@ const FindTutors = () => {
     );
   };
 
-  const handleSubscribe = async (tutorId: string) => {
-    if (!token) return;
+  const handleSubscribe = (tutor: Tutor) => {
+    setSelectedTutor(tutor);
+    setShowSubscribeModal(true);
+  };
+
+  const handleConfirmSubscribe = async () => {
+    if (!token || !selectedTutor) return;
     try {
-      await subscribeToTutor(tutorId, token);
+      await subscribeToTutor(selectedTutor.id, token);
       // Optimistically remove the tutor from the list
-      setAllTutors((prev) => prev.filter((tutor) => tutor.id !== tutorId));
+      setAllTutors((prev) =>
+        prev.filter((tutor) => tutor.id !== selectedTutor.id),
+      );
     } catch (error) {
       console.error("Failed to subscribe:", error);
       // Handle error display to the user
+    } finally {
+      setShowSubscribeModal(false);
+      setSelectedTutor(null);
     }
   };
 
@@ -222,7 +235,7 @@ const FindTutors = () => {
                 </Link>
                 <button
                   className={`btn btn-sm btn-success`}
-                  onClick={() => handleSubscribe(tutor.id)}
+                  onClick={() => handleSubscribe(tutor)}
                 >
                   <i className={`fas fa-plus`}></i>
                   Subscribe
@@ -232,6 +245,16 @@ const FindTutors = () => {
           );
         })}
       </div>
+
+      {selectedTutor && (
+        <SubscribeConfirmationModal
+          show={showSubscribeModal}
+          onClose={() => setShowSubscribeModal(false)}
+          onConfirm={handleConfirmSubscribe}
+          isSubmitting={false} // This will be handled later
+          tutorName={`${selectedTutor.name} ${selectedTutor.surname}`}
+        />
+      )}
     </div>
   );
 };
