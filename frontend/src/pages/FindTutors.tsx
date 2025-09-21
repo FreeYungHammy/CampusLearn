@@ -19,8 +19,24 @@ const FindTutors = () => {
   const [selectedTutor, setSelectedTutor] = useState<Tutor | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showSubjectDropdown, setShowSubjectDropdown] = useState(false);
+  const [showRatingDropdown, setShowRatingDropdown] = useState(false);
+  const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [sortBy, setSortBy] = useState("relevance");
   const { user, token } = useAuthStore();
+
+  const ratingOptions = [
+    { value: 0, label: "Any Rating" },
+    { value: 2, label: "+2 Stars" },
+    { value: 3, label: "+3 Stars" },
+    { value: 4, label: "+4 Stars" },
+    { value: 4.5, label: "+4.5 Stars" },
+  ];
+
+  const sortOptions = [
+    { value: "relevance", label: "Relevance" },
+    { value: "newest", label: "Newest" },
+    { value: "rating", label: "Rating" },
+  ];
 
   const handleSubjectChange = (subject: string) => {
     setSelectedSubjects((prev) =>
@@ -30,10 +46,21 @@ const FindTutors = () => {
     );
   };
 
+  const handleRatingChange = (rating: number) => {
+    setRatingFilter(rating);
+    setShowRatingDropdown(false);
+  };
+
+  const handleSortChange = (sort: string) => {
+    setSortBy(sort);
+    setShowSortDropdown(false);
+  };
+
   const clearAllFilters = () => {
     setSelectedSubjects([]);
     setRatingFilter(0);
     setSearchQuery("");
+    setSortBy("relevance");
   };
 
   const handleSubscribe = (tutor: Tutor) => {
@@ -149,8 +176,39 @@ const FindTutors = () => {
       );
     }
 
+    // Apply sorting
+    if (sortBy === "rating") {
+      filteredTutors.sort((a, b) => {
+        const aRating =
+          a.rating.count > 0 ? a.rating.totalScore / a.rating.count : 0;
+        const bRating =
+          b.rating.count > 0 ? b.rating.totalScore / b.rating.count : 0;
+        return bRating - aRating;
+      });
+    } else if (sortBy === "newest") {
+      // Assuming there's a createdAt field, otherwise use a default
+      filteredTutors.sort((a, b) => {
+        const aDate = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const bDate = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return bDate - aDate;
+      });
+    } else {
+      // Relevance (default)
+      filteredTutors.sort((a, b) => b.relevanceScore - a.relevanceScore);
+    }
+
     setDisplayedTutors(filteredTutors);
-  }, [allTutors, selectedSubjects, ratingFilter, searchQuery]);
+  }, [allTutors, selectedSubjects, ratingFilter, searchQuery, sortBy]);
+
+  const getRatingLabel = () => {
+    const option = ratingOptions.find((opt) => opt.value === ratingFilter);
+    return option ? option.label : "Any Rating";
+  };
+
+  const getSortLabel = () => {
+    const option = sortOptions.find((opt) => opt.value === sortBy);
+    return option ? option.label : "Relevance";
+  };
 
   return (
     <div className="content-view" id="tutors-view">
@@ -183,7 +241,10 @@ const FindTutors = () => {
       <div className="filter-section">
         <div className="filter-header">
           <h3>Filters</h3>
-          {(selectedSubjects.length > 0 || ratingFilter > 0 || searchQuery) && (
+          {(selectedSubjects.length > 0 ||
+            ratingFilter > 0 ||
+            searchQuery ||
+            sortBy !== "relevance") && (
             <button className="clear-filters-btn" onClick={clearAllFilters}>
               Clear all filters
             </button>
@@ -193,9 +254,9 @@ const FindTutors = () => {
         <div className="filters-container">
           <div className="filter-group">
             <label>Subjects</label>
-            <div className="subject-filter-container">
+            <div className="dropdown-filter-container">
               <div
-                className="subject-selector-trigger"
+                className="dropdown-trigger"
                 onClick={() => setShowSubjectDropdown(!showSubjectDropdown)}
               >
                 <span>
@@ -209,15 +270,15 @@ const FindTutors = () => {
               </div>
 
               {showSubjectDropdown && (
-                <div className="subject-dropdown">
-                  <div className="subject-list">
+                <div className="dropdown-menu">
+                  <div className="dropdown-list">
                     {availableSubjects.map((subject) => (
                       <div
                         key={subject}
-                        className={`subject-option ${selectedSubjects.includes(subject) ? "selected" : ""}`}
+                        className={`dropdown-option ${selectedSubjects.includes(subject) ? "selected" : ""}`}
                         onClick={() => handleSubjectChange(subject)}
                       >
-                        <div className="subject-checkbox">
+                        <div className="option-checkbox">
                           {selectedSubjects.includes(subject) && (
                             <i className="fas fa-check"></i>
                           )}
@@ -240,9 +301,9 @@ const FindTutors = () => {
 
             {/* Selected subjects chips */}
             {selectedSubjects.length > 0 && (
-              <div className="selected-subjects">
+              <div className="selected-chips">
                 {selectedSubjects.map((subject) => (
-                  <div key={subject} className="subject-chip">
+                  <div key={subject} className="filter-chip">
                     {subject}
                     <button
                       onClick={() => handleSubjectChange(subject)}
@@ -257,38 +318,90 @@ const FindTutors = () => {
           </div>
 
           <div className="filter-group">
-            <label htmlFor="rating-filter">Minimum Rating</label>
-            <div className="rating-select-wrapper">
-              <select
-                id="rating-filter"
-                className="form-control"
-                value={ratingFilter}
-                onChange={(e) => setRatingFilter(Number(e.target.value))}
+            <label>Minimum Rating</label>
+            <div className="dropdown-filter-container">
+              <div
+                className="dropdown-trigger"
+                onClick={() => setShowRatingDropdown(!showRatingDropdown)}
               >
-                <option value="0">Any Rating</option>
-                <option value="2">+2 Stars</option>
-                <option value="3">+3 Stars</option>
-                <option value="4">+4 Stars</option>
-                <option value="4.5">+4.5 Stars</option>
-              </select>
-              <i className="fas fa-star rating-select-icon"></i>
+                <span>{getRatingLabel()}</span>
+                <i
+                  className={`fas fa-chevron-${showRatingDropdown ? "up" : "down"}`}
+                ></i>
+              </div>
+
+              {showRatingDropdown && (
+                <div className="dropdown-menu">
+                  <div className="dropdown-list">
+                    {ratingOptions.map((option) => (
+                      <div
+                        key={option.value}
+                        className={`dropdown-option ${ratingFilter === option.value ? "selected" : ""}`}
+                        onClick={() => handleRatingChange(option.value)}
+                      >
+                        <div className="option-checkbox">
+                          {ratingFilter === option.value && (
+                            <i className="fas fa-check"></i>
+                          )}
+                        </div>
+                        <span>{option.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="dropdown-actions">
+                    <button
+                      className="btn btn-sm btn-primary"
+                      onClick={() => setShowRatingDropdown(false)}
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
           <div className="filter-group">
-            <label htmlFor="sort-by-filter">Sort By</label>
-            <div className="sort-by-select-wrapper">
-              <select
-                id="sort-by-filter"
-                className="form-control"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
+            <label>Sort By</label>
+            <div className="dropdown-filter-container">
+              <div
+                className="dropdown-trigger"
+                onClick={() => setShowSortDropdown(!showSortDropdown)}
               >
-                <option value="relevance">Relevance</option>
-                <option value="newest">Newest</option>
-                <option value="rating">Rating</option>
-              </select>
-              <i className="fas fa-sort-amount-down sort-by-select-icon"></i>
+                <span>{getSortLabel()}</span>
+                <i
+                  className={`fas fa-chevron-${showSortDropdown ? "up" : "down"}`}
+                ></i>
+              </div>
+
+              {showSortDropdown && (
+                <div className="dropdown-menu">
+                  <div className="dropdown-list">
+                    {sortOptions.map((option) => (
+                      <div
+                        key={option.value}
+                        className={`dropdown-option ${sortBy === option.value ? "selected" : ""}`}
+                        onClick={() => handleSortChange(option.value)}
+                      >
+                        <div className="option-checkbox">
+                          {sortBy === option.value && (
+                            <i className="fas fa-check"></i>
+                          )}
+                        </div>
+                        <span>{option.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="dropdown-actions">
+                    <button
+                      className="btn btn-sm btn-primary"
+                      onClick={() => setShowSortDropdown(false)}
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -298,7 +411,10 @@ const FindTutors = () => {
         <h3>
           {displayedTutors.length}{" "}
           {displayedTutors.length === 1 ? "Tutor" : "Tutors"} Available
-          {(selectedSubjects.length > 0 || ratingFilter > 0 || searchQuery) && (
+          {(selectedSubjects.length > 0 ||
+            ratingFilter > 0 ||
+            searchQuery ||
+            sortBy !== "relevance") && (
             <span className="filter-indicator">(filtered)</span>
           )}
         </h3>
