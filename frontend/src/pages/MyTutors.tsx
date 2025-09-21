@@ -6,19 +6,33 @@ import {
 } from "../services/subscriptionApi";
 import { useAuthStore } from "../store/authStore";
 import type { Tutor } from "../types/Tutors";
+import UnsubscribeConfirmationModal from "../components/UnsubscribeConfirmationModal";
 
 const MyTutors = () => {
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const [showUnsubscribeModal, setShowUnsubscribeModal] = useState(false);
+  const [selectedTutor, setSelectedTutor] = useState<Tutor | null>(null);
   const { user, token, pfpTimestamps } = useAuthStore();
 
-  const handleUnsubscribe = async (tutorId: string) => {
-    if (!token) return;
+  const handleUnsubscribe = (tutor: Tutor) => {
+    setSelectedTutor(tutor);
+    setShowUnsubscribeModal(true);
+  };
+
+  const handleConfirmUnsubscribe = async () => {
+    if (!token || !selectedTutor) return;
     try {
-      await unsubscribeFromTutor(tutorId, token);
-      setTutors((prev) => prev.filter((tutor) => tutor.id !== tutorId));
+      await unsubscribeFromTutor(selectedTutor.id, token);
+      setTutors((prev) =>
+        prev.filter((tutor) => tutor.id !== selectedTutor.id),
+      );
     } catch (error) {
       console.error("Failed to unsubscribe:", error);
+    } finally {
+      setShowUnsubscribeModal(false);
+      setSelectedTutor(null);
     }
   };
 
@@ -103,7 +117,7 @@ const MyTutors = () => {
                   </Link>
                   <button
                     className={`unsubscribe-btn subscribed`}
-                    onClick={() => handleUnsubscribe(tutor.id)}
+                    onClick={() => handleUnsubscribe(tutor)}
                   >
                     <i className={`fas fa-user-minus`}></i>
                     Unsubscribe
@@ -113,6 +127,16 @@ const MyTutors = () => {
             );
           })}
         </div>
+      )}
+
+      {selectedTutor && (
+        <UnsubscribeConfirmationModal
+          show={showUnsubscribeModal}
+          onClose={() => setShowUnsubscribeModal(false)}
+          onConfirm={handleConfirmUnsubscribe}
+          isSubmitting={false} // This will be handled later
+          tutorName={`${selectedTutor.name} ${selectedTutor.surname}`}
+        />
       )}
     </div>
   );

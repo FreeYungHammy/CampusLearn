@@ -192,7 +192,10 @@ const Settings = () => {
     if (passwordStrength <= 3) {
       return <span style={{ color: "var(--warning)" }}>Moderate</span>;
     }
-    return <span style={{ color: "var(--secondary)" }}>Strong</span>;
+    if (passwordStrength <= 4) {
+      return <span style={{ color: "var(--secondary)" }}>Strong</span>;
+    }
+    return <span style={{ color: "var(--secondary)" }}>Very Strong</span>;
   };
 
   const pfpUrl = user ? `/api/users/${user.id}/pfp?t=${pfpTimestamps[user.id] || 0}` : "";
@@ -456,7 +459,7 @@ const Settings = () => {
                       }[subject]
                     }`}
                   ></i>
-                  {subject}
+                  <span className="subject-text">{subject}</span>
                 </label>
               </div>
             ))}
