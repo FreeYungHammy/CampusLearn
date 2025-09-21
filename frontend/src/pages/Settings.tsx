@@ -193,7 +193,10 @@ const Settings = () => {
     if (passwordStrength <= 3) {
       return <span style={{ color: "var(--warning)" }}>Moderate</span>;
     }
-    return <span style={{ color: "var(--secondary)" }}>Strong</span>;
+    if (passwordStrength <= 4) {
+      return <span style={{ color: "var(--secondary)" }}>Strong</span>;
+    }
+    return <span style={{ color: "var(--secondary)" }}>Very Strong</span>;
   };
 
   return (
