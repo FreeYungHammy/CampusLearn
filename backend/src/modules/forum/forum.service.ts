@@ -407,4 +407,164 @@ export const ForumService = {
       session.endSession();
     }
   },
+
+  async deleteThread(user: User, threadId: string) {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+      const post = await ForumPostModel.findById(threadId).session(session);
+      if (!post) {
+        throw new HttpException(404, "Post not found");
+      }
+
+      const authorProfile = await UserService.getProfileByRole(
+        post.authorId.toString(),
+        post.authorRole,
+      );
+      if (authorProfile?.userId.toString() !== user.id) {
+        throw new HttpException(403, "You are not authorized to delete this post");
+      }
+
+      const replyIds = post.replies;
+      const allTargetIds = [threadId, ...replyIds];
+
+      await UserVoteModel.deleteMany({ targetId: { $in: allTargetIds } }).session(
+        session,
+      );
+      await ForumReplyModel.deleteMany({ _id: { $in: replyIds } }).session(
+        session,
+      );
+      await ForumPostModel.findByIdAndDelete(threadId).session(session);
+
+      await session.commitTransaction();
+
+      await CacheService.del(FORUM_THREAD_CACHE_KEY(threadId));
+      // In a real-world scenario, you might want to invalidate a general forum list cache as well
+      // await CacheService.del("forum:threads:all");
+
+      io.emit("thread_deleted", { threadId });
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
+  },
+
+  async deleteReply(user: User, replyId: string) {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+      const reply = await ForumReplyModel.findById(replyId).session(session);
+      if (!reply) {
+        throw new HttpException(404, "Reply not found");
+      }
+
+      const authorProfile = await UserService.getProfileByRole(
+        reply.authorId.toString(),
+        reply.authorRole,
+      );
+      if (authorProfile?.userId.toString() !== user.id) {
+        throw new HttpException(
+          403,
+          "You are not authorized to delete this reply",
+        );
+      }
+
+      const threadId = reply.postId.toString();
+
+      await UserVoteModel.deleteMany({ targetId: replyId }).session(session);
+      await ForumReplyModel.findByIdAndDelete(replyId).session(session);
+      await ForumPostModel.findByIdAndUpdate(
+        threadId,
+        { $pull: { replies: replyId } },
+        { session },
+      );
+
+      await session.commitTransaction();
+
+      await CacheService.del(FORUM_THREAD_CACHE_KEY(threadId));
+
+      io.to(threadId).emit("reply_deleted", { replyId, threadId });
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
+  },
+
+  async updateThread(
+    user: User,
+    threadId: string,
+    updateData: Partial<ForumPostDoc>,
+  ) {
+    const post = await ForumPostModel.findById(threadId);
+    if (!post) {
+      throw new HttpException(404, "Post not found");
+    }
+
+    const authorProfile = await UserService.getProfileByRole(
+      post.authorId.toString(),
+      post.authorRole,
+    );
+    if (authorProfile?.userId.toString() !== user.id) {
+      throw new HttpException(403, "You are not authorized to edit this post");
+    }
+
+    const { title, content, topic } = updateData;
+    if (title) post.title = title;
+    if (content) post.content = content;
+    if (topic) post.topic = topic;
+
+    const updatedPost = await post.save();
+
+    await CacheService.del(FORUM_THREAD_CACHE_KEY(threadId));
+
+    const populatedPost = await this.getThreadById(threadId, user);
+
+    io.emit("thread_updated", { threadId, updatedPost: populatedPost });
+
+    return populatedPost;
+  },
+
+  async updateReply(
+    user: User,
+    replyId: string,
+    updateData: Partial<ForumReplyDoc>,
+  ) {
+    const reply = await ForumReplyModel.findById(replyId);
+    if (!reply) {
+      throw new HttpException(404, "Reply not found");
+    }
+
+    const authorProfile = await UserService.getProfileByRole(
+      reply.authorId.toString(),
+      reply.authorRole,
+    );
+    if (authorProfile?.userId.toString() !== user.id) {
+      throw new HttpException(403, "You are not authorized to edit this reply");
+    }
+
+    const { content } = updateData;
+    if (content) reply.content = content;
+
+    await reply.save();
+
+    const threadId = reply.postId.toString();
+    await CacheService.del(FORUM_THREAD_CACHE_KEY(threadId));
+
+    const populatedReply = {
+      ...reply.toObject(),
+      author: stripPfp(formatAuthor(authorProfile)),
+    };
+
+    io.to(threadId).emit("reply_updated", {
+      replyId,
+      threadId,
+      updatedReply: populatedReply,
+    });
+
+    return populatedReply;
+  },
 };

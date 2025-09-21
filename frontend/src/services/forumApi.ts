@@ -65,3 +65,47 @@ export const voteOnReply = async (
   );
   return response.data;
 };
+
+export const deleteForumPost = async (threadId: string, token: string) => {
+  const response = await api.delete(`/forum/threads/${threadId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
+};
+
+export const deleteForumReply = async (replyId: string, token: string) => {
+  const response = await api.delete(`/forum/replies/${replyId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
+};
+
+export const updateForumPost = async (
+  threadId: string,
+  updateData: any,
+  token: string,
+) => {
+  const response = await api.patch(
+    `/forum/threads/${threadId}`,
+    updateData,
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  );
+  return response.data;
+};
+
+export const updateForumReply = async (
+  replyId: string,
+  updateData: any,
+  token: string,
+) => {
+  const response = await api.patch(
+    `/forum/replies/${replyId}`,
+    updateData,
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  );
+  return response.data;
+};

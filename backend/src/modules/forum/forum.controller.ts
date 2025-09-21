@@ -114,4 +114,74 @@ export const ForumController = {
       }
     }
   },
+
+  async deleteThread(req: AuthedRequest, res: Response) {
+    try {
+      const user = req.user as User;
+      const { threadId } = req.params;
+      await ForumService.deleteThread(user, threadId);
+      res.status(204).send();
+    } catch (error: any) {
+      if (error instanceof HttpException) {
+        res.status(error.status).json({ message: error.message });
+      } else {
+        res.status(500).json({ message: "An unexpected error occurred." });
+      }
+    }
+  },
+
+  async deleteReply(req: AuthedRequest, res: Response) {
+    try {
+      const user = req.user as User;
+      const { replyId } = req.params;
+      await ForumService.deleteReply(user, replyId);
+      res.status(204).send();
+    } catch (error: any) {
+      if (error instanceof HttpException) {
+        res.status(error.status).json({ message: error.message });
+      } else {
+        res.status(500).json({ message: "An unexpected error occurred." });
+      }
+    }
+  },
+
+  async updateThread(req: AuthedRequest, res: Response) {
+    try {
+      const user = req.user as User;
+      const { threadId } = req.params;
+      const updateData = req.body;
+      const updatedThread = await ForumService.updateThread(
+        user,
+        threadId,
+        updateData,
+      );
+      res.status(200).json(updatedThread);
+    } catch (error: any) {
+      if (error instanceof HttpException) {
+        res.status(error.status).json({ message: error.message });
+      } else {
+        res.status(500).json({ message: "An unexpected error occurred." });
+      }
+    }
+  },
+
+  async updateReply(req: AuthedRequest, res: Response) {
+    try {
+      const user = req.user as User;
+      const { replyId } = req.params;
+      const updateData = req.body;
+      const updatedReply = await ForumService.updateReply(
+        user,
+        replyId,
+        updateData,
+      );
+      res.status(200).json(updatedReply);
+    } catch (error: any) {
+      if (error instanceof HttpException) {
+        res.status(error.status).json({ message: error.message });
+      } else {
+        res.status(500).json({ message: "An unexpected error occurred." });
+      }
+    }
+  },
 };

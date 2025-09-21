@@ -1,22 +1,31 @@
 import React, { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   getForumThreadById,
   createForumReply,
   voteOnReply,
+  deleteForumPost,
+  deleteForumReply,
+  updateForumPost,
+  updateForumReply,
 } from "../services/forumApi";
 import { useAuthStore } from "../store/authStore";
 import { useForumSocket } from "../hooks/useForumSocket";
+import PostActions from "../components/forum/PostActions";
 
 const ForumTopic = () => {
   const { threadId } = useParams<{ threadId: string }>();
+  const navigate = useNavigate();
   const [thread, setThread] = useState<any>(null);
   const [replyContent, setReplyContent] = useState("");
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { token } = useAuthStore();
+  const { token, user } = useAuthStore();
   const socket = useForumSocket(threadId);
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState("");
 
   const formatSubjectClass = (subject: string) => {
     const subjectMap: { [key: string]: string } = {
@@ -76,6 +85,37 @@ const ForumTopic = () => {
         }));
       });
 
+      socket.on("reply_deleted", ({ replyId }) => {
+        setThread((prevThread: any) => ({
+          ...prevThread,
+          replies: prevThread.replies.filter(
+            (reply: any) => reply._id !== replyId,
+          ),
+        }));
+      });
+
+      socket.on("thread_deleted", ({ threadId: deletedThreadId }) => {
+        if (deletedThreadId === threadId) {
+          navigate("/forum");
+        }
+      });
+
+      socket.on("thread_updated", ({ updatedPost }) => {
+        setThread((prevThread: any) => ({
+          ...prevThread,
+          ...updatedPost,
+        }));
+      });
+
+      socket.on("reply_updated", ({ updatedReply }) => {
+        setThread((prevThread: any) => ({
+          ...prevThread,
+          replies: prevThread.replies.map((reply: any) =>
+            reply._id === updatedReply._id ? updatedReply : reply,
+          ),
+        }));
+      });
+
       socket.on("vote_updated", ({ targetId, newScore }) => {
         setThread((prevThread: any) => {
           if (!prevThread) return null;
@@ -96,10 +136,14 @@ const ForumTopic = () => {
 
       return () => {
         socket.off("new_reply");
+        socket.off("reply_deleted");
+        socket.off("thread_deleted");
+        socket.off("thread_updated");
+        socket.off("reply_updated");
         socket.off("vote_updated");
       };
     }
-  }, [socket]);
+  }, [socket, threadId, navigate]);
 
   const handleReplySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -196,6 +240,51 @@ const ForumTopic = () => {
     });
   };
 
+  const handleDeleteThread = async () => {
+    if (!token || !threadId) return;
+    try {
+      await deleteForumPost(threadId, token);
+      // The socket event will handle UI update and navigation
+    } catch (error) {
+      console.error("Failed to delete thread", error);
+    }
+  };
+
+  const handleDeleteReply = async (replyId: string) => {
+    if (!token) return;
+    try {
+      await deleteForumReply(replyId, token);
+      // The socket event will handle UI update
+    } catch (error) {
+      console.error("Failed to delete reply", error);
+    }
+  };
+
+  const handleEditClick = (id: string, content: string) => {
+    setEditingId(id);
+    setEditingContent(content);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditingContent("");
+  };
+
+  const handleUpdateSubmit = async () => {
+    if (!token || !editingId) return;
+
+    try {
+      if (editingId === threadId) {
+        await updateForumPost(editingId, { content: editingContent }, token);
+      } else {
+        await updateForumReply(editingId, { content: editingContent }, token);
+      }
+      handleCancelEdit();
+    } catch (error) {
+      console.error("Failed to update", error);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="forum-container">
@@ -242,7 +331,25 @@ const ForumTopic = () => {
             </span>
           </div>
           <div className="topic-body">
-            <p className="topic-content-text">{thread.content}</p>
+            {editingId === thread._id ? (
+              <div className="edit-form">
+                <textarea
+                  value={editingContent}
+                  onChange={(e) => setEditingContent(e.target.value)}
+                  rows={5}
+                />
+                <div className="edit-actions">
+                  <button onClick={handleCancelEdit} className="btn-ghost">
+                    Cancel
+                  </button>
+                  <button onClick={handleUpdateSubmit} className="btn-primary">
+                    Save
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p className="topic-content-text">{thread.content}</p>
+            )}
           </div>
           <div className="topic-meta detailed">
             <div className="meta-stats">
@@ -278,6 +385,14 @@ const ForumTopic = () => {
               </div>
             </div>
           </div>
+        </div>
+        <div className="topic-actions">
+          {user && thread.author && user.id === thread.author.userId && (
+            <PostActions
+              onEdit={() => handleEditClick(thread._id, thread.content)}
+              onDelete={handleDeleteThread}
+            />
+          )}
         </div>
       </div>
 
@@ -360,7 +475,31 @@ const ForumTopic = () => {
                 </div>
 
                 <div className="reply-content">
-                  <p>{reply.content}</p>
+                  {editingId === reply._id ? (
+                    <div className="edit-form">
+                      <textarea
+                        value={editingContent}
+                        onChange={(e) => setEditingContent(e.target.value)}
+                        rows={3}
+                      />
+                      <div className="edit-actions">
+                        <button
+                          onClick={handleCancelEdit}
+                          className="btn-ghost"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handleUpdateSubmit}
+                          className="btn-primary"
+                        >
+                          Save
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p>{reply.content}</p>
+                  )}
                 </div>
                 <div className="reply-meta">
                   <div className="reply-author">
@@ -388,6 +527,15 @@ const ForumTopic = () => {
                       </span>
                     </div>
                   </div>
+                </div>
+                <div className="topic-actions">
+                  {user && reply.author && user.id === reply.author.userId && (
+                    <PostActions
+                      onEdit={() => handleEditClick(reply._id, reply.content)}
+                      onDelete={() => handleDeleteReply(reply._id)}
+                      isReply={true}
+                    />
+                  )}
                 </div>
               </div>
             ))}

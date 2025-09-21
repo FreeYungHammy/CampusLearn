@@ -16,4 +16,10 @@ router.post(
 router.post("/threads/:threadId/vote", requireAuth, ForumController.voteOnPost);
 router.post("/replies/:replyId/vote", requireAuth, ForumController.voteOnReply);
 
+router.delete("/threads/:threadId", requireAuth, ForumController.deleteThread);
+router.delete("/replies/:replyId", requireAuth, ForumController.deleteReply);
+
+router.patch("/threads/:threadId", requireAuth, ForumController.updateThread);
+router.patch("/replies/:replyId", requireAuth, ForumController.updateReply);
+
 export default router;

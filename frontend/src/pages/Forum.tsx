@@ -2,9 +2,15 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import CreatePostModal from "../components/forum/CreatePostModal";
 import "../components/forum/CreatePostModal.css";
-import { getForumThreads, voteOnPost } from "../services/forumApi";
+import {
+  getForumThreads,
+  voteOnPost,
+  deleteForumPost,
+  updateForumPost,
+} from "../services/forumApi";
 import { useForumSocket } from "../hooks/useForumSocket";
 import { useAuthStore } from "../store/authStore";
+import PostActions from "../components/forum/PostActions";
 
 const formatSubjectClass = (subject: string) => {
   const subjectMap: { [key: string]: string } = {
@@ -27,7 +33,10 @@ const Forum = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [threads, setThreads] = useState<any[]>([]);
   const socket = useForumSocket();
-  const { token } = useAuthStore();
+  const { token, user } = useAuthStore();
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState("");
 
   useEffect(() => {
     const fetchThreads = async () => {
@@ -59,6 +68,20 @@ const Forum = () => {
         setThreads((prevThreads) => [postWithVotes, ...prevThreads]);
       });
 
+      socket.on("thread_deleted", ({ threadId }) => {
+        setThreads((prevThreads) =>
+          prevThreads.filter((thread) => thread._id !== threadId),
+        );
+      });
+
+      socket.on("thread_updated", ({ updatedPost }) => {
+        setThreads((prevThreads) =>
+          prevThreads.map((thread) =>
+            thread._id === updatedPost._id ? updatedPost : thread,
+          ),
+        );
+      });
+
       socket.on("forum_reply_count_updated", ({ threadId, replyCount }) => {
         setThreads((prevThreads) =>
           prevThreads.map((thread) =>
@@ -79,6 +102,8 @@ const Forum = () => {
 
       return () => {
         socket.off("new_post");
+        socket.off("thread_deleted");
+        socket.off("thread_updated");
         socket.off("forum_reply_count_updated");
         socket.off("vote_updated");
       };
@@ -161,6 +186,38 @@ const Forum = () => {
     });
   };
 
+  const handleDeleteThread = async (threadId: string) => {
+    if (!token) return;
+    try {
+      await deleteForumPost(threadId, token);
+      // The socket event will handle UI update
+    } catch (error) {
+      console.error("Failed to delete thread", error);
+      // Optionally, show an error to the user
+    }
+  };
+
+  const handleEditClick = (id: string, content: string) => {
+    setEditingId(id);
+    setEditingContent(content);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditingContent("");
+  };
+
+  const handleUpdateSubmit = async () => {
+    if (!token || !editingId) return;
+
+    try {
+      await updateForumPost(editingId, { content: editingContent }, token);
+      handleCancelEdit();
+    } catch (error) {
+      console.error("Failed to update post", error);
+    }
+  };
+
   return (
     <div className="forum-container">
       <div className="forum-header">
@@ -199,17 +256,40 @@ const Forum = () => {
             </div>
 
             <div className="topic-content">
-              <Link to={`/forum/${thread._id}`} className="topic-link">
-                <div className="topic-header">
-                  <h2 className="topic-title">{thread.title}</h2>
-                  <span
-                    className={`topic-subject ${formatSubjectClass(thread.topic)}`}
-                  >
-                    {thread.topic}
-                  </span>
+              {editingId === thread._id ? (
+                <div className="edit-form-full">
+                  <textarea
+                    value={editingContent}
+                    onChange={(e) => setEditingContent(e.target.value)}
+                    rows={4}
+                  />
+                  <div className="edit-actions">
+                    <button onClick={handleCancelEdit} className="btn-ghost">
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleUpdateSubmit}
+                      className="btn-primary"
+                    >
+                      Save
+                    </button>
+                  </div>
                 </div>
-                <p className="topic-excerpt">{thread.content}</p>
-              </Link>
+              ) : (
+                <Link to={`/forum/${thread._id}`} className="topic-link">
+                  <div className="topic-header">
+                    <h2 className="topic-title">{thread.title}</h2>
+                    <span
+                      className={`topic-subject ${formatSubjectClass(
+                        thread.topic,
+                      )}`}
+                    >
+                      {thread.topic}
+                    </span>
+                  </div>
+                  <p className="topic-excerpt">{thread.content}</p>
+                </Link>
+              )}
               <div className="topic-meta">
                 <div className="meta-stats">
                   <span className="stat-item">
@@ -243,6 +323,14 @@ const Forum = () => {
                   </div>
                 </div>
               </div>
+            </div>
+            <div className="topic-actions">
+              {user && thread.author && user.id === thread.author.userId && (
+                <PostActions
+                  onEdit={() => handleEditClick(thread._id, thread.content)}
+                  onDelete={() => handleDeleteThread(thread._id)}
+                />
+              )}
             </div>
           </div>
         ))}

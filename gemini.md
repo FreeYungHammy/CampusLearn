@@ -36,59 +36,68 @@ I will strive to adhere to the existing coding conventions and best practices of
 
 ### Redis Integration
 
-The application now leverages Redis as a robust caching layer to significantly enhance read performance, reduce the load on the primary MongoDB database, and improve overall application responsiveness.
-
-The implementation adheres to a strict 30MB storage limit for the Redis instance, necessitating a highly selective and efficient caching strategy.
+The application leverages Redis as a robust caching layer to significantly enhance read performance, reduce the load on the primary MongoDB database, and improve overall application responsiveness.
 
 **Key Principles Guiding Caching:**
+*   **High Read-to-Write Ratio:** Prioritizing data frequently accessed.
+*   **Low Volatility:** Focusing on data that changes infrequently.
+*   **Small Data Footprint:** Ensuring individual cached items and the aggregate dataset remain within limits.
+*   **Consistency Tolerance:** Utilizing TTLs for data that can tolerate slight staleness.
+*   **Security:** Employing Redis for secure JWT blacklisting.
 
-- **High Read-to-Write Ratio:** Prioritizing data frequently accessed.
-- **Low Volatility:** Focusing on data that changes infrequently.
-- **Small Data Footprint:** Ensuring individual cached items and the aggregate dataset remain within limits.
-- **Consistency Tolerance:** Utilizing TTLs for data that can tolerate slight staleness.
-- **Security:** Employing Redis for secure JWT blacklisting.
+**Implemented Caching Strategy (Redis - Server-Side):**
 
-**Implemented Caching Strategy:**
+*   **User & Profile Metadata:**
+    *   **Cached:** Individual `User`, `Student`, and `Tutor` objects (metadata only, *excluding* PFP data).
+    *   **Keys:** `user:<id>`, `student:<id>`, `student:user:<userId>`, `tutor:<id>`, `tutor:user:<userId>`.
+    *   **TTL:** 30 minutes (1800 seconds).
+    *   **Invalidation:** On any update, creation, or deletion of the respective user/profile.
+*   **Profile Pictures (PFPs):**
+    *   **Cached:** Individual profile picture data (as base64 strings).
+    *   **Key:** `pfp:user:<userId>`.
+    *   **TTL:** 30 minutes (1800 seconds).
+    *   **Invalidation:** On PFP update.
+    *   **Benefit:** Speeds up dedicated PFP endpoint (`/api/users/:userId/pfp`) by serving images from memory, reducing MongoDB load.
+    *   **Negative Caching:** `null` results (for users without a PFP) are also cached for a shorter duration (5 minutes) to prevent repeated database lookups for non-existent data.
+*   **Tutor List (Find Tutors Page):**
+    *   **Strategy:** The global `tutors:all` list cache has been removed. The `TutorService.list()` method fetches the list directly from MongoDB. This method *does not* return PFP data; PFPs are fetched separately by the client.
+    *   **Cache Warming:** Individual tutor profiles are proactively updated in the cache (`tutor:<id>`), ensuring fast subsequent access to individual tutor details.
+*   **Forum Threads:**
+    *   **Cached:** The main forum thread list and individual forum thread objects (metadata only, *excluding* author PFP data). The `ForumService.getThreads()` and `ForumService.getThreadById()` methods *do not* return PFP data; PFPs are fetched separately by the client.
+    *   **Keys:** `forum:threads:all`, `forum:thread:<threadId>`.
+    *   **TTL:** 15 minutes (900 seconds) for lists, 30 minutes (1800 seconds) for individual threads.
+    *   **Invalidation:** On new thread creation or new reply, the relevant caches are invalidated.
+*   **Subscribed Tutors List:**
+    *   **Cached:** The list of tutors a student is subscribed to.
+    *   **Key:** `subscriptions:student:<studentId>`.
+    *   **TTL:** 30 minutes (1800 seconds).
+    *   **Invalidation:** On subscription creation or deletion.
+*   **JWT Blacklist:**
+    *   **Cached:** Invalidated JWT tokens upon user logout.
+    *   **Key:** `jwt:blacklist:<token>`.
+    - **TTL:** Matches the original JWT expiry time.
+    - **Purpose:** Provides immediate token revocation for security.
 
-- **User & Profile Metadata:**
-  - **Cached:** Individual `User`, `Student`, and `Tutor` objects (metadata only, **including base64 PFP data**).
-  - **Keys:** `user:<id>`, `student:<id>`, `student:user:<userId>`, `tutor:<id>`, `tutor:user:<userId>`.
-  - **TTL:** 30 minutes (1800 seconds).
-  - **Invalidation:** On any update, creation, or deletion of the respective user/profile.
-- **Tutor List (Find Tutors Page):**
-  - **Strategy:** The global `tutors:all` list cache has been **removed**. The `TutorService.list()` method now fetches the list directly from MongoDB on each request to ensure correctness for user-specific filtering.
-  - **Cache Warming:** After fetching the list, individual tutor profiles are proactively updated in the cache (`tutor:<id>`), ensuring fast subsequent access to individual tutor details.
-- **Forum Threads:**
-  - **Cached:** The main forum thread list and individual forum thread objects (including base64 PFP data for authors).
-  - **Keys:** `forum:threads:all`, `forum:thread:<threadId>`.
-  - **TTL:** 15 minutes (900 seconds) for lists, 30 minutes (1800 seconds) for individual threads.
-  - **Invalidation:** On new thread creation or new reply, the relevant caches are invalidated.
-- **Subscribed Tutors List:**
-  - **Cached:** The list of tutors a student is subscribed to.
-  - **Key:** `subscriptions:student:<studentId>`.
-  - **TTL:** 30 minutes (1800 seconds).
-  - **Invalidation:** On subscription creation or deletion.
-- **JWT Blacklist:**
-  - **Cached:** Invalidated JWT tokens upon user logout.
-  - **Key:** `jwt:blacklist:<token>`.
-  - **TTL:** Matches the original JWT expiry time.
-  - **Purpose:** Provides immediate token revocation for security.
+**Browser Caching (Client-Side):**
 
-**What is NOT Cached (and why):**
+*   **Mechanism:** The backend sends `Cache-Control` HTTP headers (e.g., `Cache-Control: public, max-age=1800`) for static assets like profile pictures served from dedicated endpoints (`/api/users/:userId/pfp`).
+*   **Benefit:** This instructs the user's web browser to store a local copy of the image. On subsequent visits to the same page or other pages displaying the same image, the browser serves the image directly from its local cache, eliminating the need for a network request to the server. This significantly improves perceived page load speed and reduces server load.
+*   **Verification:** Browser caching can be verified using the browser's Developer Tools (Network tab). A successful cache hit will typically show a `200 OK (from memory cache)` or `304 Not Modified` status, indicating the asset was served from the local cache rather than re-downloaded.
 
-- **Binary File Content (`FileDoc.content`, raw `pfp` data):** Too large for the 30MB Redis limit.
-- **Full Chat Message History:** Highly volatile and can accumulate rapidly.
-- **Large Unfiltered Lists/Aggregations (except specific, managed cases):** Would exceed cache limits.
-- **Highly Dynamic/Real-time Data:** Leads to constant invalidation and thrashing.
+**Overall Multi-Layered Caching Strategy:**
+
+The application employs a multi-layered caching approach to optimize performance:
+1.  **Browser Cache:** First line of defense, serving assets directly from the client's machine.
+2.  **Redis Cache:** If not in browser cache, the request hits the server. Redis serves as a fast in-memory cache, protecting the primary database from repeated queries for frequently accessed data.
+3.  **MongoDB:** The ultimate source of truth. Only accessed if data is not found in either the browser or Redis cache.
 
 **Architectural Design Insights:**
-
-- **Centralized Cache Abstraction:** A dedicated `CacheService` encapsulates all Redis interactions, providing generic `get`, `set`, `del` methods.
-- **Service Layer Integration:** Caching logic is primarily integrated within the `service` layer.
-- **Consistent Key Naming:** Clear and consistent key naming conventions are used.
-- **Serialization:** Complex objects are serialized to JSON strings before storage and deserialized upon retrieval.
-- **Graceful Degradation:** Robust error handling ensures the application falls back to fetching data directly from MongoDB if Redis is unavailable.
-- **Monitoring:** Logging is in place to monitor Redis activity (hits, misses, sets, deletes) and retrieval times for performance analysis.
+*   **Centralized Cache Abstraction:** A dedicated `CacheService` encapsulates all Redis interactions.
+*   **Service Layer Integration:** Caching logic is primarily integrated within the `service` layer.
+*   **Consistent Key Naming:** Clear and consistent key naming conventions are used.
+*   **Serialization:** Complex objects are serialized to JSON strings (with Buffers converted to base64 strings for PFPs) before storage and deserialized upon retrieval.
+*   **Graceful Degradation:** Robust error handling ensures the application falls back to fetching data directly from MongoDB if Redis is unavailable.
+*   **Monitoring:** Logging is in place to monitor Redis activity (hits, misses, sets, deletes) and retrieval times for performance analysis.
 
 ## Code Deep Dive & Snapshots
 

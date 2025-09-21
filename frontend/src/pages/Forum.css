@@ -174,6 +174,7 @@
 }
 
 .topic-card {
+  position: relative;
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -387,6 +388,13 @@
   background-color: var(--blue-primary);
   color: white;
   border-color: var(--blue-primary);
+}
+
+.topic-actions {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 10;
 }
 
 @media (max-width: 768px) {

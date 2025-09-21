@@ -29,6 +29,15 @@ const defaultPfp = {
 const JWT_BLACKLIST_KEY = (token: string) => `jwt:blacklist:${token}`;
 
 export const UserService = {
+  async getProfileByRole(profileId: string, role: "student" | "tutor") {
+    if (role === "student") {
+      return StudentRepo.findById(profileId);
+    } else if (role === "tutor") {
+      return TutorRepo.findById(profileId);
+    }
+    return null;
+  },
+
   async logout(token: string) {
     const decoded = verifyJwt(token) as { exp?: number };
     if (!decoded || !decoded.exp) {
