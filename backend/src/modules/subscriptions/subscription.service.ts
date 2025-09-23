@@ -2,6 +2,7 @@ import { SubscriptionRepo } from "./subscription.repo";
 import { StudentService } from "../students/student.service";
 import { TutorRepo } from "../tutors/tutor.repo";
 import { CacheService } from "../../services/cache.service";
+import { ChatService } from "../chat/chat.service";
 import { TUTOR_CACHE_KEY } from "../tutors/tutor.service";
 
 const SUBSCRIBED_TUTORS_CACHE_KEY = (studentId: string) =>
@@ -54,6 +55,14 @@ export const SubscriptionService = {
       studentId: student._id,
       tutorId: tutor._id,
     });
+
+    // Create a conversation between the student and tutor
+    try {
+      await ChatService.createConversation(student.userId.toString(), tutor.userId.toString());
+    } catch (error) {
+      console.error("Error creating conversation:", error);
+      // Don't fail the subscription if conversation creation fails
+    }
 
     // Invalidate the student's subscribed tutors list
     await CacheService.del(SUBSCRIBED_TUTORS_CACHE_KEY(student._id.toString()));

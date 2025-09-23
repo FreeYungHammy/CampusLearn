@@ -22,7 +22,8 @@ import Layout from "./components/Layout";
 const Messages = React.lazy(() => import("./pages/Messages"));
 
 import { useInactivityLogout } from "./hooks/useInactivityLogout";
-import { useGlobalSocketListener } from "./hooks/useGlobalSocketListener";
+import { useBackendHealth } from "./hooks/useBackendHealth";
+
 import { useAuthStore } from "./store/authStore";
 import LogoutConfirmationModal from "./components/LogoutConfirmationModal";
 
@@ -30,7 +31,8 @@ import "./App.css";
 
 function App() {
   useInactivityLogout();
-  useGlobalSocketListener();
+  useBackendHealth();
+  
 
   const { showLogoutModal } = useAuthStore();
 

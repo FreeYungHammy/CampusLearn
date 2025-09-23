@@ -9,6 +9,7 @@ import TutorProfile from "../pages/Tutors/TutorProfile";
 import TutorContentView from "../pages/Tutors/TutorContentView";
 import Threads from "../pages/Forum/Threads";
 import ChatRoom from "../pages/Chat/ChatRoom";
+import Messages from "../pages/Messages";
 import NotFound from "./NotFound";
 
 export const router = createBrowserRouter([
@@ -25,6 +26,7 @@ export const router = createBrowserRouter([
       { path: "tutors/:tutorId/content", element: <TutorContentView /> },
       { path: "forum", element: <Threads /> },
       { path: "chat", element: <ChatRoom /> },
+      { path: "messages", element: <Messages /> },
     ],
     errorElement: <NotFound />,
   },

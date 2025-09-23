@@ -4714,3 +4714,130 @@ body,
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
+
+/* ------------------------------
+   Messages page specific styles
+   ------------------------------ */
+
+.message-thread {
+  transition: all 0.2s ease;
+  border-right: 3px solid transparent;
+}
+
+.message-thread:hover {
+  background-color: #f8fafc;
+}
+
+.message-thread.active {
+  background-color: #eff6ff;
+  border-right: 3px solid #3b82f6;
+}
+
+.chat-bubble {
+  max-width: 70%;
+  word-wrap: break-word;
+}
+
+.chat-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Message thread animations */
+.message-thread {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Chat message animations */
+.chat-bubble {
+  animation: messageSlide 0.3s ease-out;
+}
+
+@keyframes messageSlide {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Loading states */
+.message-loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Unread message indicator */
+.unread-indicator {
+  position: relative;
+}
+
+.unread-indicator::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 8px;
+  background-color: #3b82f6;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* File upload styles */
+.file-upload {
+  padding: 8px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.file-upload:hover {
+  background-color: #f3f4f6;
+}
+
+.file-upload.drag-over {
+  background-color: #dbeafe;
+  border: 2px dashed #3b82f6;
+}
+
+.file-upload.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.file-upload.disabled:hover {
+  background-color: transparent;
+}

@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { ChatService } from "./chat.service";
+import { getUserOnlineStatus } from "../../config/socket";
 
 export const ChatController = {
   send: async (req: Request, res: Response, next: NextFunction) => {
@@ -68,13 +69,14 @@ export const ChatController = {
 
   markThreadSeen: async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { from, to } = req.body;
-      if (!from || !to)
+      const { chatId, userId } = req.body;
+      if (!chatId || !userId) {
         return res
           .status(400)
-          .json({ message: "from and to userIds required" });
-      const result = await ChatService.markThreadSeen(String(from), String(to));
-      res.json({ modified: (result as any).modifiedCount ?? undefined });
+          .json({ message: "chatId and userId are required" });
+      }
+      const result = await ChatService.markThreadSeen(chatId, userId);
+      res.json({ modified: result.modifiedCount });
     } catch (e) {
       next(e);
     }
@@ -86,6 +88,55 @@ export const ChatController = {
       if (!deleted)
         return res.status(404).json({ message: "Message not found" });
       res.status(204).send();
+    } catch (e) {
+      next(e);
+    }
+  },
+
+  getConversations: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { userId } = req.params;
+      const conversations = await ChatService.getConversations(userId);
+      res.json(conversations);
+    } catch (e) {
+      next(e);
+    }
+  },
+
+  getConversationThread: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { chatId } = req.query;
+      if (!chatId) {
+        return res.status(400).json({ message: "chatId is required" });
+      }
+      const messages = await ChatService.getConversationThread(chatId as string);
+      res.json(messages);
+    } catch (e) {
+      next(e);
+    }
+  },
+
+  createConversation: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { studentId, tutorId } = req.body;
+      if (!studentId || !tutorId) {
+        return res.status(400).json({ message: "studentId and tutorId are required" });
+      }
+      const conversation = await ChatService.createConversation(studentId, tutorId);
+      res.status(201).json(conversation);
+    } catch (e) {
+      next(e);
+    }
+  },
+
+  getUserStatus: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { userId } = req.params;
+      if (!userId) {
+        return res.status(400).json({ message: "userId is required" });
+      }
+      const status = getUserOnlineStatus(userId);
+      res.json(status);
     } catch (e) {
       next(e);
     }
