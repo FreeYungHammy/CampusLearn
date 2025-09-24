@@ -22,7 +22,13 @@ export const ForumController = {
   async getThreads(req: AuthedRequest, res: Response) {
     try {
       const user = req.user as User;
-      const threads = await ForumService.getThreads(user);
+      const { sortBy, searchQuery, topic } = req.query;
+      const threads = await ForumService.getThreads(
+        user,
+        sortBy as string,
+        searchQuery as string,
+        topic as string,
+      );
       res.status(200).json(threads);
     } catch (error: any) {
       res.status(500).json({ message: error.message });

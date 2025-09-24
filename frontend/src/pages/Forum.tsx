@@ -39,11 +39,20 @@ const Forum = () => {
   const [editingContent, setEditingContent] = useState("");
   const [isVoting, setIsVoting] = useState<{ [key: string]: boolean }>({});
 
+  const [sortBy, setSortBy] = useState("newest"); // 'newest' or 'upvotes'
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedTopic, setSelectedTopic] = useState(""); // For filtering by subject
+
   useEffect(() => {
     const fetchThreads = async () => {
       if (!token) return;
       try {
-        const fetchedThreads = await getForumThreads(token);
+        const fetchedThreads = await getForumThreads(
+          token,
+          sortBy,
+          searchQuery,
+          selectedTopic,
+        );
         const threadsWithVotes = fetchedThreads.map((thread) => ({
           ...thread,
           upvotes: thread.upvotes || 0,
@@ -56,7 +65,7 @@ const Forum = () => {
     };
 
     fetchThreads();
-  }, [token]);
+  }, [token, sortBy, searchQuery, selectedTopic]);
 
   useEffect(() => {
     if (socket) {
@@ -242,9 +251,43 @@ const Forum = () => {
             Ask questions and get answers from the entire student community.
           </p>
         </div>
-        <button onClick={() => setIsModalOpen(true)} className="new-topic-btn">
-          <i className="fas fa-plus"></i> New Topic
-        </button>
+        <div className="forum-controls">
+          <input
+            type="text"
+            placeholder="Search by title or content..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="search-input"
+          />
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="sort-select"
+          >
+            <option value="newest">Newest</option>
+            <option value="upvotes">Most Upvoted</option>
+          </select>
+          <select
+            value={selectedTopic}
+            onChange={(e) => setSelectedTopic(e.target.value)}
+            className="topic-select"
+          >
+            <option value="">All Subjects</option>
+            <option value="Programming">Programming</option>
+            <option value="Mathematics">Mathematics</option>
+            <option value="Linear Programming">Linear Programming</option>
+            <option value="Database Development">Database Development</option>
+            <option value="Web Programming">Web Programming</option>
+            <option value="Computer Architecture">Computer Architecture</option>
+            <option value="Statistics">Statistics</option>
+            <option value="Software Testing">Software Testing</option>
+            <option value="Network Development">Network Development</option>
+            <option value="Machine Learning">Machine Learning</option>
+          </select>
+          <button onClick={() => setIsModalOpen(true)} className="new-topic-btn">
+            <i className="fas fa-plus"></i> New Topic
+          </button>
+        </div>
       </div>
 
       <div className="topics-list">

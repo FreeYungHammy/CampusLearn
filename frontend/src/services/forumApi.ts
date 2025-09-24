@@ -7,8 +7,18 @@ export const createForumPost = async (postData: any, token: string) => {
   return response.data;
 };
 
-export const getForumThreads = async (token: string) => {
-  const response = await api.get("/forum/threads", {
+export const getForumThreads = async (
+  token: string,
+  sortBy?: string,
+  searchQuery?: string,
+  topic?: string,
+) => {
+  const params = new URLSearchParams();
+  if (sortBy) params.append("sortBy", sortBy);
+  if (searchQuery) params.append("searchQuery", searchQuery);
+  if (topic) params.append("topic", topic);
+
+  const response = await api.get(`/forum/threads?${params.toString()}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return response.data;
