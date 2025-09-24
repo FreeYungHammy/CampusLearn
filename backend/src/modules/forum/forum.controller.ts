@@ -22,14 +22,19 @@ export const ForumController = {
   async getThreads(req: AuthedRequest, res: Response) {
     try {
       const user = req.user as User;
-      const { sortBy, searchQuery, topic } = req.query;
-      const threads = await ForumService.getThreads(
+      const { sortBy, searchQuery, topic, limit, offset } = req.query;
+      const parsedLimit = limit ? parseInt(limit as string, 10) : undefined;
+      const parsedOffset = offset ? parseInt(offset as string, 10) : undefined;
+
+      const { threads, totalCount } = await ForumService.getThreads(
         user,
         sortBy as string,
         searchQuery as string,
         topic as string,
+        parsedLimit,
+        parsedOffset,
       );
-      res.status(200).json(threads);
+      res.status(200).json({ threads, totalCount });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }

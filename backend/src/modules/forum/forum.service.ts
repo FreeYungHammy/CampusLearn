@@ -102,6 +102,8 @@ export const ForumService = {
     sortBy?: string,
     searchQuery?: string,
     topic?: string,
+    limit: number = 10,
+    offset: number = 0,
   ) {
     const dbStartTime = performance.now();
     const query: any = {};
@@ -122,7 +124,12 @@ export const ForumService = {
       sort.createdAt = -1; // Default to newest
     }
 
-    const threads = await ForumPostModel.find(query).sort(sort).lean();
+    const totalCount = await ForumPostModel.countDocuments(query);
+    const threads = await ForumPostModel.find(query)
+      .sort(sort)
+      .skip(offset)
+      .limit(limit)
+      .lean();
 
     // Fetch user votes
     const threadIds = threads.map((t) => t._id);
@@ -173,7 +180,7 @@ export const ForumService = {
       `MongoDB retrieval for all threads took ${dbDuration.toFixed(2)} ms`,
     );
 
-    return populatedThreads;
+    return { threads: populatedThreads, totalCount };
   },
 
   async getThreadById(threadId: string, user: User) {

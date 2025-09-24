@@ -12,11 +12,15 @@ export const getForumThreads = async (
   sortBy?: string,
   searchQuery?: string,
   topic?: string,
+  limit?: number,
+  offset?: number,
 ) => {
   const params = new URLSearchParams();
   if (sortBy) params.append("sortBy", sortBy);
   if (searchQuery) params.append("searchQuery", searchQuery);
   if (topic) params.append("topic", topic);
+  if (limit) params.append("limit", limit.toString());
+  if (offset) params.append("offset", offset.toString());
 
   const response = await api.get(`/forum/threads?${params.toString()}`, {
     headers: { Authorization: `Bearer ${token}` },

@@ -43,29 +43,87 @@ const Forum = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTopic, setSelectedTopic] = useState(""); // For filtering by subject
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [postsPerPage] = useState(10);
+  const [totalPosts, setTotalPosts] = useState(0);
+  const [hasMorePosts, setHasMorePosts] = useState(true);
+
   useEffect(() => {
-    const fetchThreads = async () => {
+    const fetchThreads = async (page: number, append: boolean = false) => {
       if (!token) return;
       try {
-        const fetchedThreads = await getForumThreads(
+        const offset = (page - 1) * postsPerPage;
+        const { threads: fetchedThreads, totalCount } = await getForumThreads(
           token,
           sortBy,
           searchQuery,
           selectedTopic,
+          postsPerPage,
+          offset,
         );
+
         const threadsWithVotes = fetchedThreads.map((thread) => ({
           ...thread,
           upvotes: thread.upvotes || 0,
           userVote: thread.userVote || 0,
         }));
-        setThreads(threadsWithVotes);
+
+        if (append) {
+          setThreads((prevThreads) => [...prevThreads, ...threadsWithVotes]);
+        } else {
+          setThreads(threadsWithVotes);
+        }
+        setTotalPosts(totalCount);
+        setHasMorePosts(threadsWithVotes.length + offset < totalCount);
       } catch (error) {
         console.error("Failed to fetch threads", error);
       }
     };
 
-    fetchThreads();
+    // Reset page and fetch first set of threads when filters/sort change
+    setCurrentPage(1);
+    setThreads([]); // Clear threads to show loading state or new filtered results
+    fetchThreads(1);
   }, [token, sortBy, searchQuery, selectedTopic]);
+
+  const handleLoadMore = () => {
+    if (hasMorePosts) {
+      const nextPage = currentPage + 1;
+      setCurrentPage(nextPage);
+      // Fetch and append new threads
+      const fetchThreads = async (page: number, append: boolean = false) => {
+        if (!token) return;
+        try {
+          const offset = (page - 1) * postsPerPage;
+          const { threads: fetchedThreads, totalCount } = await getForumThreads(
+            token,
+            sortBy,
+            searchQuery,
+            selectedTopic,
+            postsPerPage,
+            offset,
+          );
+
+          const threadsWithVotes = fetchedThreads.map((thread) => ({
+            ...thread,
+            upvotes: thread.upvotes || 0,
+            userVote: thread.userVote || 0,
+          }));
+
+          if (append) {
+            setThreads((prevThreads) => [...prevThreads, ...threadsWithVotes]);
+          } else {
+            setThreads(threadsWithVotes);
+          }
+          setTotalPosts(totalCount);
+          setHasMorePosts(threadsWithVotes.length + offset < totalCount);
+        } catch (error) {
+          console.error("Failed to fetch threads", error);
+        }
+      };
+      fetchThreads(nextPage, true);
+    }
+  };
 
   useEffect(() => {
     if (socket) {
@@ -399,9 +457,14 @@ const Forum = () => {
       <div className="forum-pagination">
         <div className="pagination-info">
           <p>
-            Showing <span>{threads.length}</span> results
+            Showing <span>{threads.length}</span> of <span>{totalPosts}</span> results
           </p>
         </div>
+        {hasMorePosts && (
+          <button onClick={handleLoadMore} className="load-more-btn">
+            Load More Posts
+          </button>
+        )}
       </div>
 
       {isModalOpen && <CreatePostModal onClose={() => setIsModalOpen(false)} />}
