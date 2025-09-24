@@ -6,7 +6,11 @@ const ChatSchema = new Schema(
     receiverId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     chatId: { type: String, required: true },
     content: { type: String, required: true },
-    upload: { type: Buffer },
+    upload: {
+      content: { type: Buffer, select: false },
+      filename: { type: String },
+      contentType: { type: String },
+    },
     seen: { type: Boolean, default: false },
   },
   { timestamps: true },

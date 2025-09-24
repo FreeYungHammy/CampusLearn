@@ -1,7 +1,6 @@
 import http from './http';
 import api from "@/lib/api";
 import type { ChatMessage } from "@/types/ChatMessage";
-import type { Conversation } from "./authApi";
 
 export interface Conversation {
   _id: string;
@@ -30,9 +29,11 @@ export interface Conversation {
 
 export const chatApi = {
   async getConversations(userId: string, token: string): Promise<Conversation[]> {
+    console.log(`Fetching conversations for user ${userId}`);
     const response = await http.get(`/chat/conversations/${userId}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
+    console.log('Conversations response:', response.data);
     return response.data;
   },
 

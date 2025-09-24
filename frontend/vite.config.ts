@@ -12,6 +12,7 @@ export default defineConfig({
         secure: false,
       },
     },
+    open: '/login', 
   },
   resolve: {
     alias: { "@": path.resolve(__dirname, "src") },
