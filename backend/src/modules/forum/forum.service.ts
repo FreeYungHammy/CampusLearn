@@ -97,9 +97,39 @@ export const ForumService = {
     return populatedPostForEmit;
   },
 
-  async getThreads(user: User) {
+  async getThreads(
+    user: User,
+    sortBy?: string,
+    searchQuery?: string,
+    topic?: string,
+    limit: number = 10,
+    offset: number = 0,
+  ) {
     const dbStartTime = performance.now();
-    const threads = await ForumPostModel.find().sort({ createdAt: -1 }).lean();
+    const query: any = {};
+    if (topic) {
+      query.topic = topic;
+    }
+    if (searchQuery) {
+      query.$or = [
+        { title: { $regex: searchQuery, $options: "i" } },
+        { content: { $regex: searchQuery, $options: "i" } },
+      ];
+    }
+
+    const sort: any = {};
+    if (sortBy === "upvotes") {
+      sort.upvotes = -1;
+    } else {
+      sort.createdAt = -1; // Default to newest
+    }
+
+    const totalCount = await ForumPostModel.countDocuments(query);
+    const threads = await ForumPostModel.find(query)
+      .sort(sort)
+      .skip(offset)
+      .limit(limit)
+      .lean();
 
     // Fetch user votes
     const threadIds = threads.map((t) => t._id);
@@ -150,7 +180,7 @@ export const ForumService = {
       `MongoDB retrieval for all threads took ${dbDuration.toFixed(2)} ms`,
     );
 
-    return populatedThreads;
+    return { threads: populatedThreads, totalCount };
   },
 
   async getThreadById(threadId: string, user: User) {
