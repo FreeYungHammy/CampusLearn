@@ -7,7 +7,7 @@ export const useForumSocket = (threadId?: string) => {
   const [socket, setSocket] = useState<Socket | null>(null);
 
   useEffect(() => {
-    const newSocket = io(`${SOCKET_URL}/forum`, {
+    const newSocket = io(SOCKET_URL, {
       transports: ["websocket"],
     });
 
