@@ -9,7 +9,7 @@ interface CreatePostModalProps {
 
 const CreatePostModal: React.FC<CreatePostModalProps> = ({ onClose }) => {
   const [title, setTitle] = useState("");
-  const [topic, setTopic] = useState("Math");
+  const [topic, setTopic] = useState("Mathematics");
   const [content, setContent] = useState("");
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,7 +61,7 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ onClose }) => {
             >
               <option value="Mathematics">Mathematics</option>
               <option value="Programming">Programming</option>
-              <option value="Database Design">Database Design</option>
+              <option value="Database Development">Database Development</option>
               <option value="Linear Programming">Linear Programming</option>
               <option value="Web Programming">Web Programming</option>
               <option value="Computer Architecture">
