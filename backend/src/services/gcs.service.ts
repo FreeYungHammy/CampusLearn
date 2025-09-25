@@ -58,21 +58,29 @@ function getStorage(): Storage {
   return storage;
 }
 
-function parseBucketAndObject(objectName: string): { bucket: string; objectPath: string } {
-  const cleaned = objectName.replace(/^gs:\/\//, "");
-  const firstSlash = cleaned.indexOf("/");
-  if (firstSlash > 0) {
-    const maybeBucket = cleaned.slice(0, firstSlash);
-    const objectPath = cleaned.slice(firstSlash + 1);
-    // Treat first segment as bucket if it looks like a bucket name
-    if (/^[a-z0-9][a-z0-9._-]{1,62}$/.test(maybeBucket)) {
-      return { bucket: maybeBucket, objectPath };
+function parseBucketAndObject(
+  objectName: string,
+): { bucket: string; objectPath: string } {
+  // If it's a full gs:// URI, parse it properly.
+  if (objectName.startsWith("gs://")) {
+    const cleaned = objectName.substring(5); // remove "gs://"
+    const firstSlash = cleaned.indexOf("/");
+    if (firstSlash > 0) {
+      const bucket = cleaned.slice(0, firstSlash);
+      const objectPath = cleaned.slice(firstSlash + 1);
+      return { bucket, objectPath };
     }
+    // It's something like "gs://my-bucket", which means the root.
+    return { bucket: cleaned, objectPath: "" };
   }
+
+  // Otherwise, assume the entire string is the object path and use the env var for the bucket.
   if (!env.gcsBucket) {
-    throw new Error("GCS bucket not configured and no bucket specified in URI");
+    throw new Error(
+      "GCS bucket not configured in environment, and a relative path was provided.",
+    );
   }
-  return { bucket: env.gcsBucket, objectPath: cleaned };
+  return { bucket: env.gcsBucket, objectPath: objectName };
 }
 
 export const gcsService = {
@@ -107,6 +115,9 @@ export const gcsService = {
   async getSignedReadUrl(objectName: string): Promise<string> {
     const client = getStorage();
     const { bucket, objectPath } = parseBucketAndObject(objectName);
+
+    console.log(`GCS: Attempting to get signed URL for bucket '${bucket}' and object '${objectPath}'`);
+
     const file = client.bucket(bucket).file(objectPath);
     const [url] = await file.getSignedUrl({
       action: "read",

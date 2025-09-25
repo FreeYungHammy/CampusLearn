@@ -156,6 +156,20 @@ export const FileController = {
     }
   },
 
+  getSignedUrlForVideo: async (
+    req: AuthedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const { filename } = req.params;
+      const url = await FileService.getSignedUrlForVideo(filename);
+      res.json({ url });
+    } catch (e) {
+      next(e);
+    }
+  },
+
   remove: async (req: AuthedRequest, res: Response, next: NextFunction) => {
     try {
       const fileId = req.params.id;

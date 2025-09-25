@@ -8,6 +8,14 @@ r.get("/", FileController.list);
 
 // Secure endpoint: current tutor's content (meta only, excludes binary)
 r.get("/my-content", requireAuth, requireTutor, FileController.myContent);
+
+// Secure endpoint: get a signed URL for a video file
+r.get(
+  "/videos/:filename/url",
+  requireAuth,
+  FileController.getSignedUrlForVideo,
+);
+
 // Public convenience: list content by tutor's user id (no auth, for functionality-first phase)
 r.get("/by-user/:userId", FileController.byUser);
 

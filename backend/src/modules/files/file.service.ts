@@ -122,4 +122,14 @@ export const FileService = {
   findTutorByUserId(userId: string) {
     return FileRepo.findTutorByUserId(userId);
   },
+
+  async getSignedUrlForVideo(filename: string): Promise<string> {
+    if (!gcsService.isEnabled()) {
+      throw new Error("GCS service is not enabled");
+    }
+    // Construct the full object path as it's stored in GCS
+    const objectName = `uploads/videos/${filename}`;
+    logger.info(`Generating signed URL for GCS object: ${objectName}`);
+    return gcsService.getSignedReadUrl(objectName);
+  },
 };
