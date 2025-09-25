@@ -33,7 +33,7 @@ const Forum = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [threads, setThreads] = useState<any[]>([]);
   const socket = useForumSocket();
-  const { token, user, pfpTimestamps } = useAuthStore();
+  const { token, user, pfpTimestamps, updatePfpTimestamps } = useAuthStore();
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState("");
@@ -61,6 +61,14 @@ const Forum = () => {
           postsPerPage,
           offset,
         );
+
+        const timestamps = fetchedThreads.reduce((acc, thread) => {
+          if (thread.author && thread.author.pfpTimestamp) {
+            acc[thread.author.userId] = thread.author.pfpTimestamp;
+          }
+          return acc;
+        }, {} as { [userId: string]: number });
+        updatePfpTimestamps(timestamps);
 
         const threadsWithVotes = fetchedThreads.map((thread) => ({
           ...thread,
@@ -103,6 +111,14 @@ const Forum = () => {
             postsPerPage,
             offset,
           );
+
+          const timestamps = fetchedThreads.reduce((acc, thread) => {
+            if (thread.author && thread.author.pfpTimestamp) {
+              acc[thread.author.userId] = thread.author.pfpTimestamp;
+            }
+            return acc;
+          }, {} as { [userId: string]: number });
+          updatePfpTimestamps(timestamps);
 
           const threadsWithVotes = fetchedThreads.map((thread) => ({
             ...thread,

@@ -255,7 +255,7 @@ export const UserService = {
     logger.info(`Invalidated PFP cache for user ${userId}`);
 
     // Emit event to all clients
-    io.emit("pfp_updated", { userId });
+    io.emit("pfp_updated", { userId, timestamp: Date.now() });
   },
 
   async updateProfile(userId: string, firstName: string, lastName: string) {

@@ -23,14 +23,27 @@ import mongoose from "mongoose";
 const logger = createLogger("ForumService");
 const FORUM_THREAD_CACHE_KEY = (id: string) => `forum:thread:${id}`;
 
+function formatAuthorForList(author: any) {
+  if (!author) return null;
+  const { pfp, ...rest } = author;
+  const formatted: any = { ...rest };
+  if (author.updatedAt) {
+    formatted.pfpTimestamp = new Date(author.updatedAt).getTime();
+  }
+  return formatted;
+}
+
 function formatAuthor(author: any) {
   if (!author) return null;
-  const formatted = { ...author };
+  const formatted: any = { ...author };
   if (author.pfp && author.pfp.data instanceof Buffer) {
     formatted.pfp = {
       contentType: author.pfp.contentType,
       data: author.pfp.data.toString("base64"),
     };
+  }
+  if (author.updatedAt) {
+    formatted.pfpTimestamp = new Date(author.updatedAt).getTime();
   }
   return formatted;
 }
@@ -154,18 +167,16 @@ export const ForumService = {
       TutorModel.find({ _id: { $in: tutorAuthorIds } }).lean(),
     ]);
 
-    // Base author map without pfp to avoid duplicating binary data in memory/cache
-    const baseAuthorMap = [...studentAuthors, ...tutorAuthors].reduce(
+    const authorMap = [...studentAuthors, ...tutorAuthors].reduce(
       (acc: { [key: string]: any }, author) => {
-        const formatted = formatAuthor(author);
-        acc[author._id.toString()] = stripPfp(formatted);
+        acc[author._id.toString()] = formatAuthorForList(author);
         return acc;
       },
       {},
     );
 
     const enrichedAuthor = (_role: string, authorId: any) => {
-      return baseAuthorMap[authorId.toString()] || null;
+      return authorMap[authorId.toString()] || null;
     };
 
     const populatedThreads = threads.map((thread) => ({
