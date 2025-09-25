@@ -33,30 +33,113 @@ const Forum = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [threads, setThreads] = useState<any[]>([]);
   const socket = useForumSocket();
-  const { token, user, pfpTimestamps } = useAuthStore();
+  const { token, user, pfpTimestamps, updatePfpTimestamps } = useAuthStore();
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState("");
   const [isVoting, setIsVoting] = useState<{ [key: string]: boolean }>({});
 
+  const [sortBy, setSortBy] = useState("newest"); // 'newest' or 'upvotes'
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedTopic, setSelectedTopic] = useState(""); // For filtering by subject
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [postsPerPage] = useState(10);
+  const [totalPosts, setTotalPosts] = useState(0);
+  const [hasMorePosts, setHasMorePosts] = useState(true);
+
   useEffect(() => {
-    const fetchThreads = async () => {
+    const fetchThreads = async (page: number, append: boolean = false) => {
       if (!token) return;
       try {
-        const fetchedThreads = await getForumThreads(token);
+        const offset = (page - 1) * postsPerPage;
+        const { threads: fetchedThreads, totalCount } = await getForumThreads(
+          token,
+          sortBy,
+          searchQuery,
+          selectedTopic,
+          postsPerPage,
+          offset,
+        );
+
+        const timestamps = fetchedThreads.reduce((acc, thread) => {
+          if (thread.author && thread.author.pfpTimestamp) {
+            acc[thread.author.userId] = thread.author.pfpTimestamp;
+          }
+          return acc;
+        }, {} as { [userId: string]: number });
+        updatePfpTimestamps(timestamps);
+
         const threadsWithVotes = fetchedThreads.map((thread) => ({
           ...thread,
           upvotes: thread.upvotes || 0,
           userVote: thread.userVote || 0,
         }));
-        setThreads(threadsWithVotes);
+
+        if (append) {
+          setThreads((prevThreads) => [...prevThreads, ...threadsWithVotes]);
+        } else {
+          setThreads(threadsWithVotes);
+        }
+        setTotalPosts(totalCount);
+        setHasMorePosts(threadsWithVotes.length + offset < totalCount);
       } catch (error) {
         console.error("Failed to fetch threads", error);
       }
     };
 
-    fetchThreads();
-  }, [token]);
+    // Reset page and fetch first set of threads when filters/sort change
+    setCurrentPage(1);
+    setThreads([]); // Clear threads to show loading state or new filtered results
+    fetchThreads(1);
+  }, [token, sortBy, searchQuery, selectedTopic]);
+
+  const handleLoadMore = () => {
+    if (hasMorePosts) {
+      const nextPage = currentPage + 1;
+      setCurrentPage(nextPage);
+      // Fetch and append new threads
+      const fetchThreads = async (page: number, append: boolean = false) => {
+        if (!token) return;
+        try {
+          const offset = (page - 1) * postsPerPage;
+          const { threads: fetchedThreads, totalCount } = await getForumThreads(
+            token,
+            sortBy,
+            searchQuery,
+            selectedTopic,
+            postsPerPage,
+            offset,
+          );
+
+          const timestamps = fetchedThreads.reduce((acc, thread) => {
+            if (thread.author && thread.author.pfpTimestamp) {
+              acc[thread.author.userId] = thread.author.pfpTimestamp;
+            }
+            return acc;
+          }, {} as { [userId: string]: number });
+          updatePfpTimestamps(timestamps);
+
+          const threadsWithVotes = fetchedThreads.map((thread) => ({
+            ...thread,
+            upvotes: thread.upvotes || 0,
+            userVote: thread.userVote || 0,
+          }));
+
+          if (append) {
+            setThreads((prevThreads) => [...prevThreads, ...threadsWithVotes]);
+          } else {
+            setThreads(threadsWithVotes);
+          }
+          setTotalPosts(totalCount);
+          setHasMorePosts(threadsWithVotes.length + offset < totalCount);
+        } catch (error) {
+          console.error("Failed to fetch threads", error);
+        }
+      };
+      fetchThreads(nextPage, true);
+    }
+  };
 
   useEffect(() => {
     if (socket) {
@@ -242,9 +325,43 @@ const Forum = () => {
             Ask questions and get answers from the entire student community.
           </p>
         </div>
-        <button onClick={() => setIsModalOpen(true)} className="new-topic-btn">
-          <i className="fas fa-plus"></i> New Topic
-        </button>
+        <div className="forum-controls">
+          <input
+            type="text"
+            placeholder="Search by title or content..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="search-input"
+          />
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="sort-select"
+          >
+            <option value="newest">Newest</option>
+            <option value="upvotes">Most Upvoted</option>
+          </select>
+          <select
+            value={selectedTopic}
+            onChange={(e) => setSelectedTopic(e.target.value)}
+            className="topic-select"
+          >
+            <option value="">All Subjects</option>
+            <option value="Programming">Programming</option>
+            <option value="Mathematics">Mathematics</option>
+            <option value="Linear Programming">Linear Programming</option>
+            <option value="Database Development">Database Development</option>
+            <option value="Web Programming">Web Programming</option>
+            <option value="Computer Architecture">Computer Architecture</option>
+            <option value="Statistics">Statistics</option>
+            <option value="Software Testing">Software Testing</option>
+            <option value="Network Development">Network Development</option>
+            <option value="Machine Learning">Machine Learning</option>
+          </select>
+          <button onClick={() => setIsModalOpen(true)} className="new-topic-btn">
+            <i className="fas fa-plus"></i> New Topic
+          </button>
+        </div>
       </div>
 
       <div className="topics-list">
@@ -356,9 +473,14 @@ const Forum = () => {
       <div className="forum-pagination">
         <div className="pagination-info">
           <p>
-            Showing <span>{threads.length}</span> results
+            Showing <span>{threads.length}</span> of <span>{totalPosts}</span> results
           </p>
         </div>
+        {hasMorePosts && (
+          <button onClick={handleLoadMore} className="load-more-btn">
+            Load More Posts
+          </button>
+        )}
       </div>
 
       {isModalOpen && <CreatePostModal onClose={() => setIsModalOpen(false)} />}

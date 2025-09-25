@@ -23,14 +23,27 @@ import mongoose from "mongoose";
 const logger = createLogger("ForumService");
 const FORUM_THREAD_CACHE_KEY = (id: string) => `forum:thread:${id}`;
 
+function formatAuthorForList(author: any) {
+  if (!author) return null;
+  const { pfp, ...rest } = author;
+  const formatted: any = { ...rest };
+  if (author.updatedAt) {
+    formatted.pfpTimestamp = new Date(author.updatedAt).getTime();
+  }
+  return formatted;
+}
+
 function formatAuthor(author: any) {
   if (!author) return null;
-  const formatted = { ...author };
+  const formatted: any = { ...author };
   if (author.pfp && author.pfp.data instanceof Buffer) {
     formatted.pfp = {
       contentType: author.pfp.contentType,
       data: author.pfp.data.toString("base64"),
     };
+  }
+  if (author.updatedAt) {
+    formatted.pfpTimestamp = new Date(author.updatedAt).getTime();
   }
   return formatted;
 }
@@ -97,156 +110,293 @@ export const ForumService = {
     return populatedPostForEmit;
   },
 
-  async getThreads(user: User) {
+  async getThreads(
+    user: User,
+    sortBy?: string,
+    searchQuery?: string,
+    topic?: string,
+    limit: number = 10,
+    offset: number = 0,
+  ) {
     const dbStartTime = performance.now();
-    const threads = await ForumPostModel.find().sort({ createdAt: -1 }).lean();
+    const matchStage: any = {};
+    if (topic) {
+      matchStage.topic = topic;
+    }
+    if (searchQuery) {
+      matchStage.$or = [
+        { title: { $regex: searchQuery, $options: "i" } },
+        { content: { $regex: searchQuery, $options: "i" } },
+      ];
+    }
 
-    // Fetch user votes
-    const threadIds = threads.map((t) => t._id);
-    const userVotes = await UserVoteModel.find({
-      userId: user.id,
-      targetId: { $in: threadIds },
-      targetType: "ForumPost",
-    }).lean();
-    const voteMap = userVotes.reduce((acc: { [key: string]: any }, vote) => {
-      acc[vote.targetId.toString()] = vote.voteType;
-      return acc;
-    }, {});
+    const sortStage: any = {};
+    if (sortBy === "upvotes") {
+      sortStage.upvotes = -1;
+    } else {
+      sortStage.createdAt = -1; // Default to newest
+    }
 
-    const studentAuthorIds = threads
-      .filter((t) => t.authorRole === "student")
-      .map((t) => t.authorId);
-    const tutorAuthorIds = threads
-      .filter((t) => t.authorRole === "tutor")
-      .map((t) => t.authorId);
-    const [studentAuthors, tutorAuthors] = await Promise.all([
-      StudentModel.find({ _id: { $in: studentAuthorIds } }).lean(),
-      TutorModel.find({ _id: { $in: tutorAuthorIds } }).lean(),
+    const aggregation = ForumPostModel.aggregate([
+      { $match: matchStage },
+      { $sort: sortStage },
+      { $skip: offset },
+      { $limit: limit },
+      // Lookup author details
+      {
+        $lookup: {
+          from: "students", // Assuming the collection name is 'students'
+          localField: "authorId",
+          foreignField: "_id",
+          as: "studentAuthor",
+        },
+      },
+      {
+        $lookup: {
+          from: "tutors", // Assuming the collection name is 'tutors'
+          localField: "authorId",
+          foreignField: "_id",
+          as: "tutorAuthor",
+        },
+      },
+      // Lookup user's vote
+      {
+        $lookup: {
+          from: "uservotes",
+          let: { thread_id: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ["$targetId", "$$thread_id"] },
+                    { $eq: ["$userId", new mongoose.Types.ObjectId(user.id)] },
+                    { $eq: ["$targetType", "ForumPost"] },
+                  ],
+                },
+              },
+            },
+          ],
+          as: "userVoteInfo",
+        },
+      },
+      {
+        $addFields: {
+          author: {
+            $cond: {
+              if: { $eq: ["$authorRole", "student"] },
+              then: { $arrayElemAt: ["$studentAuthor", 0] },
+              else: { $arrayElemAt: ["$tutorAuthor", 0] },
+            },
+          },
+          userVote: { $ifNull: [{ $arrayElemAt: ["$userVoteInfo.voteType", 0] }, 0] },
+        },
+      },
+      {
+        $project: {
+          studentAuthor: 0,
+          tutorAuthor: 0,
+          userVoteInfo: 0,
+          "author.pfp": 0, // Exclude PFP data
+        },
+      },
     ]);
 
-    // Base author map without pfp to avoid duplicating binary data in memory/cache
-    const baseAuthorMap = [...studentAuthors, ...tutorAuthors].reduce(
-      (acc: { [key: string]: any }, author) => {
-        const formatted = formatAuthor(author);
-        acc[author._id.toString()] = stripPfp(formatted);
-        return acc;
-      },
-      {},
-    );
+    const totalCountPromise = ForumPostModel.countDocuments(matchStage);
+    const [threads, totalCount] = await Promise.all([
+      aggregation,
+      totalCountPromise,
+    ]);
 
-    const enrichedAuthor = (_role: string, authorId: any) => {
-      return baseAuthorMap[authorId.toString()] || null;
-    };
-
-    const populatedThreads = threads.map((thread) => ({
-      ...thread,
-      author: thread.isAnonymous
-        ? null
-        : enrichedAuthor(thread.authorRole, thread.authorId),
-      userVote: voteMap[thread._id.toString()] || 0, // Add user's vote
-    }));
     const dbDuration = performance.now() - dbStartTime;
-    logger.info(
-      `MongoDB retrieval for all threads took ${dbDuration.toFixed(2)} ms`,
-    );
+    logger.info(`[getThreads] Aggregation query took ${dbDuration.toFixed(2)} ms`);
 
-    return populatedThreads;
+    // Manually add pfpTimestamp
+    const populatedThreads = threads.map((thread) => {
+      if (thread.author && thread.author.updatedAt) {
+        thread.author.pfpTimestamp = new Date(thread.author.updatedAt).getTime();
+      }
+      return thread;
+    });
+
+    return { threads: populatedThreads, totalCount };
   },
 
   async getThreadById(threadId: string, user: User) {
     const cacheKey = FORUM_THREAD_CACHE_KEY(threadId);
     const startTime = performance.now();
 
-    // 1. Check cache for the BASE thread data (no votes)
-    let thread = await CacheService.get<any>(cacheKey);
-    let cacheHit = false;
-
+    let thread: any = await CacheService.get<any>(cacheKey);
     if (thread) {
-      cacheHit = true;
-      const duration = performance.now() - startTime;
-      logger.info(
-        `Redis retrieval for thread ${threadId} took ${duration.toFixed(2)} ms (Cache Hit)`,
-      );
-    } else {
-      // Cache Miss. Fetch base data from DB.
-      const dbStartTime = performance.now();
-      thread = await ForumPostModel.findById(threadId)
-        .populate("replies")
-        .lean();
-      if (!thread) {
-        return null;
-      }
-
-      const allAuthors = [thread, ...thread.replies.map((r: any) => r)];
-      const studentAuthorIds = allAuthors
-        .filter((p) => p.authorRole === "student")
-        .map((p) => p.authorId);
-      const tutorAuthorIds = allAuthors
-        .filter((p) => p.authorRole === "tutor")
-        .map((p) => p.authorId);
-      const [studentAuthors, tutorAuthors] = await Promise.all([
-        StudentModel.find({ _id: { $in: studentAuthorIds } }).lean(),
-        TutorModel.find({ _id: { $in: tutorAuthorIds } }).lean(),
-      ]);
-      const authorMap = [...studentAuthors, ...tutorAuthors].reduce(
-        (acc: { [key: string]: any }, author) => {
-          acc[author._id.toString()] = formatAuthor(author);
-          return acc;
-        },
-        {},
-      );
-
-      const authorForThread = thread.isAnonymous
-        ? null
-        : authorMap[thread.authorId.toString()];
-
-      const repliesWithAuthors = thread.replies.map((reply: any) => ({
-        ...reply,
-        author: reply.isAnonymous ? null : authorMap[reply.authorId.toString()],
-      }));
-
-      // IMPORTANT: do not cache pfp with thread metadata
-      const populatedThreadForCache = {
-        ...thread,
-        author: authorForThread ? stripPfp(authorForThread) : null,
-        replies: repliesWithAuthors.map((r: any) => ({
-          ...r,
-          author: r.author ? stripPfp(r.author) : null,
-        })),
-      };
-
-      await CacheService.set(cacheKey, populatedThreadForCache, 1800);
-      thread = populatedThreadForCache;
-
-      const dbDuration = performance.now() - dbStartTime;
-      logger.info(
-        `MongoDB retrieval for thread ${threadId} took ${dbDuration.toFixed(2)} ms (Cache Miss)`,
-      );
+      logger.info(`[getThreadById] Redis retrieval for thread ${threadId} took ${(performance.now() - startTime).toFixed(2)} ms (Cache Hit)`);
+      return thread;
     }
 
-    // 2. Fetch USER-SPECIFIC vote data (never cached)
-    const targetIds = [thread._id, ...thread.replies.map((r: any) => r._id)];
-    const userVotes = await UserVoteModel.find({
-      userId: user.id,
-      targetId: { $in: targetIds },
-    }).lean();
-    const voteMap = userVotes.reduce((acc: { [key: string]: any }, vote) => {
-      acc[vote.targetId.toString()] = vote.voteType;
-      return acc;
-    }, {});
+    const dbStartTime = performance.now();
 
-    const finalPopulatedThread = {
-      ...thread,
-      author: thread.author,
-      userVote: voteMap[thread._id.toString()] || 0,
-      replies: thread.replies.map((reply: any) => ({
-        ...reply,
-        author: reply.author,
-        userVote: voteMap[reply._id.toString()] || 0,
-      })),
-    };
+    const aggregation = ForumPostModel.aggregate([
+      { $match: { _id: new mongoose.Types.ObjectId(threadId) } },
+      // Thread author lookup
+      {
+        $lookup: {
+          from: "students",
+          localField: "authorId",
+          foreignField: "_id",
+          as: "studentAuthor",
+        },
+      },
+      {
+        $lookup: {
+          from: "tutors",
+          localField: "authorId",
+          foreignField: "_id",
+          as: "tutorAuthor",
+        },
+      },
+      // Thread user vote lookup
+      {
+        $lookup: {
+          from: "uservotes",
+          let: { thread_id: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ["$targetId", "$$thread_id"] },
+                    { $eq: ["$userId", new mongoose.Types.ObjectId(user.id)] },
+                  ],
+                },
+              },
+            },
+          ],
+          as: "userVoteInfo",
+        },
+      },
+      // Replies lookup
+      {
+        $lookup: {
+          from: "forumreplies",
+          localField: "replies",
+          foreignField: "_id",
+          as: "replies",
+        },
+      },
+      {
+        $addFields: {
+          author: {
+            $cond: {
+              if: { $eq: ["$authorRole", "student"] },
+              then: { $arrayElemAt: ["$studentAuthor", 0] },
+              else: { $arrayElemAt: ["$tutorAuthor", 0] },
+            },
+          },
+          userVote: { $ifNull: [{ $arrayElemAt: ["$userVoteInfo.voteType", 0] }, 0] },
+        },
+      },
+      // Unwind replies to process them
+      { $unwind: { path: "$replies", preserveNullAndEmptyArrays: true } },
+      // Reply author lookup
+      {
+        $lookup: {
+          from: "students",
+          localField: "replies.authorId",
+          foreignField: "_id",
+          as: "replyStudentAuthor",
+        },
+      },
+      {
+        $lookup: {
+          from: "tutors",
+          localField: "replies.authorId",
+          foreignField: "_id",
+          as: "replyTutorAuthor",
+        },
+      },
+      // Reply user vote lookup
+      {
+        $lookup: {
+          from: "uservotes",
+          let: { reply_id: "$replies._id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ["$targetId", "$$reply_id"] },
+                    { $eq: ["$userId", new mongoose.Types.ObjectId(user.id)] },
+                  ],
+                },
+              },
+            },
+          ],
+          as: "replyUserVoteInfo",
+        },
+      },
+      {
+        $addFields: {
+          "replies.author": {
+            $cond: {
+              if: { $eq: ["$replies.authorRole", "student"] },
+              then: { $arrayElemAt: ["$replyStudentAuthor", 0] },
+              else: { $arrayElemAt: ["$replyTutorAuthor", 0] },
+            },
+          },
+          "replies.userVote": { $ifNull: [{ $arrayElemAt: ["$replyUserVoteInfo.voteType", 0] }, 0] },
+        },
+      },
+      // Group back to reconstruct the thread
+      {
+        $group: {
+          _id: "$_id",
+          root: { $first: "$$ROOT" },
+          replies: { $push: "$replies" },
+        },
+      },
+      {
+        $replaceRoot: {
+          newRoot: { $mergeObjects: ["$root", { replies: "$replies" }] },
+        },
+      },
+      {
+        $project: {
+          studentAuthor: 0,
+          tutorAuthor: 0,
+          userVoteInfo: 0,
+          replyStudentAuthor: 0,
+          replyTutorAuthor: 0,
+          replyUserVoteInfo: 0,
+          "author.pfp": 0,
+          "replies.author.pfp": 0,
+        },
+      },
+    ]);
 
-    return finalPopulatedThread;
+    const result = await aggregation;
+    thread = result[0]; // Assign to the already declared 'thread' variable
+
+    if (thread) {
+      if (thread.author && thread.author.updatedAt) {
+        thread.author.pfpTimestamp = new Date(thread.author.updatedAt).getTime();
+      }
+      if (thread.replies) {
+        thread.replies.forEach((reply: any) => {
+          if (reply.author && reply.author.updatedAt) {
+            reply.author.pfpTimestamp = new Date(reply.author.updatedAt).getTime();
+          }
+        });
+      }
+    }
+
+    const dbDuration = performance.now() - dbStartTime;
+    logger.info(`[getThreadById] Aggregation query took ${dbDuration.toFixed(2)} ms`);
+
+    // 3. Store in cache
+    if (thread) {
+      await CacheService.set(cacheKey, thread, 1800);
+    }
+
+    return thread;
   },
 
   async createReply(user: User, threadId: string, data: any) {

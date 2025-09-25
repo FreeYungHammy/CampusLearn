@@ -21,7 +21,7 @@ const ForumTopic = () => {
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { token, user, pfpTimestamps } = useAuthStore();
+  const { token, user, pfpTimestamps, updatePfpTimestamps } = useAuthStore();
   const socket = useForumSocket(threadId);
 
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -52,6 +52,21 @@ const ForumTopic = () => {
         try {
           setIsLoading(true);
           const fetchedThread = await getForumThreadById(threadId, token);
+
+          const timestamps = fetchedThread.replies.reduce(
+            (acc: { [userId: string]: number }, reply: any) => {
+              if (reply.author && reply.author.pfpTimestamp) {
+                acc[reply.author.userId] = reply.author.pfpTimestamp;
+              }
+              return acc;
+            },
+            {} as { [userId: string]: number },
+          );
+          if (fetchedThread.author && fetchedThread.author.pfpTimestamp) {
+            timestamps[fetchedThread.author.userId] = fetchedThread.author.pfpTimestamp;
+          }
+          updatePfpTimestamps(timestamps);
+
           const threadWithVotes = {
             ...fetchedThread,
             replies: fetchedThread.replies.map((reply: any) => ({

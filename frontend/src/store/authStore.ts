@@ -12,7 +12,8 @@ interface AuthState {
   setToken: (token: string | null) => void;
   setUser: (user: User | null) => void;
   clearAuth: () => void;
-  refreshPfpForUser: (userId: string) => void;
+  refreshPfpForUser: (userId: string, timestamp?: number) => void;
+  updatePfpTimestamps: (timestamps: { [userId: string]: number }) => void;
 
   logout: () => Promise<void>;
   openLogoutModal: () => void;
@@ -32,7 +33,10 @@ export const useAuthStore = create<AuthState>()(
         if (user) {
           set((state) => ({
             user,
-            pfpTimestamps: { ...state.pfpTimestamps, [user.id]: Date.now() },
+            pfpTimestamps: {
+              ...state.pfpTimestamps,
+              [user.id]: user.pfpTimestamp || Date.now(),
+            },
           }));
         } else {
           set({ user: null });
@@ -40,9 +44,16 @@ export const useAuthStore = create<AuthState>()(
       },
       clearAuth: () =>
         set({ token: null, user: null, showLogoutModal: false, pfpTimestamps: {} }),
-      refreshPfpForUser: (userId: string) =>
+      refreshPfpForUser: (userId: string, timestamp?: number) =>
         set((state) => ({
-          pfpTimestamps: { ...state.pfpTimestamps, [userId]: Date.now() },
+          pfpTimestamps: {
+            ...state.pfpTimestamps,
+            [userId]: timestamp || Date.now(),
+          },
+        })),
+      updatePfpTimestamps: (timestamps: { [userId: string]: number }) =>
+        set((state) => ({
+          pfpTimestamps: { ...state.pfpTimestamps, ...timestamps },
         })),
 
       logout: async () => {

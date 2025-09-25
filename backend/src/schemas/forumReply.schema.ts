@@ -16,7 +16,7 @@ const ForumReplySchema = new Schema(
       enum: ["student", "tutor"],
     },
     isAnonymous: { type: Boolean, default: false },
-    upvotes: { type: Number, default: 0 },
+    upvotes: { type: Number, default: 0, indexed: true },
   },
   { timestamps: true },
 );
