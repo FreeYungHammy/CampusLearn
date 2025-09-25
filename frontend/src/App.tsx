@@ -23,6 +23,7 @@ const Messages = React.lazy(() => import("./pages/Messages"));
 
 import { useInactivityLogout } from "./hooks/useInactivityLogout";
 import { useBackendHealth } from "./hooks/useBackendHealth";
+import { useGlobalSocket } from "./hooks/useGlobalSocket";
 
 import { useAuthStore } from "./store/authStore";
 import LogoutConfirmationModal from "./components/LogoutConfirmationModal";
@@ -32,6 +33,7 @@ import "./App.css";
 function App() {
   useInactivityLogout();
   useBackendHealth();
+  useGlobalSocket();
   
 
   const { showLogoutModal } = useAuthStore();

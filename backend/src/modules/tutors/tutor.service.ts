@@ -10,14 +10,23 @@ const TUTOR_BY_USER_CACHE_KEY = (userId: string) => `tutor:user:${userId}`;
  * - Converts the PFP data buffer to a base64 string for frontend rendering.
  * - Handles the BSON Binary type that comes from aggregations.
  */
+const formatTutorForList = (tutor: any) => {
+  if (!tutor) return null;
+  const { pfp, ...rest } = tutor;
+  const formatted = { ...rest } as any;
+
+  if (tutor.updatedAt) {
+    formatted.pfpTimestamp = new Date(tutor.updatedAt).getTime();
+  }
+
+  return formatted;
+};
+
 const formatTutorForDisplay = (tutor: any) => {
   if (!tutor) return null;
   const formatted = { ...tutor };
 
   if (tutor.pfp && tutor.pfp.data) {
-    // Data from a findOne/findById query is a Buffer.
-    // Data from an aggregate query is a BSON Binary object.
-    // We handle both by ensuring we have a buffer, then converting to base64.
     const dataAsBuffer = tutor.pfp.data.buffer || tutor.pfp.data;
 
     if (dataAsBuffer.length > 0) {
@@ -26,11 +35,16 @@ const formatTutorForDisplay = (tutor: any) => {
         data: Buffer.from(dataAsBuffer).toString("base64"),
       };
     } else {
-      delete formatted.pfp; // Remove pfp if data is empty
+      delete formatted.pfp;
     }
   } else {
-    delete formatted.pfp; // Remove pfp if it exists but has no data
+    delete formatted.pfp;
   }
+
+  if (tutor.updatedAt) {
+    formatted.pfpTimestamp = new Date(tutor.updatedAt).getTime();
+  }
+
   return formatted;
 };
 
@@ -65,12 +79,7 @@ export const TutorService = {
     const tutorsFromDb = await TutorRepo.findAllWithStudentCount();
     console.timeEnd("Mongo retrieval time (All Tutors)");
 
-    const formattedTutors = tutorsFromDb.map((tutor) => {
-      const { pfp, ...rest } = tutor;
-      return rest;
-    });
-
-    return formattedTutors;
+    return tutorsFromDb.map(formatTutorForList);
   },
 
   async get(id: string) {
@@ -95,9 +104,7 @@ export const TutorService = {
     const formattedTutor = formatTutorForDisplay(tutorFromDb.toObject());
     await CacheService.set(cacheKey, formattedTutor, 1800);
 
-    // Return the hydrated document for consistency
-    const prepared = prepareForHydration(formattedTutor);
-    return TutorRepo.hydrate(prepared);
+    return formattedTutor;
   },
 
   async byUser(userId: string) {
@@ -122,8 +129,7 @@ export const TutorService = {
     const formattedTutor = formatTutorForDisplay(tutorFromDb.toObject());
     await CacheService.set(cacheKey, formattedTutor, 1800);
 
-    const prepared = prepareForHydration(formattedTutor);
-    return TutorRepo.hydrate(prepared);
+    return formattedTutor;
   },
 
   searchSubject(q: string) {

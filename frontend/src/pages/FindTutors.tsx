@@ -23,7 +23,7 @@ const FindTutors = () => {
   const [showRatingDropdown, setShowRatingDropdown] = useState(false);
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [sortBy, setSortBy] = useState("relevance");
-  const { user, token, pfpTimestamps } = useAuthStore();
+  const { user, token, pfpTimestamps, updatePfpTimestamps } = useAuthStore();
 
   const ratingOptions = [
     { value: 0, label: "Any Rating" },
@@ -134,6 +134,15 @@ const FindTutors = () => {
           );
 
         personalizedTutors.sort((a, b) => b.relevanceScore - a.relevanceScore);
+
+        const timestamps = personalizedTutors.reduce((acc, tutor) => {
+          if (tutor.pfpTimestamp) {
+            acc[tutor.userId] = tutor.pfpTimestamp;
+          }
+          return acc;
+        }, {} as { [userId: string]: number });
+        updatePfpTimestamps(timestamps);
+
         setAllTutors(personalizedTutors);
         setAvailableSubjects(studentSubjects.sort());
       } catch (error) {
