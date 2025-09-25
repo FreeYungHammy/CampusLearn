@@ -35,7 +35,7 @@ export function createSocketServer(httpServer: HttpServer) {
       origin: allowed.length
         ? allowed
         : [
-            "http://localhost:5173/",
+            "http://localhost:5173",
             "http://localhost:8080",
             "http://localhost:5001",
           ],

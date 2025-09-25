@@ -4,6 +4,7 @@ import mime from "mime-types";
 import { createLogger } from "../../config/logger";
 import zlib from "zlib";
 import { promisify } from "util";
+import { gcsService } from "../../services/gcs.service";
 
 const gzip = promisify(zlib.gzip);
 const gunzip = promisify(zlib.gunzip);
@@ -24,12 +25,22 @@ export const FileService = {
     if (!input.description) throw new Error("description is required");
     if (!input.file) throw new Error("file is required");
 
-    const contentType = input.file.mimetype || "application/octet-stream";
+    const contentType = input.file?.mimetype || "application/octet-stream";
 
-    // Compress the file content
-    logger.info(`Original size: ${input.file.buffer.length} bytes`);
-    const compressedContent = await gzip(input.file.buffer);
-    logger.info(`Compressed size: ${compressedContent.length} bytes`);
+    let compressedContent: Buffer | undefined;
+    let externalUri: string | undefined;
+
+    if (gcsService.isEnabled() && contentType.startsWith("video/")) {
+      const safeName = `${Date.now()}-${(input.file.originalname || "upload").replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+      const destination = `uploads/videos/${safeName}`;
+      await gcsService.uploadBuffer(input.file.buffer, contentType, destination);
+      externalUri = destination; // stored path in bucket
+    } else {
+      // Fallback: store in Mongo as before
+      logger.info(`Original size: ${input.file.buffer.length} bytes`);
+      compressedContent = await gzip(input.file.buffer);
+      logger.info(`Compressed size: ${compressedContent.length} bytes`);
+    }
 
     const fileData = {
       tutorId: input.tutorId,
@@ -37,8 +48,9 @@ export const FileService = {
       subtopic: input.subtopic,
       title: input.title,
       description: input.description,
-      content: compressedContent,
+      ...(compressedContent ? { content: compressedContent } : {}),
       contentType,
+      ...(externalUri ? { externalUri } : {}),
     };
 
     try {
@@ -65,13 +77,18 @@ export const FileService = {
     const fileDoc = await FileRepo.findByIdWithContent(id);
     if (!fileDoc) return null;
 
-    // Decompress the file content
-    const decompressedContent = await gunzip(fileDoc.content);
+    // If stored in GCS, return without content and include externalUri
+    const obj = fileDoc.toObject();
+    if (obj.externalUri) {
+      return obj;
+    }
 
-    return {
-      ...fileDoc.toObject(),
-      content: decompressedContent,
-    };
+    // Decompress the file content for legacy/local storage
+    if (!fileDoc.content) {
+      throw new Error("Binary content missing for file");
+    }
+    const decompressedContent = await gunzip(fileDoc.content as Buffer);
+    return { ...obj, content: decompressedContent };
   },
 
   byTutor(tutorId: string, limit = 20, skip = 0) {

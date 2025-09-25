@@ -81,6 +81,14 @@ export const FileController = {
       const item = await FileService.getWithBinary(req.params.id);
       if (!item) return res.status(404).json({ message: "File not found" });
 
+      // If file is stored in GCS, redirect to a signed URL
+      if ((item as any).externalUri) {
+        const { gcsService } = await import("../../services/gcs.service");
+        const objectName = String((item as any).externalUri).replace(/^gs:\/\//, "");
+        const url = await gcsService.getSignedReadUrl(objectName);
+        return res.redirect(url);
+      }
+
       const extension = mime.extension(item.contentType);
       const filename = `${item.title ?? "file"}.${extension || "bin"}`;
 
@@ -165,6 +173,13 @@ export const FileController = {
 
       if (!isOwner) {
         return res.status(403).json({ message: "Forbidden" });
+      }
+
+      // If GCS-backed, remove object first (best-effort)
+      if ((file as any).externalUri) {
+        const { gcsService } = await import("../../services/gcs.service");
+        const objectName = String((file as any).externalUri).replace(/^gs:\/\//, "");
+        try { await gcsService.deleteObject(objectName); } catch {}
       }
 
       const deleted = await FileService.remove(fileId);

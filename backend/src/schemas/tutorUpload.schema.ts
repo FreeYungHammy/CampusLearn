@@ -7,8 +7,10 @@ const FileSchema = new Schema(
     subtopic: { type: String, required: true },
     title: { type: String, required: true },
     description: { type: String, required: true },
-    content: { type: Buffer, required: true, select: false }, // The binary file data
+    content: { type: Buffer, required: false, select: false }, // Binary data (for non-GCS or legacy)
     contentType: { type: String, required: true }, // The MIME type of the file
+    // If present, file is stored in GCS and this holds the object path within the bucket
+    externalUri: { type: String, required: false },
   },
   { timestamps: true },
 );

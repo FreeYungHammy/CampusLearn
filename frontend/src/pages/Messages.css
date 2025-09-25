@@ -1,35 +1,16 @@
-/* Theme sync: adapt shell to global theme */
-:root .messages-root,
-[data-theme="light"] .messages-root {
-  --bg: #f6f7fb;
-  --card: #ffffff;
-  --border: #e5e7eb;
-  --text: #111827;
-  --muted: #6b7280;
-  --blue: #3b82f6;
-  --blue-600: #2563eb;
-  --bubble-mine: #3b82f6;
-  --bubble-theirs: #e6e8fc;
-  --shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06);
-  --hover: #e2e1e9;
-}
-
-[data-theme="dark"] .messages-root {
-  --bg: #0b1221;
-  --card: #111827;
-  --border: rgba(255,255,255,0.12);
-  --text: #e5e7eb;
-  --muted: #9aa3b2;
-  --blue: #3498db;
-  --blue-600: #2980b9;
-  --bubble-mine: #3498db;
-  --bubble-theirs: #3e5da7;
-  --shadow: 0 1px 2px rgba(0,0,0,.12), 0 8px 24px rgba(0,0,0,.18);
-  --hover: #5a4c9b;
-}
-
 /* Scope everything so global themes don't break design */
 .messages-root {
+    --bg: #f6f7fb;
+    --card: #ffffff;
+    --border: #e5e7eb;
+    --text: #111827;
+    --muted: #6b7280;
+    --blue: #3b82f6;
+    --blue-600: #2563eb;
+    --bubble-mine: #3b82f6;
+    --bubble-theirs: #ffffff;
+    --shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06);
+  
     display: block;
     padding: 16px;
     background: var(--bg);
@@ -102,18 +83,13 @@
   }
   
   .message-thread:hover {
-    background-color: var(--hover);
+    background-color: #f8fafc;
   }
   
   .message-thread.active {
     background-color: #eff6ff;
     border-right: 3px solid var(--blue);
   }
-  
-  [data-theme="dark"] .message-thread.active {
-  background-color: #1a2336; 
-  border-right: 3px solid var(--blue);
-}
   
   .thread-item {
     display: grid;
@@ -163,18 +139,7 @@
   }
   .name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .time { color: var(--muted); font-size: 12px; margin-left: 8px; }
-  .snippet {
-  color: #374151; /* light mode */
-  font-size: 14px;
-  margin-top: 2px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-[data-theme="dark"] .snippet {
-  color: #cbd5e1; /* light grey for dark mode */
-}
+  .snippet { color: #374151; font-size: 14px; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   
   .thread-meta {
     display: flex;
@@ -248,10 +213,6 @@
     padding: 16px 16px 8px 16px;
   }
   
-  [data-theme="dark"] .chat-scroll {
-  background: #16213a;
-}
-
   .center-muted, .center-error {
     color: var(--muted);
     display: grid;
@@ -289,15 +250,16 @@
   
   .chat-bubble.mine {
     background: var(--bubble-mine);
-    color: var(--text); /* Use theme text color */
+    color: #fff;
     border-top-right-radius: 6px;
   }
   .chat-bubble.theirs {
     background: var(--bubble-theirs);
-    color: var(--text); /* Use theme text color */
+    color: #111827;
     border-top-left-radius: 6px;
   }
- 
+  
+  .text-dark { color: #111827; }
   
   @keyframes messageSlideIn {
     from { opacity: 0; transform: translateY(8px); }
@@ -355,7 +317,7 @@
   /* ---------- Composer ---------- */
   .composer {
     border-top: 1px solid var(--border);
-    background: var(--card);
+    background: #fff;
     padding: 10px 12px;
   }
   
@@ -370,7 +332,7 @@
     transition: all .2s ease-in-out;
     border-radius: 999px;
     border: 1px solid var(--border);
-    background: var(--card);
+    background: #fff;
     width: 40px;
     height: 40px;
     display: grid;
@@ -388,7 +350,7 @@
     padding: 12px 16px;
     outline: none;
     background: #f3f4f669;
-    color: var(--text);
+    color: black;
   }
   .composer-input:focus {
     box-shadow: 0 0 0 3px rgba(59,130,246,.12);
@@ -403,21 +365,36 @@
     background: var(--blue);
     color: #fff;
     border: none;
+    cursor: pointer;
   }
+  .send-btn:hover { background: var(--blue-600); }
+  
   .file-preview.attach {
     display: grid;
     grid-template-columns: 1fr auto auto;
     align-items: center;
     gap: 8px;
+    background: #f3f4f6;
+    margin-bottom: 10px;
   }
-[data-theme="dark"] .messages-root svg,
-[data-theme="dark"] .messages-root i,
-[data-theme="dark"] .messages-root .search-icon,
-[data-theme="dark"] .messages-root .action-button svg {
-  color: #fff;
-  fill: #fff;
-}
-
-.composer input[type="file"] {
-  display: none;
-}
+  .file-preview.attach .remove {
+    border: none;
+    background: transparent;
+    font-size: 16px;
+    cursor: pointer;
+    color: #6b7280;
+  }
+  
+  /* ---------- Empty state ---------- */
+  .chat-empty {
+    display: grid;
+    place-items: center;
+    height: 100%;
+    background: #f9fafb;
+  }
+  .big-emoji { font-size: 48px; margin-bottom: 8px; }
+  .empty-title { font-weight: 700; font-size: 18px; }
+  
+  /* ---------- Utility ---------- */
+  .hidden { display: none; }
+  
