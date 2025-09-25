@@ -6,6 +6,10 @@ import type { SendMessagePayload, ChatMessage } from "@/types/ChatMessage";
 import { format } from "date-fns";
 import "./Messages.css"; 
 
+/* ---------- Default PFP (base64) ---------- */
+const defaultPfp =
+  "UklGRtwMAABXRUJQVlA4INAMAADwfgCdASpYAlgCPikUhkMhoQifeAwBQlpbuF3Wh6Lt78Z/7PtN/0P9S9H64kJH8O+5f8j+4+5bsB4AXszdRQAd3l8B5peIBwPtAb+ef2n0Bs7P1H00/r3/eD2kwWRXVHT/Sq6o6f6VXVHT/Sq6o6f6VXVHT/Sq6o6f6VXVHT/Sq6o6f6VXVHT/Sq6o6f6VXVHT/Sq6o6f6VXVHT/Sq6o6f6VXVHT/Sq6o6f6VXVHT/Sq6o6f6VXVHT/Sq6o6f6VCSdpekO0tlR1kOzyIn7YNndUdP9KhH+RO//7+ce6NISuhSNHWppx4NfCiqZT3eJPk/bBs7q";
+
 /* ---------- Helpers ---------- */
 const getProfilePictureUrl = (userId: string, bust?: number) => {
   const baseUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:5001";
@@ -265,7 +269,7 @@ const Messages: React.FC = () => {
         };
         const payload: SendMessagePayload = {
           chatId,
-          content: trimmed || ` ${selectedFile.name}`,
+          content: trimmed || `📎 ${selectedFile.name}`,
           senderId: user.id,
           receiverId: selectedConversation.otherUser._id,
           upload,
@@ -277,14 +281,13 @@ const Messages: React.FC = () => {
       return;
     }
 
-    // Only add text message if no file is present
-    const payload: SendMessagePayload = {
-      chatId,
+      const payload: SendMessagePayload = {
+        chatId,
       content: trimmed,
-      senderId: user.id,
-      receiverId: selectedConversation.otherUser._id,
-    };
-    sendMessage(payload);
+        senderId: user.id,
+        receiverId: selectedConversation.otherUser._id,
+      };
+      sendMessage(payload);
     finish();
   }, [chatId, input, selectedConversation, selectedFile, sendMessage, user?.id]);
 
@@ -350,11 +353,7 @@ const Messages: React.FC = () => {
                         src={getProfilePictureUrl(conv.otherUser._id, pfpBust)}
                         alt={`${conv.otherUser.profile?.name || ""} ${conv.otherUser.profile?.surname || ""}`}
                         onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).src =
-                            "https://ui-avatars.com/api/?name=" +
-                            encodeURIComponent(
-                              `${conv.otherUser.profile?.name || ""} ${conv.otherUser.profile?.surname || ""}`
-                            );
+                          (e.currentTarget as HTMLImageElement).src = `data:image/png;base64,${defaultPfp}`;
                         }}
                       />
                       {status?.isOnline && <span className="status online" />}
@@ -410,11 +409,7 @@ const Messages: React.FC = () => {
                       )}
                       alt={`${selectedConversation.otherUser.profile?.name || ""} ${selectedConversation.otherUser.profile?.surname || ""}`}
                       onError={(e) => {
-                        (e.currentTarget as HTMLImageElement).src =
-                          "https://ui-avatars.com/api/?name=" +
-                          encodeURIComponent(
-                            `${selectedConversation.otherUser.profile?.name || ""} ${selectedConversation.otherUser.profile?.surname || ""}`
-                          );
+                        (e.currentTarget as HTMLImageElement).src = `data:image/png;base64,${defaultPfp}`;
                       }}
                     />
                     {userOnlineStatus.get(selectedConversation.otherUser._id)?.isOnline && (
@@ -426,7 +421,7 @@ const Messages: React.FC = () => {
                       {`${selectedConversation.otherUser.profile?.name || "Unknown"} ${selectedConversation.otherUser.profile?.surname || "User"}`}
                     </div>
                     <div className="header-sub">
-
+                      {selectedConversation.otherUser.profile?.subjects?.[0] || "Tutor"} •{" "}
                       {(() => {
                         const status = userOnlineStatus.get(selectedConversation.otherUser._id);
                         if (status?.isOnline) return <span className="online-text">Online</span>;
@@ -475,6 +470,20 @@ const Messages: React.FC = () => {
                       const mine = (msg.senderId || msg.sender?._id) === user?.id;
                       return (
                         <div key={msg._id || `${msg.createdAt}-${idx}`} className={`row ${mine ? "me" : "them"}`}>
+                          <div className="pfp-wrap xs">
+                            <img
+                              src={
+                                msg.senderId
+                                  ? getProfilePictureUrl(msg.senderId, pfpTimestamps?.[msg.senderId])
+                                  : `data:image/png;base64,${defaultPfp}`
+                              }
+                              alt={msg.sender?.name || "User"}
+                              onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).src = `data:image/png;base64,${defaultPfp}`;
+                              }}
+                            />
+                </div>
+
                           <div className="bubble-wrap">
                             <div className={`chat-bubble ${mine ? "mine" : "theirs"}`} title={new Date(msg.createdAt).toLocaleString()}>
                               <p className={!mine ? "text-dark" : ""}>{msg.content}</p>

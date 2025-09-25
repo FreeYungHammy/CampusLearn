@@ -75,7 +75,7 @@ const Upload = () => {
     setShowModal(false);
 
     const formData = new FormData();
-    formData.append("file", file as Blob);
+    if (file) formData.append("file", file as Blob);
     formData.append("title", title);
     formData.append("subject", subject);
     formData.append("subtopic", subtopic);
