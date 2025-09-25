@@ -223,6 +223,15 @@ export const ForumService = {
   },
 
   async getThreadById(threadId: string, user: User) {
+    const cacheKey = FORUM_THREAD_CACHE_KEY(threadId);
+    const startTime = performance.now();
+
+    let thread: any = await CacheService.get<any>(cacheKey);
+    if (thread) {
+      logger.info(`[getThreadById] Redis retrieval for thread ${threadId} took ${(performance.now() - startTime).toFixed(2)} ms (Cache Hit)`);
+      return thread;
+    }
+
     const dbStartTime = performance.now();
 
     const aggregation = ForumPostModel.aggregate([
@@ -364,7 +373,7 @@ export const ForumService = {
     ]);
 
     const result = await aggregation;
-    const thread = result[0];
+    thread = result[0]; // Assign to the already declared 'thread' variable
 
     if (thread) {
       if (thread.author && thread.author.updatedAt) {
@@ -381,6 +390,11 @@ export const ForumService = {
 
     const dbDuration = performance.now() - dbStartTime;
     logger.info(`[getThreadById] Aggregation query took ${dbDuration.toFixed(2)} ms`);
+
+    // 3. Store in cache
+    if (thread) {
+      await CacheService.set(cacheKey, thread, 1800);
+    }
 
     return thread;
   },
