@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --open",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --port 5173",
     "lint": "eslint . --ext .ts,.tsx --max-warnings=0",

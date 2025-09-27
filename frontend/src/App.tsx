@@ -18,7 +18,6 @@ import ResetPassword from "./pages/Auth/ResetPassword";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
 import Layout from "./components/Layout";
-
 const Messages = React.lazy(() => import("./pages/Messages"));
 
 import { useInactivityLogout } from "./hooks/useInactivityLogout";
@@ -28,15 +27,17 @@ import { useGlobalSocket } from "./hooks/useGlobalSocket";
 import { useAuthStore } from "./store/authStore";
 import LogoutConfirmationModal from "./components/LogoutConfirmationModal";
 
+import ChatbotWidget from "./components/ChatbotWidget";
 import "./App.css";
 
 function App() {
   useInactivityLogout();
   useBackendHealth();
   useGlobalSocket();
-  
 
-  const { showLogoutModal } = useAuthStore();
+  // pick the selector that exists in your store
+  const isAuthenticated = useAuthStore((s) => Boolean(s.token)); // or Boolean(s.user) or s.isAuthenticated
+  const showLogoutModal = useAuthStore((s) => s.showLogoutModal);
 
   return (
     <>
@@ -50,7 +51,6 @@ function App() {
 
           {/* Private routes */}
           <Route element={<ProtectedRoute />}>
-            {/* Layout provides the full-bleed header/footer and an <Outlet /> */}
             <Route element={<Layout />}>
               <Route path="/schedule" element={<Dashboard />} />
               <Route path="/mytutors" element={<MyTutors />} />
@@ -75,6 +75,9 @@ function App() {
       </Suspense>
 
       {showLogoutModal && <LogoutConfirmationModal />}
+
+      {/* Mount Botpress after login */}
+      {isAuthenticated && <ChatbotWidget />}
     </>
   );
 }
