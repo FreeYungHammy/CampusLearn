@@ -89,6 +89,9 @@ const MyTutors = () => {
                         : (
                             tutor.rating.totalScore / tutor.rating.count
                           ).toFixed(1)}
+                      <span className="rating-count">
+                        ({tutor.rating.count})
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -96,16 +99,25 @@ const MyTutors = () => {
                 <div className="tutor-stats">
                   <div className="stat">
                     <div className="stat-value">{tutor.studentCount}</div>
-                    <div className="stat-label">STUDENTS</div>
+                    <div className="stat-label">Students</div>
+                  </div>
+                  <div className="stat">
+                    <div className="stat-value">{tutor.subjects.length}</div>
+                    <div className="stat-label">Subjects</div>
                   </div>
                 </div>
 
                 <div className="tutor-subjects">
-                  {tutor.subjects.map((subject, index) => (
+                  {tutor.subjects.slice(0, 3).map((subject, index) => (
                     <span key={index} className="subject-tag">
                       {subject}
                     </span>
                   ))}
+                  {tutor.subjects.length > 3 && (
+                    <span className="subject-tag more-tag">
+                      +{tutor.subjects.length - 3} more
+                    </span>
+                  )}
                 </div>
 
                 <div className="tutor-actions">
