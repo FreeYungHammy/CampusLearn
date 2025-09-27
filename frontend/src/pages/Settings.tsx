@@ -441,59 +441,61 @@ const Settings = () => {
           </form>
         </div>
 
-        <div className="settings-card">
-          <div className="card-header">
-            <h2 className="card-title">My Subjects</h2>
+        {user?.role !== 'admin' && (
+          <div className="settings-card">
+            <div className="card-header">
+              <h2 className="card-title">My Subjects</h2>
+            </div>
+            <div className="subjects-container">
+              {[
+                "Programming",
+                "Mathematics",
+                "Linear Programming",
+                "Database Development",
+                "Web Programming",
+                "Computer Architecture",
+                "Statistics",
+                "Software Testing",
+                "Network Development",
+                "Machine Learning",
+              ].map((subject) => (
+                <div key={subject}>
+                  <input
+                    type="checkbox"
+                    id={subject}
+                    className="subject-checkbox"
+                    name="subjects"
+                    value={subject}
+                  />
+                  <label htmlFor={subject} className="subject-label">
+                    <i
+                      className={`fas ${
+                        {
+                          Programming: "fa-code",
+                          Mathematics: "fa-calculator",
+                          "Linear Programming": "fa-project-diagram",
+                          "Database Development": "fa-database",
+                          "Web Programming": "fa-laptop-code",
+                          "Computer Architecture": "fa-microchip",
+                          Statistics: "fa-chart-line",
+                          "Software Testing": "fa-bug",
+                          "Network Development": "fa-network-wired",
+                          "Machine Learning": "fa-robot",
+                        }[subject]
+                      }`}
+                    ></i>
+                    <span className="subject-text">{subject}</span>
+                  </label>
+                </div>
+              ))}
+            </div>
+            <div className="card-footer">
+              <button type="submit" className="btn btn-primary">
+                Save Subjects
+              </button>
+            </div>
           </div>
-          <div className="subjects-container">
-            {[
-              "Programming",
-              "Mathematics",
-              "Linear Programming",
-              "Database Development",
-              "Web Programming",
-              "Computer Architecture",
-              "Statistics",
-              "Software Testing",
-              "Network Development",
-              "Machine Learning",
-            ].map((subject) => (
-              <div key={subject}>
-                <input
-                  type="checkbox"
-                  id={subject}
-                  className="subject-checkbox"
-                  name="subjects"
-                  value={subject}
-                />
-                <label htmlFor={subject} className="subject-label">
-                  <i
-                    className={`fas ${
-                      {
-                        Programming: "fa-code",
-                        Mathematics: "fa-calculator",
-                        "Linear Programming": "fa-project-diagram",
-                        "Database Development": "fa-database",
-                        "Web Programming": "fa-laptop-code",
-                        "Computer Architecture": "fa-microchip",
-                        Statistics: "fa-chart-line",
-                        "Software Testing": "fa-bug",
-                        "Network Development": "fa-network-wired",
-                        "Machine Learning": "fa-robot",
-                      }[subject]
-                    }`}
-                  ></i>
-                  <span className="subject-text">{subject}</span>
-                </label>
-              </div>
-            ))}
-          </div>
-          <div className="card-footer">
-            <button type="submit" className="btn btn-primary">
-              Save Subjects
-            </button>
-          </div>
-        </div>
+        )}
 
         {/* Notification Settings Card */}
         <div className="settings-card">

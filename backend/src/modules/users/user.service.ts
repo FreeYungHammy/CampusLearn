@@ -4,6 +4,7 @@ import { UserRepo } from "./user.repo";
 import { StudentRepo } from "../students/student.repo";
 import { StudentService } from "../students/student.service";
 import { TutorRepo } from "../tutors/tutor.repo";
+import { AdminModel } from "../../schemas/admin.schema";
 import type { UserDoc } from "../../schemas/user.schema";
 import fs from "fs";
 import path from "path";
@@ -133,6 +134,8 @@ export const UserService = {
       profile = await StudentRepo.findOne({ userId: (user as any)._id });
     } else if (user.role === "tutor") {
       profile = await TutorRepo.findOne({ userId: (user as any)._id });
+    } else if (user.role === "admin") {
+      profile = await AdminModel.findOne({ userId: (user as any)._id });
     }
 
     const { passwordHash: _ph, ...publicUser } = user as any;
@@ -180,6 +183,8 @@ export const UserService = {
       profile = await StudentRepo.findOne({ userId: user._id }, { pfp: 1 });
     } else if (user.role === "tutor") {
       profile = await TutorRepo.findOne({ userId: user._id }, { pfp: 1 });
+    } else if (user.role === "admin") {
+      profile = await AdminModel.findOne({ userId: user._id }, { pfp: 1 });
     }
 
     const pfp = profile?.pfp || null;
@@ -231,7 +236,7 @@ export const UserService = {
           // eslint-disable-next-line @typescript-eslint/no-var-requires
           sharp = require('sharp');
         } catch (e) {
-          logger.warn("sharp not available; skipping PFP resize.");
+          logger.warn("sharp not available; skipping PFP resize.", e);
         }
       }
       if (sharp) {
@@ -256,6 +261,8 @@ export const UserService = {
     } else if (user.role === "tutor") {
       await TutorRepo.update({ userId }, { pfp: pfpData });
       // Invalidate tutor profile cache if it exists
+    } else if (user.role === "admin") {
+      await AdminModel.updateOne({ userId }, { pfp: pfpData });
     }
 
     // Invalidate the main PFP cache for this user
@@ -282,6 +289,8 @@ export const UserService = {
       await StudentService.invalidateCache(userId);
     } else if (user.role === "tutor") {
       await TutorRepo.update({ userId }, profileData);
+    } else if (user.role === "admin") {
+      await AdminModel.updateOne({ userId }, profileData);
     }
   },
 
