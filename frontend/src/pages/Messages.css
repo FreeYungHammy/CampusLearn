@@ -290,6 +290,10 @@
   background: transparent;
   cursor: pointer;
 }
+
+[data-theme="dark"] .action-button {
+  color: var(--text);
+}
 .action-button:hover {
   transform: scale(1.05);
   background-color: #f3f4f6;
@@ -468,6 +472,9 @@
   transition: opacity 0.2s ease;
 }
 
+[data-theme="dark"] .download-icon {
+  color: var(--text);
+}
 .file-preview.downloadable:hover .download-icon {
   opacity: 1;
 }
@@ -500,6 +507,10 @@
   display: grid;
   place-items: center;
   cursor: pointer;
+}
+
+[data-theme="dark"] .attachment-button {
+  color: var(--text);
 }
 
 [data-theme="dark"] .attachment-button {
