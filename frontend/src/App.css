@@ -1710,18 +1710,19 @@ btn-success:hover {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 0;
+  padding: 30px 0;
   border-top: 1px solid var(--border);
+  margin-top: 20px;
 }
 
 .pagination-info {
+  color: var(--gray);
   font-size: 14px;
-  color: var(--text-secondary);
 }
 
 .pagination-info span {
-  font-weight: 500;
-  color: var(--text-primary);
+  font-weight: 600;
+  color: var(--dark);
 }
 
 .pagination-controls {
@@ -1792,7 +1793,7 @@ btn-success:hover {
   .forum-pagination {
     flex-direction: column;
     gap: 15px;
-    align-items: flex-start;
+    text-align: center;
   }
 }
 
@@ -4955,5 +4956,110 @@ body,
     position: static;
     width: 100%;
     margin-top: 16px;
+  }
+}
+
+/* Improved Load More Posts Button */
+.load-more-btn {
+  background: linear-gradient(
+    135deg,
+    var(--primary) 0%,
+    var(--primary-dark) 100%
+  );
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 10px rgba(52, 152, 219, 0.3);
+  margin-left: auto;
+  position: relative;
+  overflow: hidden;
+}
+
+.load-more-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(52, 152, 219, 0.4);
+}
+
+.load-more-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 10px rgba(52, 152, 219, 0.3);
+}
+
+.load-more-btn::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -75%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  transition: left 0.7s ease;
+}
+
+.load-more-btn:hover::before {
+  left: 125%;
+}
+
+.load-more-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.load-more-btn.loading {
+  color: transparent;
+}
+
+.load-more-btn.loading::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 18px;
+  height: 18px;
+  border: 2px solid transparent;
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+/* Dark mode support */
+[data-theme="dark"] .load-more-btn {
+  box-shadow: 0 4px 15px rgba(52, 152, 219, 0.4);
+}
+
+[data-theme="dark"] .load-more-btn:hover {
+  box-shadow: 0 6px 25px rgba(52, 152, 219, 0.6);
+}
+
+@media (max-width: 768px) {
+  .load-more-btn {
+    margin-left: 0;
+    width: 100%;
+    justify-content: center;
   }
 }
