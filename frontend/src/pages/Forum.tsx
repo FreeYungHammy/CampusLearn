@@ -62,12 +62,15 @@ const Forum = () => {
           offset,
         );
 
-        const timestamps = fetchedThreads.reduce((acc, thread) => {
-          if (thread.author && thread.author.pfpTimestamp) {
-            acc[thread.author.userId] = thread.author.pfpTimestamp;
-          }
-          return acc;
-        }, {} as { [userId: string]: number });
+        const timestamps = fetchedThreads.reduce(
+          (acc, thread) => {
+            if (thread.author && thread.author.pfpTimestamp) {
+              acc[thread.author.userId] = thread.author.pfpTimestamp;
+            }
+            return acc;
+          },
+          {} as { [userId: string]: number },
+        );
         updatePfpTimestamps(timestamps);
 
         const threadsWithVotes = fetchedThreads.map((thread) => ({
@@ -112,12 +115,15 @@ const Forum = () => {
             offset,
           );
 
-          const timestamps = fetchedThreads.reduce((acc, thread) => {
-            if (thread.author && thread.author.pfpTimestamp) {
-              acc[thread.author.userId] = thread.author.pfpTimestamp;
-            }
-            return acc;
-          }, {} as { [userId: string]: number });
+          const timestamps = fetchedThreads.reduce(
+            (acc, thread) => {
+              if (thread.author && thread.author.pfpTimestamp) {
+                acc[thread.author.userId] = thread.author.pfpTimestamp;
+              }
+              return acc;
+            },
+            {} as { [userId: string]: number },
+          );
           updatePfpTimestamps(timestamps);
 
           const threadsWithVotes = fetchedThreads.map((thread) => ({
@@ -144,6 +150,7 @@ const Forum = () => {
   useEffect(() => {
     if (socket) {
       socket.on("new_post", (newPost) => {
+        console.log("Received new_post event:", newPost);
         const postWithVotes = {
           ...newPost,
           upvotes: newPost.upvotes || 0,
@@ -358,7 +365,10 @@ const Forum = () => {
             <option value="Network Development">Network Development</option>
             <option value="Machine Learning">Machine Learning</option>
           </select>
-          <button onClick={() => setIsModalOpen(true)} className="new-topic-btn">
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="new-topic-btn"
+          >
             <i className="fas fa-plus"></i> New Topic
           </button>
         </div>
@@ -473,7 +483,8 @@ const Forum = () => {
       <div className="forum-pagination">
         <div className="pagination-info">
           <p>
-            Showing <span>{threads.length}</span> of <span>{totalPosts}</span> results
+            Showing <span>{threads.length}</span> of <span>{totalPosts}</span>{" "}
+            results
           </p>
         </div>
         {hasMorePosts && (

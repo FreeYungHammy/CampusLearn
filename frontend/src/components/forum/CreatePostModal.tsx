@@ -1,5 +1,6 @@
-// CreatePostModal.tsx - Enhanced Version
 import React, { useState } from "react";
+import { createForumPost } from "../../services/forumApi";
+import { useAuthStore } from "../../store/authStore";
 import "./CreatePostModal.css";
 
 interface CreatePostModalProps {
@@ -12,17 +13,22 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ onClose }) => {
   const [content, setContent] = useState("");
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const token = useAuthStore((state) => state.token);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !content.trim()) return;
+    if (!title.trim() || !content.trim() || !token) return;
 
     setIsSubmitting(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    console.log({ title, topic, content, isAnonymous });
-    setIsSubmitting(false);
-    onClose();
+    try {
+      await createForumPost({ title, topic, content, isAnonymous }, token);
+      onClose();
+    } catch (error) {
+      console.error("Failed to create post:", error);
+      // Optionally, show an error message to the user
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const topics = [
