@@ -350,7 +350,11 @@ export const ForumService = {
         $group: {
           _id: "$_id",
           root: { $first: "$$ROOT" },
-          replies: { $push: "$replies" },
+          replies: {
+            $push: {
+              $cond: [{ $ifNull: ["$replies._id", false] }, "$replies", "$$REMOVE"],
+            },
+          },
         },
       },
       {
