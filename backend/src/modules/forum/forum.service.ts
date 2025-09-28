@@ -617,7 +617,7 @@ export const ForumService = {
         post.authorId.toString(),
         post.authorRole,
       );
-      if (authorProfile?.userId.toString() !== user.id) {
+      if (user.role !== 'admin' && authorProfile?.userId.toString() !== user.id) {
         throw new HttpException(403, "You are not authorized to delete this post");
       }
 
@@ -660,7 +660,7 @@ export const ForumService = {
         reply.authorId.toString(),
         reply.authorRole,
       );
-      if (authorProfile?.userId.toString() !== user.id) {
+      if (user.role !== 'admin' && authorProfile?.userId.toString() !== user.id) {
         throw new HttpException(
           403,
           "You are not authorized to delete this reply",

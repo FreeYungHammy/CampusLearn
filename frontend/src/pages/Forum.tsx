@@ -470,10 +470,14 @@ const Forum = () => {
             </div>
             <div className="topic-actions">
               {user && thread.author && user.id === thread.author.userId && (
-                <PostActions
-                  onEdit={() => handleEditClick(thread._id, thread.content)}
-                  onDelete={() => handleDeleteThread(thread._id)}
-                />
+                <button onClick={() => handleEditClick(thread._id, thread.content)} className="edit-btn">
+                  <i className="fas fa-pencil-alt"></i>
+                </button>
+              )}
+              {(user && thread.author && user.id === thread.author.userId || user && user.role === 'admin') && (
+                <button onClick={() => handleDeleteThread(thread._id)} className="delete-btn">
+                  <i className="fas fa-trash"></i>
+                </button>
               )}
             </div>
           </div>
