@@ -13,6 +13,7 @@ const Header = () => {
   }));
   const openLogoutModal = useAuthStore((s) => s.openLogoutModal);
   const isTutor = user?.role === "tutor";
+  const isAdmin = user?.role === "admin";
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -77,7 +78,20 @@ const Header = () => {
               <span>Schedule</span>
             </NavLink>
 
-            {!isTutor && (
+            {isAdmin && (
+              <>
+                <NavLink to="/users" className="cl-nav-item">
+                  <i className="fas fa-users-cog" />
+                  <span>Users</span>
+                </NavLink>
+                <NavLink to="/applications" className="cl-nav-item">
+                  <i className="fas fa-tasks" />
+                  <span>Applications</span>
+                </NavLink>
+              </>
+            )}
+
+            {!isTutor && !isAdmin && (
               <>
                 <NavLink to="/mytutors" className="cl-nav-item">
                   <i className="fas fa-user-friends" />
@@ -280,7 +294,28 @@ const Header = () => {
               <span>Schedule</span>
             </NavLink>
 
-            {!isTutor && (
+            {isAdmin && (
+              <>
+                <NavLink
+                  to="/users"
+                  className="cl-nav-item"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <i className="fas fa-users-cog" />
+                  <span>Users</span>
+                </NavLink>
+                <NavLink
+                  to="/applications"
+                  className="cl-nav-item"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <i className="fas fa-tasks" />
+                  <span>Applications</span>
+                </NavLink>
+              </>
+            )}
+
+            {!isTutor && !isAdmin && (
               <>
                 <NavLink
                   to="/mytutors"

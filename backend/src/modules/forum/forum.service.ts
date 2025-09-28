@@ -10,6 +10,7 @@ import {
 } from "../../schemas/forumReply.schema";
 import { StudentModel } from "../../schemas/students.schema";
 import { TutorModel } from "../../schemas/tutor.schema";
+import { AdminModel } from "../../schemas/admin.schema";
 import { io } from "../../config/socket";
 import type { User } from "../../types/User";
 import ToxicityService from "./toxicity.service";
@@ -90,6 +91,9 @@ export const ForumService = {
     } else if (user.role === "tutor") {
       authorProfile = await TutorModel.findOne({ userId: user.id }).lean();
     }
+ else if (user.role === "admin") {
+      authorProfile = await AdminModel.findOne({ userId: user.id }).lean();
+    }
 
     if (!authorProfile) {
       throw new Error("User profile not found");
@@ -159,6 +163,14 @@ export const ForumService = {
           as: "tutorAuthor",
         },
       },
+      {
+        $lookup: {
+          from: "admins", // Assuming the collection name is 'admins'
+          localField: "authorId",
+          foreignField: "_id",
+          as: "adminAuthor",
+        },
+      },
       // Lookup user's vote
       {
         $lookup: {
@@ -183,11 +195,14 @@ export const ForumService = {
       {
         $addFields: {
           author: {
-            $cond: {
-              if: { $eq: ["$authorRole", "student"] },
-              then: { $arrayElemAt: ["$studentAuthor", 0] },
-              else: { $arrayElemAt: ["$tutorAuthor", 0] },
-            },
+            $switch: {
+              branches: [
+                { case: { $eq: ["$authorRole", "student"] }, then: { $arrayElemAt: ["$studentAuthor", 0] } },
+                { case: { $eq: ["$authorRole", "tutor"] }, then: { $arrayElemAt: ["$tutorAuthor", 0] } },
+                { case: { $eq: ["$authorRole", "admin"] }, then: { $arrayElemAt: ["$adminAuthor", 0] } }
+              ],
+              default: null
+            }
           },
           userVote: { $ifNull: [{ $arrayElemAt: ["$userVoteInfo.voteType", 0] }, 0] },
         },
@@ -196,6 +211,7 @@ export const ForumService = {
         $project: {
           studentAuthor: 0,
           tutorAuthor: 0,
+          adminAuthor: 0,
           userVoteInfo: 0,
           "author.pfp": 0, // Exclude PFP data
         },
@@ -253,6 +269,14 @@ export const ForumService = {
           as: "tutorAuthor",
         },
       },
+      {
+        $lookup: {
+          from: "admins",
+          localField: "authorId",
+          foreignField: "_id",
+          as: "adminAuthor",
+        },
+      },
       // Thread user vote lookup
       {
         $lookup: {
@@ -285,11 +309,14 @@ export const ForumService = {
       {
         $addFields: {
           author: {
-            $cond: {
-              if: { $eq: ["$authorRole", "student"] },
-              then: { $arrayElemAt: ["$studentAuthor", 0] },
-              else: { $arrayElemAt: ["$tutorAuthor", 0] },
-            },
+            $switch: {
+              branches: [
+                { case: { $eq: ["$authorRole", "student"] }, then: { $arrayElemAt: ["$studentAuthor", 0] } },
+                { case: { $eq: ["$authorRole", "tutor"] }, then: { $arrayElemAt: ["$tutorAuthor", 0] } },
+                { case: { $eq: ["$authorRole", "admin"] }, then: { $arrayElemAt: ["$adminAuthor", 0] } }
+              ],
+              default: null
+            }
           },
           userVote: { $ifNull: [{ $arrayElemAt: ["$userVoteInfo.voteType", 0] }, 0] },
         },
@@ -311,6 +338,14 @@ export const ForumService = {
           localField: "replies.authorId",
           foreignField: "_id",
           as: "replyTutorAuthor",
+        },
+      },
+      {
+        $lookup: {
+          from: "admins",
+          localField: "replies.authorId",
+          foreignField: "_id",
+          as: "replyAdminAuthor",
         },
       },
       // Reply user vote lookup
@@ -336,11 +371,14 @@ export const ForumService = {
       {
         $addFields: {
           "replies.author": {
-            $cond: {
-              if: { $eq: ["$replies.authorRole", "student"] },
-              then: { $arrayElemAt: ["$replyStudentAuthor", 0] },
-              else: { $arrayElemAt: ["$replyTutorAuthor", 0] },
-            },
+            $switch: {
+              branches: [
+                { case: { $eq: ["$replies.authorRole", "student"] }, then: { $arrayElemAt: ["$replyStudentAuthor", 0] } },
+                { case: { $eq: ["$replies.authorRole", "tutor"] }, then: { $arrayElemAt: ["$replyTutorAuthor", 0] } },
+                { case: { $eq: ["$replies.authorRole", "admin"] }, then: { $arrayElemAt: ["$replyAdminAuthor", 0] } }
+              ],
+              default: null
+            }
           },
           "replies.userVote": { $ifNull: [{ $arrayElemAt: ["$replyUserVoteInfo.voteType", 0] }, 0] },
         },
@@ -350,7 +388,11 @@ export const ForumService = {
         $group: {
           _id: "$_id",
           root: { $first: "$$ROOT" },
-          replies: { $push: "$replies" },
+          replies: {
+            $push: {
+              $cond: [{ $ifNull: ["$replies._id", false] }, "$replies", "$$REMOVE"],
+            },
+          },
         },
       },
       {
@@ -362,9 +404,11 @@ export const ForumService = {
         $project: {
           studentAuthor: 0,
           tutorAuthor: 0,
+          adminAuthor: 0,
           userVoteInfo: 0,
           replyStudentAuthor: 0,
           replyTutorAuthor: 0,
+          replyAdminAuthor: 0,
           replyUserVoteInfo: 0,
           "author.pfp": 0,
           "replies.author.pfp": 0,
@@ -432,6 +476,8 @@ export const ForumService = {
       authorProfile = await StudentModel.findOne({ userId: user.id }).lean();
     } else if (user.role === "tutor") {
       authorProfile = await TutorModel.findOne({ userId: user.id }).lean();
+    } else if (user.role === "admin") {
+      authorProfile = await AdminModel.findOne({ userId: user.id }).lean();
     }
 
     if (!authorProfile) {
@@ -571,7 +617,7 @@ export const ForumService = {
         post.authorId.toString(),
         post.authorRole,
       );
-      if (authorProfile?.userId.toString() !== user.id) {
+      if (user.role !== 'admin' && authorProfile?.userId.toString() !== user.id) {
         throw new HttpException(403, "You are not authorized to delete this post");
       }
 
@@ -614,7 +660,7 @@ export const ForumService = {
         reply.authorId.toString(),
         reply.authorRole,
       );
-      if (authorProfile?.userId.toString() !== user.id) {
+      if (user.role !== 'admin' && authorProfile?.userId.toString() !== user.id) {
         throw new HttpException(
           403,
           "You are not authorized to delete this reply",

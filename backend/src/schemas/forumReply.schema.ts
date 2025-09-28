@@ -13,7 +13,7 @@ const ForumReplySchema = new Schema(
     authorRole: {
       type: String,
       required: true,
-      enum: ["student", "tutor"],
+      enum: ["student", "tutor", "admin"],
     },
     isAnonymous: { type: Boolean, default: false },
     upvotes: { type: Number, default: 0, indexed: true },

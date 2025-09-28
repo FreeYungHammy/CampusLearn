@@ -10,7 +10,7 @@ const UserSchema = new Schema(
       match: /.+@.+\..+/,
     },
     passwordHash: { type: String, required: true, select: false },
-    role: { type: String, enum: ["tutor", "student"], required: true },
+    role: { type: String, enum: ["student", "tutor", "admin"], required: true },
     resetPasswordToken: { type: String, select: false },
     resetPasswordExpires: { type: Date, select: false },
   },

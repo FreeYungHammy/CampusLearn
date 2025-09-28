@@ -3,7 +3,7 @@ export type Role = "tutor" | "student";
 export type User = {
   id: string; // stringified _id
   email: string;
-  role: Role;
+  role: "student" | "tutor" | "admin";
   name?: string;
   surname?: string;
   pfp?: {

@@ -4,6 +4,7 @@ import { UserRepo } from "./user.repo";
 import { StudentRepo } from "../students/student.repo";
 import { StudentService } from "../students/student.service";
 import { TutorRepo } from "../tutors/tutor.repo";
+import { AdminModel } from "../../schemas/admin.schema";
 import type { UserDoc } from "../../schemas/user.schema";
 import fs from "fs";
 import path from "path";
@@ -12,9 +13,10 @@ import { CacheService } from "../../services/cache.service";
 import { HttpException } from "../../infra/http/HttpException";
 import { createLogger } from "../../config/logger";
 import { io } from "../../config/socket";
+import sharp from "sharp";
 
 const logger = createLogger("UserService");
-let sharp: any = null; // Lazy-loaded to avoid GLib warnings on startup (Windows)
+
 
 const ALLOWED_EMAIL_DOMAIN = "@student.belgiumcampus.ac.za";
 
@@ -30,11 +32,13 @@ const defaultPfp = {
 const JWT_BLACKLIST_KEY = (token: string) => `jwt:blacklist:${token}`;
 
 export const UserService = {
-  async getProfileByRole(profileId: string, role: "student" | "tutor") {
+  async getProfileByRole(profileId: string, role: "student" | "tutor" | "admin") {
     if (role === "student") {
       return StudentRepo.findById(profileId);
     } else if (role === "tutor") {
       return TutorRepo.findById(profileId);
+    } else if (role === "admin") {
+      return AdminModel.findById(profileId);
     }
     return null;
   },
@@ -133,6 +137,8 @@ export const UserService = {
       profile = await StudentRepo.findOne({ userId: (user as any)._id });
     } else if (user.role === "tutor") {
       profile = await TutorRepo.findOne({ userId: (user as any)._id });
+    } else if (user.role === "admin") {
+      profile = await AdminModel.findOne({ userId: (user as any)._id });
     }
 
     const { passwordHash: _ph, ...publicUser } = user as any;
@@ -180,11 +186,13 @@ export const UserService = {
       profile = await StudentRepo.findOne({ userId: user._id }, { pfp: 1 });
     } else if (user.role === "tutor") {
       profile = await TutorRepo.findOne({ userId: user._id }, { pfp: 1 });
+    } else if (user.role === "admin") {
+      profile = await AdminModel.findOne({ userId: user._id }, { pfp: 1 });
     }
 
     const pfp = profile?.pfp || null;
 
-    console.log("PFP object before caching:", pfp);
+
 
     if (pfp && pfp.data) {
       const pfpToCache = {
@@ -224,22 +232,16 @@ export const UserService = {
       contentType,
     };
 
-    // Resize image using sharp (lazy-load to avoid GLib warnings on Windows when not needed)
     try {
-      if (!sharp) {
-        try {
-          // eslint-disable-next-line @typescript-eslint/no-var-requires
-          sharp = require('sharp');
-        } catch (e) {
-          logger.warn("sharp not available; skipping PFP resize.");
-        }
-      }
-      if (sharp) {
+      const image = sharp(pfpData.data);
+      const metadata = await image.metadata();
+
+      if (metadata.width && metadata.width > 250 || metadata.height && metadata.height > 250) {
         const originalSize = pfpData.data.length;
-        const resizedBuffer = await sharp(pfpData.data)
+        const resizedBuffer = await image
           .resize(250, 250, { fit: "inside", withoutEnlargement: true })
           .toBuffer();
-        pfpData.data = resizedBuffer;
+        pfpData.data = Buffer.from(resizedBuffer);
         const resizedSize = pfpData.data.length;
         const savedPercentage = ((originalSize - resizedSize) / originalSize) * 100;
         logger.info(`PFP resized: Original size ${originalSize} bytes, Resized size ${resizedSize} bytes. Saved ${savedPercentage.toFixed(2)}%`);
@@ -256,6 +258,8 @@ export const UserService = {
     } else if (user.role === "tutor") {
       await TutorRepo.update({ userId }, { pfp: pfpData });
       // Invalidate tutor profile cache if it exists
+    } else if (user.role === "admin") {
+      await AdminModel.updateOne({ userId }, { pfp: pfpData });
     }
 
     // Invalidate the main PFP cache for this user
@@ -282,6 +286,8 @@ export const UserService = {
       await StudentService.invalidateCache(userId);
     } else if (user.role === "tutor") {
       await TutorRepo.update({ userId }, profileData);
+    } else if (user.role === "admin") {
+      await AdminModel.updateOne({ userId }, profileData);
     }
   },
 

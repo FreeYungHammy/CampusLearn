@@ -422,10 +422,14 @@ const ForumTopic = () => {
         </div>
         <div className="topic-actions">
           {user && thread.author && user.id === thread.author.userId && (
-            <PostActions
-              onEdit={() => handleEditClick(thread._id, thread.content)}
-              onDelete={handleDeleteThread}
-            />
+            <button onClick={() => handleEditClick(thread._id, thread.content)} className="edit-btn">
+              <i className="fas fa-pencil-alt"></i>
+            </button>
+          )}
+          {(user && thread.author && user.id === thread.author.userId || user && user.role === 'admin') && (
+            <button onClick={handleDeleteThread} className="delete-btn">
+              <i className="fas fa-trash"></i>
+            </button>
           )}
         </div>
       </div>
@@ -580,11 +584,14 @@ const ForumTopic = () => {
                 </div>
                 <div className="topic-actions">
                   {user && reply.author && user.id === reply.author.userId && (
-                    <PostActions
-                      onEdit={() => handleEditClick(reply._id, reply.content)}
-                      onDelete={() => handleDeleteReply(reply._id)}
-                      isReply={true}
-                    />
+                    <button onClick={() => handleEditClick(reply._id, reply.content)} className="edit-btn">
+                      <i className="fas fa-pencil-alt"></i>
+                    </button>
+                  )}
+                  {(user && reply.author && user.id === reply.author.userId || user && user.role === 'admin') && (
+                    <button onClick={() => handleDeleteReply(reply._id)} className="delete-btn">
+                      <i className="fas fa-trash"></i>
+                    </button>
                   )}
                 </div>
               </div>
