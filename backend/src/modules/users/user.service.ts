@@ -31,11 +31,13 @@ const defaultPfp = {
 const JWT_BLACKLIST_KEY = (token: string) => `jwt:blacklist:${token}`;
 
 export const UserService = {
-  async getProfileByRole(profileId: string, role: "student" | "tutor") {
+  async getProfileByRole(profileId: string, role: "student" | "tutor" | "admin") {
     if (role === "student") {
       return StudentRepo.findById(profileId);
     } else if (role === "tutor") {
       return TutorRepo.findById(profileId);
+    } else if (role === "admin") {
+      return AdminModel.findById(profileId);
     }
     return null;
   },
