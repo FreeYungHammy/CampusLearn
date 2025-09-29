@@ -72,4 +72,19 @@ export const ChatRepo = {
       virtuals: true,
     });
   },
+
+  deleteConversation(aUserId: string, bUserId: string) {
+    return ChatModel.deleteMany({
+      $or: [
+        { senderId: aUserId, receiverId: bUserId },
+        { senderId: bUserId, receiverId: aUserId },
+      ],
+    });
+  },
+
+  deleteAllMessagesForUser(userId: string) {
+    return ChatModel.deleteMany({
+      $or: [{ senderId: userId }, { receiverId: userId }],
+    });
+  },
 };

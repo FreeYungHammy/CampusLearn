@@ -3,12 +3,16 @@ import { StudentModel } from "../../schemas/students.schema";
 import { TutorModel } from "../../schemas/tutor.schema";
 import { UserModel } from "../../schemas/user.schema";
 import { ChatModel } from "../../schemas/chat.schema";
+import { ChatRepo } from "./chat.repo";
 import { Types } from "mongoose";
 
 interface RawChatMessage {
   chatId: string;
   content: string;
   senderId: string; // This will be the user's _id
+  upload?: Buffer;
+  uploadFilename?: string;
+  uploadContentType?: string;
   // Add other fields if necessary, e.g., senderRole: 'student' | 'tutor'
 }
 
@@ -21,6 +25,13 @@ interface EnrichedChatMessage {
     name: string;
   };
   createdAt: Date;
+  upload?: {
+    data: string;
+    contentType: string;
+    filename: string;
+  };
+  uploadFilename?: string;
+  uploadContentType?: string;
 }
 
 export const ChatService = {
@@ -66,6 +77,13 @@ export const ChatService = {
       senderId: rawMessage.senderId,
       sender: senderProfile,
       createdAt: new Date(), // Set creation time on the backend
+      upload: rawMessage.upload ? {
+        data: rawMessage.upload.toString('base64'),
+        contentType: rawMessage.uploadContentType || 'application/octet-stream',
+        filename: rawMessage.uploadFilename || 'attachment'
+      } : undefined,
+      uploadFilename: rawMessage.uploadFilename,
+      uploadContentType: rawMessage.uploadContentType
     };
 
     // 4. Emit the enriched message
@@ -90,6 +108,8 @@ export const ChatService = {
         chatId: body.chatId,
         content: body.content,
         upload: uploadBuffer,
+        uploadFilename: body.upload?.filename,
+        uploadContentType: body.upload?.contentType,
         seen: false,
       });
 
@@ -100,6 +120,9 @@ export const ChatService = {
         chatId: body.chatId,
         content: body.content,
         senderId: body.senderId,
+        upload: savedMessage.upload || undefined,
+        uploadFilename: savedMessage.uploadFilename || undefined,
+        uploadContentType: savedMessage.uploadContentType || undefined,
       });
 
       return savedMessage;
@@ -252,9 +275,11 @@ export const ChatService = {
             seen: message.seen,
             upload: message.upload ? {
               data: message.upload.toString('base64'),
-              contentType: 'application/octet-stream', // Default content type
-              filename: 'attachment'
-            } : undefined
+              contentType: message.uploadContentType || 'application/octet-stream',
+              filename: message.uploadFilename || 'attachment'
+            } : undefined,
+            uploadFilename: message.uploadFilename,
+            uploadContentType: message.uploadContentType
           };
         })
       );
@@ -372,6 +397,28 @@ export const ChatService = {
   },
 
   // Create an empty conversation between two users
+  async conversationExists(userId1: string, userId2: string): Promise<boolean> {
+    try {
+      const userAObjectId = new Types.ObjectId(userId1);
+      const userBObjectId = new Types.ObjectId(userId2);
+
+      const conversation = await ChatModel.findOne({
+        $or: [
+          { senderId: userAObjectId, receiverId: userBObjectId },
+          { senderId: userBObjectId, receiverId: userAObjectId },
+        ],
+      }).lean();
+
+      return !!conversation;
+    } catch (error) {
+      console.error(
+        `Error checking if conversation exists between ${userId1} and ${userId2}:`,
+        error,
+      );
+      throw error;
+    }
+  },
+
   async createConversation(studentId: string, tutorId: string): Promise<any> {
     try {
       // Check if conversation already exists
@@ -399,6 +446,38 @@ export const ChatService = {
       return savedMessage;
     } catch (error) {
       console.error("Error creating conversation:", error);
+      throw error;
+    }
+  },
+
+  async deleteConversation(userId1: string, userId2: string) {
+    try {
+      const result = await ChatRepo.deleteConversation(userId1, userId2);
+      console.log(
+        `Deleted ${result.deletedCount} messages between users ${userId1} and ${userId2}`,
+      );
+
+      // Notify client
+      const chatId = [userId1, userId2].sort().join("-");
+      io.of("/chat").to(chatId).emit("chat_cleared", { chatId });
+
+      return result;
+    } catch (error) {
+      console.error(
+        `Error deleting conversation between ${userId1} and ${userId2}:`,
+        error,
+      );
+      throw error;
+    }
+  },
+
+  async deleteAllMessagesForUser(userId: string) {
+    try {
+      const result = await ChatRepo.deleteAllMessagesForUser(userId);
+      console.log(`Deleted ${result.deletedCount} messages for user ${userId}`);
+      return result;
+    } catch (error) {
+      console.error(`Error deleting messages for user ${userId}:`, error);
       throw error;
     }
   },

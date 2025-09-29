@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { SubscriptionController } from "./subscription.controller";
-import { requireAuth, requireStudent } from "../../auth/auth.middleware";
+import { requireAuth, requireStudent, requireTutor } from "../../auth/auth.middleware";
 
 const r = Router();
 
@@ -20,6 +20,7 @@ r.get(
 r.get(
   "/tutor/:tutorId",
   requireAuth,
+  requireTutor,
   SubscriptionController.getSubscribedStudents,
 );
 

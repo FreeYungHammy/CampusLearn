@@ -44,9 +44,12 @@ export function requireTutor(
   res: Response,
   next: NextFunction,
 ) {
+  console.log(`requireTutor: Checking user role. User:`, req.user);
   if (req.user?.role !== "tutor") {
+    console.log(`requireTutor: Access denied. User role: ${req.user?.role}, required: tutor`);
     return res.status(403).json({ message: "Tutor role required" });
   }
+  console.log(`requireTutor: Access granted for tutor`);
   next();
 }
 

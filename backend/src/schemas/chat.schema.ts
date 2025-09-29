@@ -7,6 +7,8 @@ const ChatSchema = new Schema(
     chatId: { type: String, required: true },
     content: { type: String, required: true },
     upload: { type: Buffer },
+    uploadFilename: { type: String },
+    uploadContentType: { type: String },
     seen: { type: Boolean, default: false },
   },
   { timestamps: true },

@@ -64,6 +64,6 @@ export const SubscriptionRepo = {
   },
 
   findByTutorId(tutorId: string) {
-    return SubscriptionModel.find({ tutorId }).populate("studentId").exec();
+    return SubscriptionModel.find({ tutorId: new Types.ObjectId(tutorId) }).exec();
   },
 };

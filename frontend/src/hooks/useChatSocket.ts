@@ -19,6 +19,7 @@ let currentRoomGlobal: string | null = null;
 // re-attaching network listeners.
 const onNewMessageSubs = new Set<(m: ChatMessage) => void>();
 const onUserStatusSubs = new Set<(userId: string, status: "online" | "offline", lastSeen: Date) => void>();
+const onChatClearedSubs = new Set<(payload: { chatId: string }) => void>();
 const onConnectionChangeSubs = new Set<(connected: boolean) => void>();
 
 // Safeguard: minimal throttle for typing emits (per room)
@@ -88,6 +89,10 @@ function attachCoreListeners(s: Socket) {
     onUserStatusSubs.forEach((cb) => cb(data.userId, data.status, lastSeenDate));
   });
 
+  s.on("chat_cleared", (payload: { chatId: string }) => {
+    onChatClearedSubs.forEach((cb) => cb(payload));
+  });
+
   // Optional: if your backend supports typing updates, keep these.
   s.on("typing_update", (data: { roomId: string; users: string[] }) => {
     // Exposed via room UI typically—hook consumer can add a handler if needed.
@@ -101,7 +106,8 @@ function attachCoreListeners(s: Socket) {
    ----------------------------------------------------------- */
 export const useChatSocket = (
   onNewMessage: (message: ChatMessage) => void,
-  onUserStatusChange?: (userId: string, status: "online" | "offline", lastSeen: Date) => void
+  onUserStatusChange?: (userId: string, status: "online" | "offline", lastSeen: Date) => void,
+  onChatCleared?: (payload: { chatId: string }) => void
 ) => {
   const [isConnected, setIsConnected] = useState(false);
   const currentRoomRef = useRef<string | null>(null);
@@ -129,6 +135,9 @@ export const useChatSocket = (
       });
     onUserStatusSubs.add(statusCb);
 
+    const chatClearedCb = onChatCleared || (() => {});
+    onChatClearedSubs.add(chatClearedCb);
+
     const connectionCb = (connected: boolean) => setIsConnected(connected);
     onConnectionChangeSubs.add(connectionCb);
 
@@ -139,6 +148,7 @@ export const useChatSocket = (
       // Unsubscribe this consumer
       onNewMessageSubs.delete(onNewMessage);
       onUserStatusSubs.delete(statusCb);
+      onChatClearedSubs.delete(chatClearedCb);
       onConnectionChangeSubs.delete(connectionCb);
 
       consumerCount -= 1;
@@ -153,7 +163,7 @@ export const useChatSocket = (
         currentRoomGlobal = null;
       }
     };
-  }, [token, onNewMessage, onUserStatusChange]);
+  }, [token, onNewMessage, onUserStatusChange, onChatCleared]);
 
   /* ---------------------------
      Rooms

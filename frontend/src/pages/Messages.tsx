@@ -5,11 +5,14 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
+import { useLocation } from "react-router-dom";
 import { useChatSocket } from "@/hooks/useChatSocket";
 import { useAuthStore } from "@/store/authStore";
 import { chatApi, type Conversation } from "@/services/chatApi";
 import type { SendMessagePayload, ChatMessage } from "@/types/ChatMessage";
-import { format } from "date-fns";
+import { format, isSameDay } from "date-fns";
+import ClearChatConfirmationModal from "@/components/ClearChatConfirmationModal";
+import DateSeparator from "@/components/DateSeparator";
 import "./Messages.css";
 
 /* ---------- Default PFP (base64) ---------- */
@@ -228,17 +231,40 @@ const Messages: React.FC = () => {
   const [userOnlineStatus, setUserOnlineStatus] = useState<
     Map<string, { isOnline: boolean; lastSeen?: Date }>
   >(new Map());
+  const [isClearModalOpen, setIsClearModalOpen] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const currentRoomRef = useRef<string | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { user, token, pfpTimestamps } = useAuthStore();
+  const location = useLocation();
+  const selectedConversationUserId = (location.state as any)?.selectedConversationUserId;
 
   const chatId = useMemo(() => {
     if (!selectedConversation || !user?.id) return null;
     return [user.id, selectedConversation.otherUser._id].sort().join("-");
   }, [selectedConversation, user?.id]);
+
+  // Handle click outside dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isDropdownOpen]);
 
   /* -------- Socket handlers -------- */
   const handleNewMessage = useCallback(
@@ -288,9 +314,29 @@ const Messages: React.FC = () => {
     [],
   );
 
+  const handleChatCleared = useCallback(
+    (payload: { chatId: string }) => {
+      setConversations((prev) =>
+        prev.filter((conv) => {
+          const convChatId = user?.id
+            ? [user.id, conv.otherUser._id].sort().join("-")
+            : "";
+          return convChatId !== payload.chatId;
+        }),
+      );
+
+      if (chatId === payload.chatId) {
+        setSelectedConversation(null);
+        setMessages([]);
+      }
+    },
+    [chatId, user?.id],
+  );
+
   const { sendMessage, isConnected, joinRoom, leaveRoom } = useChatSocket(
     handleNewMessage,
     handleUserStatusChange,
+    handleChatCleared,
   );
 
   /* -------- Load conversation list -------- */
@@ -309,7 +355,18 @@ const Messages: React.FC = () => {
         );
         if (!ac.signal.aborted) {
           setConversations(sorted);
-          if (sorted.length > 0) setSelectedConversation((s) => s ?? sorted[0]);
+          if (selectedConversationUserId) {
+            const preSelected = sorted.find(
+              (conv) => conv.otherUser._id === selectedConversationUserId,
+            );
+            if (preSelected) {
+              setSelectedConversation(preSelected);
+            } else if (sorted.length > 0) {
+              setSelectedConversation((s) => s ?? sorted[0]);
+            }
+          } else if (sorted.length > 0) {
+            setSelectedConversation((s) => s ?? sorted[0]);
+          }
           setError(null);
         }
       } catch {
@@ -320,7 +377,7 @@ const Messages: React.FC = () => {
     })();
 
     return () => ac.abort();
-  }, [user?.id, token]);
+  }, [user?.id, token, selectedConversationUserId]);
 
   /* -------- Switch room + load messages -------- */
   useEffect(() => {
@@ -439,6 +496,31 @@ const Messages: React.FC = () => {
     user?.id,
   ]);
 
+  const handleClearConversation = async () => {
+    if (!selectedConversation || !user?.id || !token) return;
+
+    setIsClearing(true);
+    try {
+      await chatApi.deleteConversation(
+        user.id,
+        selectedConversation.otherUser._id,
+        token,
+      );
+      // Remove the conversation from the sidebar
+      setConversations((prev) =>
+        prev.filter((conv) => conv._id !== selectedConversation._id),
+      );
+      setMessages([]); // Clear messages from view
+      setSelectedConversation(null); // Deselect the conversation
+      setIsClearModalOpen(false);
+    } catch (error) {
+      console.error("Failed to clear conversation", error);
+      // Optionally, show an error to the user
+    } finally {
+      setIsClearing(false);
+    }
+  };
+
   /* IME-safe Enter to send */
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     // @ts-ignore
@@ -459,6 +541,57 @@ const Messages: React.FC = () => {
       return full.includes(q);
     });
   }, [conversations, searchQuery]);
+
+  /* -------- Messages with date separators and profile picture grouping -------- */
+  const messagesWithSeparators = useMemo(() => {
+    if (messages.length === 0) return [];
+    
+    const result: (ChatMessage | { type: 'date-separator'; date: Date })[] = [];
+    
+    // First pass: find the last message from each sender
+    const lastMessageFromSender = new Map<string, number>();
+    for (let i = 0; i < messages.length; i++) {
+      const senderId = messages[i].senderId || messages[i].sender?._id;
+      if (senderId) {
+        lastMessageFromSender.set(senderId, i);
+      }
+    }
+    
+    for (let i = 0; i < messages.length; i++) {
+      const currentMessage = messages[i];
+      const currentDate = new Date(currentMessage.createdAt);
+      
+      // Add date separator before the first message
+      if (i === 0) {
+        result.push({ type: 'date-separator', date: currentDate });
+      } else {
+        // Check if the date has changed from the previous message
+        const previousMessage = messages[i - 1];
+        const previousDate = new Date(previousMessage.createdAt);
+        
+        if (!isSameDay(currentDate, previousDate)) {
+          result.push({ type: 'date-separator', date: currentDate });
+        }
+      }
+      
+      // Add the actual message with profile picture grouping info
+      const messageWithGrouping = {
+        ...currentMessage,
+        showProfilePicture: false, // Default to false
+      };
+      
+      // Show profile picture only if this is the last message from this sender
+      const currentSenderId = currentMessage.senderId || currentMessage.sender?._id;
+      if (currentSenderId && lastMessageFromSender.get(currentSenderId) === i) {
+        messageWithGrouping.showProfilePicture = true;
+      }
+      
+      
+      result.push(messageWithGrouping);
+    }
+    
+    return result;
+  }, [messages]);
 
   if (loading) return <div>Loading...</div>;
 
@@ -524,15 +657,6 @@ const Messages: React.FC = () => {
                       </p>
 
                       <div className="thread-meta">
-                        {conv.otherUser.profile?.subjects?.[0] && (
-                          <span
-                            className={`badge ${subjectBadgeColor(
-                              conv.otherUser.profile.subjects[0],
-                            )}`}
-                          >
-                            {conv.otherUser.profile.subjects[0]}
-                          </span>
-                        )}
                         {conv.unreadCount > 0 && (
                           <span className="unread">{conv.unreadCount}</span>
                         )}
@@ -544,7 +668,16 @@ const Messages: React.FC = () => {
             })}
 
             {filteredConversations.length === 0 && !loading && (
-              <div className="empty-sidebar">No conversations found</div>
+              <div className="empty-tab">
+                <div className="empty-sidebar-centered">
+      
+                <div className="empty-icon">💬</div>
+                <div className="empty-title">No conversations found</div>
+                <div className="empty-desc">
+                Ensure students have subscribed to you as a tutor.
+                </div>
+              </div>
+            </div>
             )}
           </div>
         </aside>
@@ -576,9 +709,6 @@ const Messages: React.FC = () => {
                       {`${selectedConversation.otherUser.profile?.name || "Unknown"} ${selectedConversation.otherUser.profile?.surname || "User"}`}
                     </div>
                     <div className="header-sub">
-                      {selectedConversation.otherUser.profile?.subjects?.[0] ||
-                        "Tutor"}{" "}
-                      •{" "}
                       {(() => {
                         const status = userOnlineStatus.get(
                           selectedConversation.otherUser._id,
@@ -614,13 +744,41 @@ const Messages: React.FC = () => {
                       />
                     </svg>
                   </button>
-                  <button className="action-button" aria-label="More">
-                    <svg width="16" height="16" fill="none" viewBox="0 0 16 16">
-                      <circle cx="8" cy="2" r="1.5" fill="currentColor" />
-                      <circle cx="8" cy="8" r="1.5" fill="currentColor" />
-                      <circle cx="8" cy="14" r="1.5" fill="currentColor" />
-                    </svg>
-                  </button>
+                  <div className="relative" ref={dropdownRef}>
+                    <button
+                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                      className="action-button"
+                      aria-label="More options"
+                      aria-expanded={isDropdownOpen}
+                    >
+                      <i className={`fas fa-chevron-${isDropdownOpen ? "up" : "down"}`} />
+                    </button>
+                    {isDropdownOpen && (
+                      <div 
+                        className="cl-menu" 
+                        role="menu"
+                        style={{
+                          position: 'fixed',
+                          top: '16vh',
+                          left: '135vh',
+                          zIndex: 99999
+                        }}
+                      >
+                        {user?.role === 'tutor' && (
+                          <button
+                            className="cl-menu__item"
+                            onClick={() => {
+                              setIsClearModalOpen(true);
+                              setIsDropdownOpen(false);
+                            }}
+                          >
+                            <i className="fas fa-trash" />
+                            <span>Clear Messages</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -644,31 +802,67 @@ const Messages: React.FC = () => {
                   </div>
                 ) : (
                   <div className="chat-stack">
-                    {messages.map((msg, idx) => {
-                      const mine =
-                        (msg.senderId || msg.sender?._id) === user?.id;
+                    {messagesWithSeparators.map((item, idx) => {
+                      // Handle date separator
+                      if ('type' in item && item.type === 'date-separator') {
+                        return (
+                          <DateSeparator 
+                            key={`date-${item.date.toISOString()}-${idx}`}
+                            date={item.date} 
+                          />
+                        );
+                      }
+                      
+                      // Handle regular message
+                      const msg = item as ChatMessage & { showProfilePicture?: boolean };
+                      const mine = (msg.senderId || msg.sender?._id) === user?.id;
+                      
+                      // Check if this is a "Conversation started" system message
+                      const isSystemMessage = msg.content?.toLowerCase().includes('conversation started');
+                      
+                      
+                      // Render system message differently
+                      if (isSystemMessage) {
+                        return (
+                          <div
+                            key={msg._id || `${msg.createdAt}-${idx}`}
+                            className="system-message"
+                          >
+                            <div className="system-message-content">
+                              {msg.content}
+                            </div>
+                          </div>
+                        );
+                      }
+                      
                       return (
                         <div
                           key={msg._id || `${msg.createdAt}-${idx}`}
                           className={`row ${mine ? "me" : "them"}`}
                         >
-                          <div className="pfp-wrap xs">
-                            <img
-                              src={
-                                msg.senderId
-                                  ? getProfilePictureUrl(
-                                      msg.senderId,
-                                      pfpTimestamps?.[msg.senderId],
-                                    )
-                                  : `data:image/png;base64,${defaultPfp}`
-                              }
-                              alt={msg.sender?.name || "User"}
-                              onError={(e) => {
-                                (e.currentTarget as HTMLImageElement).src =
-                                  `data:image/png;base64,${defaultPfp}`;
-                              }}
-                            />
-                          </div>
+                          {msg.showProfilePicture && (
+                            <div className="pfp-wrap xs">
+                              <img
+                                src={
+                                  msg.senderId
+                                    ? getProfilePictureUrl(
+                                        msg.senderId,
+                                        pfpTimestamps?.[msg.senderId],
+                                      )
+                                    : `data:image/png;base64,${defaultPfp}`
+                                }
+                                alt={msg.sender?.name || "User"}
+                                onError={(e) => {
+                                  (e.currentTarget as HTMLImageElement).src =
+                                    `data:image/png;base64,${defaultPfp}`;
+                                }}
+                              />
+                            </div>
+                          )}
+                          
+                          {!msg.showProfilePicture && (
+                            <div className="pfp-wrap xs empty"></div>
+                          )}
 
                           <div className="bubble-wrap">
                             <div
@@ -679,9 +873,9 @@ const Messages: React.FC = () => {
                                 {msg.content}
                               </p>
 
-                              {msg.upload?.filename && (
+                              {((msg as any).uploadFilename || msg.upload?.filename) && (
                                 <div
-                                  className={`file-preview ${mine ? "mine" : ""} ${msg.upload.data ? "downloadable" : ""}`}
+                                  className={`file-preview ${mine ? "mine" : ""} ${msg.upload?.data ? "downloadable" : ""}`}
                                   onClick={() => {
                                     if (msg.upload?.data) {
                                       const link = document.createElement("a");
@@ -699,15 +893,41 @@ const Messages: React.FC = () => {
                                       ) {
                                         bytes[i] = binaryString.charCodeAt(i);
                                       }
-                                      const blob = new Blob([bytes], {
-                                        type:
-                                          msg.upload.contentType ||
-                                          "application/octet-stream",
-                                      });
+                                      // Determine correct MIME type from filename if contentType is generic
+                                      const filename = (msg as any).uploadFilename || msg.upload?.filename;
+                                      let mimeType = (msg as any).uploadContentType || msg.upload?.contentType || "application/octet-stream";
+                                      if (mimeType === "application/octet-stream" && filename) {
+                                        const ext = filename.split('.').pop()?.toLowerCase();
+                                        switch (ext) {
+                                          case 'jpg':
+                                          case 'jpeg':
+                                            mimeType = 'image/jpeg';
+                                            break;
+                                          case 'png':
+                                            mimeType = 'image/png';
+                                            break;
+                                          case 'gif':
+                                            mimeType = 'image/gif';
+                                            break;
+                                          case 'pdf':
+                                            mimeType = 'application/pdf';
+                                            break;
+                                          case 'doc':
+                                            mimeType = 'application/msword';
+                                            break;
+                                          case 'docx':
+                                            mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+                                            break;
+                                          case 'txt':
+                                            mimeType = 'text/plain';
+                                            break;
+                                        }
+                                      }
+                                      
+                                      const blob = new Blob([bytes], { type: mimeType });
                                       const url = URL.createObjectURL(blob);
                                       link.href = url;
-                                      link.download =
-                                        msg.upload.filename || "download";
+                                      link.download = filename || "download";
                                       document.body.appendChild(link);
                                       link.click();
                                       document.body.removeChild(link);
@@ -722,14 +942,14 @@ const Messages: React.FC = () => {
                                 >
                                   <div className="file-line">
                                     <span className="file-icon">
-                                      {fileIcon(msg.upload.filename)}
+                                      {fileIcon((msg as any).uploadFilename || msg.upload?.filename || "")}
                                     </span>
                                     <span
                                       className={`file-name ${mine ? "white" : ""}`}
                                     >
-                                      {msg.upload.filename}
+                                      {(msg as any).uploadFilename || msg.upload?.filename}
                                     </span>
-                                    {msg.upload.data && (
+                                    {msg.upload?.data && (
                                       <svg
                                         width="16"
                                         height="16"
@@ -750,10 +970,12 @@ const Messages: React.FC = () => {
                                   <div
                                     className={`file-meta ${mine ? "white-50" : "muted"}`}
                                   >
-                                    {msg.upload.data
+                                    {msg.upload?.data
                                       ? `${((msg.upload.data.length * 3) / 4 / 1024 / 1024).toFixed(2)} MB`
                                       : "Attachment"}{" "}
-                                    • {msg.upload.contentType}
+                                    • {((msg as any).uploadContentType || msg.upload?.contentType) === "application/octet-stream" 
+                                        ? ((msg as any).uploadFilename || msg.upload?.filename)?.split('.').pop()?.toUpperCase() || "FILE"
+                                        : ((msg as any).uploadContentType || msg.upload?.contentType)}
                                   </div>
                                 </div>
                               )}
@@ -858,6 +1080,18 @@ const Messages: React.FC = () => {
                 </div>
               </div>
             </div>
+          )}
+
+          {selectedConversation && (
+            <ClearChatConfirmationModal
+              show={isClearModalOpen}
+              onClose={() => setIsClearModalOpen(false)}
+              onConfirm={handleClearConversation}
+              isSubmitting={isClearing}
+              userName={`${selectedConversation.otherUser.profile?.name || "Unknown"} ${
+                selectedConversation.otherUser.profile?.surname || "User"
+              }`}
+            />
           )}
         </section>
       </div>

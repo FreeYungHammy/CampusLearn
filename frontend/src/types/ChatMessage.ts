@@ -12,6 +12,8 @@ export interface ChatMessage {
     contentType: string;
     filename?: string;
   };
+  uploadFilename?: string;
+  uploadContentType?: string;
 }
 
 export interface SendMessagePayload {

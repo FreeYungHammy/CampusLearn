@@ -50,4 +50,28 @@ export const chatApi = {
       { headers: { Authorization: `Bearer ${token}` } },
     );
   },
+
+  async deleteConversation(
+    userId1: string,
+    userId2: string,
+    token: string,
+  ): Promise<void> {
+    await http.delete(`/chat/conversation/${userId1}/${userId2}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+
+  async conversationExists(userId1: string, userId2: string, token: string): Promise<{ exists: boolean }> {
+    const response = await http.get(`/chat/conversation/exists?userId1=${userId1}&userId2=${userId2}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  },
+
+  async createConversation(studentId: string, tutorId: string, token: string): Promise<any> {
+    const response = await http.post(`/chat/conversation`, { studentId, tutorId }, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  },
 };

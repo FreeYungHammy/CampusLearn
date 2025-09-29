@@ -12,6 +12,7 @@ import crypto from "crypto";
 import { CacheService } from "../../services/cache.service";
 import { HttpException } from "../../infra/http/HttpException";
 import { createLogger } from "../../config/logger";
+import { ChatService } from "../chat/chat.service";
 import { io } from "../../config/socket";
 import sharp from "sharp";
 
@@ -321,8 +322,17 @@ export const UserService = {
     return UserRepo.updateById(id, { $set: p });
   },
 
-  remove(id: string) {
-    return UserRepo.deleteById(id);
+  async remove(id: string) {
+    const deletedUser = await UserRepo.deleteById(id);
+    if (deletedUser) {
+      try {
+        await ChatService.deleteAllMessagesForUser(id);
+      } catch (error) {
+        logger.error(`Failed to delete messages for user ${id}`, error);
+        // Not re-throwing, as the user deletion itself was successful.
+      }
+    }
+    return deletedUser;
   },
 
   async forgotPassword(email: string) {

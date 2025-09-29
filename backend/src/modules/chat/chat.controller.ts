@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import { AuthedRequest } from "../../auth/auth.middleware";
 import { ChatService } from "./chat.service";
 import { getUserOnlineStatus } from "../../config/socket";
 
@@ -137,6 +138,58 @@ export const ChatController = {
       }
       const status = getUserOnlineStatus(userId);
       res.json(status);
+    } catch (e) {
+      next(e);
+    }
+  },
+
+  deleteConversation: async (
+    req: AuthedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const { userId1, userId2 } = req.params;
+      const requesterId = req.user?.id;
+      const requesterRole = req.user?.role;
+
+      // 1. Validate input
+      if (!userId1 || !userId2) {
+        return res
+          .status(400)
+          .json({ message: "Both user IDs are required." });
+      }
+
+      // 2. Check authorization
+      if (requesterRole !== "tutor") {
+        return res
+          .status(403)
+          .json({ message: "Only tutors can delete conversations." });
+      }
+
+      if (requesterId !== userId1 && requesterId !== userId2) {
+        return res.status(403).json({
+          message: "You are not authorized to delete this conversation.",
+        });
+      }
+
+      // 3. Call service
+      await ChatService.deleteConversation(userId1, userId2);
+
+      res.status(204).send();
+    } catch (e) {
+      next(e);
+    }
+  },
+
+  conversationExists: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { userId1, userId2 } = req.query;
+      if (!userId1 || !userId2) {
+        return res.status(400).json({ message: "Both userId1 and userId2 are required." });
+      }
+      const exists = await ChatService.conversationExists(String(userId1), String(userId2));
+      res.status(200).json({ exists });
     } catch (e) {
       next(e);
     }

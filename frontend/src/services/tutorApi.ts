@@ -10,3 +10,8 @@ export const getTutorById = async (id: string): Promise<Tutor> => {
   const response = await api.get(`/tutors/${id}`);
   return response.data;
 };
+
+export const getTutorByUserId = async (userId: string): Promise<Tutor> => {
+  const response = await api.get(`/tutors/by-user/${userId}`);
+  return response.data;
+};

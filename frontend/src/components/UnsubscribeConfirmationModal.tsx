@@ -17,11 +17,14 @@ export default function UnsubscribeConfirmationModal({
 }: UnsubscribeConfirmationModalProps) {
   return (
     <Dialog isOpen={show} onClose={onClose} labelledById="unsubscribe-title">
-      <h2 id="unsubscribe-title" className="modal-title">
+      <h2 id="unsubscribe-title" className="modal-title" style={{ color: "black" }}>
         Confirm Unsubscription
       </h2>
       <p className="modal-body">
-        Are you sure you want to unsubscribe from {tutorName}?
+        Are you sure you want to unsubscribe from{" "}
+        <span style={{ color: "red"}}>{tutorName}</span>? This action
+        will <span style={{ color: "red", textDecoration: "underline" }}>permanently</span> delete your entire chat history
+        with them.
       </p>
 
       <div className="modal-actions">

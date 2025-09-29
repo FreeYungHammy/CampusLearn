@@ -1,6 +1,8 @@
 import { SubscriptionRepo } from "./subscription.repo";
 import { StudentService } from "../students/student.service";
+import { StudentRepo } from "../students/student.repo";
 import { TutorRepo } from "../tutors/tutor.repo";
+import { UserRepo } from "../users/user.repo";
 import { CacheService } from "../../services/cache.service";
 import { ChatService } from "../chat/chat.service";
 import { TUTOR_CACHE_KEY } from "../tutors/tutor.service";
@@ -112,17 +114,67 @@ export const SubscriptionService = {
     return formattedTutors;
   },
 
-  async getSubscribedStudents(tutorUserId: string) {
-    const tutor = await TutorRepo.findOne({ userId: tutorUserId });
-    if (!tutor) {
-      const err = new Error("Tutor profile not found");
-      err.name = "NotFound";
-      throw err;
+  async getSubscribedStudents(tutorId: string) {
+    try {
+      console.log(`Getting subscribed students for tutorId: ${tutorId}`);
+      
+      const tutor = await TutorRepo.findById(tutorId);
+      if (!tutor) {
+        console.log(`Tutor not found for tutorId: ${tutorId}`);
+        const err = new Error("Tutor profile not found");
+        err.name = "NotFound";
+        throw err;
+      }
+      
+      console.log(`Found tutor: ${tutor._id}`);
+      
+      const subscriptions = await SubscriptionRepo.findByTutorId(
+        tutor._id.toString(),
+      );
+      
+      console.log(`Found ${subscriptions.length} subscriptions`);
+
+      // Fetch full student details
+      const studentDetailsPromises = subscriptions.map(async (sub) => {
+        try {
+          console.log(`Fetching student for sub.studentId: ${sub.studentId.toString()}`);
+          const student = await StudentRepo.findById(sub.studentId.toString());
+          if (student) {
+            console.log(`Found student: ${student._id}`);
+            console.log(`Fetching user for student.userId: ${student.userId.toString()}`);
+            const user = await UserRepo.findById(student.userId.toString());
+            if (!user) {
+              console.warn(`User not found for student.userId: ${student.userId.toString()}`);
+            }
+            return {
+              _id: student._id.toString(),
+              userId: student.userId.toString(),
+              name: student.name,
+              surname: student.surname,
+              email: user?.email,
+              pfp: student.pfp?.data
+                ? {
+                    contentType: student.pfp.contentType,
+                    data: student.pfp.data.toString("base64"),
+                  }
+                : undefined,
+            };
+          }
+          console.warn(`Student not found for sub.studentId: ${sub.studentId.toString()}`);
+          return null;
+        } catch (error) {
+          console.error(`Error fetching student details for sub.studentId: ${sub.studentId.toString()}`, error);
+          return null;
+        }
+      });
+
+      const students = (await Promise.all(studentDetailsPromises)).filter(Boolean);
+      console.log(`Returning ${students.length} students`);
+      return students;
+    } catch (error) {
+      console.error(`Error in getSubscribedStudents for tutorId: ${tutorId}`, error);
+      throw error;
     }
-    const subscriptions = await SubscriptionRepo.findByTutorId(
-      tutor._id.toString(),
-    );
-    return subscriptions.map((sub) => sub.studentId);
   },
 
   async unsubscribe(user: { id: string }, tutorId: string) {
@@ -144,6 +196,21 @@ export const SubscriptionService = {
       studentId: student._id,
       tutorId: tutor._id,
     });
+
+    if (result.deletedCount > 0) {
+      try {
+        await ChatService.deleteConversation(
+          student.userId.toString(),
+          tutor.userId.toString(),
+        );
+      } catch (error) {
+        // Log the error but don't let it fail the unsubscribe operation
+        console.error(
+          `Failed to delete conversation for student ${student.userId} and tutor ${tutor.userId}`,
+          error,
+        );
+      }
+    }
 
     // Invalidate the student's subscribed tutors list
     await CacheService.del(SUBSCRIBED_TUTORS_CACHE_KEY(student._id.toString()));

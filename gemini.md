@@ -545,7 +545,7 @@ This section outlines the complete, multi-phase implementation plan for the foru
 
 1.  **Define Schemas:**
     - **File 1:** `backend/src/schemas/forumPost.schema.ts` (new file)
-      - **Schema:** `ForumPostSchema` with fields: `title`, `content`, `topic`, `authorId` (ObjectId, no ref), `authorRole` (String enum), `isAnonymous` (Boolean), `upvotes` (Number), `replies` (Array of ObjectId with `ref: 'ForumReply'`)
+      - **Schema:** `ForumPostSchema` with fields: `title`, `content`, `topic`, `authorId` (ObjectId, no ref), `authorRole` (String enum), `isAnonymous` (Boolean), `upvotes` (Number), `replies` (Array of ObjectId with `ref: 'ForumReply'`).
     - **File 2:** `backend/src/schemas/forumReply.schema.ts` (new file)
       - **Schema:** `ForumReplySchema` with fields: `postId` (ObjectId, `ref: 'ForumPost'`), `content`, `authorId`, `authorRole`, `isAnonymous`, `upvotes`.
 
@@ -676,7 +676,7 @@ This section outlines the complete, multi-phase implementation plan for the foru
       - Save the updated user document.
       - (Stretch Goal) Send an email to the user with a link containing the token (e.g., `http://localhost:5173/reset-password/TOKEN_HERE`). For now, we will log the token to the console.
     - **`resetPassword(token, newPassword)`:**
-      - Find the.
+      - Find the user by their reset token and check if it has expired.
       - If user is found, hash the `newPassword`.
       - Update the user's `passwordHash` and set `resetPasswordToken` and `resetPasswordExpires` to `undefined`.
       - Save the updated user document.
@@ -929,3 +929,79 @@ The existing `upvotes` field in `ForumPostSchema` and `ForumReplySchema` only st
       - Include this `userVote` (1, -1, or 0 if no vote) in the returned data for each post/reply. This will require accessing `req.user` in `getThreads` and `getThreadById` (potentially requiring `requireAuth` for these endpoints or a separate authenticated endpoint for fetching user-specific vote data).
 
 This detailed plan covers all aspects of the upvote/downvote feature, from schema design to frontend UI and real-time updates, including the "no self-voting" rule and vote change logic.
+
+--- 
+
+## Session 11: Project Enhancement Plan 
+
+This new plan outlines the development phases for the next set of tasks on the CampusLearn project.
+
+### Phase 1: Cascade Deletion of Messages
+
+**Goal:** Ensure chat messages are properly deleted when a user relationship or profile is terminated.
+
+**Sub-phases:**
+- [ ] **Unsubscribe from Tutor:**
+    - [ ] **Backend:** Hook into the existing "unsubscribe" service function. When a student unsubscribes from a tutor, trigger a function to delete all chat messages between that student and tutor.
+    - [ ] **Backend:** Implement the `deleteChatHistory(userId1, userId2)` function in the chat service.
+- [ ] **Delete User Profile:**
+    - [ ] **Backend:** Hook into the existing "delete user" service function. When a user deletes their profile, trigger a function to delete all chat messages where they are either the sender or receiver.
+
+### Phase 2: Ironing out Messages (General Improvements)
+
+**Goal:** Improve the chat UI/UX and implement quality-of-life features.
+
+**Sub-phases:**
+- [ ] **Date Separation:**
+    - [ ] **Frontend:** Implement logic in the chat component to display a date separator (e.g., "--- September 30, 2025 ---") when the date of a message is different from the previous one.
+- [ ] **System Messages:**
+    - [ ] **Frontend:** Modify the chat component to render the "Conversation started" message as a centered, non-user-affiliated system message, distinct from user messages.
+- [ ] **Rate Limiting:**
+    - [ ] **Backend:** Implement a server-side rate limiter for the `send_message` socket event to allow a maximum of 5 messages per 30 seconds per user.
+    - [ ] **Frontend:** Provide UI feedback (e.g., a temporary message or disabled input) when a user is rate-limited.
+- [ ] **"Three Dots" Menu Functionality:**
+    - [ ] **Frontend:** Implement the UI for the "three dots" menu in the chat header.
+    - [ ] **View Profile Option:**
+        - [ ] **Frontend:** Add a "View Profile" option to the menu.
+        - [ ] **Frontend:** On click, navigate to a read-only view of the other user's profile.
+    - [ ] **Close Chat Option:**
+        - [ ] **Frontend:** Add a "Close Chat" option that triggers a confirmation modal (reusing the existing modal component style).
+        - [ ] **Backend:** Create a new secure endpoint (`DELETE /api/chat/:chatId`) to delete the entire chat history for the given chat ID.
+        - [ ] **Frontend:** On confirmation, call the new backend endpoint to delete the chat history.
+
+--- 
+
+### Phase 3: Messaging Correct Online Status
+
+**Goal:** Fix the bug causing incorrect online status to be displayed.
+
+**Sub-phases:**
+- [ ] **Analysis:**
+    - [ ] **Backend:** Investigate the `socket.io` connection logic, user authentication, and how user IDs are mapped to socket IDs.
+    - [ ] **Backend:** Review the `useGlobalSocket` and related authentication middleware to understand how JWTs and socket connections are currently handled, especially when multiple users are logged in from the same client machine.
+- [ ] **Fix Implementation:**
+    - [ ] **Backend:** Refactor the socket connection logic to ensure a unique and correct mapping between a user ID and their specific socket instance. This will likely involve creating a server-side mapping (e.g., an object or Map) like `{ userId: socketId }`.
+    - [ ] **Backend:** Ensure that when a user connects or disconnects, the `online_status` event is emitted with the correct `userId` and `status` to all relevant clients.
+- [ ] **Verification:**
+    - [ ] **Testing:** Open two different browsers (or browser profiles) and log in with two different user accounts. Verify that the online status for each user is displayed correctly to the other user and does not get overwritten.
+
+--- 
+
+### Phase 4: Docker Deployment Enhancement
+
+**Goal:** Modernize the Docker setup for a production-like environment.
+
+**Sub-phases:**
+- [ ] **Backend Dockerfile:**
+    - [ ] **Analyze:** Review the existing `Dockerfile`.
+    - [ ] **Implement:** Convert it to a multi-stage build. The first stage will install dependencies and build the TypeScript code. The final stage will copy only the compiled JavaScript (`dist` folder), `node_modules`, and other necessary assets into a smaller, production-ready Node.js image.
+- [ ] **Frontend Dockerfile:**
+    - [ ] **Create:** Create a new `Dockerfile` in the `frontend` directory.
+    - [ ] **Implement:** Use a multi-stage build. The first stage will use a Node.js image to install dependencies (`npm install`) and build the React application (`npm run build`). The final stage will copy the built static files (from the `dist` directory) into a lightweight web server image like Nginx.
+- [ ] **Docker Compose Update:**
+    - [ ] **Analyze:** Review the existing `docker-compose.yml`.
+    - [ ] **Update:** Modify the `api` service to use the new multi-stage backend `Dockerfile`.
+    - [ ] **Add Frontend Service:** Add a new service for the frontend (e.g., `frontend`) that builds using the new frontend `Dockerfile` and is served by Nginx.
+    - [ ] **Networking:** Ensure the frontend and backend services can communicate with each other within the Docker network.
+- [ ] **Documentation:**
+    - [ ] **Update README:** Add a clear and concise section to the main `README.md` file explaining how to build and run the entire application stack with a single command: `docker-compose up --build`.

@@ -40,9 +40,18 @@ export const SubscriptionController = {
   async getSubscribedStudents(req: Request, res: Response) {
     try {
       const { tutorId } = req.params;
+      console.log(`Controller: Getting subscribed students for tutorId: ${tutorId}`);
+      
+      // Test the repository method directly first
+      const { SubscriptionRepo } = await import("./subscription.repo");
+      const subscriptions = await SubscriptionRepo.findByTutorId(tutorId);
+      console.log(`Controller: Found ${subscriptions.length} subscriptions directly`);
+      
       const students = await SubscriptionService.getSubscribedStudents(tutorId);
+      console.log(`Controller: Returning ${students.length} students`);
       res.status(200).json(students);
     } catch (error: any) {
+      console.error(`Controller: Error getting subscribed students for tutorId: ${req.params.tutorId}`, error);
       if (error.name === "NotFound") {
         return res.status(404).json({ message: error.message });
       }
