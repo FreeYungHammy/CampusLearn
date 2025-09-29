@@ -159,6 +159,7 @@ export const UserService = {
       enrolledCourses: profile?.enrolledCourses,
     };
 
+    console.log("user.service.ts: userWithProfile:", userWithProfile);
     return { token, user: userWithProfile };
   },
 

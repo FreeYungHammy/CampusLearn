@@ -28,7 +28,11 @@ interface TutorModel extends Model<TutorDoc> {
     filter: FilterQuery<TutorDoc>,
     update: UpdateQuery<TutorDoc>,
   ): Promise<any>;
-  findAllWithStudentCount(): Promise<any[]>;
+  findAllWithStudentCount(
+    limit: number,
+    offset: number,
+    filters: { [key: string]: any },
+  ): Promise<{ tutors: any[]; totalCount: number }>;
 }
 
 const TutorSchema = new Schema(
@@ -93,8 +97,53 @@ TutorSchema.statics.update = function (
   return this.updateOne(filter, update);
 };
 
-TutorSchema.statics.findAllWithStudentCount = function () {
-  return this.aggregate([
+TutorSchema.statics.findAllWithStudentCount = async function (
+  limit: number,
+  offset: number,
+  filters: { [key: string]: any } = {},
+) {
+  const matchStage: any = {};
+
+  if (filters.searchQuery) {
+    matchStage.$or = [
+      { name: { $regex: filters.searchQuery, $options: "i" } },
+      { surname: { $regex: filters.searchQuery, $options: "i" } },
+      { subjects: { $regex: filters.searchQuery, $options: "i" } },
+    ];
+  }
+
+  if (filters.subjects && filters.subjects.length > 0) {
+    matchStage.subjects = { $all: filters.subjects };
+  }
+
+  const ratingStage: any[] = [];
+  if (filters.rating && filters.rating > 0) {
+    ratingStage.push(
+      {
+        $addFields: {
+          averageRating: {
+            $cond: [
+              { $eq: ["$rating.count", 0] },
+              0,
+              { $divide: ["$rating.totalScore", "$rating.count"] },
+            ],
+          },
+        },
+      },
+      { $match: { averageRating: { $gte: filters.rating } } },
+    );
+  }
+
+  const sortStage: any = {};
+  if (filters.sortBy === "rating") {
+    sortStage["rating.totalScore"] = -1; // Or averageRating, but need to calculate it first
+  } else {
+    sortStage.createdAt = -1; // Default to newest
+  }
+
+  const aggregationPipeline = [
+    { $match: matchStage },
+    ...ratingStage,
     {
       $lookup: {
         from: "subscriptions",
@@ -105,25 +154,39 @@ TutorSchema.statics.findAllWithStudentCount = function () {
     },
     {
       $addFields: {
+        id: "$_id",
         studentCount: { $size: "$subscriptions" },
       },
     },
     {
       $project: {
-        _id: 0, // Exclude _id
-        id: "$_id", // Add id field
-        userId: 1,
-        name: 1,
-        surname: 1,
-        subjects: 1,
-        rating: 1,
-        pfp: 1,
-        studentCount: 1,
-        createdAt: 1,
-        updatedAt: 1,
+        _id: 0,
+        pfp: 0,
+        subscriptions: 0,
       },
     },
+    { $sort: sortStage },
+    { $skip: offset },
+    { $limit: limit },
+  ];
+
+  const tutorsPromise = this.aggregate(aggregationPipeline);
+
+  // For total count, we only need the initial match stages
+  const countPipeline = [{ $match: matchStage }, ...ratingStage];
+  const totalCountPromise = this.aggregate([
+    ...countPipeline,
+    { $count: "total" },
   ]);
+
+  const [tutors, totalResult] = await Promise.all([
+    tutorsPromise,
+    totalCountPromise,
+  ]);
+
+  const totalCount = totalResult.length > 0 ? totalResult[0].total : 0;
+
+  return { tutors, totalCount };
 };
 
 TutorSchema.set("toJSON", {
