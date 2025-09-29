@@ -9,21 +9,34 @@ import type { Tutor } from "../types/Tutors";
 import { useAuthStore } from "../store/authStore";
 import SubscribeConfirmationModal from "../components/SubscribeConfirmationModal";
 
+const PAGE_SIZE = 12;
+
 const FindTutors = () => {
-  const [allTutors, setAllTutors] = useState<Tutor[]>([]);
-  const [displayedTutors, setDisplayedTutors] = useState<Tutor[]>([]);
+  const [tutors, setTutors] = useState<Tutor[]>([]);
+  const [totalTutors, setTotalTutors] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Filter and Sort State
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [ratingFilter, setRatingFilter] = useState(0);
+  const [sortBy, setSortBy] = useState("relevance");
   const [availableSubjects, setAvailableSubjects] = useState<string[]>([]);
 
-  const [showSubscribeModal, setShowSubscribeModal] = useState(false);
-  const [selectedTutor, setSelectedTutor] = useState<Tutor | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
+  // UI State
   const [showSubjectDropdown, setShowSubjectDropdown] = useState(false);
   const [showRatingDropdown, setShowRatingDropdown] = useState(false);
   const [showSortDropdown, setShowSortDropdown] = useState(false);
-  const [sortBy, setSortBy] = useState("relevance");
+
+  // Modal State
+  const [showSubscribeModal, setShowSubscribeModal] = useState(false);
+  const [selectedTutor, setSelectedTutor] = useState<Tutor | null>(null);
+
   const { user, token, pfpTimestamps, updatePfpTimestamps } = useAuthStore();
+
+  console.log("FindTutors.tsx: user object from authStore:", user);
 
   const ratingOptions = [
     { value: 0, label: "Any Rating" },
@@ -38,6 +51,64 @@ const FindTutors = () => {
     { value: "newest", label: "Newest" },
     { value: "rating", label: "Rating" },
   ];
+
+  const fetchTutors = async (page: number, filters: any) => {
+    if (!token) return;
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const offset = (page - 1) * PAGE_SIZE;
+      const { tutors: fetchedTutors, totalCount } = await getTutors(
+        PAGE_SIZE,
+        offset,
+        filters,
+      );
+
+      const subscribedTutors = await getMySubscribedTutors(user!.id, token).then(
+        (res) => res.data,
+      );
+      const subscribedTutorIds = new Set(subscribedTutors.map((t: any) => t.id));
+      const availableTutors = fetchedTutors.filter(
+        (tutor: Tutor) => !subscribedTutorIds.has(tutor.id),
+      );
+
+      setTutors((prevTutors) =>
+        page === 1 ? availableTutors : [...prevTutors, ...availableTutors],
+      );
+      setTotalTutors(totalCount);
+
+      const timestamps = availableTutors.reduce((acc, tutor) => {
+        if (tutor.pfpTimestamp) {
+          acc[tutor.userId] = tutor.pfpTimestamp;
+        }
+        return acc;
+      }, {} as { [userId: string]: number });
+      updatePfpTimestamps(timestamps);
+    } catch (err) {
+      setError("Failed to fetch tutors. Please try again later.");
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const studentSubjects = user?.enrolledCourses || [];
+    setAvailableSubjects(studentSubjects.sort());
+
+    const filters = { searchQuery, subjects: selectedSubjects.join(','), rating: ratingFilter, sortBy };
+    setTutors([]); // Reset tutors before fetching
+    setCurrentPage(1);
+    fetchTutors(1, filters);
+  }, [searchQuery, selectedSubjects, ratingFilter, sortBy, token, user]);
+
+  const handleLoadMore = () => {
+    const nextPage = currentPage + 1;
+    const filters = { searchQuery, subjects: selectedSubjects.join(','), rating: ratingFilter, sortBy };
+    setCurrentPage(nextPage);
+    fetchTutors(nextPage, filters);
+  };
 
   const handleSubjectChange = (subject: string) => {
     setSelectedSubjects((prev) =>
@@ -64,152 +135,6 @@ const FindTutors = () => {
     setSortBy("relevance");
   };
 
-  const handleSubscribe = (tutor: Tutor) => {
-    setSelectedTutor(tutor);
-    setShowSubscribeModal(true);
-  };
-
-  const handleConfirmSubscribe = async () => {
-    if (!token || !selectedTutor) return;
-    try {
-      await subscribeToTutor(selectedTutor.id, token);
-      setAllTutors((prev) =>
-        prev.filter((tutor) => tutor.id !== selectedTutor.id),
-      );
-    } catch (error) {
-      console.error("Failed to subscribe:", error);
-    } finally {
-      setShowSubscribeModal(false);
-      setSelectedTutor(null);
-    }
-  };
-
-  useEffect(() => {
-    const fetchAndPersonalizeTutors = async () => {
-      if (!user || user.role !== "student" || !token) return;
-
-      try {
-        const [fetchedTutors, subscribedTutors] = await Promise.all([
-          getTutors(),
-          getMySubscribedTutors(user.id, token).then((res) => res.data),
-        ]);
-
-        const subscribedTutorIds = new Set(
-          subscribedTutors.map((t: any) => t.id),
-        );
-
-        const availableTutors = fetchedTutors.filter(
-          (tutor: Tutor) => !subscribedTutorIds.has(tutor.id),
-        );
-
-        const studentSubjects = user.enrolledCourses || [];
-
-        const personalizedTutors = availableTutors
-          .map((tutor) => {
-            const matchingSubjects = tutor.subjects.filter((subject) =>
-              studentSubjects.includes(subject),
-            ).length;
-
-            const ratingForCalc = (() => {
-              if (!tutor.rating || tutor.rating.count === 0) return 3.0;
-              if (typeof tutor.rating.totalScore === "number") {
-                return tutor.rating.totalScore / tutor.rating.count;
-              }
-              if (typeof (tutor.rating as any).average === "number") {
-                return (tutor.rating as any).average;
-              }
-              return 0.0;
-            })();
-
-            if (matchingSubjects === 0) {
-              return null;
-            }
-
-            const relevanceScore = 3 * matchingSubjects + 2 * ratingForCalc;
-            return { ...tutor, relevanceScore };
-          })
-          .filter(
-            (tutor): tutor is Tutor & { relevanceScore: number } =>
-              tutor !== null,
-          );
-
-        personalizedTutors.sort((a, b) => b.relevanceScore - a.relevanceScore);
-
-        const timestamps = personalizedTutors.reduce((acc, tutor) => {
-          if (tutor.pfpTimestamp) {
-            acc[tutor.userId] = tutor.pfpTimestamp;
-          }
-          return acc;
-        }, {} as { [userId: string]: number });
-        updatePfpTimestamps(timestamps);
-
-        setAllTutors(personalizedTutors);
-        setAvailableSubjects(studentSubjects.sort());
-      } catch (error) {
-        console.error("Failed to fetch and sort tutors:", error);
-      }
-    };
-
-    fetchAndPersonalizeTutors();
-  }, [user, token]);
-
-  useEffect(() => {
-    let filteredTutors = [...allTutors];
-
-    // Apply subject filter
-    if (selectedSubjects.length > 0) {
-      filteredTutors = filteredTutors.filter((tutor) =>
-        selectedSubjects.every((subject) => tutor.subjects.includes(subject)),
-      );
-    }
-
-    // Apply rating filter
-    if (ratingFilter > 0) {
-      filteredTutors = filteredTutors.filter((tutor) => {
-        const avgRating =
-          tutor.rating.count > 0
-            ? tutor.rating.totalScore / tutor.rating.count
-            : 0;
-        return avgRating >= ratingFilter;
-      });
-    }
-
-    // Apply search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filteredTutors = filteredTutors.filter(
-        (tutor) =>
-          `${tutor.name} ${tutor.surname}`.toLowerCase().includes(query) ||
-          tutor.subjects.some((subject) =>
-            subject.toLowerCase().includes(query),
-          ),
-      );
-    }
-
-    // Apply sorting
-    if (sortBy === "rating") {
-      filteredTutors.sort((a, b) => {
-        const aRating =
-          a.rating.count > 0 ? a.rating.totalScore / a.rating.count : 0;
-        const bRating =
-          b.rating.count > 0 ? b.rating.totalScore / b.rating.count : 0;
-        return bRating - aRating;
-      });
-    } else if (sortBy === "newest") {
-      // Assuming there's a createdAt field, otherwise use a default
-      filteredTutors.sort((a, b) => {
-        const aDate = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const bDate = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-        return bDate - aDate;
-      });
-    } else {
-      // Relevance (default)
-      filteredTutors.sort((a, b) => b.relevanceScore - a.relevanceScore);
-    }
-
-    setDisplayedTutors(filteredTutors);
-  }, [allTutors, selectedSubjects, ratingFilter, searchQuery, sortBy]);
-
   const getRatingLabel = () => {
     const option = ratingOptions.find((opt) => opt.value === ratingFilter);
     return option ? option.label : "Any Rating";
@@ -219,6 +144,29 @@ const FindTutors = () => {
     const option = sortOptions.find((opt) => opt.value === sortBy);
     return option ? option.label : "Relevance";
   };
+
+  const handleSubscribe = (tutor: Tutor) => {
+    setSelectedTutor(tutor);
+    setShowSubscribeModal(true);
+  };
+
+  const handleConfirmSubscribe = async () => {
+    if (!token || !selectedTutor) return;
+    try {
+      await subscribeToTutor(selectedTutor.id, token);
+      // Optimistically remove the tutor from the list
+      setTutors((prev) => prev.filter((tutor) => tutor.id !== selectedTutor.id));
+      setTotalTutors((prev) => prev - 1);
+    } catch (error) {
+      console.error("Failed to subscribe:", error);
+      // Optionally, add the tutor back if the subscription fails
+    } finally {
+      setShowSubscribeModal(false);
+      setSelectedTutor(null);
+    }
+  };
+
+
 
   return (
     <div className="content-view" id="tutors-view">
@@ -419,8 +367,7 @@ const FindTutors = () => {
 
       <div className="results-header">
         <h3>
-          {displayedTutors.length}{" "}
-          {displayedTutors.length === 1 ? "Tutor" : "Tutors"} Available
+          {totalTutors} {totalTutors === 1 ? "Tutor" : "Tutors"} Available
           {(selectedSubjects.length > 0 ||
             ratingFilter > 0 ||
             searchQuery ||
@@ -430,8 +377,10 @@ const FindTutors = () => {
         </h3>
       </div>
 
+      {error && <div className="error-message">{error}</div>}
+
       <div className="tutor-grid">
-        {displayedTutors.map((tutor) => {
+        {tutors.map((tutor) => {
           const pfpSrc = `/api/users/${tutor.userId}/pfp?t=${pfpTimestamps[tutor.userId] || 0}`;
           const avgRating =
             tutor.rating.count > 0
@@ -503,14 +452,25 @@ const FindTutors = () => {
         })}
       </div>
 
-      {displayedTutors.length === 0 && (
+      {isLoading && (
+        <div className="loading-indicator">
+          <p>Loading tutors...</p>
+        </div>
+      )}
+
+      {!isLoading && tutors.length < totalTutors && (
+        <div className="load-more-container">
+          <button onClick={handleLoadMore} className="btn btn-primary">
+            Load More Tutors
+          </button>
+        </div>
+      )}
+
+      {!isLoading && tutors.length === 0 && !error && (
         <div className="empty-state">
           <i className="fas fa-user-graduate"></i>
-          <h3>No tutors match your filters</h3>
-          <p>Try adjusting your filters or search query</p>
-          <button className="btn btn-primary" onClick={clearAllFilters}>
-            Clear all filters
-          </button>
+          <h3>No Tutors Available</h3>
+          <p>Check back later for new tutors.</p>
         </div>
       )}
 
@@ -519,7 +479,7 @@ const FindTutors = () => {
           show={showSubscribeModal}
           onClose={() => setShowSubscribeModal(false)}
           onConfirm={handleConfirmSubscribe}
-          isSubmitting={false}
+          isSubmitting={false} // This could be wired to a new state if needed
           tutorName={`${selectedTutor.name} ${selectedTutor.surname}`}
         />
       )}

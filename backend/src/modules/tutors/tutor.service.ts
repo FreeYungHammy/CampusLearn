@@ -74,27 +74,34 @@ export const TutorService = {
     return TutorRepo.create(input);
   },
 
-  async list() {
+  async list(limit: number = 10, offset: number = 0, filters: any) {
     console.time("Mongo retrieval time (All Tutors)");
-    const tutorsFromDb = await TutorRepo.findAllWithStudentCount();
+    const { tutors, totalCount } = await TutorRepo.findAllWithStudentCount(
+      limit,
+      offset,
+      filters,
+    );
     console.timeEnd("Mongo retrieval time (All Tutors)");
 
-    return tutorsFromDb.map(formatTutorForList);
+    return {
+      tutors: tutors.map(formatTutorForList),
+      totalCount,
+    };
   },
 
   async get(id: string) {
     const cacheKey = TUTOR_CACHE_KEY(id);
-    console.time(`Redis retrieval time (Tutor by ID: ${id})`);
     let cachedTutor = await CacheService.get<any>(cacheKey);
-    console.timeEnd(`Redis retrieval time (Tutor by ID: ${id})`);
 
     if (cachedTutor) {
+      console.log(`Redis CACHE HIT for tutor ID: ${id}`);
       // Extend TTL on cache hit to keep frequently accessed tutors in cache
       await CacheService.set(cacheKey, cachedTutor, 1800);
       cachedTutor = prepareForHydration(cachedTutor);
       return TutorRepo.hydrate(cachedTutor);
     }
 
+    console.log(`Redis CACHE MISS for tutor ID: ${id}`);
     console.time(`Mongo retrieval time (Tutor by ID: ${id})`);
     const tutorFromDb = await TutorRepo.findById(id);
     console.timeEnd(`Mongo retrieval time (Tutor by ID: ${id})`);
@@ -109,17 +116,17 @@ export const TutorService = {
 
   async byUser(userId: string) {
     const cacheKey = TUTOR_BY_USER_CACHE_KEY(userId);
-    console.time(`Redis retrieval time (Tutor by User: ${userId})`);
     let cachedTutor = await CacheService.get<any>(cacheKey);
-    console.timeEnd(`Redis retrieval time (Tutor by User: ${userId})`);
 
     if (cachedTutor) {
+      console.log(`Redis CACHE HIT for tutor by user ID: ${userId}`);
       // Extend TTL on cache hit to keep frequently accessed tutors in cache
       await CacheService.set(cacheKey, cachedTutor, 1800);
       cachedTutor = prepareForHydration(cachedTutor);
       return TutorRepo.hydrate(cachedTutor);
     }
 
+    console.log(`Redis CACHE MISS for tutor by user ID: ${userId}`);
     console.time(`Mongo retrieval time (Tutor by User: ${userId})`);
     const tutorFromDb = await TutorRepo.findByUserId(userId);
     console.timeEnd(`Mongo retrieval time (Tutor by User: ${userId})`);
