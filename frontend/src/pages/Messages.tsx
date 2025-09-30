@@ -1066,7 +1066,7 @@ const Messages: React.FC = () => {
                     const f = e.target.files?.[0];
                     if (f) setSelectedFile(f);
                   }}
-                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.mp4,.avi,.mov,.mp3,.wav"
+
                 />
               </div>
             </>
