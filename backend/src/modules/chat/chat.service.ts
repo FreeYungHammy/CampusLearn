@@ -4,7 +4,15 @@ import { TutorModel } from "../../schemas/tutor.schema";
 import { UserModel } from "../../schemas/user.schema";
 import { ChatModel } from "../../schemas/chat.schema";
 import { ChatRepo } from "./chat.repo";
+import { createLogger } from "../../config/logger";
 import { Types } from "mongoose";
+import zlib from "zlib";
+import { promisify } from "util";
+
+const gzip = promisify(zlib.gzip);
+const gunzip = promisify(zlib.gunzip);
+
+const logger = createLogger("ChatService");
 
 interface RawChatMessage {
   chatId: string;
@@ -96,9 +104,16 @@ export const ChatService = {
   async send(body: any): Promise<any> {
     try {
       // Convert upload data from base64 string to Buffer if present
-      let uploadBuffer = undefined;
-      if (body.upload && typeof body.upload.data === 'string') {
-        uploadBuffer = Buffer.from(body.upload.data, 'base64');
+      let uploadBuffer: Buffer | undefined;
+      if (body.upload && typeof body.upload.data === "string") {
+        uploadBuffer = Buffer.from(body.upload.data, "base64");
+      }
+
+      let compressedUploadBuffer: Buffer | undefined;
+      if (uploadBuffer) {
+        logger.info(`Original upload size: ${uploadBuffer.length} bytes`);
+        compressedUploadBuffer = await gzip(uploadBuffer);
+        logger.info(`Compressed upload size: ${compressedUploadBuffer.length} bytes`);
       }
 
       // Create the message in the database
@@ -107,23 +122,27 @@ export const ChatService = {
         receiverId: new Types.ObjectId(body.receiverId),
         chatId: body.chatId,
         content: body.content,
-        upload: uploadBuffer,
+        upload: compressedUploadBuffer,
         uploadFilename: body.upload?.filename,
         uploadContentType: body.upload?.contentType,
         seen: false,
       });
 
-      const savedMessage = await message.save();
-      
-      // Process and emit the message via socket
+      await message.save();
+
+      // Process and emit the message via socket using the original uncompressed buffer
       await this.processAndEmitChatMessage({
         chatId: body.chatId,
         content: body.content,
         senderId: body.senderId,
-        upload: savedMessage.upload || undefined,
-        uploadFilename: savedMessage.uploadFilename || undefined,
-        uploadContentType: savedMessage.uploadContentType || undefined,
+        upload: uploadBuffer, // Use original buffer for real-time message
+        uploadFilename: body.upload?.filename,
+        uploadContentType: body.upload?.contentType,
       });
+
+      // Return the saved message, but without the large buffer
+      const { upload, ...rest } = message.toObject();
+      const savedMessage = rest;
 
       return savedMessage;
     } catch (error) {
@@ -135,14 +154,26 @@ export const ChatService = {
   async list(query: any, limit: number, skip: number): Promise<any[]> {
     try {
       const messages = await ChatModel.find(query)
-        .populate('senderId', 'email role')
-        .populate('receiverId', 'email role')
+        .populate("senderId", "email role")
+        .populate("receiverId", "email role")
         .sort({ createdAt: -1 })
         .limit(limit)
         .skip(skip)
         .lean();
-      
-      return messages;
+
+      const decompressedMessages = await Promise.all(
+        messages.map(async (message) => {
+          if (message.upload) {
+            const decompressedUpload = await gunzip(
+              message.upload as unknown as Buffer,
+            );
+            return { ...message, upload: decompressedUpload };
+          }
+          return message;
+        }),
+      );
+
+      return decompressedMessages;
     } catch (error) {
       console.error("Error listing messages:", error);
       throw error;
@@ -152,10 +183,17 @@ export const ChatService = {
   async get(id: string): Promise<any | null> {
     try {
       const message = await ChatModel.findById(id)
-        .populate('senderId', 'email role')
-        .populate('receiverId', 'email role')
+        .populate("senderId", "email role")
+        .populate("receiverId", "email role")
         .lean();
-      
+
+      if (message && message.upload) {
+        const decompressedUpload = await gunzip(
+          message.upload as unknown as Buffer,
+        );
+        return { ...message, upload: decompressedUpload };
+      }
+
       return message;
     } catch (error) {
       console.error("Error getting message:", error);
@@ -174,21 +212,32 @@ export const ChatService = {
       const userAObjectId = new Types.ObjectId(a);
       const userBObjectId = new Types.ObjectId(b);
       
-      // Find messages between two users (bidirectional)
       const messages = await ChatModel.find({
         $or: [
           { senderId: userAObjectId, receiverId: userBObjectId },
-          { senderId: userBObjectId, receiverId: userAObjectId }
-        ]
+          { senderId: userBObjectId, receiverId: userAObjectId },
+        ],
       })
-        .populate('senderId', 'email role')
-        .populate('receiverId', 'email role')
+        .populate("senderId", "email role")
+        .populate("receiverId", "email role")
         .sort({ createdAt: -1 })
         .limit(limit)
         .skip(skip)
         .lean();
-      
-      return messages;
+
+      const decompressedMessages = await Promise.all(
+        messages.map(async (message) => {
+          if (message.upload) {
+            const decompressedUpload = await gunzip(
+              message.upload as unknown as Buffer,
+            );
+            return { ...message, upload: decompressedUpload };
+          }
+          return message;
+        }),
+      );
+
+      return decompressedMessages;
     } catch (error) {
       console.error("Error getting conversation:", error);
       throw error;
@@ -264,23 +313,33 @@ export const ChatService = {
             senderProfile = { _id: senderUser._id.toString(), name: senderUser._id.toString() };
           }
 
-          return {
-            _id: message._id,
-            chatId: message.chatId,
-            content: message.content,
-            sender: senderProfile,
-            senderId: senderUser._id.toString(),
-            receiverId: (message.receiverId as any)?._id?.toString(),
-            createdAt: message.createdAt,
-            seen: message.seen,
-            upload: message.upload ? {
-              data: message.upload.toString('base64'),
-              contentType: message.uploadContentType || 'application/octet-stream',
-              filename: message.uploadFilename || 'attachment'
-            } : undefined,
-            uploadFilename: message.uploadFilename,
-            uploadContentType: message.uploadContentType
-          };
+            let decompressedUpload: Buffer | undefined;
+            if (message.upload) {
+              decompressedUpload = await gunzip(
+                message.upload as unknown as Buffer,
+              );
+            }
+
+            return {
+              _id: message._id,
+              chatId: message.chatId,
+              content: message.content,
+              sender: senderProfile,
+              senderId: senderUser._id.toString(),
+              receiverId: (message.receiverId as any)?._id?.toString(),
+              createdAt: message.createdAt,
+              seen: message.seen,
+              upload: decompressedUpload
+                ? {
+                    data: decompressedUpload.toString("base64"),
+                    contentType:
+                      message.uploadContentType || "application/octet-stream",
+                    filename: message.uploadFilename || "attachment",
+                  }
+                : undefined,
+              uploadFilename: message.uploadFilename,
+              uploadContentType: message.uploadContentType,
+            };
         })
       );
 
