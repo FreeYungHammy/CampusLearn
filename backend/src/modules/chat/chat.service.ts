@@ -162,10 +162,10 @@ export const ChatService = {
         .lean();
 
       const decompressedMessages = await Promise.all(
-        messages.map(async (message) => {
+        messages.map(async (message: any) => {
           if (message.upload) {
             const decompressedUpload = await gunzip(
-              message.upload as unknown as Buffer,
+              Buffer.from(message.upload as any),
             );
             return { ...message, upload: decompressedUpload };
           }
@@ -189,7 +189,7 @@ export const ChatService = {
 
       if (message && message.upload) {
         const decompressedUpload = await gunzip(
-          message.upload as unknown as Buffer,
+          Buffer.from(message.upload as any),
         );
         return { ...message, upload: decompressedUpload };
       }
@@ -226,10 +226,10 @@ export const ChatService = {
         .lean();
 
       const decompressedMessages = await Promise.all(
-        messages.map(async (message) => {
+        messages.map(async (message: any) => {
           if (message.upload) {
             const decompressedUpload = await gunzip(
-              message.upload as unknown as Buffer,
+              Buffer.from(message.upload as any),
             );
             return { ...message, upload: decompressedUpload };
           }
@@ -292,7 +292,7 @@ export const ChatService = {
 
       // Transform messages to match frontend expectations
       const transformedMessages = await Promise.all(
-        messages.map(async (message) => {
+        messages.map(async (message: any) => {
           const senderUser = message.senderId as any;
           let senderProfile: { _id: string; name: string } | null = null;
 
@@ -315,9 +315,19 @@ export const ChatService = {
 
             let decompressedUpload: Buffer | undefined;
             if (message.upload) {
-              decompressedUpload = await gunzip(
-                message.upload as unknown as Buffer,
-              );
+              try {
+                decompressedUpload = await gunzip(
+                  Buffer.from(message.upload as any),
+                );
+              } catch (err: any) {
+                if (err.code === "Z_BUF_ERROR") {
+                  // Data is likely not compressed, use as is
+                  decompressedUpload = Buffer.from(message.upload as any);
+                } else {
+                  // Re-throw other errors
+                  throw err;
+                }
+              }
             }
 
             return {
