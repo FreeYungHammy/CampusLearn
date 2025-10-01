@@ -1,9 +1,11 @@
 import React, { Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
+import LandingPage from "./pages/LandingPage";
 import Dashboard from "./pages/Dashboard";
 import MyTutors from "./pages/MyTutors";
 import FindTutors from "./pages/FindTutors";
+import FindTutorsWrapper from "./components/FindTutorsWrapper";
 import MyStudents from "./pages/MyStudents";
 import MyContent from "./pages/MyContent";
 import Forum from "./pages/Forum";
@@ -35,7 +37,6 @@ function App() {
   useBackendHealth();
   useGlobalSocket();
   
-
   const { showLogoutModal } = useAuthStore();
 
   return (
@@ -43,6 +44,7 @@ function App() {
       <Suspense fallback={<div style={{ padding: 24 }}>Loading…</div>}>
         <Routes>
           {/* Public routes */}
+          <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -54,7 +56,7 @@ function App() {
             <Route element={<Layout />}>
               <Route path="/schedule" element={<Dashboard />} />
               <Route path="/mytutors" element={<MyTutors />} />
-              <Route path="/tutors" element={<FindTutors />} />
+                      <Route path="/tutors" element={<FindTutorsWrapper />} />
               <Route
                 path="/tutors/:tutorId/content"
                 element={<TutorContentView />}
@@ -70,7 +72,7 @@ function App() {
           </Route>
 
           {/* Catch-all */}
-          <Route path="*" element={<Navigate to="/schedule" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
 

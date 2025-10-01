@@ -21,6 +21,8 @@ interface RawChatMessage {
   upload?: Buffer;
   uploadFilename?: string;
   uploadContentType?: string;
+  messageType?: string;
+  bookingId?: string;
   // Add other fields if necessary, e.g., senderRole: 'student' | 'tutor'
 }
 
@@ -40,6 +42,8 @@ interface EnrichedChatMessage {
   };
   uploadFilename?: string;
   uploadContentType?: string;
+  messageType?: string;
+  bookingId?: string;
 }
 
 export const ChatService = {
@@ -91,7 +95,9 @@ export const ChatService = {
         filename: rawMessage.uploadFilename || 'attachment'
       } : undefined,
       uploadFilename: rawMessage.uploadFilename,
-      uploadContentType: rawMessage.uploadContentType
+      uploadContentType: rawMessage.uploadContentType,
+      messageType: rawMessage.messageType,
+      bookingId: rawMessage.bookingId
     };
 
     // 4. Emit the enriched message
@@ -126,6 +132,8 @@ export const ChatService = {
         uploadFilename: body.upload?.filename,
         uploadContentType: body.upload?.contentType,
         seen: false,
+        messageType: body.messageType || "text",
+        bookingId: body.bookingId ? new Types.ObjectId(body.bookingId) : undefined,
       });
 
       await message.save();
@@ -135,9 +143,11 @@ export const ChatService = {
         chatId: body.chatId,
         content: body.content,
         senderId: body.senderId,
-        upload: uploadBuffer, // Use original buffer for real-time message
-        uploadFilename: body.upload?.filename,
-        uploadContentType: body.upload?.contentType,
+        upload: savedMessage.upload || undefined,
+        uploadFilename: savedMessage.uploadFilename || undefined,
+        uploadContentType: savedMessage.uploadContentType || undefined,
+        messageType: savedMessage.messageType,
+        bookingId: savedMessage.bookingId?.toString(),
       });
 
       // Return the saved message, but without the large buffer

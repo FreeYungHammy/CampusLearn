@@ -8,11 +8,14 @@ import React, {
 import { useLocation } from "react-router-dom";
 import { useChatSocket } from "@/hooks/useChatSocket";
 import { useAuthStore } from "@/store/authStore";
+import { useBookingStore } from "@/store/bookingStore";
 import { chatApi, type Conversation } from "@/services/chatApi";
 import type { SendMessagePayload, ChatMessage } from "@/types/ChatMessage";
 import { format, isSameDay } from "date-fns";
 import ClearChatConfirmationModal from "@/components/ClearChatConfirmationModal";
+import EnhancedBookingModal, { BookingData } from "@/components/EnhancedBookingModal";
 import DateSeparator from "@/components/DateSeparator";
+import BookingMessageCard from "@/components/chat/BookingMessageCard";
 import "./Messages.css";
 
 /* ---------- Default PFP (base64) ---------- */
@@ -218,6 +221,8 @@ const fileIcon = (filename: string) => {
 };
 
 const Messages: React.FC = () => {
+  console.log("💬 Messages component rendering/re-rendering");
+  
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] =
     useState<Conversation | null>(null);
@@ -241,8 +246,46 @@ const Messages: React.FC = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { user, token, pfpTimestamps } = useAuthStore();
+  const { 
+    showBookingModal, 
+    bookingTarget, 
+    openBookingModal, 
+    closeBookingModal, 
+    createBooking 
+  } = useBookingStore();
   const location = useLocation();
   const selectedConversationUserId = (location.state as any)?.selectedConversationUserId;
+
+  const handleBookingCreation = async (bookingData: BookingData) => {
+    try {
+      const newBooking = await createBooking(bookingData);
+      
+      // Send automatic message about the booking
+      if (bookingTarget && user) {
+        const isStudentBookingTutor = user.role === 'student' && bookingTarget.role === 'tutor';
+        const recipientId = isStudentBookingTutor ? bookingTarget.id : user.id;
+        
+        const messageContent = `📅 New booking request: ${bookingData.subject} session scheduled for ${new Date(bookingData.date).toLocaleDateString()} at ${bookingData.time} (${bookingData.duration} minutes)${bookingData.notes ? `\n\nNotes: ${bookingData.notes}` : ''}`;
+        
+        try {
+          // Create a chatId for the booking message
+          const chatId = [user.id, recipientId].sort().join("-");
+          await sendMessage({
+            chatId: chatId,
+            content: messageContent,
+            senderId: user.id,
+            receiverId: recipientId
+          });
+        } catch (messageError) {
+          console.warn('Failed to send booking message:', messageError);
+          // Don't fail the booking creation if message sending fails
+        }
+      }
+    } catch (error) {
+      console.error('Failed to create booking:', error);
+      throw error; // Re-throw so the modal can handle the error
+    }
+  };
 
   const chatId = useMemo(() => {
     if (!selectedConversation || !user?.id) return null;
@@ -378,6 +421,31 @@ const Messages: React.FC = () => {
 
     return () => ac.abort();
   }, [user?.id, token, selectedConversationUserId]);
+
+  // Cleanup effect to prevent state interference with other pages
+  useEffect(() => {
+    return () => {
+      // Clear all Messages state when component unmounts to prevent interference
+      setConversations([]);
+      setSelectedConversation(null);
+      setMessages([]);
+      setSearchQuery("");
+      setInput("");
+      setLoading(true);
+      setThreadLoading(false);
+      setError(null);
+      setSelectedFile(null);
+      setUserOnlineStatus(new Map());
+      setIsClearModalOpen(false);
+      setIsClearing(false);
+      setIsDropdownOpen(false);
+      
+      // Clear current room reference
+      if (currentRoomRef.current) {
+        currentRoomRef.current = null;
+      }
+    };
+  }, []);
 
   /* -------- Switch room + load messages -------- */
   useEffect(() => {
@@ -520,6 +588,17 @@ const Messages: React.FC = () => {
       setIsClearing(false);
     }
   };
+
+  const handleBookingAction = useCallback(async (bookingId: string, action: 'confirm' | 'cancel') => {
+    try {
+      // Import booking API
+      const { updateBookingStatus } = await import('@/services/bookingApi');
+      const status = action === 'confirm' ? 'confirmed' : 'cancelled';
+      await updateBookingStatus(bookingId, status);
+    } catch (error) {
+      console.error(`Failed to ${action} booking:`, error);
+    }
+  }, []);
 
   /* IME-safe Enter to send */
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -764,6 +843,24 @@ const Messages: React.FC = () => {
                           zIndex: 99999
                         }}
                       >
+                        {user?.role === 'tutor' && selectedConversation && (
+                          <button
+                            className="cl-menu__item"
+                            onClick={() => {
+                              openBookingModal({
+                                id: selectedConversation.otherUser._id,
+                                name: selectedConversation.otherUser.profile?.name || 'Student',
+                                surname: selectedConversation.otherUser.profile?.surname || '',
+                                role: 'student' as const,
+                                subjects: selectedConversation.otherUser.profile?.subjects || []
+                              });
+                              setIsDropdownOpen(false);
+                            }}
+                          >
+                            <i className="fas fa-calendar-plus" />
+                            <span>Schedule Session</span>
+                          </button>
+                        )}
                         {user?.role === 'tutor' && (
                           <button
                             className="cl-menu__item"
@@ -820,6 +917,8 @@ const Messages: React.FC = () => {
                       // Check if this is a "Conversation started" system message
                       const isSystemMessage = msg.content?.toLowerCase().includes('conversation started');
                       
+                      // Check if this is a booking message
+                      const isBookingMessage = msg.messageType && msg.messageType.startsWith('booking_');
                       
                       // Render system message differently
                       if (isSystemMessage) {
@@ -832,6 +931,18 @@ const Messages: React.FC = () => {
                               {msg.content}
                             </div>
                           </div>
+                        );
+                      }
+
+                      // Render booking message differently
+                      if (isBookingMessage) {
+                        return (
+                          <BookingMessageCard
+                            key={msg._id || `${msg.createdAt}-${idx}`}
+                            message={msg}
+                            isOwnMessage={mine}
+                            onBookingAction={handleBookingAction}
+                          />
                         );
                       }
                       
@@ -1091,6 +1202,17 @@ const Messages: React.FC = () => {
               userName={`${selectedConversation.otherUser.profile?.name || "Unknown"} ${
                 selectedConversation.otherUser.profile?.surname || "User"
               }`}
+            />
+          )}
+
+          {/* Booking Modal */}
+          {showBookingModal && bookingTarget && user && (
+            <EnhancedBookingModal
+              isOpen={showBookingModal}
+              onClose={closeBookingModal}
+              onConfirm={handleBookingCreation}
+              targetUser={bookingTarget}
+              currentUser={user}
             />
           )}
         </section>

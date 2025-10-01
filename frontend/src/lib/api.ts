@@ -1,4 +1,6 @@
 import axios from "axios";
+import { useAuthStore } from "../store/authStore";
+import { redirect } from "react-router-dom";
 
 export function resolveBaseUrl(): string {
   const configured = (import.meta as any).env?.VITE_API_BASE_URL as
@@ -19,5 +21,19 @@ const api = axios.create({
   baseURL: apiBaseUrl,
   headers: { "Content-Type": "application/json" },
 });
+
+// Add 401 interceptor to handle token expiry
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      const { clearAuth, closeLogoutModal } = useAuthStore.getState();
+      closeLogoutModal?.();
+      clearAuth();
+      redirect("/login");
+    }
+    return Promise.reject(error);
+  },
+);
 
 export default api;

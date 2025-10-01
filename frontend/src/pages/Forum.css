@@ -72,6 +72,10 @@
   transition: background-color 0.2s;
 }
 
+.topic-title {
+  color: white !important;
+}
+
 .new-topic-btn:hover {
   background-color: var(--blue-dark);
 }
@@ -270,6 +274,7 @@
   line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -437,14 +442,3 @@
   margin-right: 8px;
 }
 
-.upvote-btn-icon {
-  /* No specific styles in original CSS, but good to have the class */
-}
-
-.meta-item-icon {
-  /* No specific styles in original CSS, but good to have the class */
-}
-
-.pagination-btn-icon {
-  /* No specific styles in original CSS, but good to have the class */
-}

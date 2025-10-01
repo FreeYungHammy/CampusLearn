@@ -61,3 +61,19 @@ export const updatePassword = async (
     },
   );
 };
+
+export const updateEnrolledCourses = async (
+  token: string,
+  enrolledCourses: string[],
+): Promise<{ enrolledCourses: string[] }> => {
+  const response = await api.patch(
+    "/users/enrolled-courses",
+    { enrolledCourses },
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+  return response.data;
+};

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { useAuthStore } from "../store/authStore";
@@ -11,6 +11,7 @@ import {
   updatePassword,
   updateProfile,
   updateProfilePicture,
+  updateEnrolledCourses,
 } from "../services/settingsApi";
 
 const Settings = () => {
@@ -31,6 +32,24 @@ const Settings = () => {
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
+  // Subject management state
+  const [enrolledSubjects, setEnrolledSubjects] = useState<string[]>([]);
+  const [subjectsToEnroll, setSubjectsToEnroll] = useState<string[]>([]);
+  const [availableSubjects] = useState([
+    "Programming",
+    "Mathematics", 
+    "Linear Programming",
+    "Database Development",
+    "Web Programming",
+    "Computer Architecture",
+    "Statistics",
+    "Software Testing",
+    "Network Development",
+    "Machine Learning",
+  ]);
+  const [isSavingSubjects, setIsSavingSubjects] = useState(false);
+  const [subjectsSaveMessage, setSubjectsSaveMessage] = useState<string | null>(null);
+
   const { user, token, setUser, pfpTimestamps, refreshPfpForUser } =
     useAuthStore((state) => ({
       user: state.user,
@@ -39,6 +58,13 @@ const Settings = () => {
       pfpTimestamps: state.pfpTimestamps,
       refreshPfpForUser: state.refreshPfpForUser,
     }));
+
+  // Initialize enrolled subjects from user data
+  useEffect(() => {
+    if (user && (user as any).enrolledCourses) {
+      setEnrolledSubjects((user as any).enrolledCourses || []);
+    }
+  }, [user]);
 
   const handleConfirmDeleteAccount = async () => {
     if (!token) return;
@@ -178,6 +204,71 @@ const Settings = () => {
     setShowPictureModal(true);
   };
 
+  // Subject management functions
+  const handleRemoveEnrolledSubject = (subject: string) => {
+    setEnrolledSubjects(prev => prev.filter(s => s !== subject));
+    setSubjectsSaveMessage(null);
+    // Note: Changes will be persisted when user clicks "Save Changes"
+  };
+
+  const handleAddToEnrollList = (subject: string) => {
+    if (!subjectsToEnroll.includes(subject) && !enrolledSubjects.includes(subject)) {
+      setSubjectsToEnroll(prev => [...prev, subject]);
+      setSubjectsSaveMessage(null);
+    }
+  };
+
+  const handleRemoveFromEnrollList = (subject: string) => {
+    setSubjectsToEnroll(prev => prev.filter(s => s !== subject));
+    setSubjectsSaveMessage(null);
+  };
+
+  const handleSaveSubjects = async () => {
+    if (!token || !user) return;
+    
+    setIsSavingSubjects(true);
+    setSubjectsSaveMessage(null);
+
+    try {
+      // Calculate the final enrolled courses array
+      const finalEnrolledCourses = [...enrolledSubjects, ...subjectsToEnroll];
+      
+      console.log('💾 Saving subjects:', {
+        enrolledSubjects,
+        subjectsToEnroll,
+        finalEnrolledCourses
+      });
+      
+      // Call the API to update enrolled courses in the database
+      const response = await updateEnrolledCourses(token, finalEnrolledCourses);
+      
+      console.log('✅ API Response:', response);
+      
+      // Update the user's enrolled courses in the auth store
+      const updatedUser = {
+        ...user,
+        enrolledCourses: response.enrolledCourses
+      };
+      setUser(updatedUser);
+      
+      // Move subjects from "to enroll" to "enrolled"
+      setEnrolledSubjects(finalEnrolledCourses);
+      setSubjectsToEnroll([]);
+      
+      setSubjectsSaveMessage("Subjects updated successfully!");
+      
+      // Clear message after 3 seconds
+      setTimeout(() => {
+        setSubjectsSaveMessage(null);
+      }, 3000);
+    } catch (error) {
+      console.error("Failed to update enrolled courses:", error);
+      setSubjectsSaveMessage("Failed to update subjects. Please try again.");
+    } finally {
+      setIsSavingSubjects(false);
+    }
+  };
+
   const handleConfirmSavePfp = async () => {
     if (!profilePicture || !token || !user) return;
 
@@ -212,6 +303,22 @@ const Settings = () => {
       return <span style={{ color: "var(--secondary)" }}>Strong</span>;
     }
     return <span style={{ color: "var(--secondary)" }}>Very Strong</span>;
+  };
+
+  const getSubjectIcon = (subject: string) => {
+    const iconMap: { [key: string]: string } = {
+      Programming: "fa-code",
+      Mathematics: "fa-calculator",
+      "Linear Programming": "fa-project-diagram",
+      "Database Development": "fa-database",
+      "Web Programming": "fa-laptop-code",
+      "Computer Architecture": "fa-microchip",
+      Statistics: "fa-chart-line",
+      "Software Testing": "fa-bug",
+      "Network Development": "fa-network-wired",
+      "Machine Learning": "fa-robot",
+    };
+    return iconMap[subject] || "fa-book";
   };
 
   const pfpUrl = user
@@ -445,54 +552,119 @@ const Settings = () => {
           <div className="settings-card">
             <div className="card-header">
               <h2 className="card-title">My Subjects</h2>
+              <p className="card-subtitle">Manage your enrolled subjects and select new ones to enroll in</p>
             </div>
-            <div className="subjects-container">
-              {[
-                "Programming",
-                "Mathematics",
-                "Linear Programming",
-                "Database Development",
-                "Web Programming",
-                "Computer Architecture",
-                "Statistics",
-                "Software Testing",
-                "Network Development",
-                "Machine Learning",
-              ].map((subject) => (
-                <div key={subject}>
-                  <input
-                    type="checkbox"
-                    id={subject}
-                    className="subject-checkbox"
-                    name="subjects"
-                    value={subject}
-                  />
-                  <label htmlFor={subject} className="subject-label">
-                    <i
-                      className={`fas ${
-                        {
-                          Programming: "fa-code",
-                          Mathematics: "fa-calculator",
-                          "Linear Programming": "fa-project-diagram",
-                          "Database Development": "fa-database",
-                          "Web Programming": "fa-laptop-code",
-                          "Computer Architecture": "fa-microchip",
-                          Statistics: "fa-chart-line",
-                          "Software Testing": "fa-bug",
-                          "Network Development": "fa-network-wired",
-                          "Machine Learning": "fa-robot",
-                        }[subject]
-                      }`}
-                    ></i>
-                    <span className="subject-text">{subject}</span>
-                  </label>
+            
+            {/* Currently Enrolled Subjects */}
+            <div className="subjects-section">
+              <h3 className="subjects-section-title">
+                <i className="fas fa-graduation-cap"></i>
+                Currently Enrolled ({enrolledSubjects.length})
+              </h3>
+              {enrolledSubjects.length > 0 ? (
+                <div className="subjects-grid">
+                  {enrolledSubjects.map((subject) => (
+                    <div key={subject} className="subject-chip enrolled">
+                      <i className={`fas ${getSubjectIcon(subject)}`}></i>
+                      <span>{subject}</span>
+                      <button
+                        className="remove-subject-btn"
+                        onClick={() => handleRemoveEnrolledSubject(subject)}
+                        title="Remove from enrolled subjects"
+                      >
+                        <i className="fas fa-times"></i>
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              ) : (
+                <div className="empty-subjects">
+                  <i className="fas fa-book-open"></i>
+                  <p>No subjects enrolled yet. Select subjects below to enroll.</p>
+                </div>
+              )}
             </div>
+
+            {/* Subjects to Enroll In */}
+            <div className="subjects-section">
+              <h3 className="subjects-section-title">
+                <i className="fas fa-plus-circle"></i>
+                Subjects to Enroll In ({subjectsToEnroll.length})
+              </h3>
+              {subjectsToEnroll.length > 0 ? (
+                <div className="subjects-grid">
+                  {subjectsToEnroll.map((subject) => (
+                    <div key={subject} className="subject-chip to-enroll">
+                      <i className={`fas ${getSubjectIcon(subject)}`}></i>
+                      <span>{subject}</span>
+                      <button
+                        className="remove-subject-btn"
+                        onClick={() => handleRemoveFromEnrollList(subject)}
+                        title="Remove from enrollment list"
+                      >
+                        <i className="fas fa-times"></i>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-subjects">
+                  <i className="fas fa-plus"></i>
+                  <p>No subjects selected for enrollment. Choose from available subjects below.</p>
+                </div>
+              )}
+            </div>
+
+            {/* Available Subjects */}
+            <div className="subjects-section">
+              <h3 className="subjects-section-title">
+                <i className="fas fa-list"></i>
+                Available Subjects
+              </h3>
+              <div className="subjects-grid">
+                {availableSubjects
+                  .filter(subject => !enrolledSubjects.includes(subject) && !subjectsToEnroll.includes(subject))
+                  .map((subject) => (
+                    <div key={subject} className="subject-chip available">
+                      <i className={`fas ${getSubjectIcon(subject)}`}></i>
+                      <span>{subject}</span>
+                      <button
+                        className="add-subject-btn"
+                        onClick={() => handleAddToEnrollList(subject)}
+                        title="Add to enrollment list"
+                      >
+                        <i className="fas fa-plus"></i>
+                      </button>
+                    </div>
+                  ))}
+              </div>
+            </div>
+
+            {/* Save Button and Messages */}
             <div className="card-footer">
-              <button type="submit" className="btn btn-primary">
-                Save Subjects
+              <button 
+                onClick={handleSaveSubjects}
+                className="btn btn-primary"
+                disabled={isSavingSubjects}
+              >
+                {isSavingSubjects ? (
+                  <>
+                    <i className="fas fa-spinner fa-spin"></i>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <i className="fas fa-save"></i>
+                    Save Changes
+                  </>
+                )}
               </button>
+              {subjectsSaveMessage && (
+                <div className={`subjects-message ${subjectsSaveMessage.includes('success') ? 'success' : 'error'}`}>
+                  <i className={`fas ${subjectsSaveMessage.includes('success') ? 'fa-check-circle' : 'fa-exclamation-circle'}`}></i>
+                  {subjectsSaveMessage}
+                </div>
+              )}
             </div>
           </div>
         )}

@@ -27,7 +27,7 @@
 }
 
 [data-theme="dark"] .messages-root {
-  --bg: #111827;
+  
   --card: #1f2937;
   --border: #374151;
   --text: #f9fafb;
@@ -686,7 +686,7 @@
 }
 
 /* ---------- Dropdown Menu ---------- */
-.dropdown-menu {
+.messages-root .dropdown-menu {
   position: absolute;
   right: 0;
   bottom: 100%;
@@ -700,12 +700,12 @@
   overflow: hidden;
 }
 
-.dropdown-content {
+.messages-root .dropdown-content {
   padding: 4px 0;
   min-height: 40px;
 }
 
-.dropdown-item {
+.messages-root .dropdown-item {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -721,31 +721,31 @@
   transition: background-color 0.2s ease;
 }
 
-.dropdown-item:hover {
+.messages-root .dropdown-item:hover {
   background: var(--muted);
   color: var(--text);
 }
 
-.dropdown-item:active {
+.messages-root .dropdown-item:active {
   background: var(--border);
 }
 
-.dropdown-icon {
+.messages-root .dropdown-icon {
   flex-shrink: 0;
   opacity: 0.7;
 }
 
-[data-theme="dark"] .dropdown-menu {
+[data-theme="dark"] .messages-root .dropdown-menu {
   background: var(--card);
   border-color: var(--border);
 }
 
-[data-theme="dark"] .dropdown-item:hover {
+[data-theme="dark"] .messages-root .dropdown-item:hover {
   background: var(--muted);
 }
 
 /* ---------- Custom Dropdown Menu ---------- */
-.custom-dropdown-menu {
+.messages-root .custom-dropdown-menu {
   position: absolute !important;
   right: 0 !important;
   bottom: 100% !important;
@@ -761,11 +761,11 @@
   left: auto !important;
 }
 
-.custom-dropdown-content {
+.messages-root .custom-dropdown-content {
   padding: 4px 0 !important;
 }
 
-.custom-dropdown-item {
+.messages-root .custom-dropdown-item {
   display: flex !important;
   align-items: center !important;
   gap: 12px !important;
@@ -781,17 +781,17 @@
   transition: background-color 0.2s ease !important;
 }
 
-.custom-dropdown-item:hover {
+.messages-root .custom-dropdown-item:hover {
   background: var(--muted);
   color: var(--text);
 }
 
-[data-theme="dark"] .custom-dropdown-menu {
+[data-theme="dark"] .messages-root .custom-dropdown-menu {
   background: var(--card);
   border-color: var(--border);
 }
 
-[data-theme="dark"] .custom-dropdown-item:hover {
+[data-theme="dark"] .messages-root .custom-dropdown-item:hover {
   background: var(--muted);
 }
 

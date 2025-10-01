@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect, useRef } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { getTutors } from "../services/tutorApi";
 import {
   subscribeToTutor,
@@ -8,15 +8,19 @@ import {
 import type { Tutor } from "../types/Tutors";
 import { useAuthStore } from "../store/authStore";
 import SubscribeConfirmationModal from "../components/SubscribeConfirmationModal";
+import TutorBookingModal from "../components/TutorBookingModal";
+import AnimatedList from "../components/AnimatedList";
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 10;
 
 const FindTutors = () => {
+  const location = useLocation();
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [totalTutors, setTotalTutors] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
 
   // Filter and Sort State
   const [searchQuery, setSearchQuery] = useState("");
@@ -25,18 +29,76 @@ const FindTutors = () => {
   const [sortBy, setSortBy] = useState("relevance");
   const [availableSubjects, setAvailableSubjects] = useState<string[]>([]);
 
-  // UI State
-  const [showSubjectDropdown, setShowSubjectDropdown] = useState(false);
-  const [showRatingDropdown, setShowRatingDropdown] = useState(false);
-  const [showSortDropdown, setShowSortDropdown] = useState(false);
+  // Advanced Filter State
+  const [subjectSearchQuery, setSubjectSearchQuery] = useState("");
+  
+  // Dropdown State
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  
+  // Dropdown toggle function
+  const toggleDropdown = (dropdown: string) => {
+    setActiveDropdown(activeDropdown === dropdown ? null : dropdown);
+  };
+  
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setActiveDropdown(null);
+    };
+    
+    if (activeDropdown) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [activeDropdown]);
+  
+  // Track component mount/unmount (minimal logging)
+  useEffect(() => {
+    console.log("FindTutors: Component mounted");
+    return () => {
+      console.log("FindTutors: Component unmounted");
+    };
+  }, []);
 
   // Modal State
   const [showSubscribeModal, setShowSubscribeModal] = useState(false);
   const [selectedTutor, setSelectedTutor] = useState<Tutor | null>(null);
+  const [showBookingStepper, setShowBookingStepper] = useState(false);
+  const [bookingError, setBookingError] = useState<string | null>(null);
+
 
   const { user, token, pfpTimestamps, updatePfpTimestamps } = useAuthStore();
+  const isInitializedRef = useRef(false);
+  const previousUserRef = useRef<string | null>(null);
 
   console.log("FindTutors.tsx: user object from authStore:", user);
+
+  // Helper function to check if tutor subjects match student enrolled courses
+  const canBookWithTutor = (tutor: Tutor): { canBook: boolean; reason?: string } => {
+    if (user?.role !== 'student') {
+      return { canBook: false, reason: 'Only students can book sessions' };
+    }
+
+    const studentCourses = (user as any).enrolledCourses || [];
+    if (studentCourses.length === 0) {
+      return { canBook: false, reason: 'Please update your profile to include your enrolled courses' };
+    }
+
+    // Check if any tutor subject matches any student enrolled course
+    const hasMatchingSubject = tutor.subjects.some(subject => 
+      studentCourses.includes(subject)
+    );
+
+    if (!hasMatchingSubject) {
+      return { 
+        canBook: false, 
+        reason: 'This tutor teaches subjects you are not enrolled in. Please update your profile or subscribe to this tutor first.' 
+      };
+    }
+
+    return { canBook: true };
+  };
+
 
   const ratingOptions = [
     { value: 0, label: "Any Rating" },
@@ -53,19 +115,23 @@ const FindTutors = () => {
   ];
 
   const fetchTutors = async (page: number, filters: any) => {
-    if (!token) return;
+    if (!token) {
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
     try {
       const offset = (page - 1) * PAGE_SIZE;
+      
       const { tutors: fetchedTutors, totalCount } = await getTutors(
         PAGE_SIZE,
         offset,
         filters,
       );
 
-      const subscribedTutors = await getMySubscribedTutors(user!.id, token).then(
+      const subscribedTutors = await getMySubscribedTutors(user!.id).then(
         (res) => res.data,
       );
       const subscribedTutorIds = new Set(subscribedTutors.map((t: any) => t.id));
@@ -73,35 +139,102 @@ const FindTutors = () => {
         (tutor: Tutor) => !subscribedTutorIds.has(tutor.id),
       );
 
-      setTutors((prevTutors) =>
-        page === 1 ? availableTutors : [...prevTutors, ...availableTutors],
-      );
+      setTutors((prevTutors) => {
+        const newTutors = page === 1 ? availableTutors : [...prevTutors, ...availableTutors];
+        return newTutors;
+      });
       setTotalTutors(totalCount);
 
       const timestamps = availableTutors.reduce((acc, tutor) => {
-        if (tutor.pfpTimestamp) {
-          acc[tutor.userId] = tutor.pfpTimestamp;
+        if ((tutor as any).pfpTimestamp) {
+          acc[tutor.userId] = (tutor as any).pfpTimestamp;
         }
         return acc;
       }, {} as { [userId: string]: number });
       updatePfpTimestamps(timestamps);
     } catch (err) {
+      console.error("Error fetching tutors:", err);
       setError("Failed to fetch tutors. Please try again later.");
-      console.error(err);
     } finally {
       setIsLoading(false);
     }
   };
 
-  useEffect(() => {
-    const studentSubjects = user?.enrolledCourses || [];
-    setAvailableSubjects(studentSubjects.sort());
+          // Comprehensive initialization effect
+          useEffect(() => {
+            const currentUserId = user?.id;
+            const userChanged = previousUserRef.current !== currentUserId;
+            
+            // Force complete re-initialization if user changed or component not initialized
+            if (user && token && (userChanged || !isInitializedRef.current)) {
+              console.log("FindTutors: Re-initializing component");
+              
+              // Reset all state completely
+              setTutors([]);
+              setTotalTutors(0);
+              setCurrentPage(1);
+              setIsLoading(false);
+              setError(null);
+              setSearchQuery("");
+              setSelectedSubjects([]);
+              setRatingFilter(0);
+              setSortBy("relevance");
+              
+              // Set available subjects
+              const studentSubjects = (user as any).enrolledCourses || [];
+              setAvailableSubjects(studentSubjects.sort());
+              
+              // Mark as initialized
+              isInitializedRef.current = true;
+              previousUserRef.current = currentUserId || null;
+              
+              // Fetch tutors with default filters
+              const filters = { searchQuery: "", subjects: "", rating: 0, sortBy: "relevance" };
+              fetchTutors(1, filters);
+            }
+          }, [user?.id, token]);
 
-    const filters = { searchQuery, subjects: selectedSubjects.join(','), rating: ratingFilter, sortBy };
-    setTutors([]); // Reset tutors before fetching
-    setCurrentPage(1);
-    fetchTutors(1, filters);
+  // Handle filter changes (only after initialization)
+  useEffect(() => {
+    if (isInitializedRef.current && user && token) {
+      const filters = { searchQuery, subjects: selectedSubjects.join(','), rating: ratingFilter, sortBy };
+      setTutors([]); // Reset tutors before fetching
+      setCurrentPage(1);
+      fetchTutors(1, filters);
+    }
   }, [searchQuery, selectedSubjects, ratingFilter, sortBy, token, user]);
+
+  // Page visibility API to handle tab switching
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && user && token && isInitializedRef.current) {
+        // Force re-fetch when user returns to this tab
+        const filters = { searchQuery, subjects: selectedSubjects.join(','), rating: ratingFilter, sortBy };
+        setTutors([]);
+        setCurrentPage(1);
+        fetchTutors(1, filters);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [user, token, searchQuery, selectedSubjects, ratingFilter, sortBy]);
+
+  // Cleanup effect when component unmounts
+  useEffect(() => {
+    return () => {
+      // Reset initialization flag
+      isInitializedRef.current = false;
+      previousUserRef.current = null;
+      
+      // Reset all state when component unmounts to prevent stale state
+      setTutors([]);
+      setTotalTutors(0);
+      setCurrentPage(1);
+      setIsLoading(false);
+      setError(null);
+    };
+  }, []);
 
   const handleLoadMore = () => {
     const nextPage = currentPage + 1;
@@ -110,22 +243,53 @@ const FindTutors = () => {
     fetchTutors(nextPage, filters);
   };
 
-  const handleSubjectChange = (subject: string) => {
+  // Advanced Filter Helper Functions
+  const filteredSubjects = availableSubjects.filter(subject =>
+    subject.toLowerCase().includes(subjectSearchQuery.toLowerCase())
+  );
+
+  const toggleSubject = (subject: string) => {
     setSelectedSubjects((prev) =>
       prev.includes(subject)
         ? prev.filter((s) => s !== subject)
-        : [...prev, subject],
+        : [...prev, subject]
     );
   };
 
-  const handleRatingChange = (rating: number) => {
-    setRatingFilter(rating);
-    setShowRatingDropdown(false);
+  const getSubjectIcon = (subject: string) => {
+    const iconMap: { [key: string]: string } = {
+      'Mathematics': 'fas fa-calculator',
+      'Programming': 'fas fa-code',
+      'Computer Architecture': 'fas fa-microchip',
+      'Database Development': 'fas fa-database',
+      'Web Programming': 'fas fa-globe',
+      'Linear Programming': 'fas fa-chart-line',
+      'Statistics': 'fas fa-chart-bar',
+      'Software Testing': 'fas fa-bug',
+      'Network Development': 'fas fa-network-wired',
+      'Machine Learning': 'fas fa-brain'
+    };
+    return <i className={iconMap[subject] || 'fas fa-book'}></i>;
   };
 
-  const handleSortChange = (sort: string) => {
-    setSortBy(sort);
-    setShowSortDropdown(false);
+  const getSortIcon = (sortValue: string) => {
+    const iconMap: { [key: string]: string } = {
+      'relevance': 'fas fa-magic',
+      'newest': 'fas fa-clock',
+      'rating': 'fas fa-star'
+    };
+    return <i className={iconMap[sortValue] || 'fas fa-sort'}></i>;
+  };
+
+  const getRatingCount = () => {
+    // This would normally filter tutors by rating, for now return a placeholder
+    return tutors.filter(tutor => {
+      if (ratingFilter === 0) return true;
+      const avgRating = tutor.rating.count > 0 
+        ? tutor.rating.totalScore / tutor.rating.count 
+        : 0;
+      return avgRating >= ratingFilter;
+    }).length;
   };
 
   const clearAllFilters = () => {
@@ -153,7 +317,7 @@ const FindTutors = () => {
   const handleConfirmSubscribe = async () => {
     if (!token || !selectedTutor) return;
     try {
-      await subscribeToTutor(selectedTutor.id, token);
+      await subscribeToTutor(selectedTutor.id);
       // Optimistically remove the tutor from the list
       setTutors((prev) => prev.filter((tutor) => tutor.id !== selectedTutor.id));
       setTotalTutors((prev) => prev - 1);
@@ -168,201 +332,199 @@ const FindTutors = () => {
 
 
 
+
   return (
-    <div className="content-view" id="tutors-view">
+    <div className="content-view" id="tutors-view" key={`tutors-${user?.id || 'anonymous'}`}>
       <div className="section-header">
         <h2 className="section-title">
           <i className="fas fa-user-graduate"></i>Find Tutors
         </h2>
-        <div className="search-bar">
-          <div className="search-input-wrapper">
-            <i className="fas fa-search"></i>
-            <input
-              type="text"
-              placeholder="Search tutors by name or subject..."
-              className="form-control"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            {searchQuery && (
-              <button
-                className="clear-search"
-                onClick={() => setSearchQuery("")}
-              >
-                <i className="fas fa-times"></i>
+      </div>
+
+      {/* MINIMALISTIC FILTER BAR - GRID LAYOUT */}
+      <div className="minimal-filter-bar-grid">
+        {/* ROW 1: Filter buttons + Info */}
+        <div className="filter-row-1">
+          <div className="filter-buttons">
+            <button 
+              className={`filter-btn ${activeDropdown === 'sort' ? 'active' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleDropdown('sort');
+              }}
+            >
+              <i className="fas fa-sort"></i>
+              Sort By
+              <i className="fas fa-chevron-down"></i>
+            </button>
+            
+            <button 
+              className={`filter-btn ${activeDropdown === 'rating' ? 'active' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleDropdown('rating');
+              }}
+            >
+              <i className="fas fa-star"></i>
+              Minimum Rating
+              <i className="fas fa-chevron-down"></i>
+            </button>
+            
+            <button 
+              className={`filter-btn ${activeDropdown === 'subjects' ? 'active' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleDropdown('subjects');
+              }}
+            >
+              <i className="fas fa-book-open"></i>
+              Subjects
+              <i className="fas fa-chevron-down"></i>
+            </button>
+          </div>
+          
+          <div className="filter-info">
+            <span className="tutor-count">{totalTutors} Tutors Available</span>
+            {(selectedSubjects.length > 0 || ratingFilter > 0 || sortBy !== "relevance") && (
+              <button className="clear-filters-btn" onClick={clearAllFilters}>
+                Clear Filters
               </button>
             )}
           </div>
         </div>
-      </div>
-
-      <div className="filter-section">
-        <div className="filter-header">
-          <h3>Filters</h3>
-          {(selectedSubjects.length > 0 ||
-            ratingFilter > 0 ||
-            searchQuery ||
-            sortBy !== "relevance") && (
-            <button className="clear-filters-btn" onClick={clearAllFilters}>
-              Clear all filters
-            </button>
-          )}
-        </div>
-
-        <div className="filters-container">
-          <div className="filter-group">
-            <label>Subjects</label>
-            <div className="dropdown-filter-container">
-              <div
-                className="dropdown-trigger"
-                onClick={() => setShowSubjectDropdown(!showSubjectDropdown)}
-              >
-                <span>
-                  {selectedSubjects.length > 0
-                    ? `${selectedSubjects.length} selected`
-                    : "Select subjects"}
-                </span>
-                <i
-                  className={`fas fa-chevron-${showSubjectDropdown ? "up" : "down"}`}
-                ></i>
-              </div>
-
-              {showSubjectDropdown && (
-                <div className="dropdown-menu">
-                  <div className="dropdown-list">
-                    {availableSubjects.map((subject) => (
-                      <div
-                        key={subject}
-                        className={`dropdown-option ${selectedSubjects.includes(subject) ? "selected" : ""}`}
-                        onClick={() => handleSubjectChange(subject)}
-                      >
-                        <div className="option-checkbox">
-                          {selectedSubjects.includes(subject) && (
-                            <i className="fas fa-check"></i>
-                          )}
-                        </div>
-                        <span>{subject}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="dropdown-actions">
-                    <button
-                      className="btn btn-sm btn-primary"
-                      onClick={() => setShowSubjectDropdown(false)}
-                    >
-                      Done
-                    </button>
-                  </div>
+        
+        {/* ROW 2: Selected subjects (inside filter bar) */}
+        {selectedSubjects.length > 0 && (
+          <div className="filter-row-2">
+            <div className="selected-subjects-container">
+              {selectedSubjects.map((subject) => (
+                <div key={subject} className="selected-subject-tag">
+                  <span className="subject-name">{subject}</span>
+                  <button 
+                    onClick={() => toggleSubject(subject)}
+                    className="remove-subject-btn"
+                    title={`Remove ${subject} filter`}
+                  >
+                    <i className="fas fa-times"></i>
+                  </button>
                 </div>
-              )}
+              ))}
             </div>
-
-            {/* Selected subjects chips */}
-            {selectedSubjects.length > 0 && (
-              <div className="selected-chips">
-                {selectedSubjects.map((subject) => (
-                  <div key={subject} className="filter-chip">
-                    {subject}
-                    <button
-                      onClick={() => handleSubjectChange(subject)}
-                      className="chip-remove"
-                    >
-                      <i className="fas fa-times"></i>
-                    </button>
+          </div>
+        )}
+        
+        {/* DROPDOWN MENUS */}
+        {activeDropdown === 'sort' && (
+          <div className="dropdown-menu sort-dropdown" onClick={(e) => e.stopPropagation()}>
+            <div className="dropdown-header">
+              <i className="fas fa-sort"></i>
+              Sort By
+              <span className="dropdown-subtitle">Choose sorting method</span>
+            </div>
+            <div className="dropdown-content">
+              {sortOptions.map((option) => (
+                <button
+                  key={option.value}
+                  className={`dropdown-option ${sortBy === option.value ? 'active' : ''}`}
+                  onClick={() => {
+                    setSortBy(option.value);
+                    setActiveDropdown(null);
+                  }}
+                >
+                  <div className="option-icon">
+                    {getSortIcon(option.value)}
                   </div>
+                  <span className="option-label">{option.label}</span>
+                  {sortBy === option.value && (
+                    <i className="fas fa-check"></i>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {activeDropdown === 'rating' && (
+          <div className="dropdown-menu rating-dropdown" onClick={(e) => e.stopPropagation()}>
+            <div className="dropdown-header">
+              <i className="fas fa-star"></i>
+              Minimum Rating
+              <span className="dropdown-subtitle">Choose minimum stars</span>
+            </div>
+            <div className="dropdown-content">
+              <div className="star-rating">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    className={`star-btn ${ratingFilter >= star ? 'active' : ''}`}
+                    onClick={() => {
+                      setRatingFilter(star);
+                      setActiveDropdown(null);
+                    }}
+                  >
+                    <i className="fas fa-star"></i>
+                  </button>
                 ))}
               </div>
-            )}
-          </div>
-
-          <div className="filter-group">
-            <label>Minimum Rating</label>
-            <div className="dropdown-filter-container">
-              <div
-                className="dropdown-trigger"
-                onClick={() => setShowRatingDropdown(!showRatingDropdown)}
-              >
-                <span>{getRatingLabel()}</span>
-                <i
-                  className={`fas fa-chevron-${showRatingDropdown ? "up" : "down"}`}
-                ></i>
+              <div className="rating-text">
+                {ratingFilter === 0 ? 'Any Rating' : `${ratingFilter}+ Stars`}
               </div>
-
-              {showRatingDropdown && (
-                <div className="dropdown-menu">
-                  <div className="dropdown-list">
-                    {ratingOptions.map((option) => (
-                      <div
-                        key={option.value}
-                        className={`dropdown-option ${ratingFilter === option.value ? "selected" : ""}`}
-                        onClick={() => handleRatingChange(option.value)}
+            </div>
+          </div>
+        )}
+        
+        {activeDropdown === 'subjects' && (
+          <div className="dropdown-menu subjects-dropdown" onClick={(e) => e.stopPropagation()}>
+            <div className="dropdown-header">
+              <i className="fas fa-book-open"></i>
+              Subjects
+              <span className="dropdown-subtitle">Select one or more</span>
+            </div>
+            <div className="dropdown-content">
+              <div className="subject-search">
+                <i className="fas fa-search"></i>
+                <input
+                  type="text"
+                  placeholder="Search subjects..."
+                  className="subject-search-input"
+                  value={subjectSearchQuery}
+                  onChange={(e) => setSubjectSearchQuery(e.target.value)}
+                />
+              </div>
+              
+              <div className="subjects-list">
+                {filteredSubjects.map((subject) => (
+                  <button
+                    key={subject}
+                    className={`subject-option ${selectedSubjects.includes(subject) ? 'selected' : ''}`}
+                    onClick={() => toggleSubject(subject)}
+                  >
+                    <span>{subject}</span>
+                    {selectedSubjects.includes(subject) && (
+                      <i className="fas fa-check"></i>
+                    )}
+                  </button>
+                ))}
+              </div>
+              
+              {selectedSubjects.length > 0 && (
+                <div className="selected-subjects">
+                  {selectedSubjects.map((subject) => (
+                    <div key={subject} className="selected-tag">
+                      {subject}
+                      <button 
+                        onClick={() => toggleSubject(subject)}
+                        className="remove-tag"
                       >
-                        <div className="option-checkbox">
-                          {ratingFilter === option.value && (
-                            <i className="fas fa-check"></i>
-                          )}
-                        </div>
-                        <span>{option.label}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="dropdown-actions">
-                    <button
-                      className="btn btn-sm btn-primary"
-                      onClick={() => setShowRatingDropdown(false)}
-                    >
-                      Done
-                    </button>
-                  </div>
+                        <i className="fas fa-times"></i>
+                      </button>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
           </div>
-
-          <div className="filter-group">
-            <label>Sort By</label>
-            <div className="dropdown-filter-container">
-              <div
-                className="dropdown-trigger"
-                onClick={() => setShowSortDropdown(!showSortDropdown)}
-              >
-                <span>{getSortLabel()}</span>
-                <i
-                  className={`fas fa-chevron-${showSortDropdown ? "up" : "down"}`}
-                ></i>
-              </div>
-
-              {showSortDropdown && (
-                <div className="dropdown-menu">
-                  <div className="dropdown-list">
-                    {sortOptions.map((option) => (
-                      <div
-                        key={option.value}
-                        className={`dropdown-option ${sortBy === option.value ? "selected" : ""}`}
-                        onClick={() => handleSortChange(option.value)}
-                      >
-                        <div className="option-checkbox">
-                          {sortBy === option.value && (
-                            <i className="fas fa-check"></i>
-                          )}
-                        </div>
-                        <span>{option.label}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="dropdown-actions">
-                    <button
-                      className="btn btn-sm btn-primary"
-                      onClick={() => setShowSortDropdown(false)}
-                    >
-                      Done
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        )}
       </div>
 
       <div className="results-header">
@@ -439,6 +601,38 @@ const FindTutors = () => {
                 >
                   View Profile & Content
                 </Link>
+                {user?.role === 'student' && (() => {
+                  const bookingValidation = canBookWithTutor(tutor);
+                  return (
+                    <div className="booking-section">
+                      <button
+                        className={`btn btn-sm btn-primary booking-btn ${!bookingValidation.canBook ? 'disabled' : ''}`}
+                        disabled={!bookingValidation.canBook}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (bookingValidation.canBook) {
+                            console.log('🎯 FindTutors: Book Session button clicked for tutor:', tutor.name);
+                            setSelectedTutor(tutor);
+                            setShowBookingStepper(true);
+                            setBookingError(null);
+                            console.log('✅ Booking stepper modal state updated - should be visible');
+                          }
+                        }}
+                        title={!bookingValidation.canBook ? bookingValidation.reason : 'Book a session with this tutor'}
+                      >
+                        <i className="fas fa-calendar-plus"></i>
+                        Book Session
+                      </button>
+                      {!bookingValidation.canBook && (
+                        <div className="booking-disabled-message">
+                          <i className="fas fa-info-circle"></i>
+                          <span>{bookingValidation.reason}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
                 <button
                   className="btn btn-sm btn-success subscribe-btn"
                   onClick={() => handleSubscribe(tutor)}
@@ -458,10 +652,10 @@ const FindTutors = () => {
         </div>
       )}
 
-      {!isLoading && tutors.length < totalTutors && (
+      {!isLoading && tutors.length < totalTutors && totalTutors >= 10 && (
         <div className="load-more-container">
           <button onClick={handleLoadMore} className="btn btn-primary">
-            Load More Tutors
+            Load More Tutors ({tutors.length} of {totalTutors} shown)
           </button>
         </div>
       )}
@@ -483,8 +677,26 @@ const FindTutors = () => {
           tutorName={`${selectedTutor.name} ${selectedTutor.surname}`}
         />
       )}
+
+      {/* Tutor Booking Modal */}
+        {user?.role === 'student' && selectedTutor && (
+          <TutorBookingModal
+            key="findtutors-modal"
+            isOpen={showBookingStepper}
+            onClose={() => {
+              setShowBookingStepper(false);
+              setSelectedTutor(null);
+              setBookingError(null);
+            }}
+            currentUser={user}
+            selectedTutor={selectedTutor}
+            modalId="FindTutors"
+          />
+        )}
+
     </div>
   );
 };
 
 export default FindTutors;
+

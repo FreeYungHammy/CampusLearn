@@ -293,6 +293,25 @@ export const UserService = {
     }
   },
 
+  async updateEnrolledCourses(userId: string, enrolledCourses: string[]) {
+    const user = await UserRepo.findById(userId);
+    if (!user) throw new Error("User not found");
+
+    if (user.role !== "student") {
+      throw new Error("Only students can update enrolled courses");
+    }
+
+    // Update the student's enrolled courses
+    await StudentRepo.update({ userId }, { enrolledCourses });
+    
+    // Invalidate student cache on update
+    await StudentService.invalidateCache(userId);
+
+    // Return the updated student profile
+    const updatedStudent = await StudentRepo.findOne({ userId });
+    return updatedStudent;
+  },
+
   async updatePassword(userId: string, current: string, newPass: string) {
     const user = await UserRepo.findByIdWithPassword(userId);
     if (!user) throw new Error("User not found");

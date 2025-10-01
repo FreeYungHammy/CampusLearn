@@ -7,6 +7,7 @@ import {
 import { useAuthStore } from "../store/authStore";
 import type { Tutor } from "../types/Tutors";
 import UnsubscribeConfirmationModal from "../components/UnsubscribeConfirmationModal";
+import TutorBookingModal from "../components/TutorBookingModal";
 
 const MyTutors = () => {
   const [tutors, setTutors] = useState<Tutor[]>([]);
@@ -14,7 +15,38 @@ const MyTutors = () => {
 
   const [showUnsubscribeModal, setShowUnsubscribeModal] = useState(false);
   const [selectedTutor, setSelectedTutor] = useState<Tutor | null>(null);
+  
+  // Booking-related state
+  const [showBookingStepper, setShowBookingStepper] = useState(false);
+  const [bookingError, setBookingError] = useState<string | null>(null);
+  
   const { user, token, pfpTimestamps } = useAuthStore();
+
+  // Helper function to check if tutor subjects match student enrolled courses
+  const canBookWithTutor = (tutor: Tutor): { canBook: boolean; reason?: string } => {
+    if (user?.role !== 'student') {
+      return { canBook: false, reason: 'Only students can book sessions' };
+    }
+
+    const studentCourses = (user as any).enrolledCourses || [];
+    if (studentCourses.length === 0) {
+      return { canBook: false, reason: 'Please update your profile to include your enrolled courses' };
+    }
+
+    // Check if any tutor subject matches any student enrolled course
+    const hasMatchingSubject = tutor.subjects.some(subject => 
+      studentCourses.includes(subject)
+    );
+
+    if (!hasMatchingSubject) {
+      return { 
+        canBook: false, 
+        reason: 'This tutor teaches subjects you are not enrolled in. Please update your profile to include the required subjects.' 
+      };
+    }
+
+    return { canBook: true };
+  };
 
   const handleUnsubscribe = (tutor: Tutor) => {
     setSelectedTutor(tutor);
@@ -127,6 +159,38 @@ const MyTutors = () => {
                   >
                     View Profile & Content
                   </Link>
+                  {user?.role === 'student' && (() => {
+                    const bookingValidation = canBookWithTutor(tutor);
+                    return (
+                      <div className="booking-section">
+                        <button
+                          className={`btn btn-sm btn-primary booking-btn ${!bookingValidation.canBook ? 'disabled' : ''}`}
+                          disabled={!bookingValidation.canBook}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (bookingValidation.canBook) {
+                              console.log('🎯 MyTutors: Book Session button clicked for tutor:', tutor.name);
+                              setSelectedTutor(tutor);
+                              setShowBookingStepper(true);
+                              setBookingError(null);
+                              console.log('✅ Booking stepper modal state updated - should be visible');
+                            }
+                          }}
+                          title={!bookingValidation.canBook ? bookingValidation.reason : 'Book a session with this tutor'}
+                        >
+                          <i className="fas fa-calendar-plus"></i>
+                          Book Session
+                        </button>
+                        {!bookingValidation.canBook && (
+                          <div className="booking-disabled-message">
+                            <i className="fas fa-info-circle"></i>
+                            <span>{bookingValidation.reason}</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                   <button
                     className={`unsubscribe-btn subscribed`}
                     onClick={() => handleUnsubscribe(tutor)}
@@ -150,6 +214,22 @@ const MyTutors = () => {
           tutorName={`${selectedTutor.name} ${selectedTutor.surname}`}
         />
       )}
+
+      {/* Tutor Booking Modal */}
+        {user?.role === 'student' && selectedTutor && (
+          <TutorBookingModal
+            key="mytutors-modal"
+            isOpen={showBookingStepper}
+            onClose={() => {
+              setShowBookingStepper(false);
+              setSelectedTutor(null);
+              setBookingError(null);
+            }}
+            currentUser={user}
+            selectedTutor={selectedTutor}
+            modalId="MyTutors"
+          />
+        )}
     </div>
   );
 };

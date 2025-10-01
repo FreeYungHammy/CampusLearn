@@ -9,7 +9,7 @@ export type JwtPayload = {
 };
 
 export function signJwt(payload: JwtPayload): string {
-  return jwt.sign(payload, env.jwtSecret, { expiresIn: "30m" });
+  return jwt.sign(payload, env.jwtSecret, { expiresIn: "24h" }); // Extended to 24 hours
 }
 
 export function verifyJwt(token: string): JwtPayload | null {

@@ -9,6 +9,7 @@ r.post("/logout", requireAuth, UserController.logout);
 r.patch("/pfp", requireAuth, UserController.updatePfp);
 r.patch("/profile", requireAuth, UserController.updateProfile);
 r.patch("/password", requireAuth, UserController.updatePassword);
+r.patch("/enrolled-courses", requireAuth, UserController.updateEnrolledCourses);
 r.get("/", UserController.list);
 r.get("/:id", UserController.get);
 r.get("/:userId/pfp", UserController.getPfp);

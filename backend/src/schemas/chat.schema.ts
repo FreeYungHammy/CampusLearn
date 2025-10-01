@@ -10,6 +10,13 @@ const ChatSchema = new Schema(
     uploadFilename: { type: String },
     uploadContentType: { type: String },
     seen: { type: Boolean, default: false },
+    // Booking-related fields
+    messageType: { 
+      type: String, 
+      enum: ["text", "booking_created", "booking_confirmed", "booking_cancelled", "booking_completed"],
+      default: "text"
+    },
+    bookingId: { type: Schema.Types.ObjectId, ref: "Booking" },
   },
   { timestamps: true },
 );

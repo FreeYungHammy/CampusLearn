@@ -84,6 +84,32 @@ export const UserController = {
     }
   },
 
+  updateEnrolledCourses: async (
+    req: AuthedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const user = req.user!;
+      const { enrolledCourses } = req.body;
+      
+      if (!Array.isArray(enrolledCourses)) {
+        return res.status(400).json({ message: "enrolledCourses must be an array" });
+      }
+      
+      const updatedUser = await UserService.updateEnrolledCourses(user.id, enrolledCourses);
+      if (!updatedUser) {
+        return res.status(500).json({ message: "Failed to update enrolled courses" });
+      }
+      res.status(200).json({ 
+        message: "Enrolled courses updated successfully",
+        enrolledCourses: updatedUser.enrolledCourses 
+      });
+    } catch (e) {
+      next(e);
+    }
+  },
+
   getPfp: async (req: Request, res: Response, next: NextFunction) => {
     console.log("UserController.getPfp called for userId:", req.params.userId);
     try {

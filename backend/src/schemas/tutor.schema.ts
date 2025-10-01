@@ -113,7 +113,7 @@ TutorSchema.statics.findAllWithStudentCount = async function (
   }
 
   if (filters.subjects && filters.subjects.length > 0) {
-    matchStage.subjects = { $all: filters.subjects };
+    matchStage.subjects = { $in: filters.subjects };
   }
 
   const ratingStage: any[] = [];

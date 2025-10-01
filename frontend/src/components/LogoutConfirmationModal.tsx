@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Dialog from "./ui/Dialog";
 import { useAuthStore } from "../store/authStore";
 
@@ -6,6 +7,7 @@ export default function LogoutConfirmationModal() {
   const show = useAuthStore((s) => s.showLogoutModal);
   const close = useAuthStore((s) => s.closeLogoutModal);
   const doLogout = useAuthStore((s) => s.logout);
+  const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
 
   const onConfirm = async () => {
@@ -15,6 +17,8 @@ export default function LogoutConfirmationModal() {
       await doLogout();
       // after logout, also close modal just to be safe
       close();
+      // Navigate to landing page
+      navigate("/");
     } finally {
       setBusy(false);
     }

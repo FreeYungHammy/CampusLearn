@@ -112,16 +112,33 @@ export const useChatSocket = (
   const [isConnected, setIsConnected] = useState(false);
   const currentRoomRef = useRef<string | null>(null);
   const { token } = useAuthStore();
+  
+  // Add a small delay to allow Zustand hydration to complete
+  const [isTokenReady, setIsTokenReady] = useState(false);
+  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsTokenReady(true);
+    }, 100); // Small delay to allow auth store to hydrate
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   // Register local subs on mount; unregister on unmount
   useEffect(() => {
-    if (!token) {
-      console.error("No authentication token available for socket connection");
+    if (!isTokenReady || !token) {
+      if (!isTokenReady) {
+        console.log("Waiting for token to be ready...");
+      } else {
+        console.warn("No authentication token available for socket connection - skipping connection");
+      }
       setIsConnected(false);
+      // Don't aggressively cleanup - other components might still need the socket
       return;
     }
 
     consumerCount += 1;
+    console.log(`Chat socket consumer added. Total consumers: ${consumerCount}`);
 
     // Create or reuse singleton socket
     const s = ensureSocket(token);
@@ -152,18 +169,35 @@ export const useChatSocket = (
       onConnectionChangeSubs.delete(connectionCb);
 
       consumerCount -= 1;
+      console.log(`Chat socket consumer removed. Total consumers: ${consumerCount}`);
 
-      // If no more consumers, tear down the socket
+      // If no more consumers, tear down the socket with a small delay
       if (consumerCount <= 0 && socketSingleton) {
-        try {
-          socketSingleton.disconnect();
-        } catch {}
-        socketSingleton = null;
-        listenersAttached = false;
-        currentRoomGlobal = null;
+        console.log("No more consumers, scheduling socket cleanup...");
+        setTimeout(() => {
+          // Double-check that we still have no consumers (prevent race conditions)
+          if (consumerCount <= 0 && socketSingleton) {
+            try {
+              // Leave any active room before disconnecting
+              if (currentRoomGlobal) {
+                socketSingleton.emit("leave_room", currentRoomGlobal);
+              }
+              socketSingleton.disconnect();
+            } catch {}
+            socketSingleton = null;
+            listenersAttached = false;
+            currentRoomGlobal = null;
+            // Clear all subscription registries to prevent stale references
+            onNewMessageSubs.clear();
+            onUserStatusSubs.clear();
+            onChatClearedSubs.clear();
+            onConnectionChangeSubs.clear();
+            console.log("Chat socket completely torn down - all registries cleared");
+          }
+        }, 1000); // 1 second delay to prevent rapid connect/disconnect cycles
       }
     };
-  }, [token, onNewMessage, onUserStatusChange, onChatCleared]);
+  }, [isTokenReady, token, onNewMessage, onUserStatusChange, onChatCleared]);
 
   /* ---------------------------
      Rooms

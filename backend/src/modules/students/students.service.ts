@@ -43,15 +43,19 @@ export const StudentService = {
   },
 
   async getByUser(userId: string) {
+    console.log('🔍 StudentService.getByUser called with userId:', userId);
     const cacheKey = STUDENT_BY_USER_CACHE_KEY(userId);
     const cachedStudent = await CacheService.get(cacheKey);
     if (cachedStudent) {
+      console.log('✅ Student found in cache');
       // Extend TTL on cache hit to keep frequently accessed students in cache
       await CacheService.set(cacheKey, cachedStudent, 1800);
       return cachedStudent;
     }
 
+    console.log('🔍 Student not in cache, querying database...');
     const student = await StudentRepo.findByUserId(userId);
+    console.log('👨‍🎓 Database query result:', student ? 'Found' : 'Not found');
     if (student) {
       await CacheService.set(cacheKey, stripPfp(student), 1800);
     }

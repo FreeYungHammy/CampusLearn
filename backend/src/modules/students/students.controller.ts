@@ -32,10 +32,15 @@ export const StudentController = {
 
   getByUser: async (req: Request, res: Response, next: NextFunction) => {
     try {
+      console.log('🔍 StudentController.getByUser called');
+      console.log('📋 Request params:', req.params);
+      console.log('🔑 Headers:', req.headers);
       const item = await StudentService.getByUser(req.params.userId);
+      console.log('👨‍🎓 Student found:', item ? 'Yes' : 'No');
       if (!item) return res.status(404).json({ message: "Student not found" });
       res.json(item);
     } catch (e) {
+      console.error('❌ StudentController.getByUser error:', e);
       next(e);
     }
   },

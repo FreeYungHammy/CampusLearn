@@ -14,6 +14,8 @@ export interface ChatMessage {
   };
   uploadFilename?: string;
   uploadContentType?: string;
+  messageType?: "text" | "booking_created" | "booking_confirmed" | "booking_cancelled" | "booking_completed";
+  bookingId?: string;
 }
 
 export interface SendMessagePayload {

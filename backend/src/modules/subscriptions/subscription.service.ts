@@ -92,8 +92,17 @@ export const SubscriptionService = {
 
     const formattedTutors = tutors.map((tutor) => {
       if (!tutor) return null;
-      const { pfp, ...rest } = tutor.toObject ? tutor.toObject() : tutor;
-      return rest;
+      const tutorData = tutor.toObject ? tutor.toObject() : tutor;
+      
+      // Format the profile picture if it exists
+      if (tutorData.pfp?.data) {
+        tutorData.pfp = {
+          contentType: tutorData.pfp.contentType,
+          data: tutorData.pfp.data.toString('base64')
+        };
+      }
+      
+      return tutorData;
     }).filter(Boolean);
 
     // Cache the list of subscribed tutors
