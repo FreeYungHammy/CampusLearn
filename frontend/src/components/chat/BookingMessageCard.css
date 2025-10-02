@@ -1,0 +1,170 @@
+.booking-message-card {
+  margin: 0.5rem 0;
+  max-width: 400px;
+}
+
+.booking-message-card.own-message {
+  margin-left: auto;
+}
+
+.booking-message-card.other-message {
+  margin-right: auto;
+}
+
+.booking-card {
+  border: 1px solid;
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.booking-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.booking-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.booking-icon {
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.booking-title h4 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.booking-subject {
+  font-size: 0.875rem;
+  opacity: 0.8;
+  font-weight: 500;
+}
+
+.booking-details {
+  margin-bottom: 1rem;
+}
+
+.booking-detail-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.booking-detail-row:last-child {
+  margin-bottom: 0;
+}
+
+.booking-detail-row i {
+  width: 1rem;
+  text-align: center;
+  opacity: 0.7;
+}
+
+.booking-message-content {
+  font-size: 0.875rem;
+  line-height: 1.4;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 8px;
+  border-left: 3px solid currentColor;
+}
+
+.booking-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.booking-action-btn {
+  flex: 1;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.booking-action-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.confirm-btn {
+  background: #10b981;
+  color: white;
+}
+
+.confirm-btn:hover {
+  background: #059669;
+}
+
+.cancel-btn {
+  background: #ef4444;
+  color: white;
+}
+
+.cancel-btn:hover {
+  background: #dc2626;
+}
+
+/* Responsive design */
+@media (max-width: 640px) {
+  .booking-message-card {
+    max-width: 100%;
+  }
+  
+  .booking-card {
+    padding: 0.75rem;
+  }
+  
+  .booking-header {
+    gap: 0.5rem;
+  }
+  
+  .booking-icon {
+    width: 2rem;
+    height: 2rem;
+    font-size: 1.25rem;
+  }
+  
+  .booking-title h4 {
+    font-size: 0.875rem;
+  }
+  
+  .booking-subject {
+    font-size: 0.75rem;
+  }
+  
+  .booking-actions {
+    flex-direction: column;
+  }
+  
+  .booking-action-btn {
+    padding: 0.75rem 1rem;
+  }
+}
