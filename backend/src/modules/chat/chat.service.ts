@@ -143,11 +143,11 @@ export const ChatService = {
         chatId: body.chatId,
         content: body.content,
         senderId: body.senderId,
-        upload: savedMessage.upload || undefined,
-        uploadFilename: savedMessage.uploadFilename || undefined,
-        uploadContentType: savedMessage.uploadContentType || undefined,
-        messageType: savedMessage.messageType,
-        bookingId: savedMessage.bookingId?.toString(),
+        upload: uploadBuffer, // Use original buffer for real-time message
+        uploadFilename: body.upload?.filename,
+        uploadContentType: body.upload?.contentType,
+        messageType: body.messageType || "text",
+        bookingId: body.bookingId,
       });
 
       // Return the saved message, but without the large buffer
