@@ -10,22 +10,49 @@ export const UserRepo = {
   },
 
   // READ (passwordHash is select:false by default)
-  find(filter: FilterQuery<UserDoc> = {}, limit = 20, skip = 0) {
-    return UserModel.find(filter).limit(limit).skip(skip).lean<UserDoc[]>();
+  async find(filter: FilterQuery<UserDoc> = {}, limit = 20, skip = 0) {
+    const users = await UserModel.find(filter)
+      .limit(limit)
+      .skip(skip)
+      .lean<UserDoc[]>({ virtuals: true });
+    // Ensure id field is present for all users
+    return users.map((user) => ({
+      ...user,
+      id: user._id?.toString(),
+    }));
   },
 
-  findById(id: string) {
-    return UserModel.findById(id).lean<UserDoc | null>();
+  async findById(id: string) {
+    const user = await UserModel.findById(id).lean<UserDoc | null>({
+      virtuals: true,
+    });
+    if (!user) return null;
+    return {
+      ...user,
+      id: user._id?.toString(),
+    };
   },
 
-  findOne(filter: FilterQuery<UserDoc>) {
-    return UserModel.findOne(filter).lean<UserDoc | null>();
+  async findOne(filter: FilterQuery<UserDoc>) {
+    const user = await UserModel.findOne(filter).lean<UserDoc | null>({
+      virtuals: true,
+    });
+    if (!user) return null;
+    return {
+      ...user,
+      id: user._id?.toString(),
+    };
   },
 
-  findByEmail(email: string) {
-    return UserModel.findOne({
+  async findByEmail(email: string) {
+    const user = await UserModel.findOne({
       email: email.toLowerCase(),
-    }).lean<UserDoc | null>();
+    }).lean<UserDoc | null>({ virtuals: true });
+    if (!user) return null;
+    return {
+      ...user,
+      id: user._id?.toString(),
+    };
   },
 
   // When you specifically need the hash (e.g., auth flow)
@@ -40,7 +67,9 @@ export const UserRepo = {
   findByIdWithPassword(id: string) {
     return UserModel.findById(id)
       .select("+passwordHash")
-      .lean<UserDoc | (UserDoc & { passwordHash: string }) | null>();
+      .lean<
+        UserDoc | (UserDoc & { passwordHash: string }) | null
+      >({ virtuals: true });
   },
 
   // UPDATE

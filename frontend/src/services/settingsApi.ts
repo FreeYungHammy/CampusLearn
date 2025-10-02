@@ -77,3 +77,28 @@ export const updateEnrolledCourses = async (
   );
   return response.data;
 };
+
+export const deleteAccount = async (
+  token: string,
+  password: string,
+): Promise<void> => {
+  await api.delete("/users/account", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    data: {
+      password,
+    },
+  });
+};
+
+export const adminDeleteUser = async (
+  token: string,
+  userId: string,
+): Promise<void> => {
+  await api.delete(`/users/admin/${userId}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+};

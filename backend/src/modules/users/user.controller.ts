@@ -92,18 +92,25 @@ export const UserController = {
     try {
       const user = req.user!;
       const { enrolledCourses } = req.body;
-      
+
       if (!Array.isArray(enrolledCourses)) {
-        return res.status(400).json({ message: "enrolledCourses must be an array" });
+        return res
+          .status(400)
+          .json({ message: "enrolledCourses must be an array" });
       }
-      
-      const updatedUser = await UserService.updateEnrolledCourses(user.id, enrolledCourses);
+
+      const updatedUser = await UserService.updateEnrolledCourses(
+        user.id,
+        enrolledCourses,
+      );
       if (!updatedUser) {
-        return res.status(500).json({ message: "Failed to update enrolled courses" });
+        return res
+          .status(500)
+          .json({ message: "Failed to update enrolled courses" });
       }
-      res.status(200).json({ 
+      res.status(200).json({
         message: "Enrolled courses updated successfully",
-        enrolledCourses: updatedUser.enrolledCourses 
+        enrolledCourses: updatedUser.enrolledCourses,
       });
     } catch (e) {
       next(e);
@@ -181,6 +188,75 @@ export const UserController = {
       res.status(200).json({ message: "Password has been reset." });
     } catch (e: any) {
       res.status(400).json({ message: e.message });
+    }
+  },
+
+  deleteAccount: async (
+    req: AuthedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const user = req.user!;
+      const { password } = req.body;
+
+      if (!password) {
+        return res.status(400).json({ message: "Password is required" });
+      }
+
+      await UserService.deleteAccount(user.id, password);
+      res.status(200).json({ message: "Account deleted successfully" });
+    } catch (e: any) {
+      if (e.message === "Invalid password") {
+        return res.status(401).json({ message: e.message });
+      }
+      if (e.message === "User not found") {
+        return res.status(404).json({ message: e.message });
+      }
+      next(e);
+    }
+  },
+
+  adminDeleteUser: async (
+    req: AuthedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const user = req.user!;
+
+      // Check if user is admin
+      if (user.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { userId } = req.params;
+
+      // Validate userId parameter
+      if (!userId) {
+        return res.status(400).json({ message: "User ID is required" });
+      }
+
+      // Validate userId format (should be a valid MongoDB ObjectId)
+      if (!/^[0-9a-fA-F]{24}$/.test(userId)) {
+        return res.status(400).json({ message: "Invalid user ID format" });
+      }
+
+      // Prevent admin from deleting themselves
+      if (user.id === userId) {
+        return res
+          .status(400)
+          .json({ message: "Cannot delete your own account" });
+      }
+
+      const deletedUser = await UserService.remove(userId);
+      if (!deletedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.status(200).json({ message: "User deleted successfully" });
+    } catch (e) {
+      next(e);
     }
   },
 };

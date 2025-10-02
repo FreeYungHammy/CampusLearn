@@ -11,12 +11,18 @@ r.patch("/profile", requireAuth, UserController.updateProfile);
 r.patch("/password", requireAuth, UserController.updatePassword);
 r.patch("/enrolled-courses", requireAuth, UserController.updateEnrolledCourses);
 r.get("/", UserController.list);
-r.get("/:id", UserController.get);
 r.get("/:userId/pfp", UserController.getPfp);
 r.patch("/:id", UserController.update);
-r.delete("/:id", UserController.remove);
 
 r.post("/forgot-password", UserController.forgotPassword);
 r.post("/reset-password/:token", UserController.resetPassword);
+
+// Delete account routes - MUST come before generic /:id routes
+r.delete("/account", requireAuth, UserController.deleteAccount);
+r.delete("/admin/:userId", requireAuth, UserController.adminDeleteUser);
+
+// Generic routes - MUST come after specific routes
+r.get("/:id", UserController.get);
+r.delete("/:id", UserController.remove);
 
 export default r;

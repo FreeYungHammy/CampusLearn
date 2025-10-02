@@ -13,6 +13,7 @@ import ForumTopic from "./pages/ForumTopic";
 import Upload from "./pages/Upload";
 import TutorContentView from "./pages/Tutors/TutorContentView";
 import Settings from "./pages/Settings";
+import AdminUsers from "./pages/AdminUsers";
 import Login from "./pages/Auth/Login";
 import Register from "./pages/Auth/Register";
 import ForgotPassword from "./pages/Auth/ForgotPassword";
@@ -36,7 +37,7 @@ function App() {
   useInactivityLogout();
   useBackendHealth();
   useGlobalSocket();
-  
+
   const { showLogoutModal } = useAuthStore();
 
   return (
@@ -56,7 +57,7 @@ function App() {
             <Route element={<Layout />}>
               <Route path="/schedule" element={<Dashboard />} />
               <Route path="/mytutors" element={<MyTutors />} />
-                      <Route path="/tutors" element={<FindTutorsWrapper />} />
+              <Route path="/tutors" element={<FindTutorsWrapper />} />
               <Route
                 path="/tutors/:tutorId/content"
                 element={<TutorContentView />}
@@ -68,6 +69,7 @@ function App() {
               <Route path="/messages" element={<Messages />} />
               <Route path="/upload" element={<Upload />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/users" element={<AdminUsers />} />
             </Route>
           </Route>
 

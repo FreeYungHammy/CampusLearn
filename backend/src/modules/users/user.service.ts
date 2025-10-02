@@ -15,9 +15,16 @@ import { createLogger } from "../../config/logger";
 import { ChatService } from "../chat/chat.service";
 import { io } from "../../config/socket";
 import sharp from "sharp";
+import { ForumPostModel } from "../../schemas/forumPost.schema";
+import { ForumReplyModel } from "../../schemas/forumReply.schema";
+import { UserVoteModel } from "../../schemas/userVote.schema";
+import { FileModel } from "../../schemas/tutorUpload.schema";
+import { VideoModel } from "../../schemas/video.schema";
+import { BookingModel } from "../../schemas/booking.schema";
+import { SubscriptionModel } from "../../schemas/subscription.schema";
+import { gcsService } from "../../services/gcs.service";
 
 const logger = createLogger("UserService");
-
 
 const ALLOWED_EMAIL_DOMAIN = "@student.belgiumcampus.ac.za";
 
@@ -33,7 +40,10 @@ const defaultPfp = {
 const JWT_BLACKLIST_KEY = (token: string) => `jwt:blacklist:${token}`;
 
 export const UserService = {
-  async getProfileByRole(profileId: string, role: "student" | "tutor" | "admin") {
+  async getProfileByRole(
+    profileId: string,
+    role: "student" | "tutor" | "admin",
+  ) {
     if (role === "student") {
       return StudentRepo.findById(profileId);
     } else if (role === "tutor") {
@@ -128,7 +138,7 @@ export const UserService = {
     if (!ok) throw new Error("Invalid credentials");
 
     const token = signJwt({
-      id: String((user as any)._id),
+      id: (user as any)._id.toString(),
       role: user.role,
       email: user.email,
     });
@@ -166,7 +176,10 @@ export const UserService = {
   async getPfp(userId: string) {
     const cacheKey = `pfp:user:${userId}`;
 
-    const cachedPfp = await CacheService.get<{ data: string; contentType: string }>(cacheKey);
+    const cachedPfp = await CacheService.get<{
+      data: string;
+      contentType: string;
+    }>(cacheKey);
     if (cachedPfp) {
       if (cachedPfp.data) {
         return {
@@ -193,8 +206,6 @@ export const UserService = {
     }
 
     const pfp = profile?.pfp || null;
-
-
 
     if (pfp && pfp.data) {
       const pfpToCache = {
@@ -226,7 +237,10 @@ export const UserService = {
     ];
 
     if (!ALLOWED_IMAGE_MIME_TYPES.includes(contentType)) {
-      throw new HttpException(400, `Unsupported image type: ${contentType}. Only JPEG, PNG, GIF, WEBP, BMP, SVG are allowed.`);
+      throw new HttpException(
+        400,
+        `Unsupported image type: ${contentType}. Only JPEG, PNG, GIF, WEBP, BMP, SVG are allowed.`,
+      );
     }
 
     const pfpData = {
@@ -238,15 +252,21 @@ export const UserService = {
       const image = sharp(pfpData.data);
       const metadata = await image.metadata();
 
-      if (metadata.width && metadata.width > 250 || metadata.height && metadata.height > 250) {
+      if (
+        (metadata.width && metadata.width > 250) ||
+        (metadata.height && metadata.height > 250)
+      ) {
         const originalSize = pfpData.data.length;
         const resizedBuffer = await image
           .resize(250, 250, { fit: "inside", withoutEnlargement: true })
           .toBuffer();
         pfpData.data = Buffer.from(resizedBuffer);
         const resizedSize = pfpData.data.length;
-        const savedPercentage = ((originalSize - resizedSize) / originalSize) * 100;
-        logger.info(`PFP resized: Original size ${originalSize} bytes, Resized size ${resizedSize} bytes. Saved ${savedPercentage.toFixed(2)}%`);
+        const savedPercentage =
+          ((originalSize - resizedSize) / originalSize) * 100;
+        logger.info(
+          `PFP resized: Original size ${originalSize} bytes, Resized size ${resizedSize} bytes. Saved ${savedPercentage.toFixed(2)}%`,
+        );
       }
     } catch (error) {
       logger.error("Error resizing PFP:", error);
@@ -254,7 +274,7 @@ export const UserService = {
     }
 
     if (user.role === "student") {
-      await StudentRepo.update({ userId }, { pfp: pfpData });
+      await StudentRepo.updateOne({ userId }, { pfp: pfpData });
       // Invalidate student profile cache
       await StudentService.invalidateCache(userId);
     } else if (user.role === "tutor") {
@@ -283,7 +303,7 @@ export const UserService = {
     };
 
     if (user.role === "student") {
-      await StudentRepo.update({ userId }, profileData);
+      await StudentRepo.updateOne({ userId }, profileData);
       // Invalidate student cache on update
       await StudentService.invalidateCache(userId);
     } else if (user.role === "tutor") {
@@ -302,8 +322,8 @@ export const UserService = {
     }
 
     // Update the student's enrolled courses
-    await StudentRepo.update({ userId }, { enrolledCourses });
-    
+    await StudentRepo.updateOne({ userId }, { enrolledCourses });
+
     // Invalidate student cache on update
     await StudentService.invalidateCache(userId);
 
@@ -323,12 +343,12 @@ export const UserService = {
     await UserRepo.updateById(userId, { $set: { passwordHash } });
   },
 
-  list() {
-    return UserRepo.find({});
+  async list() {
+    return await UserRepo.find({}, 1000, 0); // Increase limit to get more users, include virtuals
   },
 
-  get(id: string) {
-    return UserRepo.findById(id);
+  async get(id: string) {
+    return await UserRepo.findById(id);
   },
 
   async update(id: string, patch: Partial<UserDoc>) {
@@ -343,16 +363,284 @@ export const UserService = {
   },
 
   async remove(id: string) {
-    const deletedUser = await UserRepo.deleteById(id);
-    if (deletedUser) {
-      try {
-        await ChatService.deleteAllMessagesForUser(id);
-      } catch (error) {
-        logger.error(`Failed to delete messages for user ${id}`, error);
-        // Not re-throwing, as the user deletion itself was successful.
-      }
+    // Validate input
+    if (!id) {
+      throw new Error("User ID is required");
     }
-    return deletedUser;
+
+    // Validate ObjectId format
+    if (!/^[0-9a-fA-F]{24}$/.test(id)) {
+      throw new Error("Invalid user ID format");
+    }
+
+    const user = await UserRepo.findById(id);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    logger.info(
+      `Starting comprehensive deletion for user ${id} (${user.email})`,
+    );
+
+    try {
+      // Get role-specific profile first (we'll need it for multiple operations)
+      let studentProfile: any = null;
+      let tutorProfile: any = null;
+
+      if (user.role === "student") {
+        studentProfile = await StudentRepo.findOne({ userId: id });
+      } else if (user.role === "tutor") {
+        tutorProfile = await TutorRepo.findOne({ userId: id });
+      }
+
+      // 1. Delete chat messages
+      await ChatService.deleteAllMessagesForUser(id);
+      logger.info(`Deleted chat messages for user ${id}`);
+
+      // 2. Delete forum posts and replies
+      // Get the profile ID to use for forum deletion (forum posts use profile ID, not user ID)
+      let profileId: string | null = null;
+      if (user.role === "student" && studentProfile) {
+        profileId = studentProfile._id.toString();
+      } else if (user.role === "tutor" && tutorProfile) {
+        profileId = tutorProfile._id.toString();
+      } else if (user.role === "admin") {
+        const adminProfile = await AdminModel.findOne({ userId: id }).lean();
+        if (adminProfile) {
+          profileId = adminProfile._id.toString();
+        }
+      }
+
+      if (profileId) {
+        // First, get all posts by this user to clean up their replies arrays
+        const userPosts = await ForumPostModel.find({
+          authorId: profileId,
+        }).lean();
+
+        // Delete all replies to posts made by this user
+        for (const post of userPosts) {
+          const repliesToPost = await ForumReplyModel.deleteMany({
+            postId: post._id,
+          });
+          logger.info(
+            `Deleted ${repliesToPost.deletedCount} replies to post ${post._id}`,
+          );
+
+          // Emit socket event to notify clients that the post and its replies were deleted
+          io.emit("post_deleted", { postId: post._id });
+        }
+
+        // Delete all replies made by this user
+        const userReplies = await ForumReplyModel.find({
+          authorId: profileId,
+        }).lean();
+        for (const reply of userReplies) {
+          // Remove this reply from the post's replies array
+          await ForumPostModel.updateOne(
+            { _id: reply.postId },
+            { $pull: { replies: reply._id } },
+          );
+
+          // Emit socket event to notify clients that this reply was deleted
+          io.emit("reply_deleted", {
+            replyId: reply._id,
+            threadId: reply.postId,
+          });
+        }
+
+        const forumRepliesResult = await ForumReplyModel.deleteMany({
+          authorId: profileId,
+        });
+        logger.info(
+          `Deleted ${forumRepliesResult.deletedCount} forum replies for user ${id}`,
+        );
+
+        // Delete all posts made by this user
+        const forumPostsResult = await ForumPostModel.deleteMany({
+          authorId: profileId,
+        });
+        logger.info(
+          `Deleted ${forumPostsResult.deletedCount} forum posts for user ${id}`,
+        );
+
+        // Debug: Check if any posts still exist for this user
+        const remainingPosts = await ForumPostModel.find({
+          authorId: profileId,
+        }).lean();
+        if (remainingPosts.length > 0) {
+          logger.error(
+            `WARNING: ${remainingPosts.length} forum posts still exist for deleted user ${id}`,
+          );
+          logger.error(
+            `Remaining post IDs: ${remainingPosts.map((p) => p._id).join(", ")}`,
+          );
+        }
+      } else {
+        logger.warn(
+          `No profile ID found for user ${id}, skipping forum deletion`,
+        );
+      }
+
+      // 3. Delete user votes
+      const userVotesResult = await UserVoteModel.deleteMany({ userId: id });
+      logger.info(
+        `Deleted ${userVotesResult.deletedCount} user votes for user ${id}`,
+      );
+
+      // 4. Delete uploaded files (for tutors) and clean up GCS files
+      if (user.role === "tutor" && tutorProfile) {
+        // First, get all files to delete from GCS before removing from database
+        const filesToDelete = await FileModel.find({
+          tutorId: tutorProfile._id,
+        }).lean();
+
+        // Delete files from GCS bucket
+        for (const file of filesToDelete) {
+          if (file.externalUri) {
+            try {
+              await gcsService.deleteObject(file.externalUri);
+              logger.info(`Deleted GCS file: ${file.externalUri}`);
+            } catch (error) {
+              logger.warn(
+                `Failed to delete GCS file ${file.externalUri}:`,
+                error,
+              );
+            }
+          }
+        }
+
+        const filesResult = await FileModel.deleteMany({
+          tutorId: tutorProfile._id,
+        });
+        logger.info(
+          `Deleted ${filesResult.deletedCount} uploaded files for tutor ${id}`,
+        );
+      }
+
+      // 5. Delete video uploads and clean up GCS files
+      const videosToDelete = await VideoModel.find({ uploaderId: id }).lean();
+
+      // Delete videos from GCS bucket
+      for (const video of videosToDelete) {
+        if (video.bucketPath) {
+          try {
+            await gcsService.deleteObject(video.bucketPath);
+            logger.info(`Deleted GCS video: ${video.bucketPath}`);
+          } catch (error) {
+            logger.warn(
+              `Failed to delete GCS video ${video.bucketPath}:`,
+              error,
+            );
+          }
+        }
+      }
+
+      const videosResult = await VideoModel.deleteMany({ uploaderId: id });
+      logger.info(`Deleted ${videosResult.deletedCount} videos for user ${id}`);
+
+      // 6. Delete bookings
+      let bookingsResult = { deletedCount: 0 };
+      if (user.role === "student" && studentProfile) {
+        bookingsResult = await BookingModel.deleteMany({
+          studentId: studentProfile._id,
+        });
+      } else if (user.role === "tutor" && tutorProfile) {
+        bookingsResult = await BookingModel.deleteMany({
+          tutorId: tutorProfile._id,
+        });
+      }
+      logger.info(
+        `Deleted ${bookingsResult.deletedCount} bookings for user ${id}`,
+      );
+
+      // 7. Delete subscriptions
+      let subscriptionsResult = { deletedCount: 0 };
+      if (user.role === "student" && studentProfile) {
+        subscriptionsResult = await SubscriptionModel.deleteMany({
+          studentId: studentProfile._id,
+        });
+      } else if (user.role === "tutor" && tutorProfile) {
+        subscriptionsResult = await SubscriptionModel.deleteMany({
+          tutorId: tutorProfile._id,
+        });
+      }
+      logger.info(
+        `Deleted ${subscriptionsResult.deletedCount} subscriptions for user ${id}`,
+      );
+
+      // 8. Delete role-specific profile
+      if (user.role === "student" && studentProfile) {
+        await StudentRepo.findByIdAndDelete(studentProfile._id);
+        await StudentService.invalidateCache(id);
+        logger.info(`Deleted student profile for user ${id}`);
+      } else if (user.role === "tutor" && tutorProfile) {
+        await TutorRepo.deleteById(tutorProfile._id.toString());
+        logger.info(`Deleted tutor profile for user ${id}`);
+      } else if (user.role === "admin") {
+        await AdminModel.deleteOne({ userId: id });
+        logger.info(`Deleted admin profile for user ${id}`);
+      }
+
+      // 9. Clear cache entries
+      const cacheKeys = [
+        `pfp:user:${id}`,
+        `student:profile:${id}`,
+        `tutor:profile:${id}`,
+        `student:user:${id}`, // Student cache key
+      ];
+
+      // Clear forum thread caches for posts made by this user
+      if (profileId) {
+        const userPosts = await ForumPostModel.find({
+          authorId: profileId,
+        }).lean();
+        for (const post of userPosts) {
+          cacheKeys.push(`forum:thread:${post._id}`);
+        }
+      }
+
+      for (const key of cacheKeys) {
+        try {
+          await CacheService.del(key);
+        } catch (error) {
+          logger.warn(`Failed to delete cache key ${key}:`, error);
+        }
+      }
+      logger.info(`Cleared cache entries for user ${id}`);
+
+      // 10. Finally, delete the user account
+      const deletedUser = await UserRepo.deleteById(id);
+
+      logger.info(
+        `Successfully completed comprehensive deletion for user ${id}`,
+      );
+      return deletedUser;
+    } catch (error) {
+      logger.error(
+        `Error during comprehensive deletion for user ${id}:`,
+        error,
+      );
+      throw error;
+    }
+  },
+
+  async deleteAccount(userId: string, password: string) {
+    // Verify password before deletion
+    const user = await UserRepo.findByIdWithPassword(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const passwordValid = await bcrypt.compare(
+      password,
+      (user as any).passwordHash,
+    );
+    if (!passwordValid) {
+      throw new Error("Invalid password");
+    }
+
+    // Use the comprehensive remove function
+    return this.remove(userId);
   },
 
   async forgotPassword(email: string) {

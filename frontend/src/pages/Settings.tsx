@@ -12,6 +12,7 @@ import {
   updateProfile,
   updateProfilePicture,
   updateEnrolledCourses,
+  deleteAccount,
 } from "../services/settingsApi";
 
 const Settings = () => {
@@ -37,7 +38,7 @@ const Settings = () => {
   const [subjectsToEnroll, setSubjectsToEnroll] = useState<string[]>([]);
   const [availableSubjects] = useState([
     "Programming",
-    "Mathematics", 
+    "Mathematics",
     "Linear Programming",
     "Database Development",
     "Web Programming",
@@ -48,7 +49,9 @@ const Settings = () => {
     "Machine Learning",
   ]);
   const [isSavingSubjects, setIsSavingSubjects] = useState(false);
-  const [subjectsSaveMessage, setSubjectsSaveMessage] = useState<string | null>(null);
+  const [subjectsSaveMessage, setSubjectsSaveMessage] = useState<string | null>(
+    null,
+  );
 
   const { user, token, setUser, pfpTimestamps, refreshPfpForUser } =
     useAuthStore((state) => ({
@@ -66,16 +69,23 @@ const Settings = () => {
     }
   }, [user]);
 
-  const handleConfirmDeleteAccount = async () => {
+  const handleConfirmDeleteAccount = async (password: string) => {
     if (!token) return;
 
     setIsDeletingAccount(true);
     try {
-      // await deleteAccount(token); // This will be implemented later
-      console.log("Account deletion confirmed");
-      // logout(); // This will be implemented later
-    } catch (error) {
+      await deleteAccount(token, password);
+      // Clear auth state and redirect to login
+      const { logout } = useAuthStore.getState();
+      logout();
+      window.location.href = "/login";
+    } catch (error: any) {
       console.error("Failed to delete account", error);
+      // The error will be handled by the modal - you might want to show a toast or alert here
+      alert(
+        error.response?.data?.message ||
+          "Failed to delete account. Please try again.",
+      );
     } finally {
       setIsDeletingAccount(false);
       setShowDeleteAccountModal(false);
@@ -206,57 +216,60 @@ const Settings = () => {
 
   // Subject management functions
   const handleRemoveEnrolledSubject = (subject: string) => {
-    setEnrolledSubjects(prev => prev.filter(s => s !== subject));
+    setEnrolledSubjects((prev) => prev.filter((s) => s !== subject));
     setSubjectsSaveMessage(null);
     // Note: Changes will be persisted when user clicks "Save Changes"
   };
 
   const handleAddToEnrollList = (subject: string) => {
-    if (!subjectsToEnroll.includes(subject) && !enrolledSubjects.includes(subject)) {
-      setSubjectsToEnroll(prev => [...prev, subject]);
+    if (
+      !subjectsToEnroll.includes(subject) &&
+      !enrolledSubjects.includes(subject)
+    ) {
+      setSubjectsToEnroll((prev) => [...prev, subject]);
       setSubjectsSaveMessage(null);
     }
   };
 
   const handleRemoveFromEnrollList = (subject: string) => {
-    setSubjectsToEnroll(prev => prev.filter(s => s !== subject));
+    setSubjectsToEnroll((prev) => prev.filter((s) => s !== subject));
     setSubjectsSaveMessage(null);
   };
 
   const handleSaveSubjects = async () => {
     if (!token || !user) return;
-    
+
     setIsSavingSubjects(true);
     setSubjectsSaveMessage(null);
 
     try {
       // Calculate the final enrolled courses array
       const finalEnrolledCourses = [...enrolledSubjects, ...subjectsToEnroll];
-      
-      console.log('💾 Saving subjects:', {
+
+      console.log("💾 Saving subjects:", {
         enrolledSubjects,
         subjectsToEnroll,
-        finalEnrolledCourses
+        finalEnrolledCourses,
       });
-      
+
       // Call the API to update enrolled courses in the database
       const response = await updateEnrolledCourses(token, finalEnrolledCourses);
-      
-      console.log('✅ API Response:', response);
-      
+
+      console.log("✅ API Response:", response);
+
       // Update the user's enrolled courses in the auth store
       const updatedUser = {
         ...user,
-        enrolledCourses: response.enrolledCourses
+        enrolledCourses: response.enrolledCourses,
       };
       setUser(updatedUser);
-      
+
       // Move subjects from "to enroll" to "enrolled"
       setEnrolledSubjects(finalEnrolledCourses);
       setSubjectsToEnroll([]);
-      
+
       setSubjectsSaveMessage("Subjects updated successfully!");
-      
+
       // Clear message after 3 seconds
       setTimeout(() => {
         setSubjectsSaveMessage(null);
@@ -548,13 +561,15 @@ const Settings = () => {
           </form>
         </div>
 
-        {user?.role !== 'admin' && (
+        {user?.role !== "admin" && (
           <div className="settings-card">
             <div className="card-header">
               <h2 className="card-title">My Subjects</h2>
-              <p className="card-subtitle">Manage your enrolled subjects and select new ones to enroll in</p>
+              <p className="card-subtitle">
+                Manage your enrolled subjects and select new ones to enroll in
+              </p>
             </div>
-            
+
             {/* Currently Enrolled Subjects */}
             <div className="subjects-section">
               <h3 className="subjects-section-title">
@@ -580,7 +595,9 @@ const Settings = () => {
               ) : (
                 <div className="empty-subjects">
                   <i className="fas fa-book-open"></i>
-                  <p>No subjects enrolled yet. Select subjects below to enroll.</p>
+                  <p>
+                    No subjects enrolled yet. Select subjects below to enroll.
+                  </p>
                 </div>
               )}
             </div>
@@ -610,7 +627,10 @@ const Settings = () => {
               ) : (
                 <div className="empty-subjects">
                   <i className="fas fa-plus"></i>
-                  <p>No subjects selected for enrollment. Choose from available subjects below.</p>
+                  <p>
+                    No subjects selected for enrollment. Choose from available
+                    subjects below.
+                  </p>
                 </div>
               )}
             </div>
@@ -623,7 +643,11 @@ const Settings = () => {
               </h3>
               <div className="subjects-grid">
                 {availableSubjects
-                  .filter(subject => !enrolledSubjects.includes(subject) && !subjectsToEnroll.includes(subject))
+                  .filter(
+                    (subject) =>
+                      !enrolledSubjects.includes(subject) &&
+                      !subjectsToEnroll.includes(subject),
+                  )
                   .map((subject) => (
                     <div key={subject} className="subject-chip available">
                       <i className={`fas ${getSubjectIcon(subject)}`}></i>
@@ -642,7 +666,7 @@ const Settings = () => {
 
             {/* Save Button and Messages */}
             <div className="card-footer">
-              <button 
+              <button
                 onClick={handleSaveSubjects}
                 className="btn btn-primary"
                 disabled={isSavingSubjects}
@@ -660,8 +684,12 @@ const Settings = () => {
                 )}
               </button>
               {subjectsSaveMessage && (
-                <div className={`subjects-message ${subjectsSaveMessage.includes('success') ? 'success' : 'error'}`}>
-                  <i className={`fas ${subjectsSaveMessage.includes('success') ? 'fa-check-circle' : 'fa-exclamation-circle'}`}></i>
+                <div
+                  className={`subjects-message ${subjectsSaveMessage.includes("success") ? "success" : "error"}`}
+                >
+                  <i
+                    className={`fas ${subjectsSaveMessage.includes("success") ? "fa-check-circle" : "fa-exclamation-circle"}`}
+                  ></i>
                   {subjectsSaveMessage}
                 </div>
               )}
