@@ -74,4 +74,12 @@ export const chatApi = {
     });
     return response.data;
   },
+
+  async downloadMessageFile(messageId: string, token: string): Promise<Blob> {
+    const response = await http.get(`/chat/messages/${messageId}/download`, {
+      headers: { Authorization: `Bearer ${token}` },
+      responseType: 'blob',
+    });
+    return response.data;
+  },
 };

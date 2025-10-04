@@ -16,6 +16,7 @@ const gunzip = promisify(zlib.gunzip);
 const logger = createLogger("ChatService");
 
 interface RawChatMessage {
+  _id: string; // The document ID from the database
   chatId: string;
   content: string;
   senderId: string; // This will be the user's _id
@@ -28,6 +29,7 @@ interface RawChatMessage {
 }
 
 interface EnrichedChatMessage {
+  _id: string;
   chatId: string;
   content: string;
   senderId: string;
@@ -85,6 +87,7 @@ export const ChatService = {
 
     // 3. Construct enriched message
     const enrichedMessage: EnrichedChatMessage = {
+      _id: rawMessage._id,
       chatId: rawMessage.chatId,
       content: rawMessage.content,
       senderId: rawMessage.senderId,
@@ -105,7 +108,13 @@ export const ChatService = {
     io.of("/chat")
       .to(enrichedMessage.chatId)
       .emit("new_message", enrichedMessage);
-    console.log("Emitted enriched chat message:", enrichedMessage);
+
+    // Sanitize for logging
+    const { upload, ...loggableMessage } = enrichedMessage;
+    console.log("Emitted enriched chat message:", {
+      ...loggableMessage,
+      upload: upload ? { ...upload, data: `[${upload.data.length} chars of base64 data]` } : undefined
+    });
   },
 
   async send(body: any): Promise<any> {
@@ -114,6 +123,7 @@ export const ChatService = {
       let uploadBuffer: Buffer | undefined;
       if (body.upload && typeof body.upload.data === "string") {
         uploadBuffer = Buffer.from(body.upload.data, "base64");
+        logger.info(`[UPLOAD] Decoded file buffer size: ${uploadBuffer.length} bytes`);
       }
 
       let compressedUploadBuffer: Buffer | undefined;
@@ -147,6 +157,7 @@ export const ChatService = {
 
       // Process and emit the message via socket using the original uncompressed buffer
       await this.processAndEmitChatMessage({
+        _id: message.id, // Pass the newly created message ID
         chatId: body.chatId,
         content: body.content,
         senderId: body.senderId,
@@ -217,7 +228,9 @@ export const ChatService = {
         return null;
       }
 
-      const decompressedUpload = await gunzip(Buffer.from(message.upload as any));
+      // All files are now expected to be compressed.
+      const decompressedUpload = await gunzip(message.upload.buffer);
+      logger.info(`[DOWNLOAD] Decompressed file size: ${decompressedUpload.length} bytes`);
 
       return {
         fileBuffer: decompressedUpload,
@@ -312,12 +325,15 @@ export const ChatService = {
 
       logger.info(`Cache miss for chat thread: ${chatId}. Fetching from DB.`);
       // 2. If cache miss, fetch from DB
+      const dbQueryStartTime = Date.now();
       const messages = await ChatModel.find({ chatId })
         .populate("senderId", "email role")
         .populate("receiverId", "email role")
         .select("-upload") // Exclude the large 'upload' field
         .sort({ createdAt: "asc" })
         .lean();
+      const dbQueryDuration = Date.now() - dbQueryStartTime;
+      logger.info(`[DB QUERY] Chat thread ${chatId} took ${dbQueryDuration}ms`);
 
       // Transform messages to match frontend expectations
       const transformedMessages = await Promise.all(
