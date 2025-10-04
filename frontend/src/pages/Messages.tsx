@@ -986,70 +986,25 @@ const Messages: React.FC = () => {
 
                               {((msg as any).uploadFilename || msg.upload?.filename) && (
                                 <div
-                                  className={`file-preview ${mine ? "mine" : ""} ${msg.upload?.data ? "downloadable" : ""}`}
-                                  onClick={() => {
-                                    if (msg.upload?.data) {
-                                      const link = document.createElement("a");
-                                      // Convert base64 to binary
-                                      const binaryString = atob(
-                                        msg.upload.data,
-                                      );
-                                      const bytes = new Uint8Array(
-                                        binaryString.length,
-                                      );
-                                      for (
-                                        let i = 0;
-                                        i < binaryString.length;
-                                        i++
-                                      ) {
-                                        bytes[i] = binaryString.charCodeAt(i);
-                                      }
-                                      // Determine correct MIME type from filename if contentType is generic
-                                      const filename = (msg as any).uploadFilename || msg.upload?.filename;
-                                      let mimeType = (msg as any).uploadContentType || msg.upload?.contentType || "application/octet-stream";
-                                      if (mimeType === "application/octet-stream" && filename) {
-                                        const ext = filename.split('.').pop()?.toLowerCase();
-                                        switch (ext) {
-                                          case 'jpg':
-                                          case 'jpeg':
-                                            mimeType = 'image/jpeg';
-                                            break;
-                                          case 'png':
-                                            mimeType = 'image/png';
-                                            break;
-                                          case 'gif':
-                                            mimeType = 'image/gif';
-                                            break;
-                                          case 'pdf':
-                                            mimeType = 'application/pdf';
-                                            break;
-                                          case 'doc':
-                                            mimeType = 'application/msword';
-                                            break;
-                                          case 'docx':
-                                            mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-                                            break;
-                                          case 'txt':
-                                            mimeType = 'text/plain';
-                                            break;
-                                        }
-                                      }
-                                      
-                                      const blob = new Blob([bytes], { type: mimeType });
-                                      const url = URL.createObjectURL(blob);
+                                  className={`file-preview ${mine ? "mine" : ""} downloadable`}
+                                  onClick={async () => {
+                                    if (!token) return;
+                                    try {
+                                      const blob = await chatApi.downloadMessageFile(msg._id, token);
+                                      const url = window.URL.createObjectURL(blob);
+                                      const link = document.createElement('a');
                                       link.href = url;
-                                      link.download = filename || "download";
+                                      link.setAttribute('download', (msg as any).uploadFilename || 'download');
                                       document.body.appendChild(link);
                                       link.click();
                                       document.body.removeChild(link);
-                                      URL.revokeObjectURL(url);
+                                      window.URL.revokeObjectURL(url);
+                                    } catch (err) {
+                                      console.error("Failed to download file:", err);
+                                      alert("Failed to download file.");
                                     }
                                   }}
-                                  style={{
-                                    cursor: msg.upload?.data
-                                      ? "pointer"
-                                      : "default",
-                                  }}
+                                  style={{ cursor: "pointer" }}
                                 >
                                   <div className="file-line">
                                     <span className="file-icon">
@@ -1060,31 +1015,26 @@ const Messages: React.FC = () => {
                                     >
                                       {(msg as any).uploadFilename || msg.upload?.filename}
                                     </span>
-                                    {msg.upload?.data && (
-                                      <svg
-                                        width="16"
-                                        height="16"
-                                        fill="none"
-                                        viewBox="0 0 16 16"
-                                        className="download-icon"
-                                      >
-                                        <path
-                                          d="M8 1v10m0 0l-3-3m3 3l3-3M2 13h12"
-                                          stroke="currentColor"
-                                          strokeWidth="1.5"
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                        />
-                                      </svg>
-                                    )}
+                                    <svg
+                                      width="16"
+                                      height="16"
+                                      fill="none"
+                                      viewBox="0 0 16 16"
+                                      className="download-icon"
+                                    >
+                                      <path
+                                        d="M8 1v10m0 0l-3-3m3 3l3-3M2 13h12"
+                                        stroke="currentColor"
+                                        strokeWidth="1.5"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                      />
+                                    </svg>
                                   </div>
                                   <div
                                     className={`file-meta ${mine ? "white-50" : "muted"}`}
                                   >
-                                    {msg.upload?.data
-                                      ? `${((msg.upload.data.length * 3) / 4 / 1024 / 1024).toFixed(2)} MB`
-                                      : "Attachment"}{" "}
-                                    • {((msg as any).uploadContentType || msg.upload?.contentType) === "application/octet-stream" 
+                                    {((msg as any).uploadContentType || msg.upload?.contentType) === "application/octet-stream" 
                                         ? ((msg as any).uploadFilename || msg.upload?.filename)?.split('.').pop()?.toUpperCase() || "FILE"
                                         : ((msg as any).uploadContentType || msg.upload?.contentType)}
                                   </div>

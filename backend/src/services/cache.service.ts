@@ -5,13 +5,15 @@ const logger = createLogger("CacheService");
 
 export const CacheService = {
   async get<T>(key: string): Promise<T | null> {
+    const startTime = Date.now();
     try {
       const data = await redis.get(key);
+      const duration = Date.now() - startTime;
       if (data) {
-        // logger.debug(`Cache hit for key: ${key}`);
+        logger.info(`[CACHE HIT] Key: ${key}, Time: ${duration}ms`);
         return JSON.parse(data) as T;
       }
-      // logger.debug(`Cache miss for key: ${key}`);
+      logger.info(`[CACHE MISS] Key: ${key}, Time: ${duration}ms`);
       return null;
     } catch (error) {
       logger.error(`Error getting from cache for key ${key}:`, error);
@@ -24,10 +26,11 @@ export const CacheService = {
     value: T,
     ttlSeconds: number = 3600,
   ): Promise<void> {
-    logger.info(`Attempting to set cache for key: ${key}`);
+    const startTime = Date.now();
     try {
       await redis.setex(key, ttlSeconds, JSON.stringify(value));
-      logger.debug(`Cache set for key: ${key} with TTL: ${ttlSeconds}s`);
+      const duration = Date.now() - startTime;
+      logger.info(`[CACHE SET] Key: ${key}, TTL: ${ttlSeconds}s, Time: ${duration}ms`);
     } catch (error) {
       logger.error(`Error setting cache for key ${key}:`, error);
       // Fail gracefully

@@ -1005,3 +1005,41 @@ This new plan outlines the development phases for the next set of tasks on the C
     - [ ] **Networking:** Ensure the frontend and backend services can communicate with each other within the Docker network.
 - [ ] **Documentation:**
     - [ ] **Update README:** Add a clear and concise section to the main `README.md` file explaining how to build and run the entire application stack with a single command: `docker-compose up --build`.
+### Messages Optimization
+
+**Problem:** The current implementation for fetching chat messages is inefficient. When a conversation is loaded, the backend retrieves all messages and their associated file uploads (if any) from MongoDB, decompresses the files, and sends them in the initial payload. This leads to slow response times and high server memory usage, especially for chats containing numerous or large files.
+
+**Solution:** A multi-phased approach to decouple message metadata from file content, ensuring fast initial loads while providing on-demand access to file data.
+
+**Phase 1: Backend - Decouple Content from Metadata**
+
+*   **Goal:** Modify the backend to only fetch lightweight message metadata on initial load, deferring the retrieval of heavy file content.
+*   **Actions:**
+    1.  **Optimize Data Retrieval:** In `chat.service.ts`, update the primary data retrieval functions (`getConversationThread`, `list`, `conversation`) to exclude the binary `upload` field from the initial MongoDB query using a `.select('-upload')` projection.
+    2.  **Create Dedicated File Endpoint:** Implement a new, secure API endpoint, `GET /api/chat/messages/:messageId/download`.
+*   **Mechanism:**
+    *   The new endpoint will be responsible for fetching a *single* message by its ID.
+    *   It will retrieve *only* the `upload` buffer, decompress it, and stream the file directly to the client with the correct `Content-Type` and `Content-Disposition` headers.
+*   **Outcome:** Initial conversation loads become extremely fast as they no longer include heavy file data.
+
+**Phase 2: Backend - Implement Smart Caching with Redis**
+
+*   **Goal:** Leverage Redis to cache the now-lightweight message metadata for near-instantaneous conversation loading.
+*   **Actions:**
+    1.  **Implement Cache-Aside Pattern:** In the message retrieval functions, check Redis for cached data before querying the database.
+    2.  **Manage Cache Keys:** Use a consistent keying strategy, such as `chat:<chatId>:messages:latest`.
+*   **Mechanism:**
+    *   **Cache Miss:** If a conversation is not in the cache, fetch the metadata from MongoDB (as per Phase 1), then store the result in Redis with a suitable Time-To-Live (TTL), for example, 1 hour.
+    *   **Cache Hit:** If the conversation is found in Redis, return the cached data immediately, bypassing the database.
+    *   **Cache Invalidation:** When a new message is sent within a chat, `DELETE` the corresponding cache key (`chat:<chatId>:messages:latest`) to ensure data freshness on the next read.
+*   **Outcome:** Subsequent loads of recent conversations are served directly from memory, dramatically reducing latency.
+
+**Phase 3: Frontend - Adapt to New Data Flow**
+
+*   **Goal:** Update the frontend UI to align with the new on-demand data loading architecture.
+*   **Actions:**
+    1.  **Modify File Rendering:** In the main chat component, change how file attachments are displayed.
+*   **Mechanism:**
+    *   Instead of rendering a file from an inline base64 string, the UI will now render a standard HTML anchor (`<a>`) tag for file attachments.
+    *   The `href` attribute of this link will point to the new dedicated download endpoint (e.g., `/api/chat/messages/${message._id}/download`).
+*   **Outcome:** The browser can natively and efficiently handle file downloads or inline viewing (for types like images and PDFs), and the frontend application's memory footprint is reduced.
