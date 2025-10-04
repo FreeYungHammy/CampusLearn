@@ -1,4 +1,5 @@
 import { io } from "../../config/socket";
+import { CacheService } from "../../services/cache.service";
 import { StudentModel } from "../../schemas/students.schema";
 import { TutorModel } from "../../schemas/tutor.schema";
 import { UserModel } from "../../schemas/user.schema";
@@ -138,6 +139,12 @@ export const ChatService = {
 
       await message.save();
 
+      // Invalidate the cache for this chat thread
+      const cacheKey = `chat:${body.chatId}:thread`;
+      await CacheService.del(cacheKey);
+      logger.info(`Cache invalidated for chat thread: ${body.chatId}`);
+
+
       // Process and emit the message via socket using the original uncompressed buffer
       await this.processAndEmitChatMessage({
         chatId: body.chatId,
@@ -166,24 +173,13 @@ export const ChatService = {
       const messages = await ChatModel.find(query)
         .populate("senderId", "email role")
         .populate("receiverId", "email role")
+        .select("-upload") // Exclude the large 'upload' field
         .sort({ createdAt: -1 })
         .limit(limit)
         .skip(skip)
         .lean();
 
-      const decompressedMessages = await Promise.all(
-        messages.map(async (message: any) => {
-          if (message.upload) {
-            const decompressedUpload = await gunzip(
-              Buffer.from(message.upload as any),
-            );
-            return { ...message, upload: decompressedUpload };
-          }
-          return message;
-        }),
-      );
-
-      return decompressedMessages;
+      return messages; // The decompressedMessages logic is no longer needed
     } catch (error) {
       console.error("Error listing messages:", error);
       throw error;
@@ -211,6 +207,29 @@ export const ChatService = {
     }
   },
 
+  async downloadFile(messageId: string): Promise<{ fileBuffer: Buffer; contentType: string; filename: string; } | null> {
+    try {
+      const message = await ChatModel.findById(messageId)
+        .select("upload uploadContentType uploadFilename")
+        .lean();
+
+      if (!message || !message.upload) {
+        return null;
+      }
+
+      const decompressedUpload = await gunzip(Buffer.from(message.upload as any));
+
+      return {
+        fileBuffer: decompressedUpload,
+        contentType: message.uploadContentType || "application/octet-stream",
+        filename: message.uploadFilename || "download",
+      };
+    } catch (error) {
+      logger.error(`Error downloading file for message ${messageId}:`, error);
+      throw error;
+    }
+  },
+
   async conversation(
     a: string,
     b: string,
@@ -230,24 +249,13 @@ export const ChatService = {
       })
         .populate("senderId", "email role")
         .populate("receiverId", "email role")
+        .select("-upload") // Exclude the large 'upload' field
         .sort({ createdAt: -1 })
         .limit(limit)
         .skip(skip)
         .lean();
 
-      const decompressedMessages = await Promise.all(
-        messages.map(async (message: any) => {
-          if (message.upload) {
-            const decompressedUpload = await gunzip(
-              Buffer.from(message.upload as any),
-            );
-            return { ...message, upload: decompressedUpload };
-          }
-          return message;
-        }),
-      );
-
-      return decompressedMessages;
+      return messages; // The decompressedMessages logic is no longer needed
     } catch (error) {
       console.error("Error getting conversation:", error);
       throw error;
@@ -293,11 +301,22 @@ export const ChatService = {
   },
 
   async getConversationThread(chatId: string): Promise<any[]> {
+    const cacheKey = `chat:${chatId}:thread`;
     try {
+      // 1. Try to get from cache first
+      const cachedMessages = await CacheService.get<any[]>(cacheKey);
+      if (cachedMessages) {
+        logger.info(`Cache hit for chat thread: ${chatId}`);
+        return cachedMessages;
+      }
+
+      logger.info(`Cache miss for chat thread: ${chatId}. Fetching from DB.`);
+      // 2. If cache miss, fetch from DB
       const messages = await ChatModel.find({ chatId })
-        .populate('senderId', 'email role')
-        .populate('receiverId', 'email role')
-        .sort({ createdAt: 'asc' })
+        .populate("senderId", "email role")
+        .populate("receiverId", "email role")
+        .select("-upload") // Exclude the large 'upload' field
+        .sort({ createdAt: "asc" })
         .lean();
 
       // Transform messages to match frontend expectations
@@ -323,23 +342,6 @@ export const ChatService = {
             senderProfile = { _id: senderUser._id.toString(), name: senderUser._id.toString() };
           }
 
-            let decompressedUpload: Buffer | undefined;
-            if (message.upload) {
-              try {
-                decompressedUpload = await gunzip(
-                  Buffer.from(message.upload as any),
-                );
-              } catch (err: any) {
-                if (err.code === "Z_BUF_ERROR") {
-                  // Data is likely not compressed, use as is
-                  decompressedUpload = Buffer.from(message.upload as any);
-                } else {
-                  // Re-throw other errors
-                  throw err;
-                }
-              }
-            }
-
             return {
               _id: message._id,
               chatId: message.chatId,
@@ -349,19 +351,19 @@ export const ChatService = {
               receiverId: (message.receiverId as any)?._id?.toString(),
               createdAt: message.createdAt,
               seen: message.seen,
-              upload: decompressedUpload
-                ? {
-                    data: decompressedUpload.toString("base64"),
-                    contentType:
-                      message.uploadContentType || "application/octet-stream",
-                    filename: message.uploadFilename || "attachment",
-                  }
-                : undefined,
+              // The 'upload' field is now excluded, but we keep metadata fields
               uploadFilename: message.uploadFilename,
               uploadContentType: message.uploadContentType,
+              messageType: message.messageType,
+              bookingId: message.bookingId,
             };
         })
       );
+
+      // 3. Store the result in cache before returning
+      if (transformedMessages.length > 0) {
+        await CacheService.set(cacheKey, transformedMessages, 1800); // Cache for 30 mins
+      }
 
       return transformedMessages;
     } catch (error) {
@@ -380,14 +382,17 @@ export const ChatService = {
       const conversations = await ChatModel.aggregate([
         {
           $match: {
-            $or: [
-              { senderId: userObjectId },
-              { receiverId: userObjectId }
-            ]
-          }
+            $or: [{ senderId: userObjectId }, { receiverId: userObjectId }],
+          },
         },
         {
-          $sort: { createdAt: -1 }
+          // Exclude the large upload field before sorting to prevent memory issues
+          $project: {
+            upload: 0,
+          },
+        },
+        {
+          $sort: { createdAt: -1 },
         },
         {
           $group: {

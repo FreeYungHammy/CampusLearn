@@ -25,6 +25,8 @@ r.get(
 );
 
 r.get("/:id", ChatController.get);
+r.get("/messages/:messageId/download", requireAuth, ChatController.downloadMessageFile);
+
 r.post("/:id/seen", ChatController.markSeen);
 r.delete("/:id", ChatController.remove);
 

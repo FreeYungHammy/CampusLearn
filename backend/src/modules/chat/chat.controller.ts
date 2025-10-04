@@ -40,6 +40,26 @@ export const ChatController = {
     }
   },
 
+  downloadMessageFile: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { messageId } = req.params;
+      const file = await ChatService.downloadFile(messageId);
+
+      if (!file) {
+        return res.status(404).json({ message: "File not found." });
+      }
+
+      res.setHeader("Content-Type", file.contentType);
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${file.filename}"`,
+      );
+      res.send(file.fileBuffer);
+    } catch (e) {
+      next(e);
+    }
+  },
+
   conversation: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { a, b, limit = "50", skip = "0" } = req.query as any;
