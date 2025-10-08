@@ -6,9 +6,12 @@ import { useState } from "react";
 import { login } from "../../services/authApi";
 import { useAuthStore } from "../../store/authStore";
 
+import RegisterStepperModal from "../../components/RegisterStepperModal";
+
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
   const navigate = useNavigate();
   const { setToken, setUser } = useAuthStore();
 
@@ -132,10 +135,14 @@ const Login = () => {
               Sign In
             </button>
 
-            <Link to="/register" className="btn btn-outline">
+            <button
+              type="button"
+              className="btn btn-outline"
+              onClick={() => setShowRegisterModal(true)}
+            >
               <i className="fas fa-user-plus"></i>
               Create New Account
-            </Link>
+            </button>
 
             <div className="login-links">
               <a href="#" className="login-link">
@@ -150,6 +157,10 @@ const Login = () => {
           </form>
         </div>
       </div>
+      <RegisterStepperModal
+        show={showRegisterModal}
+        onClose={() => setShowRegisterModal(false)}
+      />
     </div>
   );
 };
