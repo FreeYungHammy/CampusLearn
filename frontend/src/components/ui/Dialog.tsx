@@ -5,6 +5,7 @@ type Props = {
   onClose: () => void;
   children: React.ReactNode;
   labelledById: string;
+  width?: string;
 };
 
 export default function Dialog({
@@ -12,6 +13,7 @@ export default function Dialog({
   onClose,
   children,
   labelledById,
+  width,
 }: Props) {
   const overlayRef = useRef<HTMLDivElement>(null);
 
@@ -41,7 +43,10 @@ export default function Dialog({
         if (e.target === overlayRef.current) onClose();
       }}
     >
-      <div className="modal" onMouseDown={(e) => e.stopPropagation()}>
+      <div
+        className={`modal ${width ? `modal-${width}` : ""}`}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
         {children}
       </div>
     </div>

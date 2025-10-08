@@ -5,6 +5,7 @@ import { register } from "../services/authApi";
 import Stepper from "./Stepper";
 import Dialog from "./ui/Dialog";
 import { useNavigate } from "react-router-dom";
+import "./RegisterStepperModal.css";
 
 interface RegisterStepperModalProps {
   show: boolean;
@@ -93,7 +94,7 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
   });
 
   return (
-    <Dialog isOpen={show} onClose={onClose} fullWidth>
+    <Dialog isOpen={show} onClose={onClose} width="lg">
       <div className="register-stepper-modal">
         <div className="modal-header">
           <h2 className="modal-title">Create Your Account</h2>
