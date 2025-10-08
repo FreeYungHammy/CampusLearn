@@ -31,6 +31,7 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
     "next" | "prev"
   >("next");
   const steps = ["Role", "Details", "Subjects"];
+  const [isDragOver, setIsDragOver] = useState(false);
 
   const handleNext = () => {
     if (currentStep < steps.length) {
@@ -46,6 +47,27 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
     }
   };
 
+  const handleDragOver = (event: React.DragEvent) => {
+    event.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (event: React.DragEvent) => {
+    event.preventDefault();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (event: React.DragEvent) => {
+    event.preventDefault();
+    setIsDragOver(false);
+
+    const files = event.dataTransfer.files;
+    if (files.length > 0) {
+      const file = files[0];
+      formik.setFieldValue("qualificationFile", file);
+    }
+  };
+
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
@@ -57,6 +79,7 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
       password: "",
       role: "student",
       subjects: [],
+      qualificationFile: null,
     },
     validationSchema: Yup.object({
       firstName: Yup.string().required("Required"),
@@ -81,6 +104,13 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
         }),
       role: Yup.string().required("Required"),
       subjects: Yup.array().min(1, "Select at least one subject"),
+      qualificationFile: Yup.mixed() // Add this validation
+        .when("role", {
+          is: "tutor",
+          then: (schema) =>
+            schema.required("Qualification file is required for tutors"),
+          otherwise: (schema) => schema.notRequired(),
+        }),
     }),
     onSubmit: async (values) => {
       setError("");
@@ -269,6 +299,67 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
                       ></div>
                     </div>
                   </div>
+
+                  {/* File Upload Section - Only show for tutors */}
+                  {formik.values.role === "tutor" && (
+                    <div className="form-group">
+                      <label className="form-label">
+                        Upload Qualification Document
+                      </label>
+                      <div className="file-upload-container">
+                        <input
+                          id="qualificationFile"
+                          name="qualificationFile"
+                          type="file"
+                          className="file-input"
+                          accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                          onChange={(event) => {
+                            const file = event.currentTarget.files?.[0] || null;
+                            formik.setFieldValue("qualificationFile", file);
+                          }}
+                          onBlur={formik.handleBlur}
+                        />
+                        <label
+                          htmlFor="qualificationFile"
+                          className={`file-upload-label ${isDragOver ? "drag-over" : ""}`}
+                          onDragOver={handleDragOver}
+                          onDragLeave={handleDragLeave}
+                          onDrop={handleDrop}
+                        >
+                          <i className="fas fa-cloud-upload-alt"></i>
+                          <span className="file-upload-text">
+                            {formik.values.qualificationFile
+                              ? formik.values.qualificationFile.name
+                              : "Choose file or drag and drop"}
+                          </span>
+                          <span className="file-upload-subtext">
+                            PDF, DOC, DOCX, JPG, PNG (Max 10MB)
+                          </span>
+                        </label>
+                      </div>
+                      {formik.touched.qualificationFile &&
+                      formik.errors.qualificationFile ? (
+                        <div className="error-message">
+                          {formik.errors.qualificationFile}
+                        </div>
+                      ) : null}
+                      {formik.values.qualificationFile && (
+                        <div className="file-preview">
+                          <i className="fas fa-file"></i>
+                          <span>{formik.values.qualificationFile.name}</span>
+                          <button
+                            type="button"
+                            className="file-remove"
+                            onClick={() =>
+                              formik.setFieldValue("qualificationFile", null)
+                            }
+                          >
+                            <i className="fas fa-times"></i>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
               {currentStep === 3 && (
