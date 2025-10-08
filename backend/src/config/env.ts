@@ -15,4 +15,8 @@ export const env = {
   gcsKeyJson: process.env.GCS_KEYFILE_JSON, // inline JSON string
   gcsKeyBase64: process.env.GCS_KEYFILE_B64, // base64-encoded JSON
   gcsSignedUrlTtlSeconds: Number(process.env.GCS_SIGNED_URL_TTL_SECONDS ?? 3600),
+  // Botpress
+  botpressClientId: process.env.BOTPRESS_CLIENT_ID,
+  botpressBotId: process.env.BOTPRESS_BOT_ID,
+  botpressPat: process.env.BOTPRESS_PAT, // Personal Access Token
 };

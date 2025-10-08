@@ -21,6 +21,7 @@ import ResetPassword from "./pages/Auth/ResetPassword";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
 import Layout from "./components/Layout";
+import ChatWidget from "./components/ChatWidget";
 
 const Messages = React.lazy(() => import("./pages/Messages"));
 
@@ -38,7 +39,7 @@ function App() {
   useBackendHealth();
   useGlobalSocket();
 
-  const { showLogoutModal } = useAuthStore();
+  const { showLogoutModal, user } = useAuthStore();
 
   return (
     <>
@@ -79,6 +80,9 @@ function App() {
       </Suspense>
 
       {showLogoutModal && <LogoutConfirmationModal />}
+      
+      {/* Floating Chat Widget */}
+      <ChatWidget />
     </>
   );
 }
