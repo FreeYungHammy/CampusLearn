@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react"; // Add useEffect
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { register } from "../services/authApi";
@@ -30,8 +30,8 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
   const [transitionDirection, setTransitionDirection] = useState<
     "next" | "prev"
   >("next");
-  const steps = ["Role", "Details", "Subjects"];
   const [isDragOver, setIsDragOver] = useState(false);
+  const steps = ["Role", "Details", "Subjects"];
 
   const handleNext = () => {
     if (currentStep < steps.length) {
@@ -44,27 +44,6 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
     if (currentStep > 1) {
       setTransitionDirection("prev");
       setCurrentStep(currentStep - 1);
-    }
-  };
-
-  const handleDragOver = (event: React.DragEvent) => {
-    event.preventDefault();
-    setIsDragOver(true);
-  };
-
-  const handleDragLeave = (event: React.DragEvent) => {
-    event.preventDefault();
-    setIsDragOver(false);
-  };
-
-  const handleDrop = (event: React.DragEvent) => {
-    event.preventDefault();
-    setIsDragOver(false);
-
-    const files = event.dataTransfer.files;
-    if (files.length > 0) {
-      const file = files[0];
-      formik.setFieldValue("qualificationFile", file);
     }
   };
 
@@ -104,13 +83,12 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
         }),
       role: Yup.string().required("Required"),
       subjects: Yup.array().min(1, "Select at least one subject"),
-      qualificationFile: Yup.mixed() // Add this validation
-        .when("role", {
-          is: "tutor",
-          then: (schema) =>
-            schema.required("Qualification file is required for tutors"),
-          otherwise: (schema) => schema.notRequired(),
-        }),
+      qualificationFile: Yup.mixed().when("role", {
+        is: "tutor",
+        then: (schema) =>
+          schema.required("Qualification file is required for tutors"),
+        otherwise: (schema) => schema.notRequired(),
+      }),
     }),
     onSubmit: async (values) => {
       setError("");
@@ -128,12 +106,59 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
     },
   });
 
+  // Reset function
+  const resetForm = () => {
+    formik.resetForm();
+    setCurrentStep(1);
+    setTransitionDirection("next");
+    setError("");
+    setIsDragOver(false);
+  };
+
+  // Handle modal close with reset
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
+
+  // Reset when modal is closed
+  useEffect(() => {
+    if (!show) {
+      resetForm();
+    }
+  }, [show]);
+
+  const handleDragOver = (event: React.DragEvent) => {
+    event.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (event: React.DragEvent) => {
+    event.preventDefault();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (event: React.DragEvent) => {
+    event.preventDefault();
+    setIsDragOver(false);
+
+    const files = event.dataTransfer.files;
+    if (files.length > 0) {
+      const file = files[0];
+      formik.setFieldValue("qualificationFile", file);
+    }
+  };
+
   return (
-    <Dialog isOpen={show} onClose={onClose} width="lg">
+    <Dialog isOpen={show} onClose={handleClose} width="lg">
+      {" "}
+      {/* Change onClose to handleClose */}
       <div className="register-stepper-modal">
         <div className="modal-header">
           <h2 className="modal-title">Create Your Account</h2>
-          <button className="modal-close" onClick={onClose}>
+          <button className="modal-close" onClick={handleClose}>
+            {" "}
+            {/* Change to handleClose */}
             &times;
           </button>
         </div>
@@ -300,7 +325,6 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
                     </div>
                   </div>
 
-                  {/* File Upload Section - Only show for tutors */}
                   {formik.values.role === "tutor" && (
                     <div className="form-group">
                       <label className="form-label">
