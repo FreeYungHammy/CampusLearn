@@ -7,6 +7,7 @@ import chat from "../modules/chat";
 import forum from "../modules/forum";
 import subscriptions from "../modules/subscriptions";
 import bookings from "../modules/bookings";
+import admin from "../modules/admin";
 import health from "./health";
 import { videoRoutes } from "../modules/video";
 
@@ -26,6 +27,7 @@ r.use("/forum", forum);
 r.use("/subscriptions", subscriptions);
 r.use("/bookings", bookings);
 r.use("/videos", videoRoutes);
+r.use("/admin", admin);
 r.get("/v1/ping", (_req, res) => {
   res.json({ ok: true, ts: Date.now() });
 });

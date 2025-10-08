@@ -21,6 +21,12 @@ r.post("/reset-password/:token", UserController.resetPassword);
 r.delete("/account", requireAuth, UserController.deleteAccount);
 r.delete("/admin/:userId", requireAuth, UserController.adminDeleteUser);
 
+// Admin dashboard routes
+r.get("/admin/stats", requireAuth, UserController.getAdminStats);
+r.get("/admin/activity", requireAuth, UserController.getRecentActivity);
+r.get("/admin/health", requireAuth, UserController.getSystemHealth);
+r.get("/admin/health-score", requireAuth, UserController.getSystemHealthScore);
+
 // Generic routes - MUST come after specific routes
 r.get("/:id", UserController.get);
 r.delete("/:id", UserController.remove);

@@ -54,7 +54,9 @@ const Header = () => {
     localStorage.setItem("cl-theme", next);
   };
 
-  const pfpUrl = user ? `/api/users/${user.id}/pfp?t=${pfpTimestamps[user.id] || 0}` : "";
+  const pfpUrl = user
+    ? `/api/users/${user.id}/pfp?t=${pfpTimestamps[user.id] || 0}`
+    : "";
 
   return (
     <>
@@ -83,6 +85,10 @@ const Header = () => {
                 <NavLink to="/users" className="cl-nav-item">
                   <i className="fas fa-users-cog" />
                   <span>Users</span>
+                </NavLink>
+                <NavLink to="/database-tools" className="cl-nav-item">
+                  <i className="fas fa-database" />
+                  <span>Database Tools</span>
                 </NavLink>
                 <NavLink to="/applications" className="cl-nav-item">
                   <i className="fas fa-tasks" />
@@ -251,11 +257,7 @@ const Header = () => {
         <div className={`cl-mobile-menu ${isMobileMenuOpen ? "open" : ""}`}>
           <div className="cl-mobile-menu-header">
             <div className="cl-mobile-menu-user">
-              <img
-                src={pfpUrl}
-                alt="User Avatar"
-                className="user-avatar"
-              />
+              <img src={pfpUrl} alt="User Avatar" className="user-avatar" />
               <span className="user-name">
                 {user ? `${user.name} ${user.surname ?? ""}`.trim() : "Guest"}
               </span>
