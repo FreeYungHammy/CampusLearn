@@ -1823,8 +1823,6 @@ btn-success:hover {
   color: #3498db;
 }
 
-
-
 [data-theme="dark"] .dashboard-header,
 [data-theme="dark"] .stat-card,
 [data-theme="dark"] .quick-action-btn,
@@ -4191,16 +4189,17 @@ btn-success:hover {
   justify-content: center;
 }
 .modal {
-  width: auto;
-  max-width: 90vw;
-  min-width: 400px;
-  background: #fff;
-  color: var(--dark);
-  border-radius: 16px;
-  box-shadow: var(--card-shadow);
-  border: 1px solid var(--border);
-  padding: 22px 22px 18px;
-  animation: modalInRight 180ms ease-out;
+  background: var(--background-color);
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  width: 90%;
+  max-width: 500px;
+  position: relative;
+}
+
+.modal-lg {
+  max-width: 1200px;
 }
 .modal-title {
   font-size: 20px;
@@ -5383,7 +5382,6 @@ body,
   margin-bottom: 16px;
 }
 
-
 /* Combined Sort & Rating Filter */
 .combined-sort-rating {
   padding: 16px !important;
@@ -5591,7 +5589,7 @@ body,
 }
 
 .subject-option.selected .subject-checkbox::after {
-  content: '';
+  content: "";
   width: 6px;
   height: 6px;
   border-radius: 50%;
@@ -5769,7 +5767,7 @@ body,
     grid-template-columns: 1fr 1fr;
     gap: 12px;
   }
-  
+
   .filter-card:first-child {
     grid-column: 1 / -1;
   }
@@ -5780,22 +5778,22 @@ body,
     grid-template-columns: 1fr;
     gap: 12px;
   }
-  
+
   .filter-header {
     flex-direction: column;
     gap: 12px;
     align-items: stretch;
   }
-  
+
   .summary-stats {
     flex-direction: column;
     gap: 8px;
   }
-  
+
   .star-rating {
     gap: 2px;
   }
-  
+
   .star-btn {
     font-size: 14px;
     padding: 2px;
@@ -6857,7 +6855,11 @@ body,
   transform: translateY(-3px);
   border-color: var(--blue-primary);
   box-shadow: 0 8px 25px rgba(66, 153, 225, 0.2);
-  background: linear-gradient(135deg, var(--background-color-light) 0%, rgba(66, 153, 225, 0.05) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--background-color-light) 0%,
+    rgba(66, 153, 225, 0.05) 100%
+  );
 }
 
 .tutor-selection-item:hover .tutor-avatar {
@@ -6933,7 +6935,11 @@ body,
 .tutor-selection-item .subject-tag {
   font-size: 11px;
   padding: 4px 8px;
-  background: linear-gradient(135deg, var(--blue-light) 0%, rgba(66, 153, 225, 0.1) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--blue-light) 0%,
+    rgba(66, 153, 225, 0.1) 100%
+  );
   color: var(--blue-dark);
   border-radius: 12px;
   border: 1px solid rgba(66, 153, 225, 0.2);
@@ -6948,7 +6954,11 @@ body,
 }
 
 .tutor-selection-item:hover .subject-tag {
-  background: linear-gradient(135deg, var(--blue-primary) 0%, rgba(66, 153, 225, 0.8) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--blue-primary) 0%,
+    rgba(66, 153, 225, 0.8) 100%
+  );
   color: white;
   transform: translateY(-1px);
 }
