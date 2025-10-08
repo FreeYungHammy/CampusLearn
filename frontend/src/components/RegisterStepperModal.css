@@ -12,10 +12,21 @@
   margin: 2rem auto;
   display: flex;
   flex-direction: column;
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 @media (max-width: 1800px) {
-  /* Updated from 1600px to 1800px */
   .register-stepper-modal {
     max-width: 95%;
   }
@@ -45,6 +56,12 @@
   cursor: pointer;
   padding: 0;
   line-height: 1;
+  transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+  transform: scale(1.1);
+  color: var(--text-color);
 }
 
 .modal-body {
@@ -54,6 +71,8 @@
 
 .step-content {
   margin-top: 2rem;
+  position: relative;
+  min-height: 300px;
 }
 
 .step-title {
@@ -61,6 +80,38 @@
   font-weight: 600;
   margin-bottom: 1.5rem;
   text-align: center;
+}
+
+/* Step transition animations - ONLY THIS ONE FOR CONTENT */
+.step-content > div {
+  animation: stepTransition 0.4s ease-out;
+}
+
+@keyframes stepTransition {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Back navigation animation */
+.step-content.back-transition > div {
+  animation: stepBackTransition 0.4s ease-out;
+}
+
+@keyframes stepBackTransition {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .modal-actions {
@@ -82,7 +133,7 @@
 }
 
 .subject-checkbox {
-  display: none; /* Hide the default checkbox */
+  display: none;
 }
 
 .subject-label {
@@ -94,20 +145,24 @@
   border: 2px solid var(--border-color, #e0e0e0);
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   min-height: 60px;
+  width: 100%;
 }
 
 .subject-label:hover {
   background-color: var(--hover-color, #eaeaea);
   border-color: var(--primary-color, #007bff);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-/* Style for checked state */
 .subject-checkbox:checked + .subject-label {
   background-color: var(--primary-color, #007bff);
   color: white;
   border-color: var(--primary-color, #007bff);
+  transform: scale(1.02);
+  box-shadow: 0 6px 16px rgba(0, 123, 255, 0.3);
 }
 
 .subject-checkbox:checked + .subject-label .fas {
@@ -134,24 +189,31 @@
   border: 2px solid var(--border-color, #e0e0e0);
   border-radius: 12px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   text-align: center;
 }
 
 .role-option:hover {
   border-color: var(--primary-color, #007bff);
-  transform: translateY(-2px);
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
 }
 
 .role-option.selected {
   border-color: var(--primary-color, #007bff);
   background-color: rgba(0, 123, 255, 0.05);
+  transform: scale(1.02);
 }
 
 .role-option .fas {
   font-size: 2.5rem;
   margin-bottom: 1rem;
   color: var(--primary-color, #007bff);
+  transition: all 0.3s ease;
+}
+
+.role-option:hover .fas {
+  transform: scale(1.1);
 }
 
 .role-option h3 {
@@ -182,12 +244,14 @@
   border: 1px solid var(--border-color, #e0e0e0);
   border-radius: 6px;
   font-size: 1rem;
-  transition: border-color 0.2s;
+  transition: all 0.3s ease;
 }
 
 .form-control:focus {
   outline: none;
   border-color: var(--primary-color, #007bff);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.1);
 }
 
 .form-control.is-invalid {
@@ -254,7 +318,16 @@
   font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.btn:active {
+  transform: translateY(0);
 }
 
 .btn-primary {
@@ -264,6 +337,7 @@
 
 .btn-primary:hover {
   background-color: #0056b3;
+  box-shadow: 0 6px 20px rgba(0, 123, 255, 0.3);
 }
 
 .btn-secondary {

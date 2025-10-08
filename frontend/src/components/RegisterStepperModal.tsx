@@ -27,16 +27,21 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
   onClose,
 }) => {
   const [currentStep, setCurrentStep] = useState(1);
+  const [transitionDirection, setTransitionDirection] = useState<
+    "next" | "prev"
+  >("next");
   const steps = ["Role", "Details", "Subjects"];
 
   const handleNext = () => {
     if (currentStep < steps.length) {
+      setTransitionDirection("next");
       setCurrentStep(currentStep + 1);
     }
   };
 
   const handleBack = () => {
     if (currentStep > 1) {
+      setTransitionDirection("prev");
       setCurrentStep(currentStep - 1);
     }
   };
@@ -109,7 +114,9 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
               currentStep={currentStep}
               onStepClick={setCurrentStep}
             />
-            <div className="step-content">
+            <div
+              className={`step-content ${transitionDirection === "prev" ? "back-transition" : ""}`}
+            >
               {error && (
                 <p
                   className="error-message"
