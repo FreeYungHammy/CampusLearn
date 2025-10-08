@@ -6,6 +6,7 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import { useAuthStore } from "../store/authStore";
 import BookingStepperModal from "../components/BookingStepperModal";
+import AdminDashboard from "./AdminDashboard";
 import type { Tutor } from "../types/Tutors";
 
 // Daily motivational quotes
@@ -39,7 +40,7 @@ const motivationalQuotes = [
   "The harder you work for something, the greater you'll feel when you achieve it.",
   "Dream bigger. Do bigger.",
   "Don't stop when you're tired. Stop when you're done.",
-  "Wake up with determination. Go to bed with satisfaction."
+  "Wake up with determination. Go to bed with satisfaction.",
 ];
 
 const events = [
@@ -79,13 +80,13 @@ const StatCard: React.FC<{
   delay: number;
 }> = ({ icon, title, value, change, delay }) => {
   const [count, setCount] = useState(0);
-  
+
   useEffect(() => {
     const timer = setTimeout(() => {
-      const targetValue = parseInt(value.replace(/[^\d]/g, ''));
+      const targetValue = parseInt(value.replace(/[^\d]/g, ""));
       const increment = targetValue / 50;
       let current = 0;
-      
+
       const counter = setInterval(() => {
         current += increment;
         if (current >= targetValue) {
@@ -95,10 +96,10 @@ const StatCard: React.FC<{
           setCount(Math.floor(current));
         }
       }, 30);
-      
+
       return () => clearInterval(counter);
     }, delay * 200);
-    
+
     return () => clearTimeout(timer);
   }, [value, delay]);
 
@@ -113,7 +114,9 @@ const StatCard: React.FC<{
         <i className={icon}></i>
       </div>
       <div className="stat-content">
-        <div className="stat-value">{value.includes('%') ? `${count}%` : count.toLocaleString()}</div>
+        <div className="stat-value">
+          {value.includes("%") ? `${count}%` : count.toLocaleString()}
+        </div>
         <div className="stat-title">{title}</div>
         <div className="stat-change">{change}</div>
       </div>
@@ -137,7 +140,7 @@ const QuickAction: React.FC<{
     whileHover={{ scale: 1.05 }}
     whileTap={{ scale: 0.95 }}
     className="quick-action-btn"
-    style={{ '--action-color': color } as React.CSSProperties}
+    style={{ "--action-color": color } as React.CSSProperties}
     onClick={onClick}
     type="button"
   >
@@ -154,9 +157,15 @@ const QuickAction: React.FC<{
 const Dashboard = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [todaysQuote, setTodaysQuote] = useState("");
-  const [showDashboardBookingStepper, setShowDashboardBookingStepper] = useState(false);
+  const [showDashboardBookingStepper, setShowDashboardBookingStepper] =
+    useState(false);
   const { user } = useAuthStore();
   const navigate = useNavigate();
+
+  // Show admin dashboard for admin users
+  if (user?.role === "admin") {
+    return <AdminDashboard />;
+  }
 
   // Use a stable callback for opening the modal to avoid closure issues
   const openBookingStepper = useCallback(() => {
@@ -173,7 +182,10 @@ const Dashboard = () => {
   useEffect(() => {
     // Get today's date and use it to select a consistent quote for the day
     const today = new Date();
-    const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
+    const dayOfYear = Math.floor(
+      (today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) /
+        (1000 * 60 * 60 * 24),
+    );
     const quoteIndex = dayOfYear % motivationalQuotes.length;
     setTodaysQuote(motivationalQuotes[quoteIndex]);
   }, []);
@@ -187,7 +199,6 @@ const Dashboard = () => {
 
   return (
     <div className="content-view active dashboard-modern" id="dashboard-view">
-
       {/* Dashboard Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -202,19 +213,25 @@ const Dashboard = () => {
           </h1>
           <div className="time-info">
             <div className="current-time">
-              {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              {currentTime.toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
             </div>
             <div className="current-date">
-              {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+              {currentTime.toLocaleDateString("en-US", {
+                weekday: "long",
+                month: "long",
+                day: "numeric",
+              })}
             </div>
           </div>
         </div>
         <div className="header-right">
           <p className="dashboard-subtitle">
-            {user?.role === 'student' 
-              ? 'Welcome back to your learning journey!' 
-              : 'Welcome back to your teaching dashboard!'
-            }
+            {user?.role === "student"
+              ? "Welcome back to your learning journey!"
+              : "Welcome back to your teaching dashboard!"}
           </p>
           {todaysQuote && (
             <motion.div
@@ -238,7 +255,7 @@ const Dashboard = () => {
         transition={{ duration: 0.6, delay: 0.2 }}
         className="stats-grid"
       >
-        {user?.role === 'student' ? (
+        {user?.role === "student" ? (
           <>
             <StatCard
               icon="fas fa-calendar-check"
@@ -315,7 +332,7 @@ const Dashboard = () => {
           Quick Actions
         </h3>
         <div className="actions-grid">
-          {user?.role === 'student' ? (
+          {user?.role === "student" ? (
             <>
               <QuickAction
                 icon="fas fa-plus-circle"
@@ -331,7 +348,7 @@ const Dashboard = () => {
                 description="Chat with your tutors"
                 color="#2ecc71"
                 delay={0.2}
-                onClick={() => navigate('/messages')}
+                onClick={() => navigate("/messages")}
               />
               <QuickAction
                 icon="fas fa-search"
@@ -339,7 +356,7 @@ const Dashboard = () => {
                 description="Discover new experts"
                 color="#e74c3c"
                 delay={0.3}
-                onClick={() => navigate('/tutors')}
+                onClick={() => navigate("/tutors")}
               />
               <QuickAction
                 icon="fas fa-chart-line"
@@ -347,7 +364,7 @@ const Dashboard = () => {
                 description="Track your learning"
                 color="#f39c12"
                 delay={0.4}
-                onClick={() => navigate('/mycontent')}
+                onClick={() => navigate("/mycontent")}
               />
             </>
           ) : (
@@ -358,7 +375,7 @@ const Dashboard = () => {
                 description="Manage your students"
                 color="#3498db"
                 delay={0.1}
-                onClick={() => navigate('/mystudents')}
+                onClick={() => navigate("/mystudents")}
               />
               <QuickAction
                 icon="fas fa-comments"
@@ -366,7 +383,7 @@ const Dashboard = () => {
                 description="Chat with students"
                 color="#2ecc71"
                 delay={0.2}
-                onClick={() => navigate('/messages')}
+                onClick={() => navigate("/messages")}
               />
               <QuickAction
                 icon="fas fa-upload"
@@ -374,7 +391,7 @@ const Dashboard = () => {
                 description="Share educational materials"
                 color="#e74c3c"
                 delay={0.3}
-                onClick={() => navigate('/upload')}
+                onClick={() => navigate("/upload")}
               />
               <QuickAction
                 icon="fas fa-folder-open"
@@ -382,7 +399,7 @@ const Dashboard = () => {
                 description="Manage your materials"
                 color="#f39c12"
                 delay={0.4}
-                onClick={() => navigate('/mycontent')}
+                onClick={() => navigate("/mycontent")}
               />
             </>
           )}
@@ -424,7 +441,7 @@ const Dashboard = () => {
       </motion.div>
 
       {/* Booking Stepper Modal */}
-      {user?.role === 'student' && (
+      {user?.role === "student" && (
         <BookingStepperModal
           key="dashboard-modal"
           isOpen={showDashboardBookingStepper}
