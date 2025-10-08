@@ -879,13 +879,13 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
     <div className="modal-overlay">
       <div className="modal">
         <div className="modal-header">
-          <h2>Delete {entityType.slice(0, -1)}</h2>
+          <h2>Delete {entityType.slice(0)}</h2>
           <button className="close-btn" onClick={onClose}>
             ×
           </button>
         </div>
         <div className="modal-body">
-          <p>Are you sure you want to delete this {entityType.slice(0, -1)}?</p>
+          <p>Are you sure you want to delete this {entityType.slice(0)}?</p>
           <p>
             <strong>ID:</strong> {item.id}
           </p>

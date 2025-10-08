@@ -32,15 +32,16 @@ export default function LogoutConfirmationModal() {
       <p className="modal-body">Are you sure you want to end your session?</p>
 
       <div className="modal-actions">
-        <button type="button" className="btn-ghost" onClick={close}>
+        <button type="button" className="btn btn-outline" onClick={close}>
           Cancel
         </button>
         <button
           type="button"
-          className="btn-danger-solid"
+          className="btn btn-danger"
           disabled={busy}
           onClick={onConfirm}
         >
+          <i className="fas fa-sign-out-alt"></i>
           {busy ? "Logging out…" : "Logout"}
         </button>
       </div>

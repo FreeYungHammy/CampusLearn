@@ -29,7 +29,7 @@ export function createSocketServer(httpServer: HttpServer) {
 
   io = new Server(httpServer, {
     path: "/socket.io", // client uses default path too; keep in sync if you change it
-    maxHttpBufferSize: 15e6, // 15 MB
+    maxHttpBufferSize: 10e6, // 10 MB (reduced from 15MB)
     transports: ["websocket", "polling"],
     allowUpgrades: true,
     cors: {

@@ -85,11 +85,11 @@ export default function ChatWidget() {
   };
 
   return (
-    <div className="chat-widget-container">
+    <div className="botpress-chat-widget-container">
       {/* Floating Chat Bubble */}
       <button
         onClick={toggleChat}
-        className="chat-bubble"
+        className="botpress-chat-bubble"
         aria-label="Toggle chat"
       >
         <i className={`fas ${isOpen ? 'fa-times' : 'fa-comments'}`}></i>
@@ -97,29 +97,29 @@ export default function ChatWidget() {
 
       {/* Chat Window - Pops up above the bubble */}
       {isOpen && (
-        <div className="chat-window">
+        <div className="botpress-chat-window">
           {/* Header */}
-          <div className="chat-header">
-            <div className="chat-header-content">
+          <div className="botpress-chat-header">
+            <div className="botpress-chat-header-content">
               <h3>CampusLearn Assistant</h3>
               <p>We're here to help!</p>
             </div>
             <button
               onClick={closeChat}
-              className="chat-close-btn"
+              className="botpress-chat-close-btn"
             >
               <i className="fas fa-times"></i>
             </button>
           </div>
 
           {/* Messages */}
-          <div className="chat-messages">
+          <div className="botpress-chat-messages">
             {messages.map((message) => (
               <div
                 key={message.id}
-                className={`chat-message ${message.isUser ? 'user' : 'assistant'}`}
+                className={`botpress-chat-message ${message.isUser ? 'user' : 'assistant'}`}
               >
-                <div className="chat-message-bubble">
+                <div className="botpress-chat-message-bubble">
                   {message.text}
                 </div>
               </div>
@@ -127,12 +127,12 @@ export default function ChatWidget() {
             
             {/* Typing indicator */}
             {isTyping && (
-              <div className="chat-typing">
-                <div className="chat-typing-bubble">
-                  <div className="chat-typing-dots">
-                    <div className="chat-typing-dot"></div>
-                    <div className="chat-typing-dot"></div>
-                    <div className="chat-typing-dot"></div>
+              <div className="botpress-chat-typing">
+                <div className="botpress-chat-typing-bubble">
+                  <div className="botpress-chat-typing-dots">
+                    <div className="botpress-chat-typing-dot"></div>
+                    <div className="botpress-chat-typing-dot"></div>
+                    <div className="botpress-chat-typing-dot"></div>
                   </div>
                 </div>
               </div>
@@ -141,20 +141,20 @@ export default function ChatWidget() {
           </div>
 
           {/* Input */}
-          <div className="chat-input-container">
-            <div className="chat-input-wrapper">
+          <div className="botpress-chat-input-container">
+            <div className="botpress-chat-input-wrapper">
               <input
                 type="text"
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Type your message..."
-                className="chat-input"
+                className="botpress-chat-input"
               />
               <button
                 onClick={handleSendMessage}
                 disabled={!inputText.trim()}
-                className="chat-send-btn"
+                className="botpress-chat-send-btn"
               >
                 <i className="fas fa-paper-plane"></i>
               </button>

@@ -399,11 +399,9 @@ const AdminDashboard = () => {
                   <div className="status-content">
                     <div className="status-title">{check.name}</div>
                     <div className="status-description">{check.message}</div>
-                    {check.responseTime && (
-                      <div className="status-response-time">
-                        Response: {check.responseTime}ms
-                      </div>
-                    )}
+                    <div className="status-response-time">
+                      Response: {check.responseTime !== undefined ? `${check.responseTime}ms` : 'N/A'}
+                    </div>
                   </div>
                 </div>
               ))
