@@ -259,4 +259,64 @@ export const UserController = {
       next(e);
     }
   },
+
+  // Admin Statistics
+  getAdminStats: async (
+    req: AuthedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const stats = await UserService.getAdminStats();
+      res.json(stats);
+    } catch (e) {
+      next(e);
+    }
+  },
+
+  // Recent Activity
+  getRecentActivity: async (
+    req: AuthedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const activity = await UserService.getRecentActivity();
+      res.json(activity);
+    } catch (e) {
+      next(e);
+    }
+  },
+
+  // System Health Checks
+  getSystemHealth: async (
+    req: AuthedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const { HealthService } = await import("../../services/health.service");
+      const healthChecks = await HealthService.runAllChecks();
+      res.json(healthChecks);
+    } catch (e) {
+      next(e);
+    }
+  },
+
+  // System Health Score
+  getSystemHealthScore: async (
+    req: AuthedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const { HealthService } = await import("../../services/health.service");
+      const healthChecks = await HealthService.runAllChecks();
+      const aggregateScore =
+        HealthService.calculateAggregateScore(healthChecks);
+      res.json(aggregateScore);
+    } catch (e) {
+      next(e);
+    }
+  },
 };

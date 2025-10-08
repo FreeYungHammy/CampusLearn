@@ -14,6 +14,7 @@ import Upload from "./pages/Upload";
 import TutorContentView from "./pages/Tutors/TutorContentView";
 import Settings from "./pages/Settings";
 import AdminUsers from "./pages/AdminUsers";
+import DatabaseTools from "./pages/DatabaseTools";
 import Login from "./pages/Auth/Login";
 import Register from "./pages/Auth/Register";
 import ForgotPassword from "./pages/Auth/ForgotPassword";
@@ -71,6 +72,7 @@ function App() {
               <Route path="/upload" element={<Upload />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/users" element={<AdminUsers />} />
+              <Route path="/database-tools" element={<DatabaseTools />} />
             </Route>
           </Route>
 

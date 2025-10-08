@@ -161,11 +161,10 @@ const AdminUsers: React.FC = () => {
   };
 
   const filteredUsers = users.filter((user) => {
+    const fullName = `${user.name || ""} ${user.surname || ""}`.trim();
     const matchesSearch =
       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      `${user.name} ${user.surname}`
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
+      fullName.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesRole = roleFilter === "all" || user.role === roleFilter;
 
@@ -271,17 +270,18 @@ const AdminUsers: React.FC = () => {
         {/* Users Table */}
         <div
           style={{
-            backgroundColor: "var(--bg-primary)",
+            backgroundColor: "var(--surface)",
             borderRadius: "12px",
             overflow: "hidden",
             boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+            border: "1px solid var(--border)",
           }}
         >
           <div
             style={{
               padding: "1rem 1.5rem",
               borderBottom: "1px solid var(--border)",
-              backgroundColor: "var(--bg-secondary)",
+              backgroundColor: "var(--surface-2)",
             }}
           >
             <h3 style={{ margin: 0 }}>Users ({filteredUsers.length})</h3>
@@ -305,7 +305,7 @@ const AdminUsers: React.FC = () => {
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
-                  <tr style={{ backgroundColor: "var(--bg-secondary)" }}>
+                  <tr style={{ backgroundColor: "var(--surface-2)" }}>
                     <th
                       style={{
                         padding: "1rem",
@@ -348,7 +348,19 @@ const AdminUsers: React.FC = () => {
                   {filteredUsers.map((user) => (
                     <tr
                       key={user.id}
-                      style={{ borderBottom: "1px solid var(--border)" }}
+                      style={{
+                        borderBottom: "1px solid var(--border)",
+                        backgroundColor: "var(--surface)",
+                        transition: "background-color 0.2s ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor =
+                          "var(--surface-2)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor =
+                          "var(--surface)";
+                      }}
                     >
                       <td style={{ padding: "1rem" }}>
                         <div>
@@ -356,9 +368,14 @@ const AdminUsers: React.FC = () => {
                             style={{
                               fontWeight: "500",
                               marginBottom: "0.25rem",
+                              color: "var(--text-primary)",
                             }}
                           >
-                            {user.name} {user.surname}
+                            {user.name && user.surname
+                              ? `${user.name} ${user.surname}`
+                              : user.name ||
+                                user.surname ||
+                                "Name not available"}
                           </div>
                           <div
                             style={{

@@ -5,6 +5,7 @@ import { StudentRepo } from "../students/student.repo";
 import { StudentService } from "../students/student.service";
 import { TutorRepo } from "../tutors/tutor.repo";
 import { AdminModel } from "../../schemas/admin.schema";
+import { UserModel } from "../../schemas/user.schema";
 import type { UserDoc } from "../../schemas/user.schema";
 import fs from "fs";
 import path from "path";
@@ -344,7 +345,250 @@ export const UserService = {
   },
 
   async list() {
-    return await UserRepo.find({}, 1000, 0); // Increase limit to get more users, include virtuals
+    const users = await UserRepo.find({}, 1000, 0);
+
+    // Populate profile data for each user
+    const usersWithProfiles = await Promise.all(
+      users.map(async (user) => {
+        let profileData = {};
+
+        if (user.role === "student") {
+          const student = await StudentRepo.findOne({ userId: user._id });
+          if (student) {
+            profileData = {
+              name: student.name,
+              surname: student.surname,
+            };
+          }
+        } else if (user.role === "tutor") {
+          const tutor = await TutorRepo.findOne({ userId: user._id });
+          if (tutor) {
+            profileData = {
+              name: tutor.name,
+              surname: tutor.surname,
+            };
+          }
+        } else if (user.role === "admin") {
+          const admin = await AdminModel.findOne({ userId: user._id });
+          if (admin) {
+            profileData = {
+              name: admin.name,
+              surname: admin.surname,
+            };
+          }
+        }
+
+        return {
+          ...user,
+          ...profileData,
+        };
+      }),
+    );
+
+    return usersWithProfiles;
+  },
+
+  async getAdminStats() {
+    try {
+      // Get total users count
+      const totalUsers = await UserModel.countDocuments();
+
+      // Get active users (users who logged in within last 7 days)
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const activeUsers = await UserModel.countDocuments({
+        updatedAt: { $gte: sevenDaysAgo },
+      });
+
+      // Get total content count (from tutor uploads)
+      const { FileModel } = await import("../../schemas/tutorUpload.schema");
+      const totalContent = await FileModel.countDocuments();
+
+      // Get system health based on aggregate connection speeds
+      let systemHealth = "Good";
+      try {
+        // Import health service to get connection speeds
+        const { HealthService } = await import("../../services/health.service");
+        const healthChecks = await HealthService.runAllChecks();
+
+        // Calculate aggregate score
+        const aggregateScore =
+          HealthService.calculateAggregateScore(healthChecks);
+        systemHealth = `${aggregateScore.message} (Score: ${aggregateScore.score}/100)`;
+      } catch (error) {
+        console.error("System health check failed:", error);
+        systemHealth = "Error - Health check failed";
+      }
+
+      // Get weekly user growth
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+      const weeklyGrowth = await UserModel.countDocuments({
+        createdAt: { $gte: oneWeekAgo },
+      });
+
+      // Get daily active users
+      const oneDayAgo = new Date();
+      oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+      const dailyActiveUsers = await UserModel.countDocuments({
+        updatedAt: { $gte: oneDayAgo },
+      });
+
+      // Get monthly content growth
+      const oneMonthAgo = new Date();
+      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+      const monthlyContentGrowth = await FileModel.countDocuments({
+        createdAt: { $gte: oneMonthAgo },
+      });
+
+      return {
+        totalUsers,
+        activeUsers,
+        totalContent,
+        systemHealth,
+        weeklyGrowth,
+        dailyActiveUsers,
+        monthlyContentGrowth,
+      };
+    } catch (error) {
+      console.error("Error fetching admin stats:", error);
+      throw error;
+    }
+  },
+
+  async getRecentActivity() {
+    try {
+      const activities = [];
+
+      // Get recent user registrations
+      const recentUsers = await UserModel.find({})
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .lean();
+
+      for (const user of recentUsers) {
+        activities.push({
+          icon: "fas fa-user-plus",
+          title: "New User Registration",
+          description: `${user.role} registered successfully`,
+          time: this.getTimeAgo(user.createdAt),
+          type: "success",
+        });
+      }
+
+      // Get recent content uploads
+      const { FileModel } = await import("../../schemas/tutorUpload.schema");
+      const recentUploads = await FileModel.find({})
+        .sort({ createdAt: -1 })
+        .limit(3)
+        .populate("tutorId", "name surname")
+        .lean();
+
+      for (const upload of recentUploads) {
+        const tutorName =
+          upload.tutorId &&
+          typeof upload.tutorId === "object" &&
+          "name" in upload.tutorId
+            ? `${(upload.tutorId as any).name} ${(upload.tutorId as any).surname}`
+            : "Unknown Tutor";
+        activities.push({
+          icon: "fas fa-upload",
+          title: "Content Uploaded",
+          description: `${tutorName} uploaded new material`,
+          time: this.getTimeAgo(upload.createdAt),
+          type: "info",
+        });
+      }
+
+      // Get recent forum posts
+      const { ForumPostModel } = await import("../../schemas/forumPost.schema");
+      const recentPosts = await ForumPostModel.find({})
+        .sort({ createdAt: -1 })
+        .limit(2)
+        .lean();
+
+      for (const post of recentPosts) {
+        // Get author name from the appropriate collection based on role
+        let authorName = "Unknown User";
+        if (post.authorRole === "student") {
+          const student = await StudentRepo.findOne({ userId: post.authorId });
+          if (student) {
+            authorName = `${student.name} ${student.surname}`;
+          }
+        } else if (post.authorRole === "tutor") {
+          const tutor = await TutorRepo.findOne({ userId: post.authorId });
+          if (tutor) {
+            authorName = `${tutor.name} ${tutor.surname}`;
+          }
+        } else if (post.authorRole === "admin") {
+          const admin = await AdminModel.findOne({ userId: post.authorId });
+          if (admin) {
+            authorName = `${admin.name} ${admin.surname}`;
+          }
+        }
+
+        activities.push({
+          icon: "fas fa-comments",
+          title: "New Forum Post",
+          description: `${authorName} posted in ${post.topic}`,
+          time: this.getTimeAgo(post.createdAt),
+          type: "info",
+        });
+      }
+
+      // Sort activities by time (most recent first)
+      return activities.sort((a, b) => {
+        const timeA = this.parseTimeAgo(a.time);
+        const timeB = this.parseTimeAgo(b.time);
+        return timeA - timeB;
+      });
+    } catch (error) {
+      console.error("Error fetching recent activity:", error);
+      return [];
+    }
+  },
+
+  getTimeAgo(date: Date | string) {
+    const now = new Date();
+    const past = new Date(date);
+    const diffInSeconds = Math.floor((now.getTime() - past.getTime()) / 1000);
+
+    if (diffInSeconds < 60) {
+      return `${diffInSeconds} seconds ago`;
+    } else if (diffInSeconds < 3600) {
+      const minutes = Math.floor(diffInSeconds / 60);
+      return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
+    } else if (diffInSeconds < 86400) {
+      const hours = Math.floor(diffInSeconds / 3600);
+      return `${hours} hour${hours > 1 ? "s" : ""} ago`;
+    } else {
+      const days = Math.floor(diffInSeconds / 86400);
+      return `${days} day${days > 1 ? "s" : ""} ago`;
+    }
+  },
+
+  parseTimeAgo(timeStr: string) {
+    const now = new Date().getTime();
+    const match = timeStr.match(/(\d+)\s+(second|minute|hour|day)s?\s+ago/);
+    if (!match) return now;
+
+    const value = parseInt(match[1]);
+    const unit = match[2];
+    let multiplier = 1000; // seconds
+
+    switch (unit) {
+      case "minute":
+        multiplier *= 60;
+        break;
+      case "hour":
+        multiplier *= 3600;
+        break;
+      case "day":
+        multiplier *= 86400;
+        break;
+    }
+
+    return now - value * multiplier;
   },
 
   async get(id: string) {

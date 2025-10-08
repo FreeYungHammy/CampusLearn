@@ -6,6 +6,7 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import { useAuthStore } from "../store/authStore";
 import BookingStepperModal from "../components/BookingStepperModal";
+import AdminDashboard from "./AdminDashboard";
 import type { Tutor } from "../types/Tutors";
 
 // Daily motivational quotes
@@ -160,6 +161,11 @@ const Dashboard = () => {
     useState(false);
   const { user } = useAuthStore();
   const navigate = useNavigate();
+
+  // Show admin dashboard for admin users
+  if (user?.role === "admin") {
+    return <AdminDashboard />;
+  }
 
   // Use a stable callback for opening the modal to avoid closure issues
   const openBookingStepper = useCallback(() => {

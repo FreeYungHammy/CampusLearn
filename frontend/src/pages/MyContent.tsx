@@ -324,9 +324,6 @@ const MyContent = () => {
                             >
                               <i className="fas fa-arrow-left"></i> Back
                             </button>
-                            <h3 className="content-section-title">
-                              {selectedSubject}
-                            </h3>
                           </div>
 
                           <div className="subtopics-grid">
@@ -373,11 +370,6 @@ const MyContent = () => {
                             >
                               <i className="fas fa-arrow-left"></i> Back
                             </button>
-                            <h3 className="content-section-title">
-                              {selectedSubject}{" "}
-                              <i className="fas fa-chevron-right"></i>{" "}
-                              {selectedSubtopic}
-                            </h3>
                           </div>
 
                           <div className="files-grid">
