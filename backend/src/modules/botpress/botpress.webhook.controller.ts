@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import { io } from "../../config/socket";
 
 export const BotpressWebhookController = {
   /**
@@ -10,19 +11,26 @@ export const BotpressWebhookController = {
       console.log("Botpress webhook received:", req.body);
       
       // Botpress webhook payload structure
-      const { type, payload } = req.body;
+      const { type, payload, conversationId } = req.body;
       
-      if (type === 'message') {
-        const { conversationId, message } = payload;
+      if (type === 'message' || type === 'choice' || type === 'text') {
+        const { text } = payload;
         
-        console.log(`Botpress response for conversation ${conversationId}:`, message);
+        console.log(`✅ Botpress response for user ${conversationId}: ${text?.substring(0, 50)}...`);
         
-        // Here you can:
-        // 1. Store the message in database
-        // 2. Send real-time update to frontend via WebSocket
-        // 3. Process the message further
+        // Send the bot response to the frontend via Socket.IO
+        // The conversationId from Botpress webhook is the userId from our system
+        if (io && conversationId) {
+          io.emit('botpress_response', {
+            userId: conversationId,
+            message: text,
+            timestamp: new Date().toISOString()
+          });
+          console.log(`✅ Sent bot response to user ${conversationId} via Socket.IO`);
+        } else {
+          console.error('❌ Socket.IO emission failed:', { io: !!io, conversationId });
+        }
         
-        // For now, just acknowledge receipt
         res.json({ 
           success: true, 
           message: "Webhook received successfully" 
