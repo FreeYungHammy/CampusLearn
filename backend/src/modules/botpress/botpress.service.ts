@@ -27,15 +27,11 @@ export const BotpressService = {
     }
 
     try {
-      // Use the Botpress webhook endpoint for sending messages
+      // Use the Botpress Messaging API webhook endpoint
       const botpressWebhookUrl = `https://webhook.botpress.cloud/e961b124-66a4-4a8f-9844-9d8670d73440`;
       
       const possibleEndpoints = [
-        botpressWebhookUrl, // Your specific webhook URL
-        `https://api.botpress.cloud/v1/bots/${env.botpressBotId}/conversations/${userId}/messages`,
-        `https://api.botpress.cloud/v1/bots/${env.botpressBotId}/messages`,
-        `https://api.botpress.cloud/v1/chat/${env.botpressBotId}/messages`,
-        `https://api.botpress.cloud/v2/bots/${env.botpressBotId}/messages`,
+        botpressWebhookUrl,
       ];
 
       let lastError: Error | null = null;
@@ -44,18 +40,27 @@ export const BotpressService = {
         try {
           console.log(`Trying Botpress endpoint: ${botpressUrl}`);
           
+          // Generate a unique message ID
+          const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          
           const response = await fetch(botpressUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${env.botpressPat}`, // Use Personal Access Token
+              'Authorization': `Bearer ${env.botpressPat}`,
               'x-bot-id': env.botpressBotId,
             },
             body: JSON.stringify({
+              userId: userId,
+              messageId: messageId,
+              conversationId: userId,
               type: 'text',
               text: message,
-              userId: userId,
-              conversationId: userId, // Use userId as conversationId for simplicity
+              payload: {
+                user: {
+                  userName: userId
+                }
+              }
             }),
           });
 
@@ -65,21 +70,12 @@ export const BotpressService = {
             const data = await response.json();
             console.log('Botpress response data:', data);
             
-            // Extract response from Botpress format
-            let botResponse = "I received your message but couldn't process it properly.";
-            
-            if (data.responses && data.responses.length > 0) {
-              // Botpress typically returns responses in this format
-              botResponse = data.responses[0].text || data.responses[0].message || botResponse;
-            } else if (data.text) {
-              botResponse = data.text;
-            } else if (data.message) {
-              botResponse = data.message;
-            }
-            
+            // The Messaging API returns confirmation, not the bot's response
+            // The actual bot response comes via webhook
             return {
-              response: botResponse,
+              response: "Message sent to bot. Waiting for response...",
               success: true,
+              pending: true,
             };
           } else {
             const errorText = await response.text();
