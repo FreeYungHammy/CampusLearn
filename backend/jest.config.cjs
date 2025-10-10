@@ -1,6 +1,10 @@
+/** @type {import('ts-jest').JestConfigWithTsJest} */
 module.exports = {
-  testEnvironment: "node",
+  preset: 'ts-jest',
+  testEnvironment: 'node',
   roots: ["<rootDir>/tests"],
-  transform: {},
   verbose: true,
+  moduleNameMapper: {
+    '^@xenova/transformers$': '<rootDir>/tests/__mocks__/fileMock.js',
+  },
 };
