@@ -107,10 +107,18 @@ export const AdminController = {
 
       const deleted = await AdminService.deleteEntity(entityType, id);
 
-      if (!deleted) {
+      // If deleted is null, it means the entity was not found
+      if (deleted === null) {
         return res
           .status(404)
           .json({ message: `${entityType.slice(0, -1)} not found` });
+      }
+
+      // If deleted has a 'deleted' property, it means cascade deletion completed successfully
+      if (deleted && typeof deleted === "object" && deleted.deleted) {
+        return res
+          .status(200)
+          .json({ message: `${entityType.slice(0, -1)} deleted successfully` });
       }
 
       res
