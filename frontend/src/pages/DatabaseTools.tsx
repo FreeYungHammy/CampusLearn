@@ -254,6 +254,14 @@ const DatabaseTools: React.FC = () => {
     return fields[entityType] || [];
   };
 
+  const formatFieldName = (field: string): string => {
+    // Add spaces before capital letters and convert to title case
+    return field
+      .replace(/([A-Z])/g, " $1") // Add space before capital letters
+      .replace(/^./, (str) => str.toUpperCase()) // Capitalize first letter
+      .trim(); // Remove any leading/trailing spaces
+  };
+
   const formatValue = (value: any, field: string): string => {
     if (value === null || value === undefined) return "N/A";
 
@@ -363,9 +371,7 @@ const DatabaseTools: React.FC = () => {
               <thead>
                 <tr>
                   {getEntityFields(activeTab).map((field) => (
-                    <th key={field}>
-                      {field.charAt(0).toUpperCase() + field.slice(1)}
-                    </th>
+                    <th key={field}>{formatFieldName(field)}</th>
                   ))}
                   <th>Actions</th>
                 </tr>

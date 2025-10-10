@@ -257,7 +257,7 @@ export class AdminService {
     // Get the entity first to handle cascade deletion
     const entity = await Model.findById(id);
     if (!entity) {
-      throw new Error("Entity not found");
+      return null; // Return null instead of throwing error
     }
 
     // Special handling for files - delete from GCS as well
@@ -537,6 +537,16 @@ export class AdminService {
 
     // Delete the main entity
     const deletedEntity = await Model.findByIdAndDelete(id);
+
+    // If the entity was not found but we've completed cascade deletion,
+    // consider the operation successful
+    if (!deletedEntity && entity) {
+      console.log(
+        `Entity ${id} was already deleted or not found, but cascade deletion completed`,
+      );
+      return { _id: id, deleted: true }; // Return a success indicator
+    }
+
     return deletedEntity;
   }
 
