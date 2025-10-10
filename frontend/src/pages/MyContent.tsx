@@ -4,6 +4,8 @@ import { useAuthStore } from "../store/authStore";
 import { apiBaseUrl } from "../lib/api";
 import { deleteFile, getMyContent } from "../services/fileApi";
 import type { TutorUpload } from "../types/tutorUploads";
+import VideoPlayer from "../components/VideoPlayer";
+import "../components/VideoPlayer.css";
 
 // List of MIME types that can be safely displayed in a browser
 const VIEWABLE_MIME_TYPES = [
@@ -476,10 +478,10 @@ const MyContent = () => {
             </div>
             <div className="modal-body">
               {selectedFile.contentType.startsWith("video/") ? (
-                <video
+                <VideoPlayer
                   src={`${apiBaseUrl}/files/${(selectedFile as any).id || (selectedFile as any)._id}/binary`}
-                  controls
-                  autoPlay
+                  title={selectedFile.title}
+                  fileId={(selectedFile as any).id || (selectedFile as any)._id}
                   style={{ width: "100%", height: "100%" }}
                 />
               ) : (

@@ -1,0 +1,15 @@
+# CDN Test Configuration
+# Copy these settings to your .env file to test CDN integration
+
+CDN_ENABLED=true
+CDN_BASE_URL=https://your-cdn-domain.com
+CDN_CACHE_TTL=86400
+CDN_PROVIDER=google-cloud
+
+# Test the CDN endpoints:
+# GET /api/files/cdn/stats - Check CDN status
+# POST /api/files/cdn/preload/:id - Preload video to CDN
+# POST /api/files/cdn/invalidate/:id - Invalidate CDN cache
+
+
+
