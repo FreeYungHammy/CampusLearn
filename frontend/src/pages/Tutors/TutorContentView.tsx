@@ -3,6 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { apiBaseUrl } from "../../lib/api";
 import { getTutorContent } from "../../services/fileApi";
 import type { TutorUpload } from "../../types/tutorUploads";
+import VideoPlayer from "../../components/VideoPlayer";
+import "../../components/VideoPlayer.css";
 import { getTutorById } from "../../services/tutorApi";
 import type { Tutor } from "../../types/Tutors";
 
@@ -375,10 +377,10 @@ const TutorContentView = () => {
             </div>
             <div className="modal-body">
               {selectedFile.contentType.startsWith("video/") ? (
-                <video
+                <VideoPlayer
                   src={`${apiBaseUrl}/files/${(selectedFile as any).id || (selectedFile as any)._id}/binary`}
-                  controls
-                  autoPlay
+                  title={selectedFile.title}
+                  fileId={(selectedFile as any).id || (selectedFile as any)._id}
                   style={{ width: "100%", height: "100%" }}
                 />
               ) : (

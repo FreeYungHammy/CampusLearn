@@ -12,29 +12,35 @@ let storage: Storage | null = null;
 
 function getStorage(): Storage {
   if (storage) return storage;
-  
+
   console.log("GCS: Initializing Storage client...");
   console.log("GCS: Environment variables:");
   console.log("  - GCS_BUCKET:", process.env.GCS_BUCKET);
   console.log("  - GOOGLE_CLOUD_PROJECT:", process.env.GOOGLE_CLOUD_PROJECT);
   console.log("  - GCS_KEYFILE_JSON exists:", !!process.env.GCS_KEYFILE_JSON);
-  console.log("  - GCS_KEYFILE_JSON length:", process.env.GCS_KEYFILE_JSON?.length || 0);
-  
+  console.log(
+    "  - GCS_KEYFILE_JSON length:",
+    process.env.GCS_KEYFILE_JSON?.length || 0,
+  );
+
   // Build credentials from env (inline JSON, base64, or file path)
   let options: any = {};
-  
+
   if (env.gcsProjectId) {
     options.projectId = env.gcsProjectId;
     console.log("GCS: Set projectId to:", env.gcsProjectId);
   }
-  
+
   if (env.gcsKeyJson) {
     try {
       options.credentials = JSON.parse(env.gcsKeyJson);
       console.log("GCS: Successfully parsed inline JSON credentials");
     } catch (e) {
       console.error("Failed to parse GCS_KEYFILE_JSON:", e);
-      console.error("JSON content preview:", env.gcsKeyJson?.substring(0, 100) + "...");
+      console.error(
+        "JSON content preview:",
+        env.gcsKeyJson?.substring(0, 100) + "...",
+      );
     }
   } else if (env.gcsKeyBase64) {
     try {
@@ -50,17 +56,18 @@ function getStorage(): Storage {
   } else {
     console.warn("GCS: No credentials found in environment variables");
   }
-  
+
   console.log("GCS: Final options:", JSON.stringify(options, null, 2));
-  
+
   // Always pass options, even if empty - this prevents fallback to default credentials
   storage = new Storage(options);
   return storage;
 }
 
-function parseBucketAndObject(
-  objectName: string,
-): { bucket: string; objectPath: string } {
+function parseBucketAndObject(objectName: string): {
+  bucket: string;
+  objectPath: string;
+} {
   // If it's a full gs:// URI, parse it properly.
   if (objectName.startsWith("gs://")) {
     const cleaned = objectName.substring(5); // remove "gs://"
@@ -113,24 +120,52 @@ export const gcsService = {
   },
 
   async getSignedReadUrl(objectName: string): Promise<string> {
+    // Import CacheService dynamically to avoid circular dependencies
+    const { CacheService } = await import("../services/cache.service");
+
+    const cacheKey = `gcs:signed-url:${objectName}`;
+
+    // Try to get from cache first
+    try {
+      const cached = await CacheService.get(cacheKey);
+      if (cached && typeof cached === "string") {
+        console.log(`GCS: Using cached signed URL for ${objectName}`);
+        return cached;
+      }
+    } catch (error) {
+      console.warn(`GCS: Cache miss for ${objectName}:`, error);
+    }
+
     const client = getStorage();
     const { bucket, objectPath } = parseBucketAndObject(objectName);
 
-    console.log(`GCS: Attempting to get signed URL for bucket '${bucket}' and object '${objectPath}'`);
+    console.log(
+      `GCS: Generating new signed URL for bucket '${bucket}' and object '${objectPath}'`,
+    );
 
     const file = client.bucket(bucket).file(objectPath);
     const [url] = await file.getSignedUrl({
       action: "read",
       expires: Date.now() + env.gcsSignedUrlTtlSeconds * 1000,
     });
+
+    // Cache the URL for 50 minutes (10 minutes before expiry)
+    try {
+      await CacheService.set(cacheKey, url, 3000); // 50 minutes
+      console.log(`GCS: Cached signed URL for ${objectName}`);
+    } catch (error) {
+      console.warn(`GCS: Failed to cache signed URL for ${objectName}:`, error);
+    }
+
     return url;
   },
 
   async deleteObject(objectName: string): Promise<void> {
     const client = getStorage();
     const { bucket, objectPath } = parseBucketAndObject(objectName);
-    await client.bucket(bucket).file(objectPath).delete({ ignoreNotFound: true });
+    await client
+      .bucket(bucket)
+      .file(objectPath)
+      .delete({ ignoreNotFound: true });
   },
 };
-
-
