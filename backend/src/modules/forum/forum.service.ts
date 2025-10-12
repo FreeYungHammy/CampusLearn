@@ -87,12 +87,11 @@ export const ForumService = {
 
     let authorProfile;
     if (user.role === "student") {
-      authorProfile = await StudentModel.findOne({ userId: user.id }).lean();
+      authorProfile = await StudentModel.findOne({ userId: new mongoose.Types.ObjectId(user.id) }).lean();
     } else if (user.role === "tutor") {
-      authorProfile = await TutorModel.findOne({ userId: user.id }).lean();
-    }
- else if (user.role === "admin") {
-      authorProfile = await AdminModel.findOne({ userId: user.id }).lean();
+      authorProfile = await TutorModel.findOne({ userId: new mongoose.Types.ObjectId(user.id) }).lean();
+    } else if (user.role === "admin") {
+      authorProfile = await AdminModel.findOne({ userId: new mongoose.Types.ObjectId(user.id) }).lean();
     }
 
     if (!authorProfile) {
@@ -528,11 +527,6 @@ export const ForumService = {
 
       if (!targetDoc) {
         throw new HttpException(404, `${targetType} not found`);
-      }
-
-      // @ts-ignore
-      if (targetDoc.authorId.toString() === user.id) {
-        throw new HttpException(403, "You cannot vote on your own content.");
       }
 
       const existingVote = await UserVoteModel.findOne({

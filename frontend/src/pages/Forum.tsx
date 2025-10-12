@@ -368,6 +368,7 @@ const Forum = () => {
           <button
             onClick={() => setIsModalOpen(true)}
             className="new-topic-btn"
+            data-cy="new-topic-btn"
           >
             <i className="fas fa-plus"></i> New Topic
           </button>
@@ -383,15 +384,17 @@ const Forum = () => {
                 className={`upvote-btn ${thread.userVote === 1 ? "upvoted" : ""}`}
                 aria-label="Upvote"
                 disabled={isVoting[thread._id]}
+                data-cy="upvote-btn"
               >
                 <i className="fas fa-arrow-up"></i>
               </button>
-              <span className="vote-count">{thread.upvotes}</span>
+              <span className="vote-count" data-cy="vote-count">{thread.upvotes}</span>
               <button
                 onClick={(e) => handleDownvote(thread._id, e)}
                 className={`downvote-btn ${thread.userVote === -1 ? "downvoted" : ""}`}
                 aria-label="Downvote"
                 disabled={isVoting[thread._id]}
+                data-cy="downvote-btn"
               >
                 <i className="fas fa-arrow-down"></i>
               </button>
@@ -420,7 +423,7 @@ const Forum = () => {
               ) : (
                 <Link to={`/forum/${thread._id}`} className="topic-link">
                   <div className="topic-header">
-                    <h2 className="topic-title">{thread.title}</h2>
+                    <h2 className="topic-title" data-cy="post-title">{thread.title}</h2>
                     <span
                       className={`topic-subject ${formatSubjectClass(
                         thread.topic,

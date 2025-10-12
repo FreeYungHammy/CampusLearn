@@ -1,10 +1,12 @@
 import express from "express";
+import http from "http";
 import cors from "cors";
 import health from "./routes/health";
 import api from "./routes/index";
 import { connectMongo } from "./infra/db/mongoose";
 
 const app = express();
+const server = http.createServer(app);
 app.disable("etag");
 
 /* ---------- CORS ---------- */
@@ -55,4 +57,4 @@ app.use((req, res) => {
   res.status(404).json({ error: "Not found", path: req.path });
 });
 
-export default app;
+export { app, server };

@@ -4,8 +4,7 @@ try {
 } catch {}
 
 import path from "path";
-import http from "http";
-import app from "./app"; // make sure app.ts default-exports the Express app
+import { app, server } from "./app"; // Correctly import the server
 import { createSocketServer } from "./config/socket";
 import { connectMongo } from "./infra/db/mongoose";
 import { env } from "./config/env";
@@ -15,15 +14,11 @@ import mongoose from "mongoose";
 const logger = createLogger("server");
 const port = Number(process.env.PORT ?? env.port ?? 8080);
 
-// Build HTTP server first (so we can attach Socket.IO to it)
-const server = http.createServer(app);
-
 // Attach Socket.IO and keep a handle for shutdown
 const io = createSocketServer(server);
 
 async function start() {
   try {
-    // If you’ve currently connected in app.ts, remove that and do it here instead:
     await connectMongo();
 
     server.listen(port, () => {

@@ -451,6 +451,7 @@ const ForumTopic = () => {
                 rows={5}
                 required
                 className="form-control"
+                data-cy="reply-textarea"
               ></textarea>
             </div>
             <div className="checkbox-group">
@@ -469,6 +470,7 @@ const ForumTopic = () => {
               type="submit"
               className="btn btn-primary"
               disabled={isSubmittingReply}
+              data-cy="post-reply-btn"
             >
               {isSubmittingReply ? (
                 <>
@@ -510,10 +512,11 @@ const ForumTopic = () => {
                     }`}
                     aria-label="Upvote"
                     disabled={isVoting[reply._id]}
+                    data-cy="reply-upvote-btn"
                   >
                     <i className="fas fa-arrow-up"></i>
                   </button>
-                  <span className="vote-count">{reply.upvotes}</span>
+                  <span className="vote-count" data-cy="reply-vote-count">{reply.upvotes}</span>
                   <button
                     onClick={(e) => handleReplyDownvote(reply._id, e)}
                     className={`downvote-btn ${
@@ -521,6 +524,7 @@ const ForumTopic = () => {
                     }`}
                     aria-label="Downvote"
                     disabled={isVoting[reply._id]}
+                    data-cy="reply-downvote-btn"
                   >
                     <i className="fas fa-arrow-down"></i>
                   </button>
