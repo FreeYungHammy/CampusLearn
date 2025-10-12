@@ -368,6 +368,7 @@ const Forum = () => {
           <button
             onClick={() => setIsModalOpen(true)}
             className="new-topic-btn"
+            data-cy="new-topic-btn"
           >
             <i className="fas fa-plus"></i> New Topic
           </button>
@@ -420,7 +421,7 @@ const Forum = () => {
               ) : (
                 <Link to={`/forum/${thread._id}`} className="topic-link">
                   <div className="topic-header">
-                    <h2 className="topic-title">{thread.title}</h2>
+                    <h2 className="topic-title" data-cy="post-title">{thread.title}</h2>
                     <span
                       className={`topic-subject ${formatSubjectClass(
                         thread.topic,

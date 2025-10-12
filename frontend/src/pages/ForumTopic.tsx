@@ -451,6 +451,7 @@ const ForumTopic = () => {
                 rows={5}
                 required
                 className="form-control"
+                data-cy="reply-textarea"
               ></textarea>
             </div>
             <div className="checkbox-group">
@@ -469,6 +470,7 @@ const ForumTopic = () => {
               type="submit"
               className="btn btn-primary"
               disabled={isSubmittingReply}
+              data-cy="post-reply-btn"
             >
               {isSubmittingReply ? (
                 <>

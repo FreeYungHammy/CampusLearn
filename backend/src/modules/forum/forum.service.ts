@@ -87,12 +87,11 @@ export const ForumService = {
 
     let authorProfile;
     if (user.role === "student") {
-      authorProfile = await StudentModel.findOne({ userId: user.id }).lean();
+      authorProfile = await StudentModel.findOne({ userId: new mongoose.Types.ObjectId(user.id) }).lean();
     } else if (user.role === "tutor") {
-      authorProfile = await TutorModel.findOne({ userId: user.id }).lean();
-    }
- else if (user.role === "admin") {
-      authorProfile = await AdminModel.findOne({ userId: user.id }).lean();
+      authorProfile = await TutorModel.findOne({ userId: new mongoose.Types.ObjectId(user.id) }).lean();
+    } else if (user.role === "admin") {
+      authorProfile = await AdminModel.findOne({ userId: new mongoose.Types.ObjectId(user.id) }).lean();
     }
 
     if (!authorProfile) {
