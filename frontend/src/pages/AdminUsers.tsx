@@ -32,20 +32,16 @@ function DeleteUserModal({
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="modal-content delete-user-modal"
+        onClick={(e) => e.stopPropagation()}
+      >
         <h2 className="modal-title">Confirm User Deletion</h2>
         <div className="modal-body">
-          <p style={{ marginBottom: "1rem", color: "var(--danger)" }}>
+          <p className="warning-text">
             ⚠️ Are you sure you want to delete this user account?
           </p>
-          <div
-            style={{
-              marginBottom: "1rem",
-              padding: "1rem",
-              backgroundColor: "var(--bg-secondary)",
-              borderRadius: "8px",
-            }}
-          >
+          <div className="user-details-box">
             <p>
               <strong>Email:</strong> {user.email}
             </p>
@@ -60,7 +56,7 @@ function DeleteUserModal({
               {new Date(user.createdAt).toLocaleDateString()}
             </p>
           </div>
-          <p style={{ color: "var(--danger)" }}>
+          <p className="warning-text secondary-warning">
             This will permanently delete all user data including messages,
             posts, uploads, and bookings. This action cannot be undone.
           </p>

@@ -274,6 +274,25 @@ export const UserController = {
     }
   },
 
+  // Check email availability
+  checkEmailAvailability: async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const { email } = req.query;
+      if (!email || typeof email !== "string") {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      const existing = await UserService.checkEmailExists(email);
+      res.json({ available: !existing });
+    } catch (e) {
+      next(e);
+    }
+  },
+
   // Recent Activity
   getRecentActivity: async (
     req: AuthedRequest,
