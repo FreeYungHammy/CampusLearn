@@ -536,12 +536,14 @@ export const UserService = {
         });
       }
 
-      // Sort activities by time (most recent first)
-      return activities.sort((a, b) => {
-        const timeA = this.parseTimeAgo(a.time);
-        const timeB = this.parseTimeAgo(b.time);
-        return timeA - timeB;
-      });
+      // Sort activities by time (most recent first) and limit to 5 items
+      return activities
+        .sort((a, b) => {
+          const timeA = this.parseTimeAgo(a.time);
+          const timeB = this.parseTimeAgo(b.time);
+          return timeB - timeA; // Reverse the order to show newest first
+        })
+        .slice(0, 5); // Limit to only the 5 most recent activities
     } catch (error) {
       console.error("Error fetching recent activity:", error);
       return [];

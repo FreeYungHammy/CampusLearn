@@ -1948,6 +1948,10 @@ btn-success:hover {
 
 .header-content {
   margin-bottom: 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .header-content h1 {
@@ -1955,6 +1959,7 @@ btn-success:hover {
   font-weight: 700;
   margin: 0 0 8px 0;
   color: var(--text-primary);
+  text-align: center;
 }
 
 .header-content p {
@@ -1962,6 +1967,7 @@ btn-success:hover {
   color: var(--text-secondary);
   margin: 0;
   max-width: 500px;
+  text-align: center;
 }
 
 .new-topic-btn {
@@ -2039,6 +2045,7 @@ btn-success:hover {
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
+  margin-bottom: 24px;
   width: 100%;
   max-width: 800px;
 }
@@ -2183,6 +2190,7 @@ btn-success:hover {
 /* Topics List */
 .topics-list {
   margin-bottom: 25px;
+  margin-top: 32px;
 }
 
 .topic-card {
