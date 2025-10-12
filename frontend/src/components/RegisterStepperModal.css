@@ -178,8 +178,16 @@
 .step-title {
   font-size: 1.25rem;
   font-weight: 600;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
   text-align: center;
+}
+
+.step-description {
+  font-size: 0.9rem;
+  color: var(--text-color-secondary, #6c757d);
+  margin-bottom: 1.5rem;
+  text-align: center;
+  font-style: italic;
 }
 
 .step-content > div {
@@ -371,6 +379,98 @@
   margin-top: 0.25rem;
 }
 
+.loading-message {
+  color: var(--primary-color, #007bff);
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.success-message {
+  color: #28a745;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Success message animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Success message container - light mode */
+.success-message-container {
+  text-align: center;
+  margin-bottom: 2rem;
+  padding: 2rem;
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+  border-radius: 0.5rem;
+  animation: fadeIn 0.5s ease-in;
+}
+
+.success-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.success-icon i {
+  color: #28a745;
+}
+
+.success-title {
+  margin-bottom: 1rem;
+  color: #155724;
+  font-weight: 600;
+}
+
+.success-description {
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+  color: #155724;
+}
+
+.success-redirect {
+  font-size: 0.9rem;
+  opacity: 0.8;
+  color: #155724;
+}
+
+/* Dark mode success message */
+[data-theme="dark"] .success-message-container {
+  background-color: rgba(40, 167, 69, 0.15);
+  color: #4ade80;
+  border: 1px solid rgba(40, 167, 69, 0.3);
+}
+
+[data-theme="dark"] .success-icon i {
+  color: #4ade80;
+}
+
+[data-theme="dark"] .success-title {
+  color: #4ade80;
+}
+
+[data-theme="dark"] .success-description {
+  color: #4ade80;
+}
+
+[data-theme="dark"] .success-redirect {
+  color: #4ade80;
+}
+
 .password-strength-meter {
   margin-top: 0.5rem;
   height: 4px;
@@ -501,6 +601,20 @@
 
 .btn-secondary:hover {
   background-color: #545b62;
+}
+
+.btn-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: #6c757d !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.btn-disabled:hover {
+  background-color: #6c757d !important;
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 .file-upload-container {

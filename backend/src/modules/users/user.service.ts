@@ -73,6 +73,16 @@ export const UserService = {
     }
   },
 
+  async checkEmailExists(email: string) {
+    try {
+      const existing = await UserRepo.findByEmail(email);
+      return !!existing;
+    } catch (error) {
+      console.error("Error checking email existence:", error);
+      return false;
+    }
+  },
+
   async register(input: {
     email: string;
     password: string;

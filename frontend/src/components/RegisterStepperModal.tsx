@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react"; // Add useEffect
+import React, { useState, useEffect, useCallback } from "react"; // Add useEffect and useCallback
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import { register } from "../services/authApi";
+import { register, checkEmailAvailability } from "../services/authApi";
 import Stepper from "./Stepper";
 import Dialog from "./ui/Dialog";
 import { useNavigate } from "react-router-dom";
@@ -49,10 +49,148 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
   >("next");
   const [isDragOver, setIsDragOver] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [emailCheckTimeout, setEmailCheckTimeout] =
+    useState<NodeJS.Timeout | null>(null);
+  const [emailSuccess, setEmailSuccess] = useState(false);
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
   const steps = ["Role", "Details", "Subjects"];
 
-  const handleNext = () => {
+  const validateEmailAvailability = async (email: string) => {
+    if (!email || !email.includes("@")) return true;
+
+    setIsCheckingEmail(true);
+    setEmailError(null);
+    setEmailSuccess(false);
+
+    try {
+      console.log("Starting email availability check for:", email);
+      const isAvailable = await checkEmailAvailability(email);
+      console.log("Email availability result:", isAvailable);
+      if (!isAvailable) {
+        setEmailError("This email is already registered");
+        setEmailSuccess(false);
+        return false;
+      }
+      setEmailSuccess(true);
+      setEmailError(null);
+      return true;
+    } catch (error: any) {
+      console.error("Error checking email:", error);
+      console.error("Error details:", error.response?.data || error.message);
+      // More specific error handling
+      if (error.response?.status === 400) {
+        setEmailError("Please enter a valid email address");
+      } else if (error.response?.status === 500) {
+        setEmailError("Server error. Please try again later.");
+      } else if (error.code === "NETWORK_ERROR" || !navigator.onLine) {
+        setEmailError("Network error. Please check your connection.");
+      } else {
+        setEmailError("Unable to verify email. Please try again.");
+      }
+      return false;
+    } finally {
+      setIsCheckingEmail(false);
+    }
+  };
+
+  // Debounced email check function
+  const debouncedEmailCheck = useCallback(
+    (email: string) => {
+      // Clear existing timeout
+      if (emailCheckTimeout) {
+        clearTimeout(emailCheckTimeout);
+      }
+
+      // Only check if email looks valid
+      if (email && email.includes("@") && email.includes(".")) {
+        const timeout = setTimeout(() => {
+          validateEmailAvailability(email);
+        }, 1000); // 1 second delay
+
+        setEmailCheckTimeout(timeout);
+      }
+    },
+    [emailCheckTimeout],
+  );
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (emailCheckTimeout) {
+        clearTimeout(emailCheckTimeout);
+      }
+    };
+  }, [emailCheckTimeout]);
+
+  const validateCurrentStep = () => {
+    switch (currentStep) {
+      case 1: // Role selection
+        return formik.values.role !== "";
+      case 2: // Details
+        const basicFieldsValid =
+          formik.values.firstName.trim() !== "" &&
+          formik.values.lastName.trim() !== "" &&
+          formik.values.email.trim() !== "" &&
+          formik.values.password.trim() !== "";
+
+        // Only block if there's a specific email error (not just network issues)
+        const emailBlocking =
+          emailError && !emailError.includes("Unable to verify");
+
+        // If role is tutor, also check for qualification file
+        if (formik.values.role === "tutor") {
+          return (
+            basicFieldsValid &&
+            formik.values.qualificationFile !== null &&
+            !emailBlocking
+          );
+        }
+        return basicFieldsValid && !emailBlocking;
+      case 3: // Subjects
+        return formik.values.subjects.length > 0;
+      default:
+        return true;
+    }
+  };
+
+  const handleNext = async () => {
     if (currentStep < steps.length) {
+      // Special handling for step 2 - check email availability
+      if (currentStep === 2 && formik.values.email.trim()) {
+        const isEmailAvailable = await validateEmailAvailability(
+          formik.values.email,
+        );
+        if (!isEmailAvailable) {
+          formik.setFieldTouched("email", true);
+          return; // Don't proceed if email is not available
+        }
+      }
+
+      // Validate current step before proceeding
+      if (!validateCurrentStep()) {
+        // Mark relevant fields as touched to show validation errors
+        switch (currentStep) {
+          case 1:
+            // Role selection - this shouldn't happen as role has default value
+            break;
+          case 2:
+            formik.setFieldTouched("firstName", true);
+            formik.setFieldTouched("lastName", true);
+            formik.setFieldTouched("email", true);
+            formik.setFieldTouched("password", true);
+            if (formik.values.role === "tutor") {
+              formik.setFieldTouched("qualificationFile", true);
+            }
+            break;
+          case 3:
+            formik.setFieldTouched("subjects", true);
+            break;
+        }
+        return; // Don't proceed to next step
+      }
+
       setTransitionDirection("next");
       setCurrentStep(currentStep + 1);
     }
@@ -120,8 +258,12 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
       setError("");
       try {
         await register(values);
-        onClose();
-        navigate("/login?registered=true");
+        setRegistrationSuccess(true);
+        // Close modal and navigate after showing success message for 2 seconds
+        setTimeout(() => {
+          onClose();
+          navigate("/login?registered=true");
+        }, 2500);
       } catch (err: any) {
         if (err.response && err.response.data && err.response.data.message) {
           setError(err.response.data.message);
@@ -190,11 +332,13 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
         </div>
         <form onSubmit={formik.handleSubmit}>
           <div className="modal-body">
-            <Stepper
-              steps={steps}
-              currentStep={currentStep}
-              onStepClick={setCurrentStep}
-            />
+            {!registrationSuccess && (
+              <Stepper
+                steps={steps}
+                currentStep={currentStep}
+                onStepClick={setCurrentStep}
+              />
+            )}
             <div
               className={`step-content ${transitionDirection === "prev" ? "back-transition" : ""}`}
             >
@@ -210,7 +354,24 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
                   {error}
                 </p>
               )}
-              {currentStep === 1 && (
+              {registrationSuccess && (
+                <div className="success-message-container">
+                  <div className="success-icon">
+                    <i className="fas fa-check-circle"></i>
+                  </div>
+                  <h3 className="success-title">
+                    Account Created Successfully!
+                  </h3>
+                  <p className="success-description">
+                    Welcome to CampusLearn! Your account has been created
+                    successfully.
+                  </p>
+                  <p className="success-redirect">
+                    Redirecting you to login...
+                  </p>
+                </div>
+              )}
+              {!registrationSuccess && currentStep === 1 && (
                 <div>
                   <h3 className="step-title">Are you a Student or a Tutor?</h3>
                   <div className="role-selection">
@@ -237,9 +398,12 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
                   </div>
                 </div>
               )}
-              {currentStep === 2 && (
+              {!registrationSuccess && currentStep === 2 && (
                 <div>
                   <h3 className="step-title">Enter Your Details</h3>
+                  <p className="step-description">
+                    All fields are required to continue
+                  </p>
                   <div className="form-group">
                     <label className="form-label">First Name</label>
                     <input
@@ -310,13 +474,38 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
                           : ""
                       }`}
                       placeholder="Enter your email"
-                      onChange={formik.handleChange}
+                      onChange={(e) => {
+                        formik.handleChange(e);
+                        // Clear email error and success when user starts typing
+                        if (emailError) {
+                          setEmailError(null);
+                        }
+                        if (emailSuccess) {
+                          setEmailSuccess(false);
+                        }
+                        // Start debounced email check
+                        debouncedEmailCheck(e.target.value);
+                      }}
                       onBlur={formik.handleBlur}
                       value={formik.values.email}
                     />
                     {formik.touched.email && formik.errors.email ? (
                       <div className="error-message">{formik.errors.email}</div>
                     ) : null}
+                    {emailError && (
+                      <div className="error-message">{emailError}</div>
+                    )}
+                    {isCheckingEmail && (
+                      <div className="loading-message">
+                        <i className="fas fa-spinner fa-spin"></i> Checking
+                        email availability...
+                      </div>
+                    )}
+                    {emailSuccess && !isCheckingEmail && (
+                      <div className="success-message">
+                        <i className="fas fa-check"></i> Email is available
+                      </div>
+                    )}
                   </div>
 
                   <div className="form-group">
@@ -440,9 +629,12 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
                   )}
                 </div>
               )}
-              {currentStep === 3 && (
+              {!registrationSuccess && currentStep === 3 && (
                 <div>
                   <h3 className="step-title">Select Your Subjects</h3>
+                  <p className="step-description">
+                    Please select at least one subject to continue
+                  </p>
                   <div className="subjects-container">
                     {[
                       "Programming",
@@ -502,30 +694,33 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
               {formik.errors.subjects}
             </div>
           ) : null}
-          <div className="modal-actions">
-            {currentStep > 1 && (
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={handleBack}
-              >
-                Back
-              </button>
-            )}
-            {currentStep < steps.length ? (
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={handleNext}
-              >
-                Next
-              </button>
-            ) : (
-              <button type="submit" className="btn btn-primary">
-                Finish
-              </button>
-            )}
-          </div>
+          {!registrationSuccess && (
+            <div className="modal-actions">
+              {currentStep > 1 && (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={handleBack}
+                >
+                  Back
+                </button>
+              )}
+              {currentStep < steps.length ? (
+                <button
+                  type="button"
+                  className={`btn btn-primary ${!validateCurrentStep() ? "btn-disabled" : ""}`}
+                  onClick={handleNext}
+                  disabled={!validateCurrentStep()}
+                >
+                  Next
+                </button>
+              ) : (
+                <button type="submit" className="btn btn-primary">
+                  Finish
+                </button>
+              )}
+            </div>
+          )}
         </form>
       </div>
     </Dialog>
