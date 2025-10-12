@@ -1872,6 +1872,72 @@ btn-success:hover {
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+
+/* Forum edit form styling */
+.edit-form textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--dark);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  resize: vertical;
+  min-height: 100px;
+  transition: all 0.2s ease;
+}
+
+.edit-form textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  background: var(--surface-2);
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.edit-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+  justify-content: flex-start;
+}
+
+.edit-actions .btn-ghost,
+.edit-actions .btn-primary {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.edit-actions .btn-ghost {
+  background: transparent;
+  color: var(--dark);
+  border: 1px solid var(--border);
+}
+
+.edit-actions .btn-ghost:hover {
+  background: var(--light-gray);
+  border-color: var(--primary);
+}
+
+.edit-actions .btn-primary {
+  background: var(--primary);
+  color: white;
+}
+
+.edit-actions .btn-primary:hover {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+}
+
+.forum-header-content {
   text-align: center;
   margin-bottom: 24px;
   padding: 32px;
@@ -2127,6 +2193,7 @@ btn-success:hover {
   margin-bottom: 15px;
   background-color: var(--bg-primary);
   transition: box-shadow 0.2s;
+  position: relative;
 }
 
 .topic-card:hover {
@@ -2663,6 +2730,53 @@ btn-success:hover {
   align-items: center;
   font-size: 13px;
   color: var(--text-secondary);
+}
+
+/* Topic actions (edit/delete buttons) */
+.topic-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+}
+
+.edit-btn,
+.delete-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  font-size: 12px;
+}
+
+.edit-btn {
+  background: #10b981;
+  color: white;
+}
+
+.edit-btn:hover {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.delete-btn {
+  background: #ef4444;
+  color: white;
+}
+
+.delete-btn:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
 .meta-stats {
@@ -3422,6 +3536,7 @@ btn-success:hover {
   padding: 20px;
   max-width: 1200px;
   margin: 0 auto;
+  min-height: 85vh; /* ensure full viewport height */
 }
 
 .content-browser {
@@ -3430,13 +3545,15 @@ btn-success:hover {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   overflow: hidden;
   border: 1px solid var(--border-light);
+  margin-bottom: 10px;
+  min-height: 65vh; /* ensure browser has enough height */
 }
 
 /* Breadcrumb Navigation */
 .breadcrumb-nav {
   display: flex;
   align-items: center;
-  padding: 20px;
+  padding: 16px 20px;
   border-bottom: 1px solid var(--border-light);
   background: var(--bg-light);
   flex-wrap: wrap;
@@ -3477,8 +3594,16 @@ btn-success:hover {
 
 /* Content Display */
 #content-display {
-  padding: 40px 20px; /* increased top/bottom padding to accommodate hover shadows */
-  min-height: 400px;
+  padding: 20px; /* reduced padding to fit content on one page */
+  min-height: 60vh; /* use viewport height to ensure enough space */
+  max-height: 80vh; /* prevent excessive height */
+  overflow: visible; /* ensure content is not clipped */
+}
+
+/* Specific styling for My Content subjects container */
+#mycontent-view .subjects-container {
+  min-height: 50vh; /* ensure subjects container has enough height */
+  padding-bottom: 20px; /* add bottom padding to prevent cut-off */
 }
 
 /* Error Message */
@@ -3532,6 +3657,8 @@ btn-success:hover {
 .content-grid {
   display: flex;
   flex-direction: column;
+  height: auto; /* allow content to expand naturally */
+  min-height: auto; /* remove any height constraints */
 }
 
 .content-section-title {
@@ -3577,8 +3704,9 @@ btn-success:hover {
 .subjects-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  padding-top: 10px; /* extra padding for hover shadows */
+  padding-top: 5px; /* reduced padding to save space */
   max-width: 100%;
+  min-height: 40vh; /* ensure grid has enough height for content */
 }
 
 /* Better horizontal space utilization on larger screens */
@@ -3620,6 +3748,8 @@ btn-success:hover {
     background 0.2s;
   gap: 16px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08); /* original subtle shadow */
+  min-height: 80px;
+  box-sizing: border-box;
 }
 
 .subject-card:hover {
@@ -3643,16 +3773,22 @@ btn-success:hover {
 
 .subject-info {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center; /* center content horizontally */
+  min-height: 38px;
 }
 
 .subject-info h4 {
-  margin: 0 0 6px 0;
+  margin: 0 0 8px 0;
   font-size: 16px;
   font-weight: 600;
   color: var(--text-primary); /* original text color */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.2;
 }
 
 .subject-info p {
@@ -3666,8 +3802,12 @@ btn-success:hover {
   font-weight: 600;
   color: var(--primary);
   background: var(--primary-light);
-  padding: 2px 8px;
+  padding: 4px 10px;
   border-radius: 10px;
+  margin-top: 4px;
+  display: inline-block;
+  width: fit-content;
+  text-align: center; /* ensure text is centered within the badge */
 }
 
 .subject-arrow {
@@ -4230,7 +4370,6 @@ btn-success:hover {
   box-shadow: 0 6px 16px rgba(52, 152, 219, 0.4);
 }
 
-
 /* ------------------------------
    10) Modal (Logout confirmation)
    ------------------------------ */
@@ -4638,6 +4777,15 @@ btn-success:hover {
 @media (max-width: 768px) {
   #mycontent-view {
     padding: 16px;
+    min-height: 90vh; /* ensure mobile has enough height */
+  }
+
+  .content-browser {
+    min-height: 70vh; /* adjust mobile browser height */
+  }
+
+  #content-display {
+    min-height: 65vh; /* adjust mobile content display height */
   }
 
   .breadcrumb-nav {
@@ -4647,6 +4795,34 @@ btn-success:hover {
   .subjects-grid {
     grid-template-columns: 1fr;
     gap: 16px;
+    min-height: 35vh; /* ensure mobile grid has enough height */
+  }
+
+  #mycontent-view .subjects-container {
+    min-height: 45vh; /* adjust mobile subjects container height */
+    padding-bottom: 15px; /* adjust mobile bottom padding */
+  }
+
+  .subject-card {
+    padding: 16px;
+    min-height: 70px;
+    gap: 12px;
+  }
+
+  .subject-icon {
+    width: 44px;
+    height: 44px;
+    font-size: 18px;
+  }
+
+  .subject-info h4 {
+    font-size: 15px;
+    margin-bottom: 6px;
+  }
+
+  .file-count {
+    font-size: 11px;
+    padding: 3px 8px;
   }
 
   .subtopics-grid {
@@ -6218,6 +6394,8 @@ body,
   grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
   gap: 12px;
   margin-bottom: 20px;
+  min-height: auto; /* allow container to expand as needed */
+  overflow: visible; /* ensure content is not clipped */
 }
 
 .subject-checkbox {
@@ -6389,6 +6567,49 @@ body,
 
   .role-option {
     min-height: 90px;
+  }
+
+  .subject-card {
+    padding: 12px;
+    min-height: 65px;
+    gap: 10px;
+  }
+
+  .subject-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+  }
+
+  .subject-info h4 {
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+
+  .file-count {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+
+  #mycontent-view {
+    min-height: 95vh; /* ensure smallest screens have enough height */
+  }
+
+  .content-browser {
+    min-height: 75vh; /* adjust for smallest screens */
+  }
+
+  #content-display {
+    min-height: 70vh; /* adjust for smallest screens */
+  }
+
+  .subjects-grid {
+    min-height: 40vh; /* ensure grid has enough height on smallest screens */
+  }
+
+  #mycontent-view .subjects-container {
+    min-height: 50vh; /* adjust smallest screen subjects container height */
+    padding-bottom: 10px; /* adjust smallest screen bottom padding */
   }
 }
 

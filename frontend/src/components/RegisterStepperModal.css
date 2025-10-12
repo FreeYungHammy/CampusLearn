@@ -2,6 +2,21 @@
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
+  padding: 0 1rem;
+  box-sizing: border-box;
+}
+
+/* Override the default modal width constraints for this specific modal */
+.modal-lg.register-stepper-modal {
+  width: 100% !important;
+  max-width: 1200px !important;
+}
+
+/* Ensure the modal overlay allows proper spacing */
+.modal-overlay .modal.register-stepper-modal {
+  width: 95% !important;
+  max-width: 1200px !important;
+  margin: 2rem auto !important;
 }
 
 .register-stepper-modal {
@@ -15,6 +30,7 @@
   flex-direction: column;
   animation: modalSlideIn 0.3s ease-out;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 @keyframes modalSlideIn {
@@ -31,6 +47,84 @@
 @media (max-width: 1800px) {
   .register-stepper-modal {
     max-width: 95%;
+  }
+}
+
+@media (max-width: 768px) {
+  .modal .register-stepper-modal {
+    padding: 0 0.5rem;
+  }
+
+  .register-stepper-modal {
+    margin: 1rem auto;
+  }
+
+  .modal-body {
+    padding: 1rem 1.5rem;
+  }
+
+  .role-selection {
+    gap: 1rem;
+    padding: 0;
+  }
+
+  .role-option {
+    padding: 1rem;
+    min-height: 120px;
+  }
+
+  .role-option .fas {
+    font-size: 1.5rem;
+  }
+
+  .role-option h3 {
+    font-size: 0.95rem;
+  }
+
+  .role-option p {
+    font-size: 0.8rem;
+  }
+
+  .password-toggle-btn {
+    right: 0.5rem;
+    width: 1.75rem;
+    height: 1.75rem;
+    padding: 0.375rem;
+  }
+
+  .password-toggle-btn i {
+    font-size: 0.875rem;
+  }
+
+  .password-input {
+    padding-right: 2.5rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .role-selection {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .role-option {
+    min-height: 100px;
+    padding: 0.75rem;
+  }
+
+  .password-toggle-btn {
+    right: 0.375rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    padding: 0.25rem;
+  }
+
+  .password-toggle-btn i {
+    font-size: 0.75rem;
+  }
+
+  .password-input {
+    padding-right: 2rem !important;
   }
 }
 
@@ -68,10 +162,11 @@
 }
 
 .modal-body {
-  padding: 1.5rem;
+  padding: 1.5rem 2rem;
   flex-grow: 1;
   overflow-y: auto;
   max-height: calc(80vh - 120px);
+  box-sizing: border-box;
 }
 
 .step-content {
@@ -144,8 +239,8 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem;
-  background-color: var(--card-background, #f7f7f7);
-  border: 2px solid var(--border-color, #e0e0e0);
+  background-color: var(--surface);
+  border: 2px solid var(--border);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -179,8 +274,10 @@
 .role-selection {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
+  gap: 1.5rem;
   margin-top: 1rem;
+  padding: 0 0.5rem;
+  box-sizing: border-box;
 }
 
 .role-option {
@@ -188,11 +285,15 @@
   flex-direction: column;
   align-items: center;
   padding: 1.25rem;
-  border: 2px solid var(--border-color, #e0e0e0);
+  border: 2px solid var(--border);
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   text-align: center;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 140px;
+  justify-content: center;
 }
 
 .role-option:hover {
@@ -243,7 +344,7 @@
 .form-control {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid var(--border-color, #e0e0e0);
+  border: 1px solid var(--border);
   border-radius: 6px;
   font-size: 1rem;
   transition: all 0.3s ease;
@@ -286,29 +387,82 @@
     background-color 0.3s ease;
 }
 
-.strength-bar[data-strength="0"] {
+.register-stepper-modal .strength-bar[data-strength="0"] {
   width: 0%;
   background-color: #e9ecef;
 }
-.strength-bar[data-strength="1"] {
+.register-stepper-modal .strength-bar[data-strength="1"] {
   width: 20%;
   background-color: #dc3545;
 }
-.strength-bar[data-strength="2"] {
+.register-stepper-modal .strength-bar[data-strength="2"] {
   width: 40%;
   background-color: #fd7e14;
 }
-.strength-bar[data-strength="3"] {
+.register-stepper-modal .strength-bar[data-strength="3"] {
   width: 60%;
-  background-color: #ffc107;
+  background-color: #28a745 !important; /* Changed to green to match Strong text */
 }
-.strength-bar[data-strength="4"] {
+.register-stepper-modal .strength-bar[data-strength="4"] {
   width: 80%;
   background-color: #28a745;
 }
-.strength-bar[data-strength="5"] {
+.register-stepper-modal .strength-bar[data-strength="5"] {
   width: 100%;
   background-color: #20c997;
+}
+
+.password-strength-text {
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-top: 0.5rem;
+  text-align: left;
+  transition: color 0.3s ease;
+}
+
+.password-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input {
+  padding-right: 3rem !important;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-color-secondary, #6c757d);
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+}
+
+.password-toggle-btn:hover {
+  color: var(--primary-color, #007bff);
+  background-color: rgba(0, 123, 255, 0.1);
+}
+
+.password-toggle-btn:focus {
+  outline: none;
+  color: var(--primary-color, #007bff);
+  background-color: rgba(0, 123, 255, 0.1);
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
+}
+
+.password-toggle-btn i {
+  font-size: 1rem;
 }
 
 .btn {
@@ -368,7 +522,7 @@
   padding: 1rem;
   border: 2px dashed var(--border-color, #e0e0e0);
   border-radius: 8px;
-  background-color: var(--card-background, #f7f7f7);
+  background-color: var(--surface);
   cursor: pointer;
   transition: all 0.3s ease;
   text-align: center;
@@ -403,8 +557,8 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem;
-  background-color: var(--card-background, #f7f7f7);
-  border: 1px solid var(--border-color, #e0e0e0);
+  background-color: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 6px;
   margin-top: 0.75rem;
 }

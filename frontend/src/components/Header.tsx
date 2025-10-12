@@ -17,7 +17,7 @@ const Header = () => {
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [theme, setTheme] = useState<Theme>("light");
+  const [theme, setTheme] = useState<Theme>("dark");
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   // Close dropdown on outside click
@@ -38,10 +38,8 @@ const Header = () => {
       setTheme(stored);
       document.documentElement.setAttribute("data-theme", stored);
     } else {
-      const prefersDark = window.matchMedia?.(
-        "(prefers-color-scheme: dark)",
-      )?.matches;
-      const initial: Theme = prefersDark ? "dark" : "light";
+      // Default to dark mode for new users
+      const initial: Theme = "dark";
       setTheme(initial);
       document.documentElement.setAttribute("data-theme", initial);
     }
@@ -65,7 +63,11 @@ const Header = () => {
         <div className="cl-header-inner">
           {/* Left: Brand */}
           <div className="cl-left">
-            <Link to="/" className="cl-brand" aria-label="CampusLearn Home">
+            <Link
+              to="/schedule"
+              className="cl-brand"
+              aria-label="CampusLearn Home"
+            >
               <span className="cl-brand__icon">
                 <i className="fas fa-graduation-cap" aria-hidden="true" />
               </span>

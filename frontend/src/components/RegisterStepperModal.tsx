@@ -22,6 +22,23 @@ const checkPasswordStrength = (password: string) => {
   return strength;
 };
 
+const getPasswordStrengthText = (strength: number) => {
+  switch (strength) {
+    case 0:
+    case 1:
+      return { text: "Weak", color: "#dc3545" };
+    case 2:
+      return { text: "Moderate", color: "#fd7e14" };
+    case 3:
+      return { text: "Strong", color: "#28a745" }; // Changed to green
+    case 4:
+    case 5:
+      return { text: "Very Strong", color: "#20c997" };
+    default:
+      return { text: "Weak", color: "#dc3545" };
+  }
+};
+
 const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
   show,
   onClose,
@@ -31,6 +48,7 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
     "next" | "prev"
   >("next");
   const [isDragOver, setIsDragOver] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const steps = ["Role", "Details", "Subjects"];
 
   const handleNext = () => {
@@ -45,6 +63,10 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
       setTransitionDirection("prev");
       setCurrentStep(currentStep - 1);
     }
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   const [error, setError] = useState("");
@@ -78,9 +100,13 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
         ),
       password: Yup.string()
         .required("Required")
-        .test("password-strength", "Password is too weak", (value) => {
-          return checkPasswordStrength(value || "") >= 4;
-        }),
+        .test(
+          "password-strength",
+          "Password must be Strong or better",
+          (value) => {
+            return checkPasswordStrength(value || "") >= 3;
+          },
+        ),
       role: Yup.string().required("Required"),
       subjects: Yup.array().min(1, "Select at least one subject"),
       qualificationFile: Yup.mixed().when("role", {
@@ -299,8 +325,8 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
                       <input
                         id="password"
                         name="password"
-                        type="password"
-                        className={`form-control ${
+                        type={showPassword ? "text" : "password"}
+                        className={`form-control password-input ${
                           formik.touched.password && formik.errors.password
                             ? "is-invalid"
                             : ""
@@ -314,6 +340,18 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
                         onBlur={formik.handleBlur}
                         value={formik.values.password}
                       />
+                      <button
+                        type="button"
+                        className="password-toggle-btn"
+                        onClick={togglePasswordVisibility}
+                        aria-label={
+                          showPassword ? "Hide password" : "Show password"
+                        }
+                      >
+                        <i
+                          className={`fas ${showPassword ? "fa-eye-slash" : "fa-eye"}`}
+                        ></i>
+                      </button>
                     </div>
                     <div className="password-strength-meter">
                       <div
@@ -323,6 +361,22 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
                         )}
                       ></div>
                     </div>
+                    {formik.values.password && (
+                      <div
+                        className="password-strength-text"
+                        style={{
+                          color: getPasswordStrengthText(
+                            checkPasswordStrength(formik.values.password),
+                          ).color,
+                        }}
+                      >
+                        {
+                          getPasswordStrengthText(
+                            checkPasswordStrength(formik.values.password),
+                          ).text
+                        }
+                      </div>
+                    )}
                   </div>
 
                   {formik.values.role === "tutor" && (
@@ -434,15 +488,20 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
                       </div>
                     ))}
                   </div>
-                  {formik.touched.subjects && formik.errors.subjects ? (
-                    <div className="error-message">
-                      {formik.errors.subjects}
-                    </div>
-                  ) : null}
                 </div>
               )}
             </div>
           </div>
+          {currentStep === 3 &&
+          formik.touched.subjects &&
+          formik.errors.subjects ? (
+            <div
+              className="error-message"
+              style={{ textAlign: "center", padding: "1rem" }}
+            >
+              {formik.errors.subjects}
+            </div>
+          ) : null}
           <div className="modal-actions">
             {currentStep > 1 && (
               <button
