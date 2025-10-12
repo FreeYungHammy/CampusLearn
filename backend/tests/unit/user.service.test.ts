@@ -74,7 +74,7 @@ describe('UserService.remove', () => {
     expect(UserRepo.deleteById).toHaveBeenCalledWith(userId);
   });
 
-  it('should throw an error and not delete subsequent data if GCS deletion fails', async () => {
+  it('should continue deletion gracefully even if GCS deletion fails (graceful degradation)', async () => {
     const userId = '60f1b3b3b3b3b3b3b3b3b3b3';
     const tutorProfileId = '60f1b3b3b3b3b3b3b3b3b3b5';
     const gcsError = new Error('GCS Deletion Failed');

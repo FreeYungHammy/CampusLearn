@@ -384,15 +384,17 @@ const Forum = () => {
                 className={`upvote-btn ${thread.userVote === 1 ? "upvoted" : ""}`}
                 aria-label="Upvote"
                 disabled={isVoting[thread._id]}
+                data-cy="upvote-btn"
               >
                 <i className="fas fa-arrow-up"></i>
               </button>
-              <span className="vote-count">{thread.upvotes}</span>
+              <span className="vote-count" data-cy="vote-count">{thread.upvotes}</span>
               <button
                 onClick={(e) => handleDownvote(thread._id, e)}
                 className={`downvote-btn ${thread.userVote === -1 ? "downvoted" : ""}`}
                 aria-label="Downvote"
                 disabled={isVoting[thread._id]}
+                data-cy="downvote-btn"
               >
                 <i className="fas fa-arrow-down"></i>
               </button>

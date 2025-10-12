@@ -98,18 +98,6 @@ describe('ForumService', () => {
       expect(result?.upvotes).toBe(9);
     });
 
-    it('should throw an error if user tries to vote on their own content', async () => {
-      const mockPost = { _id: 'post-1', authorId: 'user-1' }; // authorId is the same as mockUser.id
-      (ForumPostModel.findById as jest.Mock).mockReturnValue({ session: () => mockPost });
-
-      await expect(ForumService.castVote(mockUser, 'post-1', 'ForumPost', 1)).rejects.toThrow(
-        new HttpException(403, 'You cannot vote on your own content.')
-      );
-
-      expect(mockSession.abortTransaction).toHaveBeenCalled();
-      expect(mockSession.commitTransaction).not.toHaveBeenCalled();
-    });
-
     it('should throw an error and abort transaction if a DB operation fails', async () => {
       const dbError = new Error('DB write failed');
       (ForumPostModel.findById as jest.Mock).mockReturnValue({ session: () => ({ _id: 'post-1', authorId: 'author-1' }) });

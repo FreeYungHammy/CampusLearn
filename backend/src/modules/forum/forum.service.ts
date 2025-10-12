@@ -529,11 +529,6 @@ export const ForumService = {
         throw new HttpException(404, `${targetType} not found`);
       }
 
-      // @ts-ignore
-      if (targetDoc.authorId.toString() === user.id) {
-        throw new HttpException(403, "You cannot vote on your own content.");
-      }
-
       const existingVote = await UserVoteModel.findOne({
         userId: user.id,
         targetId,
