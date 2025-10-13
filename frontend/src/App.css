@@ -4015,6 +4015,25 @@ btn-success:hover {
   color: #fff;
 }
 
+/* Remove extra padding from download buttons in file actions */
+.file-actions .btn.btn-sm.btn-outline {
+  padding: 8px 14px !important;
+  margin: 0 !important;
+}
+
+/* Ensure consistent spacing for all buttons in file actions */
+.file-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.file-actions .btn {
+  margin: 0 !important;
+  padding: 8px 14px !important;
+}
+
 /* Modal Styles */
 .modal-overlay {
   position: fixed;
@@ -7095,6 +7114,19 @@ body,
 
 [data-theme="dark"] .modal-actions {
   border-top-color: var(--border);
+}
+
+/* Remove border-top for all content viewer modals in MyContent */
+/* Target modal-actions when the modal contains any viewable content */
+.modal-content:has(.docx-viewer-container) .modal-actions,
+.modal-content:has(iframe) .modal-actions,
+.modal-content:has(.video-player) .modal-actions {
+  border-top: none;
+}
+
+/* Fallback approach - add a specific class to all content viewer modals */
+.content-viewer-modal .modal-actions {
+  border-top: none;
 }
 
 [data-theme="dark"] .user-details-box {
