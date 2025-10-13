@@ -17,6 +17,7 @@ import {
 import { useAuthStore } from "../store/authStore";
 import { useForumSocket } from "../hooks/useForumSocket";
 import PostActions from "../components/forum/PostActions";
+import DeleteConfirmationModal from "../components/forum/DeletePostConfirmationModal";
 
 const ForumTopic = () => {
   const { threadId } = useParams<{ threadId: string }>();
@@ -34,6 +35,9 @@ const ForumTopic = () => {
   const [editingContent, setEditingContent] = useState("");
   const [isVoting, setIsVoting] = useState<{ [key: string]: boolean }>({});
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteType, setDeleteType] = useState<"thread" | "reply" | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
   const formatSubjectClass = (subject: string) => {
     const subjectMap: { [key: string]: string } = {
@@ -293,23 +297,33 @@ const ForumTopic = () => {
     }, 100);
   };
 
-  const handleDeleteThread = async () => {
-    if (!token || !threadId) return;
-    try {
-      await deleteForumPost(threadId, token);
-      // The socket event will handle UI update and navigation
-    } catch (error) {
-      console.error("Failed to delete thread", error);
-    }
+  const handleDeleteThread = () => {
+    setDeleteType("thread");
+    setItemToDelete(threadId || null);
+    setDeleteModalOpen(true);
   };
 
-  const handleDeleteReply = async (replyId: string) => {
-    if (!token) return;
+  const handleDeleteReply = (replyId: string) => {
+    setDeleteType("reply");
+    setItemToDelete(replyId);
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!token || !itemToDelete || !deleteType) return;
     try {
-      await deleteForumReply(replyId, token);
-      // The socket event will handle UI update
+      if (deleteType === "thread") {
+        await deleteForumPost(itemToDelete, token);
+        // The socket event will handle UI update and navigation
+      } else if (deleteType === "reply") {
+        await deleteForumReply(itemToDelete, token);
+        // The socket event will handle UI update
+      }
+      setDeleteModalOpen(false);
+      setDeleteType(null);
+      setItemToDelete(null);
     } catch (error) {
-      console.error("Failed to delete reply", error);
+      console.error("Failed to delete", error);
     }
   };
 
@@ -637,6 +651,18 @@ const ForumTopic = () => {
           </div>
         )}
       </div>
+
+      <DeleteConfirmationModal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setDeleteType(null);
+          setItemToDelete(null);
+        }}
+        onConfirm={confirmDelete}
+        title={`Delete ${deleteType === "thread" ? "Forum Post" : "Reply"}`}
+        message={`Are you sure you want to permanently delete this ${deleteType === "thread" ? "forum post" : "reply"}? This action cannot be undone.`}
+      />
     </div>
   );
 };
