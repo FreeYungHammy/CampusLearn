@@ -18,12 +18,6 @@ interface FeatureCardProps {
   delay?: number;
 }
 
-interface StatProps {
-  number: string;
-  label: string;
-  delay?: number;
-}
-
 // FloatingCard interface removed - no longer needed
 
 import RegisterStepperModal from "../components/RegisterStepperModal";
@@ -82,22 +76,6 @@ const LandingPage: React.FC = () => {
       );
 
     // Floating cards animation removed - no longer needed
-
-    // Stats counter animation
-    anime({
-      targets: ".stat-number",
-      innerHTML: [
-        0,
-        (el: HTMLElement) => {
-          const target = el.getAttribute("data-target");
-          return target || "0";
-        },
-      ],
-      duration: 2000,
-      easing: "easeOutExpo",
-      round: 1,
-      delay: anime.stagger(200),
-    });
 
     // Initialize draggable squares with native JavaScript
     const squares = document.querySelectorAll(".draggable-square");
@@ -303,25 +281,6 @@ const LandingPage: React.FC = () => {
       </div>
       <h3>{title}</h3>
       <p>{description}</p>
-    </motion.div>
-  );
-
-  // Stat component with counter animation
-  const Stat: React.FC<StatProps> = ({ number, label, delay = 0 }) => (
-    <motion.div
-      className="stat"
-      initial={{ opacity: 0, scale: 0.8 }}
-      whileInView={{
-        opacity: 1,
-        scale: 1,
-        transition: { duration: 0.6, delay: delay * 0.1 },
-      }}
-      viewport={{ once: true }}
-    >
-      <div className="stat-number" data-target={number}>
-        {number}
-      </div>
-      <div className="stat-label">{label}</div>
     </motion.div>
   );
 
@@ -579,17 +538,6 @@ const LandingPage: React.FC = () => {
               >
                 Learn More
               </button>
-            </motion.div>
-
-            <motion.div
-              className="hero-stats"
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 1 }}
-            >
-              <Stat number="00K+" label="Active Students" delay={0} />
-              <Stat number="000+" label="Expert Tutors" delay={1} />
-              <Stat number="00.00%" label="Success Rate" delay={2} />
             </motion.div>
           </div>
         </div>
