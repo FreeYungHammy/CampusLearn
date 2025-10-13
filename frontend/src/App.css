@@ -880,8 +880,10 @@ btn-success:hover {
   border-color: rgba(0, 0, 0, 0.1);
 }
 
-.header-content {
+.dashboard-header .header-content {
   flex: 1;
+  text-align: left;
+  align-items: flex-start;
 }
 
 .dashboard-title {
@@ -892,6 +894,7 @@ btn-success:hover {
   display: flex;
   align-items: center;
   gap: 12px;
+  text-align: left;
 }
 
 .dashboard-title i {
@@ -935,6 +938,7 @@ btn-success:hover {
 
 .time-info {
   margin-top: 16px;
+  text-align: left;
 }
 
 .header-right {
@@ -951,11 +955,13 @@ btn-success:hover {
   font-weight: 600;
   color: #ffffff;
   margin-bottom: 4px;
+  text-align: left;
 }
 
 .current-date {
   font-size: 14px;
   color: rgba(255, 255, 255, 0.6);
+  text-align: left;
 }
 
 /* Stats Grid */
