@@ -20,7 +20,6 @@ const FindTutors = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
 
   // Filter and Sort State
   const [searchQuery, setSearchQuery] = useState("");
@@ -31,27 +30,27 @@ const FindTutors = () => {
 
   // Advanced Filter State
   const [subjectSearchQuery, setSubjectSearchQuery] = useState("");
-  
+
   // Dropdown State
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
-  
+
   // Dropdown toggle function
   const toggleDropdown = (dropdown: string) => {
     setActiveDropdown(activeDropdown === dropdown ? null : dropdown);
   };
-  
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = () => {
       setActiveDropdown(null);
     };
-    
+
     if (activeDropdown) {
-      document.addEventListener('click', handleClickOutside);
-      return () => document.removeEventListener('click', handleClickOutside);
+      document.addEventListener("click", handleClickOutside);
+      return () => document.removeEventListener("click", handleClickOutside);
     }
   }, [activeDropdown]);
-  
+
   // Track component mount/unmount (minimal logging)
   useEffect(() => {
     console.log("FindTutors: Component mounted");
@@ -66,7 +65,6 @@ const FindTutors = () => {
   const [showBookingStepper, setShowBookingStepper] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
 
-
   const { user, token, pfpTimestamps, updatePfpTimestamps } = useAuthStore();
   const isInitializedRef = useRef(false);
   const previousUserRef = useRef<string | null>(null);
@@ -74,31 +72,36 @@ const FindTutors = () => {
   console.log("FindTutors.tsx: user object from authStore:", user);
 
   // Helper function to check if tutor subjects match student enrolled courses
-  const canBookWithTutor = (tutor: Tutor): { canBook: boolean; reason?: string } => {
-    if (user?.role !== 'student') {
-      return { canBook: false, reason: 'Only students can book sessions' };
+  const canBookWithTutor = (
+    tutor: Tutor,
+  ): { canBook: boolean; reason?: string } => {
+    if (user?.role !== "student") {
+      return { canBook: false, reason: "Only students can book sessions" };
     }
 
     const studentCourses = (user as any).enrolledCourses || [];
     if (studentCourses.length === 0) {
-      return { canBook: false, reason: 'Please update your profile to include your enrolled courses' };
+      return {
+        canBook: false,
+        reason: "Please update your profile to include your enrolled courses",
+      };
     }
 
     // Check if any tutor subject matches any student enrolled course
-    const hasMatchingSubject = tutor.subjects.some(subject => 
-      studentCourses.includes(subject)
+    const hasMatchingSubject = tutor.subjects.some((subject) =>
+      studentCourses.includes(subject),
     );
 
     if (!hasMatchingSubject) {
-      return { 
-        canBook: false, 
-        reason: 'This tutor teaches subjects you are not enrolled in. Please update your profile or subscribe to this tutor first.' 
+      return {
+        canBook: false,
+        reason:
+          "This tutor teaches subjects you are not enrolled in. Please update your profile or subscribe to this tutor first.",
       };
     }
 
     return { canBook: true };
   };
-
 
   const ratingOptions = [
     { value: 0, label: "Any Rating" },
@@ -124,7 +127,7 @@ const FindTutors = () => {
 
     try {
       const offset = (page - 1) * PAGE_SIZE;
-      
+
       const { tutors: fetchedTutors, totalCount } = await getTutors(
         PAGE_SIZE,
         offset,
@@ -134,23 +137,29 @@ const FindTutors = () => {
       const subscribedTutors = await getMySubscribedTutors(user!.id).then(
         (res) => res.data,
       );
-      const subscribedTutorIds = new Set(subscribedTutors.map((t: any) => t.id));
+      const subscribedTutorIds = new Set(
+        subscribedTutors.map((t: any) => t.id),
+      );
       const availableTutors = fetchedTutors.filter(
         (tutor: Tutor) => !subscribedTutorIds.has(tutor.id),
       );
 
       setTutors((prevTutors) => {
-        const newTutors = page === 1 ? availableTutors : [...prevTutors, ...availableTutors];
+        const newTutors =
+          page === 1 ? availableTutors : [...prevTutors, ...availableTutors];
         return newTutors;
       });
       setTotalTutors(totalCount);
 
-      const timestamps = availableTutors.reduce((acc, tutor) => {
-        if ((tutor as any).pfpTimestamp) {
-          acc[tutor.userId] = (tutor as any).pfpTimestamp;
-        }
-        return acc;
-      }, {} as { [userId: string]: number });
+      const timestamps = availableTutors.reduce(
+        (acc, tutor) => {
+          if ((tutor as any).pfpTimestamp) {
+            acc[tutor.userId] = (tutor as any).pfpTimestamp;
+          }
+          return acc;
+        },
+        {} as { [userId: string]: number },
+      );
       updatePfpTimestamps(timestamps);
     } catch (err) {
       console.error("Error fetching tutors:", err);
@@ -160,44 +169,54 @@ const FindTutors = () => {
     }
   };
 
-          // Comprehensive initialization effect
-          useEffect(() => {
-            const currentUserId = user?.id;
-            const userChanged = previousUserRef.current !== currentUserId;
-            
-            // Force complete re-initialization if user changed or component not initialized
-            if (user && token && (userChanged || !isInitializedRef.current)) {
-              console.log("FindTutors: Re-initializing component");
-              
-              // Reset all state completely
-              setTutors([]);
-              setTotalTutors(0);
-              setCurrentPage(1);
-              setIsLoading(false);
-              setError(null);
-              setSearchQuery("");
-              setSelectedSubjects([]);
-              setRatingFilter(0);
-              setSortBy("relevance");
-              
-              // Set available subjects
-              const studentSubjects = (user as any).enrolledCourses || [];
-              setAvailableSubjects(studentSubjects.sort());
-              
-              // Mark as initialized
-              isInitializedRef.current = true;
-              previousUserRef.current = currentUserId || null;
-              
-              // Fetch tutors with default filters
-              const filters = { searchQuery: "", subjects: "", rating: 0, sortBy: "relevance" };
-              fetchTutors(1, filters);
-            }
-          }, [user?.id, token]);
+  // Comprehensive initialization effect
+  useEffect(() => {
+    const currentUserId = user?.id;
+    const userChanged = previousUserRef.current !== currentUserId;
+
+    // Force complete re-initialization if user changed or component not initialized
+    if (user && token && (userChanged || !isInitializedRef.current)) {
+      console.log("FindTutors: Re-initializing component");
+
+      // Reset all state completely
+      setTutors([]);
+      setTotalTutors(0);
+      setCurrentPage(1);
+      setIsLoading(false);
+      setError(null);
+      setSearchQuery("");
+      setSelectedSubjects([]);
+      setRatingFilter(0);
+      setSortBy("relevance");
+
+      // Set available subjects
+      const studentSubjects = (user as any).enrolledCourses || [];
+      setAvailableSubjects(studentSubjects.sort());
+
+      // Mark as initialized
+      isInitializedRef.current = true;
+      previousUserRef.current = currentUserId || null;
+
+      // Fetch tutors with default filters
+      const filters = {
+        searchQuery: "",
+        subjects: "",
+        rating: 0,
+        sortBy: "relevance",
+      };
+      fetchTutors(1, filters);
+    }
+  }, [user?.id, token]);
 
   // Handle filter changes (only after initialization)
   useEffect(() => {
     if (isInitializedRef.current && user && token) {
-      const filters = { searchQuery, subjects: selectedSubjects.join(','), rating: ratingFilter, sortBy };
+      const filters = {
+        searchQuery,
+        subjects: selectedSubjects.join(","),
+        rating: ratingFilter,
+        sortBy,
+      };
       setTutors([]); // Reset tutors before fetching
       setCurrentPage(1);
       fetchTutors(1, filters);
@@ -209,15 +228,21 @@ const FindTutors = () => {
     const handleVisibilityChange = () => {
       if (!document.hidden && user && token && isInitializedRef.current) {
         // Force re-fetch when user returns to this tab
-        const filters = { searchQuery, subjects: selectedSubjects.join(','), rating: ratingFilter, sortBy };
+        const filters = {
+          searchQuery,
+          subjects: selectedSubjects.join(","),
+          rating: ratingFilter,
+          sortBy,
+        };
         setTutors([]);
         setCurrentPage(1);
         fetchTutors(1, filters);
       }
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [user, token, searchQuery, selectedSubjects, ratingFilter, sortBy]);
 
   // Cleanup effect when component unmounts
@@ -226,7 +251,7 @@ const FindTutors = () => {
       // Reset initialization flag
       isInitializedRef.current = false;
       previousUserRef.current = null;
-      
+
       // Reset all state when component unmounts to prevent stale state
       setTutors([]);
       setTotalTutors(0);
@@ -238,56 +263,62 @@ const FindTutors = () => {
 
   const handleLoadMore = () => {
     const nextPage = currentPage + 1;
-    const filters = { searchQuery, subjects: selectedSubjects.join(','), rating: ratingFilter, sortBy };
+    const filters = {
+      searchQuery,
+      subjects: selectedSubjects.join(","),
+      rating: ratingFilter,
+      sortBy,
+    };
     setCurrentPage(nextPage);
     fetchTutors(nextPage, filters);
   };
 
   // Advanced Filter Helper Functions
-  const filteredSubjects = availableSubjects.filter(subject =>
-    subject.toLowerCase().includes(subjectSearchQuery.toLowerCase())
+  const filteredSubjects = availableSubjects.filter((subject) =>
+    subject.toLowerCase().includes(subjectSearchQuery.toLowerCase()),
   );
 
   const toggleSubject = (subject: string) => {
     setSelectedSubjects((prev) =>
       prev.includes(subject)
         ? prev.filter((s) => s !== subject)
-        : [...prev, subject]
+        : [...prev, subject],
     );
   };
 
   const getSubjectIcon = (subject: string) => {
     const iconMap: { [key: string]: string } = {
-      'Mathematics': 'fas fa-calculator',
-      'Programming': 'fas fa-code',
-      'Computer Architecture': 'fas fa-microchip',
-      'Database Development': 'fas fa-database',
-      'Web Programming': 'fas fa-globe',
-      'Linear Programming': 'fas fa-chart-line',
-      'Statistics': 'fas fa-chart-bar',
-      'Software Testing': 'fas fa-bug',
-      'Network Development': 'fas fa-network-wired',
-      'Machine Learning': 'fas fa-brain'
+      Mathematics: "fas fa-calculator",
+      Programming: "fas fa-code",
+      "Computer Architecture": "fas fa-microchip",
+      "Database Development": "fas fa-database",
+      "Web Programming": "fas fa-globe",
+      "Linear Programming": "fas fa-chart-line",
+      Statistics: "fas fa-chart-bar",
+      "Software Testing": "fas fa-bug",
+      "Network Development": "fas fa-network-wired",
+      "Machine Learning": "fas fa-brain",
     };
-    return <i className={iconMap[subject] || 'fas fa-book'}></i>;
+    return <i className={iconMap[subject] || "fas fa-book"}></i>;
   };
 
   const getSortIcon = (sortValue: string) => {
     const iconMap: { [key: string]: string } = {
-      'relevance': 'fas fa-magic',
-      'newest': 'fas fa-clock',
-      'rating': 'fas fa-star'
+      relevance: "fas fa-magic",
+      newest: "fas fa-clock",
+      rating: "fas fa-star",
     };
-    return <i className={iconMap[sortValue] || 'fas fa-sort'}></i>;
+    return <i className={iconMap[sortValue] || "fas fa-sort"}></i>;
   };
 
   const getRatingCount = () => {
     // This would normally filter tutors by rating, for now return a placeholder
-    return tutors.filter(tutor => {
+    return tutors.filter((tutor) => {
       if (ratingFilter === 0) return true;
-      const avgRating = tutor.rating.count > 0 
-        ? tutor.rating.totalScore / tutor.rating.count 
-        : 0;
+      const avgRating =
+        tutor.rating.count > 0
+          ? tutor.rating.totalScore / tutor.rating.count
+          : 0;
       return avgRating >= ratingFilter;
     }).length;
   };
@@ -319,8 +350,11 @@ const FindTutors = () => {
     try {
       await subscribeToTutor(selectedTutor.id);
       // Optimistically remove the tutor from the list
-      setTutors((prev) => prev.filter((tutor) => tutor.id !== selectedTutor.id));
-      setTotalTutors((prev) => prev - 1);
+      setTutors((prev) =>
+        prev.filter((tutor) => tutor.id !== selectedTutor.id),
+      );
+      // Don't decrement totalTutors - it represents the backend total, not filtered count
+      // The displayed count will automatically reflect the filtered tutors
     } catch (error) {
       console.error("Failed to subscribe:", error);
       // Optionally, add the tutor back if the subscription fails
@@ -330,11 +364,12 @@ const FindTutors = () => {
     }
   };
 
-
-
-
   return (
-    <div className="content-view" id="tutors-view" key={`tutors-${user?.id || 'anonymous'}`}>
+    <div
+      className="content-view"
+      id="tutors-view"
+      key={`tutors-${user?.id || "anonymous"}`}
+    >
       <div className="section-header">
         <h2 className="section-title">
           <i className="fas fa-user-graduate"></i>Find Tutors
@@ -346,35 +381,35 @@ const FindTutors = () => {
         {/* ROW 1: Filter buttons + Info */}
         <div className="filter-row-1">
           <div className="filter-buttons">
-            <button 
-              className={`filter-btn ${activeDropdown === 'sort' ? 'active' : ''}`}
+            <button
+              className={`filter-btn ${activeDropdown === "sort" ? "active" : ""}`}
               onClick={(e) => {
                 e.stopPropagation();
-                toggleDropdown('sort');
+                toggleDropdown("sort");
               }}
             >
               <i className="fas fa-sort"></i>
               Sort By
               <i className="fas fa-chevron-down"></i>
             </button>
-            
-            <button 
-              className={`filter-btn ${activeDropdown === 'rating' ? 'active' : ''}`}
+
+            <button
+              className={`filter-btn ${activeDropdown === "rating" ? "active" : ""}`}
               onClick={(e) => {
                 e.stopPropagation();
-                toggleDropdown('rating');
+                toggleDropdown("rating");
               }}
             >
               <i className="fas fa-star"></i>
               Minimum Rating
               <i className="fas fa-chevron-down"></i>
             </button>
-            
-            <button 
-              className={`filter-btn ${activeDropdown === 'subjects' ? 'active' : ''}`}
+
+            <button
+              className={`filter-btn ${activeDropdown === "subjects" ? "active" : ""}`}
               onClick={(e) => {
                 e.stopPropagation();
-                toggleDropdown('subjects');
+                toggleDropdown("subjects");
               }}
             >
               <i className="fas fa-book-open"></i>
@@ -382,17 +417,21 @@ const FindTutors = () => {
               <i className="fas fa-chevron-down"></i>
             </button>
           </div>
-          
+
           <div className="filter-info">
-            <span className="tutor-count">{totalTutors} Tutors Available</span>
-            {(selectedSubjects.length > 0 || ratingFilter > 0 || sortBy !== "relevance") && (
+            <span className="tutor-count">
+              {tutors.length} Tutors Available
+            </span>
+            {(selectedSubjects.length > 0 ||
+              ratingFilter > 0 ||
+              sortBy !== "relevance") && (
               <button className="clear-filters-btn" onClick={clearAllFilters}>
                 Clear Filters
               </button>
             )}
           </div>
         </div>
-        
+
         {/* ROW 2: Selected subjects (inside filter bar) */}
         {selectedSubjects.length > 0 && (
           <div className="filter-row-2">
@@ -400,7 +439,7 @@ const FindTutors = () => {
               {selectedSubjects.map((subject) => (
                 <div key={subject} className="selected-subject-tag">
                   <span className="subject-name">{subject}</span>
-                  <button 
+                  <button
                     onClick={() => toggleSubject(subject)}
                     className="remove-subject-btn"
                     title={`Remove ${subject} filter`}
@@ -412,10 +451,13 @@ const FindTutors = () => {
             </div>
           </div>
         )}
-        
+
         {/* DROPDOWN MENUS */}
-        {activeDropdown === 'sort' && (
-          <div className="dropdown-menu sort-dropdown" onClick={(e) => e.stopPropagation()}>
+        {activeDropdown === "sort" && (
+          <div
+            className="dropdown-menu sort-dropdown"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="dropdown-header">
               <i className="fas fa-sort"></i>
               Sort By
@@ -425,27 +467,26 @@ const FindTutors = () => {
               {sortOptions.map((option) => (
                 <button
                   key={option.value}
-                  className={`dropdown-option ${sortBy === option.value ? 'active' : ''}`}
+                  className={`dropdown-option ${sortBy === option.value ? "active" : ""}`}
                   onClick={() => {
                     setSortBy(option.value);
                     setActiveDropdown(null);
                   }}
                 >
-                  <div className="option-icon">
-                    {getSortIcon(option.value)}
-                  </div>
+                  <div className="option-icon">{getSortIcon(option.value)}</div>
                   <span className="option-label">{option.label}</span>
-                  {sortBy === option.value && (
-                    <i className="fas fa-check"></i>
-                  )}
+                  {sortBy === option.value && <i className="fas fa-check"></i>}
                 </button>
               ))}
             </div>
           </div>
         )}
-        
-        {activeDropdown === 'rating' && (
-          <div className="dropdown-menu rating-dropdown" onClick={(e) => e.stopPropagation()}>
+
+        {activeDropdown === "rating" && (
+          <div
+            className="dropdown-menu rating-dropdown"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="dropdown-header">
               <i className="fas fa-star"></i>
               Minimum Rating
@@ -456,7 +497,7 @@ const FindTutors = () => {
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
                     key={star}
-                    className={`star-btn ${ratingFilter >= star ? 'active' : ''}`}
+                    className={`star-btn ${ratingFilter >= star ? "active" : ""}`}
                     onClick={() => {
                       setRatingFilter(star);
                       setActiveDropdown(null);
@@ -467,14 +508,17 @@ const FindTutors = () => {
                 ))}
               </div>
               <div className="rating-text">
-                {ratingFilter === 0 ? 'Any Rating' : `${ratingFilter}+ Stars`}
+                {ratingFilter === 0 ? "Any Rating" : `${ratingFilter}+ Stars`}
               </div>
             </div>
           </div>
         )}
-        
-        {activeDropdown === 'subjects' && (
-          <div className="dropdown-menu subjects-dropdown" onClick={(e) => e.stopPropagation()}>
+
+        {activeDropdown === "subjects" && (
+          <div
+            className="dropdown-menu subjects-dropdown"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="dropdown-header">
               <i className="fas fa-book-open"></i>
               Subjects
@@ -491,12 +535,12 @@ const FindTutors = () => {
                   onChange={(e) => setSubjectSearchQuery(e.target.value)}
                 />
               </div>
-              
+
               <div className="subjects-list">
                 {filteredSubjects.map((subject) => (
                   <button
                     key={subject}
-                    className={`subject-option ${selectedSubjects.includes(subject) ? 'selected' : ''}`}
+                    className={`subject-option ${selectedSubjects.includes(subject) ? "selected" : ""}`}
                     onClick={() => toggleSubject(subject)}
                   >
                     <span>{subject}</span>
@@ -506,13 +550,13 @@ const FindTutors = () => {
                   </button>
                 ))}
               </div>
-              
+
               {selectedSubjects.length > 0 && (
                 <div className="selected-subjects">
                   {selectedSubjects.map((subject) => (
                     <div key={subject} className="selected-tag">
                       {subject}
-                      <button 
+                      <button
                         onClick={() => toggleSubject(subject)}
                         className="remove-tag"
                       >
@@ -529,7 +573,7 @@ const FindTutors = () => {
 
       <div className="results-header">
         <h3>
-          {totalTutors} {totalTutors === 1 ? "Tutor" : "Tutors"} Available
+          {tutors.length} {tutors.length === 1 ? "Tutor" : "Tutors"} Available
           {(selectedSubjects.length > 0 ||
             ratingFilter > 0 ||
             searchQuery ||
@@ -601,38 +645,48 @@ const FindTutors = () => {
                 >
                   View Profile & Content
                 </Link>
-                {user?.role === 'student' && (() => {
-                  const bookingValidation = canBookWithTutor(tutor);
-                  return (
-                    <div className="booking-section">
-                      <button
-                        className={`btn btn-sm btn-primary booking-btn ${!bookingValidation.canBook ? 'disabled' : ''}`}
-                        disabled={!bookingValidation.canBook}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          if (bookingValidation.canBook) {
-                            console.log('🎯 FindTutors: Book Session button clicked for tutor:', tutor.name);
-                            setSelectedTutor(tutor);
-                            setShowBookingStepper(true);
-                            setBookingError(null);
-                            console.log('✅ Booking stepper modal state updated - should be visible');
+                {user?.role === "student" &&
+                  (() => {
+                    const bookingValidation = canBookWithTutor(tutor);
+                    return (
+                      <div className="booking-section">
+                        <button
+                          className={`btn btn-sm btn-primary booking-btn ${!bookingValidation.canBook ? "disabled" : ""}`}
+                          disabled={!bookingValidation.canBook}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (bookingValidation.canBook) {
+                              console.log(
+                                "🎯 FindTutors: Book Session button clicked for tutor:",
+                                tutor.name,
+                              );
+                              setSelectedTutor(tutor);
+                              setShowBookingStepper(true);
+                              setBookingError(null);
+                              console.log(
+                                "✅ Booking stepper modal state updated - should be visible",
+                              );
+                            }
+                          }}
+                          title={
+                            !bookingValidation.canBook
+                              ? bookingValidation.reason
+                              : "Book a session with this tutor"
                           }
-                        }}
-                        title={!bookingValidation.canBook ? bookingValidation.reason : 'Book a session with this tutor'}
-                      >
-                        <i className="fas fa-calendar-plus"></i>
-                        Book Session
-                      </button>
-                      {!bookingValidation.canBook && (
-                        <div className="booking-disabled-message">
-                          <i className="fas fa-info-circle"></i>
-                          <span>{bookingValidation.reason}</span>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
+                        >
+                          <i className="fas fa-calendar-plus"></i>
+                          Book Session
+                        </button>
+                        {!bookingValidation.canBook && (
+                          <div className="booking-disabled-message">
+                            <i className="fas fa-info-circle"></i>
+                            <span>{bookingValidation.reason}</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 <button
                   className="btn btn-sm btn-success subscribe-btn"
                   onClick={() => handleSubscribe(tutor)}
@@ -679,24 +733,22 @@ const FindTutors = () => {
       )}
 
       {/* Tutor Booking Modal */}
-        {user?.role === 'student' && selectedTutor && (
-          <TutorBookingModal
-            key="findtutors-modal"
-            isOpen={showBookingStepper}
-            onClose={() => {
-              setShowBookingStepper(false);
-              setSelectedTutor(null);
-              setBookingError(null);
-            }}
-            currentUser={user}
-            selectedTutor={selectedTutor}
-            modalId="FindTutors"
-          />
-        )}
-
+      {user?.role === "student" && selectedTutor && (
+        <TutorBookingModal
+          key="findtutors-modal"
+          isOpen={showBookingStepper}
+          onClose={() => {
+            setShowBookingStepper(false);
+            setSelectedTutor(null);
+            setBookingError(null);
+          }}
+          currentUser={user}
+          selectedTutor={selectedTutor}
+          modalId="FindTutors"
+        />
+      )}
     </div>
   );
 };
 
 export default FindTutors;
-

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import CreatePostModal from "../components/forum/CreatePostModal";
+import DeleteConfirmationModal from "../components/forum/DeletePostConfirmationModal";
 import "../components/forum/CreatePostModal.css";
 import {
   getForumThreads,
@@ -34,10 +35,11 @@ const Forum = () => {
   const [threads, setThreads] = useState<any[]>([]);
   const socket = useForumSocket();
   const { token, user, pfpTimestamps, updatePfpTimestamps } = useAuthStore();
+  const navigate = useNavigate();
 
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingContent, setEditingContent] = useState("");
   const [isVoting, setIsVoting] = useState<{ [key: string]: boolean }>({});
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [threadToDelete, setThreadToDelete] = useState<string | null>(null);
 
   const [sortBy, setSortBy] = useState("newest"); // 'newest' or 'upvotes'
   const [searchQuery, setSearchQuery] = useState("");
@@ -48,102 +50,60 @@ const Forum = () => {
   const [totalPosts, setTotalPosts] = useState(0);
   const [hasMorePosts, setHasMorePosts] = useState(true);
 
-  useEffect(() => {
-    const fetchThreads = async (page: number, append: boolean = false) => {
-      if (!token) return;
-      try {
-        const offset = (page - 1) * postsPerPage;
-        const { threads: fetchedThreads, totalCount } = await getForumThreads(
-          token,
-          sortBy,
-          searchQuery,
-          selectedTopic,
-          postsPerPage,
-          offset,
-        );
+  const fetchAndSetThreads = async (page: number, append: boolean = false) => {
+    if (!token) return;
+    try {
+      const offset = (page - 1) * postsPerPage;
+      const { threads: fetchedThreads, totalCount } = await getForumThreads(
+        token,
+        sortBy,
+        searchQuery,
+        selectedTopic,
+        postsPerPage,
+        offset,
+      );
 
-        const timestamps = fetchedThreads.reduce(
-          (acc, thread) => {
-            if (thread.author && thread.author.pfpTimestamp) {
-              acc[thread.author.userId] = thread.author.pfpTimestamp;
-            }
-            return acc;
-          },
-          {} as { [userId: string]: number },
-        );
-        updatePfpTimestamps(timestamps);
+      const timestamps = fetchedThreads.reduce(
+        (acc, thread) => {
+          if (thread.author && thread.author.pfpTimestamp) {
+            acc[thread.author.userId] = thread.author.pfpTimestamp;
+          }
+          return acc;
+        },
+        {} as { [userId: string]: number },
+      );
+      updatePfpTimestamps(timestamps);
 
-        const threadsWithVotes = fetchedThreads.map((thread) => ({
-          ...thread,
-          upvotes: thread.upvotes || 0,
-          userVote: thread.userVote || 0,
-        }));
+      const threadsWithVotes = fetchedThreads.map((thread) => ({
+        ...thread,
+        upvotes: thread.upvotes || 0,
+        userVote: thread.userVote || 0,
+      }));
 
-        if (append) {
-          setThreads((prevThreads) => [...prevThreads, ...threadsWithVotes]);
-        } else {
-          setThreads(threadsWithVotes);
-        }
-        setTotalPosts(totalCount);
-        setHasMorePosts(threadsWithVotes.length + offset < totalCount);
-      } catch (error) {
-        console.error("Failed to fetch threads", error);
+      if (append) {
+        setThreads((prevThreads) => [...prevThreads, ...threadsWithVotes]);
+      } else {
+        setThreads(threadsWithVotes);
       }
-    };
+      setTotalPosts(totalCount);
+      setHasMorePosts(threadsWithVotes.length + offset < totalCount);
+    } catch (error) {
+      console.error("Failed to fetch threads", error);
+    }
+  };
 
+  useEffect(() => {
     // Reset page and fetch first set of threads when filters/sort change
     setCurrentPage(1);
     setThreads([]); // Clear threads to show loading state or new filtered results
-    fetchThreads(1);
+    fetchAndSetThreads(1);
   }, [token, sortBy, searchQuery, selectedTopic]);
 
   const handleLoadMore = () => {
     if (hasMorePosts) {
       const nextPage = currentPage + 1;
       setCurrentPage(nextPage);
-      // Fetch and append new threads
-      const fetchThreads = async (page: number, append: boolean = false) => {
-        if (!token) return;
-        try {
-          const offset = (page - 1) * postsPerPage;
-          const { threads: fetchedThreads, totalCount } = await getForumThreads(
-            token,
-            sortBy,
-            searchQuery,
-            selectedTopic,
-            postsPerPage,
-            offset,
-          );
-
-          const timestamps = fetchedThreads.reduce(
-            (acc, thread) => {
-              if (thread.author && thread.author.pfpTimestamp) {
-                acc[thread.author.userId] = thread.author.pfpTimestamp;
-              }
-              return acc;
-            },
-            {} as { [userId: string]: number },
-          );
-          updatePfpTimestamps(timestamps);
-
-          const threadsWithVotes = fetchedThreads.map((thread) => ({
-            ...thread,
-            upvotes: thread.upvotes || 0,
-            userVote: thread.userVote || 0,
-          }));
-
-          if (append) {
-            setThreads((prevThreads) => [...prevThreads, ...threadsWithVotes]);
-          } else {
-            setThreads(threadsWithVotes);
-          }
-          setTotalPosts(totalCount);
-          setHasMorePosts(threadsWithVotes.length + offset < totalCount);
-        } catch (error) {
-          console.error("Failed to fetch threads", error);
-        }
-      };
-      fetchThreads(nextPage, true);
+      fetchAndSetThreads(nextPage, true);
     }
   };
 
@@ -151,18 +111,14 @@ const Forum = () => {
     if (socket) {
       socket.on("new_post", (newPost) => {
         console.log("Received new_post event:", newPost);
-        const postWithVotes = {
-          ...newPost,
-          upvotes: newPost.upvotes || 0,
-          userVote: newPost.userVote || 0,
-        };
-        setThreads((prevThreads) => [postWithVotes, ...prevThreads]);
+        // Re-fetch the first page to ensure list is up-to-date with filters
+        fetchAndSetThreads(1);
       });
 
       socket.on("thread_deleted", ({ threadId }) => {
-        setThreads((prevThreads) =>
-          prevThreads.filter((thread) => thread._id !== threadId),
-        );
+        console.log("Received thread_deleted event:", threadId);
+        // Re-fetch the first page to ensure list is up-to-date
+        fetchAndSetThreads(1);
       });
 
       socket.on("thread_updated", ({ updatedPost }) => {
@@ -289,11 +245,18 @@ const Forum = () => {
     }, 100);
   };
 
-  const handleDeleteThread = async (threadId: string) => {
-    if (!token) return;
+  const handleDeleteThread = (threadId: string) => {
+    setThreadToDelete(threadId);
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDeleteThread = async () => {
+    if (!token || !threadToDelete) return;
     try {
-      await deleteForumPost(threadId, token);
+      await deleteForumPost(threadToDelete, token);
       // The socket event will handle UI update
+      setDeleteModalOpen(false);
+      setThreadToDelete(null);
     } catch (error) {
       console.error("Failed to delete thread", error);
       // Optionally, show an error to the user
@@ -301,24 +264,8 @@ const Forum = () => {
   };
 
   const handleEditClick = (id: string, content: string) => {
-    setEditingId(id);
-    setEditingContent(content);
-  };
-
-  const handleCancelEdit = () => {
-    setEditingId(null);
-    setEditingContent("");
-  };
-
-  const handleUpdateSubmit = async () => {
-    if (!token || !editingId) return;
-
-    try {
-      await updateForumPost(editingId, { content: editingContent }, token);
-      handleCancelEdit();
-    } catch (error) {
-      console.error("Failed to update post", error);
-    }
+    // Navigate to the post page with edit parameter
+    navigate(`/forum/${id}?edit=true`);
   };
 
   return (
@@ -388,7 +335,9 @@ const Forum = () => {
               >
                 <i className="fas fa-arrow-up"></i>
               </button>
-              <span className="vote-count" data-cy="vote-count">{thread.upvotes}</span>
+              <span className="vote-count" data-cy="vote-count">
+                {thread.upvotes}
+              </span>
               <button
                 onClick={(e) => handleDownvote(thread._id, e)}
                 className={`downvote-btn ${thread.userVote === -1 ? "downvoted" : ""}`}
@@ -401,40 +350,21 @@ const Forum = () => {
             </div>
 
             <div className="topic-content">
-              {editingId === thread._id ? (
-                <div className="edit-form-full">
-                  <textarea
-                    value={editingContent}
-                    onChange={(e) => setEditingContent(e.target.value)}
-                    rows={4}
-                  />
-                  <div className="edit-actions">
-                    <button onClick={handleCancelEdit} className="btn-ghost">
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleUpdateSubmit}
-                      className="btn-primary"
-                    >
-                      Save
-                    </button>
-                  </div>
+              <Link to={`/forum/${thread._id}`} className="topic-link">
+                <div className="topic-header">
+                  <h2 className="topic-title" data-cy="post-title">
+                    {thread.title}
+                  </h2>
+                  <span
+                    className={`topic-subject ${formatSubjectClass(
+                      thread.topic,
+                    )}`}
+                  >
+                    {thread.topic}
+                  </span>
                 </div>
-              ) : (
-                <Link to={`/forum/${thread._id}`} className="topic-link">
-                  <div className="topic-header">
-                    <h2 className="topic-title" data-cy="post-title">{thread.title}</h2>
-                    <span
-                      className={`topic-subject ${formatSubjectClass(
-                        thread.topic,
-                      )}`}
-                    >
-                      {thread.topic}
-                    </span>
-                  </div>
-                  <p className="topic-excerpt">{thread.content}</p>
-                </Link>
-              )}
+                <p className="topic-excerpt">{thread.content}</p>
+              </Link>
               <div className="topic-meta">
                 <div className="meta-stats">
                   <span className="stat-item">
@@ -473,12 +403,19 @@ const Forum = () => {
             </div>
             <div className="topic-actions">
               {user && thread.author && user.id === thread.author.userId && (
-                <button onClick={() => handleEditClick(thread._id, thread.content)} className="edit-btn">
+                <button
+                  onClick={() => handleEditClick(thread._id, thread.content)}
+                  className="edit-btn"
+                >
                   <i className="fas fa-pencil-alt"></i>
                 </button>
               )}
-              {(user && thread.author && user.id === thread.author.userId || user && user.role === 'admin') && (
-                <button onClick={() => handleDeleteThread(thread._id)} className="delete-btn">
+              {((user && thread.author && user.id === thread.author.userId) ||
+                (user && user.role === "admin")) && (
+                <button
+                  onClick={() => handleDeleteThread(thread._id)}
+                  className="delete-btn"
+                >
                   <i className="fas fa-trash"></i>
                 </button>
               )}
@@ -502,6 +439,17 @@ const Forum = () => {
       </div>
 
       {isModalOpen && <CreatePostModal onClose={() => setIsModalOpen(false)} />}
+
+      <DeleteConfirmationModal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setThreadToDelete(null);
+        }}
+        onConfirm={confirmDeleteThread}
+        title="Delete Forum Post"
+        message="Are you sure you want to permanently delete this forum post? This action cannot be undone."
+      />
     </div>
   );
 };

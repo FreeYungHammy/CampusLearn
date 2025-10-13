@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import api from "../lib/api";
 import { useAuthStore } from "../store/authStore";
+import SuccessNotification from "../components/SuccessNotification";
+import ErrorNotification from "../components/ErrorNotification";
 import UploadConfirmationModal from "../components/UploadConfirmationModal";
 
 const Upload = () => {
@@ -12,6 +14,9 @@ const Upload = () => {
   const [errors, setErrors] = useState<any>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [showSuccessNotification, setShowSuccessNotification] = useState(false);
+  const [showErrorNotification, setShowErrorNotification] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user, token } = useAuthStore();
@@ -89,7 +94,8 @@ const Upload = () => {
           Authorization: `Bearer ${token}`,
         },
       });
-      alert("File uploaded successfully!");
+      // Show success notification
+      setShowSuccessNotification(true);
       // Clear form fields
       setFile(null);
       setTitle("");
@@ -99,7 +105,8 @@ const Upload = () => {
       setErrors({});
     } catch (error) {
       console.error("Upload failed:", error);
-      alert("File upload failed. Please check the console for details.");
+      setErrorMessage("File upload failed. Please try again.");
+      setShowErrorNotification(true);
       setErrors({ api: "File upload failed." });
     } finally {
       setIsSubmitting(false);
@@ -242,6 +249,18 @@ const Upload = () => {
           </div>
         </div>
       </div>
+
+      <SuccessNotification
+        show={showSuccessNotification}
+        onClose={() => setShowSuccessNotification(false)}
+        message="File uploaded successfully!"
+      />
+
+      <ErrorNotification
+        show={showErrorNotification}
+        onClose={() => setShowErrorNotification(false)}
+        message={errorMessage}
+      />
     </>
   );
 };
