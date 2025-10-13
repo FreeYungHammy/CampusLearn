@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import CreatePostModal from "../components/forum/CreatePostModal";
 import "../components/forum/CreatePostModal.css";
 import {
@@ -34,9 +34,8 @@ const Forum = () => {
   const [threads, setThreads] = useState<any[]>([]);
   const socket = useForumSocket();
   const { token, user, pfpTimestamps, updatePfpTimestamps } = useAuthStore();
+  const navigate = useNavigate();
 
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingContent, setEditingContent] = useState("");
   const [isVoting, setIsVoting] = useState<{ [key: string]: boolean }>({});
 
   const [sortBy, setSortBy] = useState("newest"); // 'newest' or 'upvotes'
@@ -301,24 +300,8 @@ const Forum = () => {
   };
 
   const handleEditClick = (id: string, content: string) => {
-    setEditingId(id);
-    setEditingContent(content);
-  };
-
-  const handleCancelEdit = () => {
-    setEditingId(null);
-    setEditingContent("");
-  };
-
-  const handleUpdateSubmit = async () => {
-    if (!token || !editingId) return;
-
-    try {
-      await updateForumPost(editingId, { content: editingContent }, token);
-      handleCancelEdit();
-    } catch (error) {
-      console.error("Failed to update post", error);
-    }
+    // Navigate to the post page with edit parameter
+    navigate(`/forum/${id}?edit=true`);
   };
 
   return (
@@ -388,7 +371,9 @@ const Forum = () => {
               >
                 <i className="fas fa-arrow-up"></i>
               </button>
-              <span className="vote-count" data-cy="vote-count">{thread.upvotes}</span>
+              <span className="vote-count" data-cy="vote-count">
+                {thread.upvotes}
+              </span>
               <button
                 onClick={(e) => handleDownvote(thread._id, e)}
                 className={`downvote-btn ${thread.userVote === -1 ? "downvoted" : ""}`}
@@ -401,40 +386,21 @@ const Forum = () => {
             </div>
 
             <div className="topic-content">
-              {editingId === thread._id ? (
-                <div className="edit-form-full">
-                  <textarea
-                    value={editingContent}
-                    onChange={(e) => setEditingContent(e.target.value)}
-                    rows={4}
-                  />
-                  <div className="edit-actions">
-                    <button onClick={handleCancelEdit} className="btn-ghost">
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleUpdateSubmit}
-                      className="btn-primary"
-                    >
-                      Save
-                    </button>
-                  </div>
+              <Link to={`/forum/${thread._id}`} className="topic-link">
+                <div className="topic-header">
+                  <h2 className="topic-title" data-cy="post-title">
+                    {thread.title}
+                  </h2>
+                  <span
+                    className={`topic-subject ${formatSubjectClass(
+                      thread.topic,
+                    )}`}
+                  >
+                    {thread.topic}
+                  </span>
                 </div>
-              ) : (
-                <Link to={`/forum/${thread._id}`} className="topic-link">
-                  <div className="topic-header">
-                    <h2 className="topic-title" data-cy="post-title">{thread.title}</h2>
-                    <span
-                      className={`topic-subject ${formatSubjectClass(
-                        thread.topic,
-                      )}`}
-                    >
-                      {thread.topic}
-                    </span>
-                  </div>
-                  <p className="topic-excerpt">{thread.content}</p>
-                </Link>
-              )}
+                <p className="topic-excerpt">{thread.content}</p>
+              </Link>
               <div className="topic-meta">
                 <div className="meta-stats">
                   <span className="stat-item">
@@ -473,12 +439,19 @@ const Forum = () => {
             </div>
             <div className="topic-actions">
               {user && thread.author && user.id === thread.author.userId && (
-                <button onClick={() => handleEditClick(thread._id, thread.content)} className="edit-btn">
+                <button
+                  onClick={() => handleEditClick(thread._id, thread.content)}
+                  className="edit-btn"
+                >
                   <i className="fas fa-pencil-alt"></i>
                 </button>
               )}
-              {(user && thread.author && user.id === thread.author.userId || user && user.role === 'admin') && (
-                <button onClick={() => handleDeleteThread(thread._id)} className="delete-btn">
+              {((user && thread.author && user.id === thread.author.userId) ||
+                (user && user.role === "admin")) && (
+                <button
+                  onClick={() => handleDeleteThread(thread._id)}
+                  className="delete-btn"
+                >
                   <i className="fas fa-trash"></i>
                 </button>
               )}

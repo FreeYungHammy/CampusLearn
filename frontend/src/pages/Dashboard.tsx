@@ -71,59 +71,6 @@ const events = [
   },
 ];
 
-// Animated Stat Card Component
-const StatCard: React.FC<{
-  icon: string;
-  title: string;
-  value: string;
-  change: string;
-  delay: number;
-}> = ({ icon, title, value, change, delay }) => {
-  const [count, setCount] = useState(0);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const targetValue = parseInt(value.replace(/[^\d]/g, ""));
-      const increment = targetValue / 50;
-      let current = 0;
-
-      const counter = setInterval(() => {
-        current += increment;
-        if (current >= targetValue) {
-          setCount(targetValue);
-          clearInterval(counter);
-        } else {
-          setCount(Math.floor(current));
-        }
-      }, 30);
-
-      return () => clearInterval(counter);
-    }, delay * 200);
-
-    return () => clearTimeout(timer);
-  }, [value, delay]);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay }}
-      className="stat-card"
-    >
-      <div className="stat-icon">
-        <i className={icon}></i>
-      </div>
-      <div className="stat-content">
-        <div className="stat-value">
-          {value.includes("%") ? `${count}%` : count.toLocaleString()}
-        </div>
-        <div className="stat-title">{title}</div>
-        <div className="stat-change">{change}</div>
-      </div>
-    </motion.div>
-  );
-};
-
 // Quick Action Button Component
 const QuickAction: React.FC<{
   icon: string;
@@ -248,83 +195,11 @@ const Dashboard = () => {
         </div>
       </motion.div>
 
-      {/* Stats Grid */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.2 }}
-        className="stats-grid"
-      >
-        {user?.role === "student" ? (
-          <>
-            <StatCard
-              icon="fas fa-calendar-check"
-              title="Sessions This Month"
-              value="0"
-              change="+0 from last month"
-              delay={0.1}
-            />
-            <StatCard
-              icon="fas fa-users"
-              title="Active Tutors"
-              value="0"
-              change="0 new connections"
-              delay={0.2}
-            />
-            <StatCard
-              icon="fas fa-clock"
-              title="Study Hours"
-              value="0h"
-              change="+0h this week"
-              delay={0.3}
-            />
-            <StatCard
-              icon="fas fa-trophy"
-              title="Success Rate"
-              value="0%"
-              change="+0% improvement"
-              delay={0.4}
-            />
-          </>
-        ) : (
-          <>
-            <StatCard
-              icon="fas fa-calendar-check"
-              title="Sessions Taught"
-              value="0"
-              change="+0 this month"
-              delay={0.1}
-            />
-            <StatCard
-              icon="fas fa-users"
-              title="Active Students"
-              value="0"
-              change="0 new students"
-              delay={0.2}
-            />
-            <StatCard
-              icon="fas fa-clock"
-              title="Teaching Hours"
-              value="0h"
-              change="+0h this week"
-              delay={0.3}
-            />
-            <StatCard
-              icon="fas fa-star"
-              title="Average Rating"
-              value="0"
-              change="+0 this month"
-              delay={0.4}
-            />
-          </>
-        )}
-      </motion.div>
-
       {/* Quick Actions */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.4 }}
+        transition={{ duration: 0.6, delay: 0.2 }}
         className="quick-actions"
       >
         <h3 className="section-subtitle">
@@ -410,7 +285,7 @@ const Dashboard = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.6 }}
+        transition={{ duration: 0.6, delay: 0.4 }}
         className="calendar-section"
       >
         <h3 className="section-subtitle">

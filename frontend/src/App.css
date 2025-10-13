@@ -610,7 +610,7 @@ img {
 .section-title {
   font-size: 28px;
   font-weight: 700;
-  margin-bottom: 20px;
+  margin-bottom: 32px;
   color: var(--dark);
   display: flex;
   align-items: center;
@@ -3263,7 +3263,7 @@ btn-success:hover {
   font-size: 28px;
   font-weight: 700;
   color: var(--text-primary);
-  margin: 0;
+  margin-bottom: 32px;
 }
 
 .section-title i {
@@ -4654,7 +4654,7 @@ btn-success:hover {
   font-size: 24px;
   font-weight: 700;
   color: var(--text-primary);
-  margin: 0;
+  margin-bottom: 20px;
 }
 
 .section-title i {
@@ -4996,7 +4996,7 @@ main.content {
   --border: rgba(255, 255, 255, 0.12);
 
   /* Background gradient for <body> */
-  --bg-grad-start: #0b1221;
+  --bg-grad-start: #0b1220;
   --bg-grad-end: #0f172a;
 
   /* Dropdown / menu */

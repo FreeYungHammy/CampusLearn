@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import {
+  useParams,
+  Link,
+  useNavigate,
+  useSearchParams,
+} from "react-router-dom";
 import {
   getForumThreadById,
   createForumReply,
@@ -16,6 +21,7 @@ import PostActions from "../components/forum/PostActions";
 const ForumTopic = () => {
   const { threadId } = useParams<{ threadId: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [thread, setThread] = useState<any>(null);
   const [replyContent, setReplyContent] = useState("");
   const [isAnonymous, setIsAnonymous] = useState(false);
@@ -63,7 +69,8 @@ const ForumTopic = () => {
             {} as { [userId: string]: number },
           );
           if (fetchedThread.author && fetchedThread.author.pfpTimestamp) {
-            timestamps[fetchedThread.author.userId] = fetchedThread.author.pfpTimestamp;
+            timestamps[fetchedThread.author.userId] =
+              fetchedThread.author.pfpTimestamp;
           }
           updatePfpTimestamps(timestamps);
 
@@ -76,6 +83,20 @@ const ForumTopic = () => {
             })),
           };
           setThread(threadWithVotes);
+
+          // Check if we should automatically open edit mode
+          const shouldEdit = searchParams.get("edit") === "true";
+          if (
+            shouldEdit &&
+            user &&
+            fetchedThread.author &&
+            user.id === fetchedThread.author.userId
+          ) {
+            setEditingId(fetchedThread._id);
+            setEditingContent(fetchedThread.content);
+            // Remove the edit parameter from URL after opening edit mode
+            navigate(`/forum/${threadId}`, { replace: true });
+          }
         } catch (error) {
           console.error("Failed to fetch thread", error);
           setError("Failed to load thread. Please try again.");
@@ -86,7 +107,7 @@ const ForumTopic = () => {
     };
 
     fetchThread();
-  }, [threadId, token]);
+  }, [threadId, token, searchParams, user, navigate]);
 
   useEffect(() => {
     if (socket) {
@@ -422,11 +443,15 @@ const ForumTopic = () => {
         </div>
         <div className="topic-actions">
           {user && thread.author && user.id === thread.author.userId && (
-            <button onClick={() => handleEditClick(thread._id, thread.content)} className="edit-btn">
+            <button
+              onClick={() => handleEditClick(thread._id, thread.content)}
+              className="edit-btn"
+            >
               <i className="fas fa-pencil-alt"></i>
             </button>
           )}
-          {(user && thread.author && user.id === thread.author.userId || user && user.role === 'admin') && (
+          {((user && thread.author && user.id === thread.author.userId) ||
+            (user && user.role === "admin")) && (
             <button onClick={handleDeleteThread} className="delete-btn">
               <i className="fas fa-trash"></i>
             </button>
@@ -516,7 +541,9 @@ const ForumTopic = () => {
                   >
                     <i className="fas fa-arrow-up"></i>
                   </button>
-                  <span className="vote-count" data-cy="reply-vote-count">{reply.upvotes}</span>
+                  <span className="vote-count" data-cy="reply-vote-count">
+                    {reply.upvotes}
+                  </span>
                   <button
                     onClick={(e) => handleReplyDownvote(reply._id, e)}
                     className={`downvote-btn ${
@@ -588,12 +615,19 @@ const ForumTopic = () => {
                 </div>
                 <div className="topic-actions">
                   {user && reply.author && user.id === reply.author.userId && (
-                    <button onClick={() => handleEditClick(reply._id, reply.content)} className="edit-btn">
+                    <button
+                      onClick={() => handleEditClick(reply._id, reply.content)}
+                      className="edit-btn"
+                    >
                       <i className="fas fa-pencil-alt"></i>
                     </button>
                   )}
-                  {(user && reply.author && user.id === reply.author.userId || user && user.role === 'admin') && (
-                    <button onClick={() => handleDeleteReply(reply._id)} className="delete-btn">
+                  {((user && reply.author && user.id === reply.author.userId) ||
+                    (user && user.role === "admin")) && (
+                    <button
+                      onClick={() => handleDeleteReply(reply._id)}
+                      className="delete-btn"
+                    >
                       <i className="fas fa-trash"></i>
                     </button>
                   )}
