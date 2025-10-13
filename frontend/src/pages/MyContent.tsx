@@ -8,6 +8,18 @@ import VideoPlayer from "../components/VideoPlayer";
 import DocxViewer from "../components/DocxViewer";
 import "../components/VideoPlayer.css";
 
+const formatBytes = (bytes: number, decimals = 2) => {
+  if (!+bytes) return "0 Bytes";
+
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+};
+
 // List of MIME types that can be safely displayed in a browser
 const VIEWABLE_MIME_TYPES = [
   "application/pdf",
@@ -457,6 +469,52 @@ const MyContent = () => {
                                   ? `${((file as any).size / 1024 / 1024).toFixed(1)} MB`
                                   : "Unknown size";
 
+                                // Get the actual file type for the badge
+                                const getFileTypeBadge = (
+                                  contentType: string,
+                                ) => {
+                                  if (contentType === "application/pdf")
+                                    return "PDF";
+                                  if (contentType === "application/msword")
+                                    return "DOC";
+                                  if (
+                                    contentType ===
+                                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                                  )
+                                    return "DOCX";
+                                  if (
+                                    contentType === "application/vnd.ms-excel"
+                                  )
+                                    return "XLS";
+                                  if (
+                                    contentType ===
+                                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                                  )
+                                    return "XLSX";
+                                  if (
+                                    contentType ===
+                                    "application/vnd.ms-powerpoint"
+                                  )
+                                    return "PPT";
+                                  if (
+                                    contentType ===
+                                    "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                                  )
+                                    return "PPTX";
+                                  if (contentType.startsWith("image/"))
+                                    return "IMAGE";
+                                  if (contentType.startsWith("video/"))
+                                    return "VIDEO";
+                                  if (contentType.startsWith("text/"))
+                                    return "TEXT";
+                                  if (contentType.startsWith("application/"))
+                                    return "APP";
+                                  return (
+                                    contentType.split("/")[1]?.toUpperCase() ||
+                                    "FILE"
+                                  );
+                                };
+
                                 return (
                                   <div
                                     key={fileId}
@@ -467,7 +525,7 @@ const MyContent = () => {
                                         <i className={`fas ${fileIcon}`}></i>
                                       </div>
                                       <div className="file-badge">
-                                        {fileType.toUpperCase()}
+                                        {getFileTypeBadge(file.contentType)}
                                       </div>
                                     </div>
                                     <div className="file-info">
@@ -490,7 +548,11 @@ const MyContent = () => {
                                         </div>
                                         <div className="meta-item">
                                           <i className="fas fa-weight-hanging"></i>
-                                          <span>{fileSize}</span>
+                                          <span>
+                                            {file.size
+                                              ? formatBytes(file.size)
+                                              : "Unknown size"}
+                                          </span>
                                         </div>
                                         {file.subject && (
                                           <div className="meta-item">

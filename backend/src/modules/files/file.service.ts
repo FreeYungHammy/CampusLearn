@@ -33,7 +33,11 @@ export const FileService = {
     if (gcsService.isEnabled() && contentType.startsWith("video/")) {
       const safeName = `${Date.now()}-${(input.file.originalname || "upload").replace(/[^a-zA-Z0-9._-]/g, "_")}`;
       const destination = `uploads/videos/${safeName}`;
-      await gcsService.uploadBuffer(input.file.buffer, contentType, destination);
+      await gcsService.uploadBuffer(
+        input.file.buffer,
+        contentType,
+        destination,
+      );
       externalUri = destination; // stored path in bucket
     } else {
       // Fallback: store in Mongo as before
@@ -48,6 +52,7 @@ export const FileService = {
       subtopic: input.subtopic,
       title: input.title,
       description: input.description,
+      size: input.file.buffer.length, // <-- Add the original file size
       ...(compressedContent ? { content: compressedContent } : {}),
       contentType,
       ...(externalUri ? { externalUri } : {}),
