@@ -313,10 +313,19 @@ const MyContent = () => {
                               {Object.keys(grouped).map((subject) => (
                                 <div
                                   key={subject}
-                                  className="subject-card"
+                                  className="subject-card enhanced"
                                   onClick={() => navigateToSubject(subject)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" || e.key === " ") {
+                                      e.preventDefault();
+                                      navigateToSubject(subject);
+                                    }
+                                  }}
+                                  tabIndex={0}
+                                  role="button"
+                                  aria-label={`View ${subject} content`}
                                 >
-                                  <div className="subject-icon">
+                                  <div className="subject-icon enhanced">
                                     <i className="fas fa-book"></i>
                                   </div>
                                   <div className="subject-info">
@@ -355,15 +364,27 @@ const MyContent = () => {
                               (subtopic) => (
                                 <div
                                   key={subtopic}
-                                  className="subtopic-card"
+                                  className="subtopic-card enhanced"
                                   onClick={() =>
                                     navigateToSubtopic(
                                       selectedSubject,
                                       subtopic,
                                     )
                                   }
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" || e.key === " ") {
+                                      e.preventDefault();
+                                      navigateToSubtopic(
+                                        selectedSubject,
+                                        subtopic,
+                                      );
+                                    }
+                                  }}
+                                  tabIndex={0}
+                                  role="button"
+                                  aria-label={`View ${subtopic} files`}
                                 >
-                                  <div className="subtopic-icon">
+                                  <div className="subtopic-icon enhanced">
                                     <i className="fas fa-folder"></i>
                                   </div>
                                   <div className="subtopic-info">
@@ -394,11 +415,27 @@ const MyContent = () => {
                             >
                               <i className="fas fa-arrow-left"></i> Back
                             </button>
+                            <div className="results-info">
+                              <h3 className="content-section-title">
+                                {selectedSubject}{" "}
+                                <i className="fas fa-chevron-right"></i>{" "}
+                                {selectedSubtopic}
+                              </h3>
+                              <span className="results-count">
+                                {filteredItems.length} file
+                                {filteredItems.length !== 1 ? "s" : ""}
+                              </span>
+                            </div>
                           </div>
 
-                          <div className="files-grid">
-                            {grouped[selectedSubject][selectedSubtopic].map(
-                              (file) => {
+                          {filteredItems.length === 0 ? (
+                            <div className="empty-state">
+                              <i className="fas fa-folder-open"></i>
+                              <p>No files in this subtopic yet.</p>
+                            </div>
+                          ) : (
+                            <div className="files-grid">
+                              {filteredItems.map((file) => {
                                 const fileId =
                                   (file as any).id || (file as any)._id;
                                 const fileType = file.contentType.split("/")[0];
@@ -416,25 +453,51 @@ const MyContent = () => {
                                           ? "fa-file-word"
                                           : "fa-file";
 
+                                const fileSize = (file as any).size
+                                  ? `${((file as any).size / 1024 / 1024).toFixed(1)} MB`
+                                  : "Unknown size";
+
                                 return (
-                                  <div key={fileId} className="file-card">
-                                    <div className="file-icon">
-                                      <i className={`fas ${fileIcon}`}></i>
+                                  <div
+                                    key={fileId}
+                                    className="file-card enhanced"
+                                  >
+                                    <div className="file-header">
+                                      <div className="file-icon">
+                                        <i className={`fas ${fileIcon}`}></i>
+                                      </div>
+                                      <div className="file-badge">
+                                        {fileType.toUpperCase()}
+                                      </div>
                                     </div>
                                     <div className="file-info">
-                                      <h4>{file.title}</h4>
-                                      <p className="file-description">
-                                        {file.description}
-                                      </p>
+                                      <h4 className="file-title">
+                                        {file.title}
+                                      </h4>
+                                      {file.description && (
+                                        <p className="file-description">
+                                          {file.description}
+                                        </p>
+                                      )}
                                       <div className="file-meta">
-                                        <span className="file-type">
-                                          {file.contentType}
-                                        </span>
-                                        <span className="file-date">
-                                          {new Date(
-                                            file.uploadDate || Date.now(),
-                                          ).toLocaleDateString()}
-                                        </span>
+                                        <div className="meta-item">
+                                          <i className="fas fa-calendar"></i>
+                                          <span>
+                                            {new Date(
+                                              file.uploadDate || Date.now(),
+                                            ).toLocaleDateString()}
+                                          </span>
+                                        </div>
+                                        <div className="meta-item">
+                                          <i className="fas fa-weight-hanging"></i>
+                                          <span>{fileSize}</span>
+                                        </div>
+                                        {file.subject && (
+                                          <div className="meta-item">
+                                            <i className="fas fa-book"></i>
+                                            <span>{file.subject}</span>
+                                          </div>
+                                        )}
                                       </div>
                                     </div>
                                     <div className="file-actions">
@@ -468,9 +531,9 @@ const MyContent = () => {
                                     </div>
                                   </div>
                                 );
-                              },
-                            )}
-                          </div>
+                              })}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
