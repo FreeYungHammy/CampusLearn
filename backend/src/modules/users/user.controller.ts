@@ -22,7 +22,11 @@ export const UserController = {
     try {
       const result = await UserService.login(req.body);
       res.json(result);
-    } catch (e) {
+    } catch (e: any) {
+      // Handle invalid credentials with proper 401 status
+      if (e.message === "Invalid credentials") {
+        return res.status(401).json({ message: e.message });
+      }
       next(e);
     }
   },
