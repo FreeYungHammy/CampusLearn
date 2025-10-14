@@ -12,6 +12,7 @@ import {
 import { useForumSocket } from "../hooks/useForumSocket";
 import { useAuthStore } from "../store/authStore";
 import PostActions from "../components/forum/PostActions";
+import { isWithinEditWindow, getRemainingEditTime } from "../utils/editWindow";
 
 const formatSubjectClass = (subject: string) => {
   const subjectMap: { [key: string]: string } = {
@@ -402,14 +403,32 @@ const Forum = () => {
               </div>
             </div>
             <div className="topic-actions">
-              {user && thread.author && user.id === thread.author.userId && (
-                <button
-                  onClick={() => handleEditClick(thread._id, thread.content)}
-                  className="edit-btn"
-                >
-                  <i className="fas fa-pencil-alt"></i>
-                </button>
-              )}
+              {user &&
+                thread.author &&
+                user.id === thread.author.userId &&
+                (() => {
+                  const canEdit = isWithinEditWindow(thread.createdAt);
+                  const remainingTime = getRemainingEditTime(thread.createdAt);
+
+                  return (
+                    <button
+                      onClick={() =>
+                        canEdit && handleEditClick(thread._id, thread.content)
+                      }
+                      disabled={!canEdit}
+                      className={`edit-btn ${!canEdit ? "disabled" : ""}`}
+                      title={
+                        canEdit
+                          ? remainingTime > 0
+                            ? `Edit available for ${remainingTime} more minute${remainingTime !== 1 ? "s" : ""}`
+                            : "Edit my post"
+                          : "Edit window expired (10 minutes)"
+                      }
+                    >
+                      <i className="fas fa-pencil-alt"></i>
+                    </button>
+                  );
+                })()}
               {((user && thread.author && user.id === thread.author.userId) ||
                 (user && user.role === "admin")) && (
                 <button

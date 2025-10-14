@@ -87,11 +87,17 @@ export const ForumService = {
 
     let authorProfile;
     if (user.role === "student") {
-      authorProfile = await StudentModel.findOne({ userId: new mongoose.Types.ObjectId(user.id) }).lean();
+      authorProfile = await StudentModel.findOne({
+        userId: new mongoose.Types.ObjectId(user.id),
+      }).lean();
     } else if (user.role === "tutor") {
-      authorProfile = await TutorModel.findOne({ userId: new mongoose.Types.ObjectId(user.id) }).lean();
+      authorProfile = await TutorModel.findOne({
+        userId: new mongoose.Types.ObjectId(user.id),
+      }).lean();
     } else if (user.role === "admin") {
-      authorProfile = await AdminModel.findOne({ userId: new mongoose.Types.ObjectId(user.id) }).lean();
+      authorProfile = await AdminModel.findOne({
+        userId: new mongoose.Types.ObjectId(user.id),
+      }).lean();
     }
 
     if (!authorProfile) {
@@ -196,14 +202,25 @@ export const ForumService = {
           author: {
             $switch: {
               branches: [
-                { case: { $eq: ["$authorRole", "student"] }, then: { $arrayElemAt: ["$studentAuthor", 0] } },
-                { case: { $eq: ["$authorRole", "tutor"] }, then: { $arrayElemAt: ["$tutorAuthor", 0] } },
-                { case: { $eq: ["$authorRole", "admin"] }, then: { $arrayElemAt: ["$adminAuthor", 0] } }
+                {
+                  case: { $eq: ["$authorRole", "student"] },
+                  then: { $arrayElemAt: ["$studentAuthor", 0] },
+                },
+                {
+                  case: { $eq: ["$authorRole", "tutor"] },
+                  then: { $arrayElemAt: ["$tutorAuthor", 0] },
+                },
+                {
+                  case: { $eq: ["$authorRole", "admin"] },
+                  then: { $arrayElemAt: ["$adminAuthor", 0] },
+                },
               ],
-              default: null
-            }
+              default: null,
+            },
           },
-          userVote: { $ifNull: [{ $arrayElemAt: ["$userVoteInfo.voteType", 0] }, 0] },
+          userVote: {
+            $ifNull: [{ $arrayElemAt: ["$userVoteInfo.voteType", 0] }, 0],
+          },
         },
       },
       {
@@ -224,12 +241,16 @@ export const ForumService = {
     ]);
 
     const dbDuration = performance.now() - dbStartTime;
-    logger.info(`[getThreads] Aggregation query took ${dbDuration.toFixed(2)} ms`);
+    logger.info(
+      `[getThreads] Aggregation query took ${dbDuration.toFixed(2)} ms`,
+    );
 
     // Manually add pfpTimestamp
     const populatedThreads = threads.map((thread) => {
       if (thread.author && thread.author.updatedAt) {
-        thread.author.pfpTimestamp = new Date(thread.author.updatedAt).getTime();
+        thread.author.pfpTimestamp = new Date(
+          thread.author.updatedAt,
+        ).getTime();
       }
       return thread;
     });
@@ -243,7 +264,9 @@ export const ForumService = {
 
     let thread: any = await CacheService.get<any>(cacheKey);
     if (thread) {
-      logger.info(`[getThreadById] Redis retrieval for thread ${threadId} took ${(performance.now() - startTime).toFixed(2)} ms (Cache Hit)`);
+      logger.info(
+        `[getThreadById] Redis retrieval for thread ${threadId} took ${(performance.now() - startTime).toFixed(2)} ms (Cache Hit)`,
+      );
       return thread;
     }
 
@@ -310,14 +333,25 @@ export const ForumService = {
           author: {
             $switch: {
               branches: [
-                { case: { $eq: ["$authorRole", "student"] }, then: { $arrayElemAt: ["$studentAuthor", 0] } },
-                { case: { $eq: ["$authorRole", "tutor"] }, then: { $arrayElemAt: ["$tutorAuthor", 0] } },
-                { case: { $eq: ["$authorRole", "admin"] }, then: { $arrayElemAt: ["$adminAuthor", 0] } }
+                {
+                  case: { $eq: ["$authorRole", "student"] },
+                  then: { $arrayElemAt: ["$studentAuthor", 0] },
+                },
+                {
+                  case: { $eq: ["$authorRole", "tutor"] },
+                  then: { $arrayElemAt: ["$tutorAuthor", 0] },
+                },
+                {
+                  case: { $eq: ["$authorRole", "admin"] },
+                  then: { $arrayElemAt: ["$adminAuthor", 0] },
+                },
               ],
-              default: null
-            }
+              default: null,
+            },
           },
-          userVote: { $ifNull: [{ $arrayElemAt: ["$userVoteInfo.voteType", 0] }, 0] },
+          userVote: {
+            $ifNull: [{ $arrayElemAt: ["$userVoteInfo.voteType", 0] }, 0],
+          },
         },
       },
       // Unwind replies to process them
@@ -372,14 +406,25 @@ export const ForumService = {
           "replies.author": {
             $switch: {
               branches: [
-                { case: { $eq: ["$replies.authorRole", "student"] }, then: { $arrayElemAt: ["$replyStudentAuthor", 0] } },
-                { case: { $eq: ["$replies.authorRole", "tutor"] }, then: { $arrayElemAt: ["$replyTutorAuthor", 0] } },
-                { case: { $eq: ["$replies.authorRole", "admin"] }, then: { $arrayElemAt: ["$replyAdminAuthor", 0] } }
+                {
+                  case: { $eq: ["$replies.authorRole", "student"] },
+                  then: { $arrayElemAt: ["$replyStudentAuthor", 0] },
+                },
+                {
+                  case: { $eq: ["$replies.authorRole", "tutor"] },
+                  then: { $arrayElemAt: ["$replyTutorAuthor", 0] },
+                },
+                {
+                  case: { $eq: ["$replies.authorRole", "admin"] },
+                  then: { $arrayElemAt: ["$replyAdminAuthor", 0] },
+                },
               ],
-              default: null
-            }
+              default: null,
+            },
           },
-          "replies.userVote": { $ifNull: [{ $arrayElemAt: ["$replyUserVoteInfo.voteType", 0] }, 0] },
+          "replies.userVote": {
+            $ifNull: [{ $arrayElemAt: ["$replyUserVoteInfo.voteType", 0] }, 0],
+          },
         },
       },
       // Group back to reconstruct the thread
@@ -389,7 +434,11 @@ export const ForumService = {
           root: { $first: "$$ROOT" },
           replies: {
             $push: {
-              $cond: [{ $ifNull: ["$replies._id", false] }, "$replies", "$$REMOVE"],
+              $cond: [
+                { $ifNull: ["$replies._id", false] },
+                "$replies",
+                "$$REMOVE",
+              ],
             },
           },
         },
@@ -420,19 +469,25 @@ export const ForumService = {
 
     if (thread) {
       if (thread.author && thread.author.updatedAt) {
-        thread.author.pfpTimestamp = new Date(thread.author.updatedAt).getTime();
+        thread.author.pfpTimestamp = new Date(
+          thread.author.updatedAt,
+        ).getTime();
       }
       if (thread.replies) {
         thread.replies.forEach((reply: any) => {
           if (reply.author && reply.author.updatedAt) {
-            reply.author.pfpTimestamp = new Date(reply.author.updatedAt).getTime();
+            reply.author.pfpTimestamp = new Date(
+              reply.author.updatedAt,
+            ).getTime();
           }
         });
       }
     }
 
     const dbDuration = performance.now() - dbStartTime;
-    logger.info(`[getThreadById] Aggregation query took ${dbDuration.toFixed(2)} ms`);
+    logger.info(
+      `[getThreadById] Aggregation query took ${dbDuration.toFixed(2)} ms`,
+    );
 
     // 3. Store in cache
     if (thread) {
@@ -611,16 +666,22 @@ export const ForumService = {
         post.authorId.toString(),
         post.authorRole,
       );
-      if (user.role !== 'admin' && authorProfile?.userId.toString() !== user.id) {
-        throw new HttpException(403, "You are not authorized to delete this post");
+      if (
+        user.role !== "admin" &&
+        authorProfile?.userId.toString() !== user.id
+      ) {
+        throw new HttpException(
+          403,
+          "You are not authorized to delete this post",
+        );
       }
 
       const replyIds = post.replies;
       const allTargetIds = [threadId, ...replyIds];
 
-      await UserVoteModel.deleteMany({ targetId: { $in: allTargetIds } }).session(
-        session,
-      );
+      await UserVoteModel.deleteMany({
+        targetId: { $in: allTargetIds },
+      }).session(session);
       await ForumReplyModel.deleteMany({ _id: { $in: replyIds } }).session(
         session,
       );
@@ -654,7 +715,10 @@ export const ForumService = {
         reply.authorId.toString(),
         reply.authorRole,
       );
-      if (user.role !== 'admin' && authorProfile?.userId.toString() !== user.id) {
+      if (
+        user.role !== "admin" &&
+        authorProfile?.userId.toString() !== user.id
+      ) {
         throw new HttpException(
           403,
           "You are not authorized to delete this reply",
@@ -702,6 +766,19 @@ export const ForumService = {
       throw new HttpException(403, "You are not authorized to edit this post");
     }
 
+    // Check if the post is within the 10-minute edit window
+    const now = new Date();
+    const createdAt = post.createdAt;
+    const timeDifference = now.getTime() - createdAt.getTime();
+    const tenMinutesInMs = 10 * 60 * 1000; // 10 minutes in milliseconds
+
+    if (timeDifference > tenMinutesInMs) {
+      throw new HttpException(
+        403,
+        "You can only edit your post within 10 minutes of creation for accountability purposes",
+      );
+    }
+
     const { title, content, topic } = updateData;
     if (title) post.title = title;
     if (content) post.content = content;
@@ -734,6 +811,19 @@ export const ForumService = {
     );
     if (authorProfile?.userId.toString() !== user.id) {
       throw new HttpException(403, "You are not authorized to edit this reply");
+    }
+
+    // Check if the reply is within the 10-minute edit window
+    const now = new Date();
+    const createdAt = reply.createdAt;
+    const timeDifference = now.getTime() - createdAt.getTime();
+    const tenMinutesInMs = 10 * 60 * 1000; // 10 minutes in milliseconds
+
+    if (timeDifference > tenMinutesInMs) {
+      throw new HttpException(
+        403,
+        "You can only edit your reply within 10 minutes of creation for accountability purposes",
+      );
     }
 
     const { content } = updateData;

@@ -178,14 +178,129 @@ export const FileController = {
       // If file is stored in GCS, redirect directly to signed URL
       if ((item as any).externalUri) {
         const { gcsService } = await import("../../services/gcs.service");
+        const { VideoCompressionService } = await import(
+          "../../services/video-compression.service"
+        );
+
         const objectName = String((item as any).externalUri).replace(
           /^gs:\/\//,
           "",
         );
 
-        console.log(
-          `🎥 Redirecting video directly to GCS (range requests disabled)`,
-        );
+        // Handle quality parameter for video files
+        if (item.contentType.startsWith("video/") && req.query.quality) {
+          const requestedQuality = String(req.query.quality);
+          console.log(`🎯 Quality requested: ${requestedQuality}`);
+          console.log(`📁 Original object name: ${objectName}`);
+
+          try {
+            // Try to get the compressed version with the requested quality
+            const compressedUrl =
+              await VideoCompressionService.getBestQualityUrl(
+                objectName,
+                undefined, // No connection speed preference
+                requestedQuality, // Use the requested quality
+              );
+
+            console.log(`🔍 Compressed URL returned: ${compressedUrl}`);
+            console.log(`🔍 Original object name: ${objectName}`);
+            console.log(
+              `🔍 Are they different? ${compressedUrl !== objectName}`,
+            );
+
+            // If we found a compressed version, use it
+            if (compressedUrl && compressedUrl !== objectName) {
+              console.log(`✅ Using compressed version: ${compressedUrl}`);
+              console.log(`🔗 Generating signed URL for compressed version...`);
+              try {
+                const signedUrl =
+                  await gcsService.getSignedReadUrl(compressedUrl);
+                console.log(
+                  `🔗 Generated signed URL: ${signedUrl.substring(0, 100)}...`,
+                );
+                return res.redirect(signedUrl);
+              } catch (error) {
+                console.error(
+                  `❌ Failed to generate signed URL for compressed version:`,
+                  error,
+                );
+                return res.status(500).json({
+                  message: "Failed to generate video URL",
+                });
+              }
+            } else {
+              console.log(
+                `⚠️ No compressed version found for ${requestedQuality}`,
+              );
+              console.log(
+                `⚠️ This means the compressed file doesn't exist in GCS`,
+              );
+              console.log(`⚠️ Returning 404 since original was likely deleted`);
+              return res.status(404).json({
+                message: `Video quality ${requestedQuality} not available. Original video may have been compressed and deleted.`,
+              });
+            }
+          } catch (error) {
+            console.warn(`⚠️ Failed to get compressed version:`, error);
+            console.log(`⚠️ Returning 404 due to compression service error`);
+            return res.status(404).json({
+              message: "Video quality not available due to processing error.",
+            });
+          }
+        }
+
+        // For videos without quality parameter, try to serve a default quality
+        if (item.contentType.startsWith("video/")) {
+          console.log(
+            `🎥 Video without quality parameter, trying default 480p`,
+          );
+          try {
+            const defaultQualityUrl =
+              await VideoCompressionService.getBestQualityUrl(
+                objectName,
+                undefined,
+                "480p", // Default to 480p
+              );
+
+            if (defaultQualityUrl && defaultQualityUrl !== objectName) {
+              console.log(
+                `✅ Using default compressed version: ${defaultQualityUrl}`,
+              );
+              console.log(
+                `🔗 Generating signed URL for default compressed version...`,
+              );
+              try {
+                const signedUrl =
+                  await gcsService.getSignedReadUrl(defaultQualityUrl);
+                console.log(
+                  `🔗 Generated signed URL: ${signedUrl.substring(0, 100)}...`,
+                );
+                return res.redirect(signedUrl);
+              } catch (error) {
+                console.error(
+                  `❌ Failed to generate signed URL for default compressed version:`,
+                  error,
+                );
+                return res.status(500).json({
+                  message: "Failed to generate video URL",
+                });
+              }
+            } else {
+              console.log(`⚠️ No compressed versions available, returning 404`);
+              return res.status(404).json({
+                message:
+                  "Video not available. Original may have been compressed and deleted.",
+              });
+            }
+          } catch (error) {
+            console.warn(`⚠️ Failed to get default compressed version:`, error);
+            return res.status(404).json({
+              message: "Video not available due to processing error.",
+            });
+          }
+        }
+
+        console.log(`🎥 Redirecting non-video file directly to GCS`);
         const url = await gcsService.getSignedReadUrl(objectName);
         return res.redirect(url);
       }

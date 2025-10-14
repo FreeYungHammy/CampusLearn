@@ -402,6 +402,40 @@
   z-index: 10;
 }
 
+/* Ensure reply cards have relative positioning for absolute positioned actions */
+.reply-card {
+  position: relative !important;
+  overflow: visible !important;
+}
+
+/* Make sure reply edit buttons are visible and positioned correctly */
+.reply-card .topic-actions {
+  position: absolute !important;
+  top: 1rem !important;
+  right: 1rem !important;
+  z-index: 20 !important;
+  display: flex !important;
+  gap: 8px !important;
+  background: transparent !important;
+}
+
+/* Override App.css global .topic-actions rule for replies */
+.reply-card .topic-actions {
+  position: absolute !important;
+  top: 1rem !important;
+  right: 1rem !important;
+  z-index: 20 !important;
+}
+
+/* Debug: Make reply edit buttons more visible */
+.reply-card .edit-btn {
+  background: rgba(0, 0, 0, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: var(--text-color-primary) !important;
+  min-width: 32px;
+  min-height: 32px;
+}
+
 @media (max-width: 768px) {
   .forum-header {
     flex-direction: column;
@@ -442,3 +476,30 @@
   margin-right: 8px;
 }
 
+/* Edit button styles with edit window functionality */
+.edit-btn {
+  background: none;
+  border: none;
+  color: var(--text-color-secondary);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+}
+
+.edit-btn:hover:not(.disabled) {
+  background-color: var(--background-color-hover);
+  color: var(--text-color-dark);
+}
+
+.edit-btn.disabled {
+  color: var(--text-color-secondary);
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+/* Remove the expired text styling since we're not using it anymore */

@@ -26,16 +26,27 @@
 /* Overlay container specific styling */
 .booking-stepper-overlay-container {
   width: 600px;
-  height: 500px;
+  height: 650px;
+  max-height: 90vh;
   margin: 0 auto;
-  background: var(--background-color-light);
+  background: rgb(15, 22, 40);
   border-radius: 2rem;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  border: 1px solid var(--border-color);
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   animation: modalInRight 180ms ease-out;
   display: flex;
   flex-direction: column;
   position: relative;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* Light mode override */
+[data-theme="light"] .booking-stepper-overlay-container {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 @keyframes modalInRight {

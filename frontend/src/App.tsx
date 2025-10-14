@@ -1,5 +1,5 @@
 import React, { Suspense } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 
 import LandingPage from "./pages/LandingPage";
 import Dashboard from "./pages/Dashboard";
@@ -32,15 +32,18 @@ import { useGlobalSocket } from "./hooks/useGlobalSocket";
 
 import { useAuthStore } from "./store/authStore";
 import LogoutConfirmationModal from "./components/LogoutConfirmationModal";
+import { VideoCallPage } from "./pages/Call/VideoCallPage";
 
 import "./App.css";
 
 function App() {
+  const location = useLocation();
   useInactivityLogout();
   useBackendHealth();
   useGlobalSocket();
 
   const { showLogoutModal, user } = useAuthStore();
+  const isCallPopup = location.pathname.startsWith("/call/");
 
   return (
     <>
@@ -52,6 +55,11 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password/:token" element={<ResetPassword />} />
+
+          {/* Popup call route - standalone, no Layout shell */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/call/:callId" element={<VideoCallPage />} />
+          </Route>
 
           {/* Private routes */}
           <Route element={<ProtectedRoute />}>
@@ -84,7 +92,7 @@ function App() {
       {showLogoutModal && <LogoutConfirmationModal />}
       
       {/* Floating Chat Widget */}
-      <ChatWidget />
+      {!isCallPopup && <ChatWidget />}
     </>
   );
 }

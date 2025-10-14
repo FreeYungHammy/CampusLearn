@@ -135,4 +135,65 @@ r.get("/:id", FileController.getMeta);
 r.patch("/:id", requireAuth, requireTutor, FileController.update);
 r.delete("/:id", requireAuth, requireTutor, FileController.remove);
 
+// Manual compression endpoint for existing videos
+r.post("/compress/:id", requireAuth, requireTutor, async (req, res) => {
+  try {
+    const item = await FileService.getWithBinary(req.params.id);
+
+    if (!item || !(item as any).externalUri) {
+      return res.status(404).json({ message: "Video not found" });
+    }
+
+    if (!item.contentType.startsWith("video/")) {
+      return res.status(400).json({ message: "File is not a video" });
+    }
+
+    const objectName = String((item as any).externalUri).replace(
+      /^gs:\/\//,
+      "",
+    );
+
+    // Start compression
+    const { VideoCompressionService } = await import(
+      "../../services/video-compression.service"
+    );
+    const compressionPromise = VideoCompressionService.compressVideo(
+      objectName,
+      objectName.replace(".mp4", ""),
+      ["360p", "480p", "720p"],
+    );
+
+    // Don't await - let it run in background
+    compressionPromise
+      .then(async () => {
+        console.log(`✅ Manual compression completed for: ${objectName}`);
+
+        // Delete original video after successful compression
+        try {
+          const { gcsService } = await import("../../services/gcs.service");
+          await gcsService.deleteObject(objectName);
+          console.log(`🗑️ Deleted original video: ${objectName}`);
+        } catch (error) {
+          console.warn(
+            `⚠️ Failed to delete original video ${objectName}:`,
+            error,
+          );
+        }
+      })
+      .catch((error) => {
+        console.error(`❌ Manual compression failed for ${objectName}:`, error);
+      });
+
+    res.json({
+      message: "Compression started in background",
+      objectName,
+      note: "Original video will be deleted after compression completes",
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Compression failed", error: String(error) });
+  }
+});
+
 export default r;
