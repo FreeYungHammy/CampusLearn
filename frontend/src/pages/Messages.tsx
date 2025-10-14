@@ -667,6 +667,15 @@ const Messages: React.FC = () => {
     });
   }, [conversations, searchQuery]);
 
+  const handleStartVideoCall = useCallback(() => {
+    if (!selectedConversation || !user?.id) return;
+    const otherId = selectedConversation.otherUser._id;
+    const callId = [user.id, otherId].sort().join(":");
+    import("@/utils/openCallPopup").then(({ openCallPopup }) => {
+      openCallPopup(callId);
+    });
+  }, [selectedConversation, user?.id]);
+
   /* -------- Messages with date separators, profile picture grouping, and timestamp grouping -------- */
   const messagesWithSeparators = useMemo(() => {
     if (messages.length === 0) return [];
@@ -884,7 +893,7 @@ const Messages: React.FC = () => {
                       />
                     </svg>
                   </button>
-                  <button className="action-button" aria-label="Video">
+                  <button className="action-button" aria-label="Video" onClick={handleStartVideoCall}>
                     <svg width="16" height="16" fill="none" viewBox="0 0 16 16">
                       <path
                         d="M0 5a2 2 0 0 1 2-2h7.5a2 2 0 0 1 1.983 1.738l3.11-1.382A1 1 0 0 1 16 4.269v7.462a1 1 0 0 1-1.406.913l-3.111-1.382A2 2 0 0 1 9.5 13H2a2 2 0 0 1-2-2V5z"

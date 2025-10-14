@@ -233,14 +233,6 @@ const Dashboard = () => {
                 delay={0.3}
                 onClick={() => navigate("/tutors")}
               />
-              <QuickAction
-                icon="fas fa-chart-line"
-                title="View Progress"
-                description="Track your learning"
-                color="#f39c12"
-                delay={0.4}
-                onClick={() => navigate("/mycontent")}
-              />
             </>
           ) : (
             <>

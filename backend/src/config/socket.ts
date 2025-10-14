@@ -187,6 +187,98 @@ export function createSocketServer(httpServer: HttpServer) {
     });
   });
 
+  /* ---------- VIDEO NAMESPACE (WebRTC signaling) ---------- */
+  const video = io.of("/video");
+  // Lazy imports to avoid circular deps at module load time
+  // Presence + rate limiting helpers
+  let presence: typeof import("../realtime/presence.service");
+  let rateLimit: typeof import("../realtime/rateLimit.service");
+  (async () => {
+    presence = await import("../realtime/presence.service");
+    rateLimit = await import("../realtime/rateLimit.service");
+  })();
+
+  // Reuse JWT auth for /video namespace
+  video.use(async (socket, next) => {
+    try {
+      const token = socket.handshake.auth.token || socket.handshake.headers.authorization?.split(' ')[1];
+      if (!token) return next(new Error('Authentication error: No token provided'));
+
+      const isBlacklisted = await CacheService.get(`jwt:blacklist:${token}`);
+      if (isBlacklisted) return next(new Error('Authentication error: Token has been revoked'));
+
+      const payload = verifyJwt(token);
+      if (!payload) return next(new Error('Authentication error: Invalid or expired token'));
+
+      socket.data.user = { id: payload.id, email: payload.email, role: payload.role };
+      next();
+    } catch {
+      next(new Error('Authentication error: Invalid token'));
+    }
+  });
+
+  video.on("connection", (socket) => {
+    const userId = socket.data.user?.id as string | undefined;
+    if (userId) {
+      connectedUsers.set(userId, { socketId: socket.id, userId, lastSeen: new Date() });
+    }
+
+    // join_call: client joins a signaling room for a given callId
+    // payload: { callId: string }
+    socket.on("join_call", async ({ callId, role }: { callId: string; role?: "tutor"|"student"|"guest" }) => {
+      console.log("[/video] join_call", { socket: socket.id, userId, callId, role });
+      if (!callId) return;
+      if (!rateLimit || !rateLimit.allowEvent(socket.id, "video:join")) return;
+      socket.join(callId);
+      if (userId && presence) {
+        await presence.markSocketOnline(userId, socket.id);
+        await presence.addMemberToRoom(callId, userId);
+      }
+      // Persist lifecycle (best-effort, non-blocking on errors)
+      try {
+        const { CallService } = await import("../realtime/call.service");
+        await CallService.startCall(callId, userId || "unknown");
+        if (userId) await CallService.joinCall(callId, userId, role || "guest");
+      } catch {}
+      socket.to(callId).emit("peer_joined", { userId });
+    });
+
+    // signal: relay offer/answer/ice to peers in room
+    // payload: { callId: string, data: { type: 'offer'|'answer'|'candidate', sdp?, candidate? } }
+    socket.on("signal", ({ callId, data }: { callId: string; data: unknown }) => {
+      if (!callId) return;
+      if (!rateLimit || !rateLimit.allowEvent(socket.id, "video:signal")) return;
+      console.log("[/video] signal", { socket: socket.id, type: (data as any)?.type, callId });
+      socket.to(callId).emit("signal", { fromUserId: userId, data });
+    });
+
+    // leave_call: remove from room and notify others
+    // payload: { callId: string }
+    socket.on("leave_call", async ({ callId }: { callId: string }) => {
+      console.log("[/video] leave_call", { socket: socket.id, userId, callId });
+      if (!callId) return;
+      if (!rateLimit || !rateLimit.allowEvent(socket.id, "video:leave")) return;
+      socket.leave(callId);
+      if (userId && presence) {
+        await presence.removeMemberFromRoom(callId, userId);
+      }
+      try {
+        if (userId) {
+          const { CallService } = await import("../realtime/call.service");
+          await CallService.leaveCall(callId, userId);
+        }
+      } catch {}
+      socket.to(callId).emit("peer_left", { userId });
+    });
+
+    socket.on("disconnect", async () => {
+      if (userId) {
+        connectedUsers.delete(userId);
+        if (presence) await presence.markSocketOffline(userId, socket.id);
+      }
+    });
+  });
+
   return io;
 }
 

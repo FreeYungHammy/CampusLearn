@@ -1,0 +1,110 @@
+/* Fullscreen call shell */
+.cl-call-root {
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background: radial-gradient(1200px 800px at 80% 0%, #0f172a 0%, #0b1220 40%, #0a1020 100%);
+  color: #e5e7eb;
+}
+
+.cl-call-header {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  backdrop-filter: saturate(140%) blur(6px);
+}
+
+.cl-stage {
+  position: relative;
+  height: calc(100vh - 56px);
+  width: 100vw;
+  overflow: hidden;
+}
+
+.cl-remote {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #0b1220;
+}
+
+.cl-local {
+  position: absolute;
+  right: 24px;
+  bottom: 24px;
+  width: 260px;
+  height: 146px;
+  border-radius: 12px;
+  object-fit: cover;
+  background: #111827;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+}
+
+.cl-dock {
+  position: absolute;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 14px;
+  padding: 14px 18px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 999px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+}
+
+.cl-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+  color: #0f172a;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cl-btn--primary {
+  background: linear-gradient(180deg, #1e90ff 0%, #1076d6 100%);
+  color: #fff;
+  border: none;
+}
+
+.cl-btn--danger {
+  background: #e11d48;
+  color: #fff;
+  border: none;
+}
+
+.cl-btn--off {
+  background: #e11d48;
+  color: #fff;
+  border: none;
+}
+
+/* Prejoin panel */
+.cl-prejoin {
+  height: 100%;
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 24px;
+  padding: 28px;
+}
+.cl-pre-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 18px 50px rgba(0,0,0,0.25) inset, 0 12px 28px rgba(0,0,0,0.25);
+}
+.cl-pre-form label { display:block; margin: 10px 0 6px; font-size: 13px; color: #cbd5e1; }
+.cl-pre-form select { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: #0b1325; color: #e5e7eb; }
+.cl-pre-actions { display:flex; gap: 12px; margin-top: 18px; }
+.cl-pre-join { background:#2563eb; color:#fff; border-radius:10px; padding:10px 16px; }
+.cl-pre-cancel { background:transparent; color:#e5e7eb; border:1px solid rgba(255,255,255,0.18); border-radius:10px; padding:10px 16px; }
+
+
