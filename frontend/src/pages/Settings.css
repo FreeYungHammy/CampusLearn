@@ -290,7 +290,7 @@ input:checked + .slider:before {
 
 .subjects-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  grid-template-columns: repeat(2, minmax(250px, 1fr));
   gap: 12px;
   margin-bottom: 10px;
 }
@@ -305,6 +305,7 @@ input:checked + .slider:before {
   font-weight: 500;
   transition: var(--transition);
   position: relative;
+  height: 100px;
 }
 
 .subject-chip.enrolled {
@@ -452,11 +453,11 @@ input:checked + .slider:before {
   .subjects-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .subject-chip {
     padding: 10px 12px;
   }
-  
+
   .subjects-section {
     padding: 15px;
   }
