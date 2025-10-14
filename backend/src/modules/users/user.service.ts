@@ -830,6 +830,26 @@ export const UserService = {
         await StudentService.invalidateCache(id);
         logger.info(`Deleted student profile for user ${id}`);
       } else if (user.role === "tutor" && tutorProfile) {
+        // Delete all files uploaded by this tutor (including compressed versions)
+        try {
+          const { FileService } = await import("../files/file.service");
+          const tutorFiles = await FileService.findByTutorId(
+            tutorProfile._id.toString(),
+          );
+
+          logger.info(
+            `Found ${tutorFiles.length} files to delete for tutor ${id}`,
+          );
+
+          for (const file of tutorFiles) {
+            await FileService.remove((file as any)._id.toString());
+            logger.info(`Deleted file ${(file as any)._id} for tutor ${id}`);
+          }
+        } catch (error) {
+          logger.warn(`Failed to delete files for tutor ${id}:`, error);
+          // Continue with user deletion even if file deletion fails
+        }
+
         await TutorRepo.deleteById(tutorProfile._id.toString());
         logger.info(`Deleted tutor profile for user ${id}`);
       } else if (user.role === "admin") {
