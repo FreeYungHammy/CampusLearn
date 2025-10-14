@@ -18,6 +18,7 @@ import { useAuthStore } from "../store/authStore";
 import { useForumSocket } from "../hooks/useForumSocket";
 import PostActions from "../components/forum/PostActions";
 import DeleteConfirmationModal from "../components/forum/DeletePostConfirmationModal";
+import { isWithinEditWindow, getRemainingEditTime } from "../utils/editWindow";
 
 const ForumTopic = () => {
   const { threadId } = useParams<{ threadId: string }>();
@@ -456,14 +457,32 @@ const ForumTopic = () => {
           </div>
         </div>
         <div className="topic-actions">
-          {user && thread.author && user.id === thread.author.userId && (
-            <button
-              onClick={() => handleEditClick(thread._id, thread.content)}
-              className="edit-btn"
-            >
-              <i className="fas fa-pencil-alt"></i>
-            </button>
-          )}
+          {user &&
+            thread.author &&
+            user.id === thread.author.userId &&
+            (() => {
+              const canEdit = isWithinEditWindow(thread.createdAt);
+              const remainingTime = getRemainingEditTime(thread.createdAt);
+
+              return (
+                <button
+                  onClick={() =>
+                    canEdit && handleEditClick(thread._id, thread.content)
+                  }
+                  disabled={!canEdit}
+                  className={`edit-btn ${!canEdit ? "disabled" : ""}`}
+                  title={
+                    canEdit
+                      ? remainingTime > 0
+                        ? `Edit available for ${remainingTime} more minute${remainingTime !== 1 ? "s" : ""}`
+                        : "Edit my post"
+                      : "Edit window expired (10 minutes)"
+                  }
+                >
+                  <i className="fas fa-pencil-alt"></i>
+                </button>
+              );
+            })()}
           {((user && thread.author && user.id === thread.author.userId) ||
             (user && user.role === "admin")) && (
             <button onClick={handleDeleteThread} className="delete-btn">
@@ -571,7 +590,61 @@ const ForumTopic = () => {
                   </button>
                 </div>
 
-                <div className="reply-content">
+                <div className="reply-content" style={{ position: "relative" }}>
+                  {/* Move topic-actions inside reply-content */}
+                  <div
+                    className="topic-actions"
+                    style={{
+                      position: "absolute",
+                      top: "1rem",
+                      right: "1rem",
+                      zIndex: 20,
+                      display: "flex",
+                      gap: "8px",
+                    }}
+                  >
+                    {user &&
+                      reply.author &&
+                      user.id === reply.author.userId &&
+                      (() => {
+                        const canEdit = isWithinEditWindow(reply.createdAt);
+                        const remainingTime = getRemainingEditTime(
+                          reply.createdAt,
+                        );
+
+                        return (
+                          <button
+                            onClick={() =>
+                              canEdit &&
+                              handleEditClick(reply._id, reply.content)
+                            }
+                            disabled={!canEdit}
+                            className={`edit-btn ${!canEdit ? "disabled" : ""}`}
+                            title={
+                              canEdit
+                                ? remainingTime > 0
+                                  ? `Edit available for ${remainingTime} more minute${remainingTime !== 1 ? "s" : ""}`
+                                  : "Edit my reply"
+                                : "Edit window expired (10 minutes)"
+                            }
+                          >
+                            <i className="fas fa-pencil-alt"></i>
+                          </button>
+                        );
+                      })()}
+                    {((user &&
+                      reply.author &&
+                      user.id === reply.author.userId) ||
+                      (user && user.role === "admin")) && (
+                      <button
+                        onClick={() => handleDeleteReply(reply._id)}
+                        className="delete-btn"
+                      >
+                        <i className="fas fa-trash"></i>
+                      </button>
+                    )}
+                  </div>
+
                   {editingId === reply._id ? (
                     <div className="edit-form">
                       <textarea
@@ -626,25 +699,6 @@ const ForumTopic = () => {
                       </span>
                     </div>
                   </div>
-                </div>
-                <div className="topic-actions">
-                  {user && reply.author && user.id === reply.author.userId && (
-                    <button
-                      onClick={() => handleEditClick(reply._id, reply.content)}
-                      className="edit-btn"
-                    >
-                      <i className="fas fa-pencil-alt"></i>
-                    </button>
-                  )}
-                  {((user && reply.author && user.id === reply.author.userId) ||
-                    (user && user.role === "admin")) && (
-                    <button
-                      onClick={() => handleDeleteReply(reply._id)}
-                      className="delete-btn"
-                    >
-                      <i className="fas fa-trash"></i>
-                    </button>
-                  )}
                 </div>
               </div>
             ))}

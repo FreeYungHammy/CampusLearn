@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import { ConnectionDetector } from "../utils/connectionDetector";
 import { VideoPerformanceMonitor } from "../utils/videoPerformanceMonitor";
+import VideoQualitySelector, { VideoQuality } from "./VideoQualitySelector";
+import "./VideoQualitySelector.css";
 
 interface VideoPlayerProps {
   src: string;
@@ -25,6 +27,15 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     "none" | "compressing" | "completed"
   >("none");
   const [isMinimized, setIsMinimized] = useState(false);
+
+  // Quality selection state
+  const [currentQuality, setCurrentQuality] = useState<string>("480p");
+  const [availableQualities] = useState<VideoQuality[]>([
+    { name: "720p", label: "720p" },
+    { name: "480p", label: "480p" },
+    { name: "360p", label: "360p" },
+  ]);
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -33,29 +44,21 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     const optimizeVideoSource = async () => {
       try {
         console.log(`🎬 VideoPlayer: Starting optimization for ${title}`);
-        const connectionDetector = ConnectionDetector.getInstance();
-        const connectionInfo = await connectionDetector.detectConnectionSpeed();
-        const recommendedQuality =
-          connectionDetector.getRecommendedQuality(connectionInfo);
 
-        console.log(`📊 Connection info:`, connectionInfo);
-        console.log(`🎯 Recommended quality: ${recommendedQuality}`);
+        const selectedQuality = currentQuality;
+        console.log(`🎯 Selected quality: ${selectedQuality}`);
 
         // Start performance tracking
         if (fileId) {
           const performanceMonitor = VideoPerformanceMonitor.getInstance();
-          performanceMonitor.startTracking(
-            fileId,
-            recommendedQuality,
-            connectionInfo.speed,
-          );
+          performanceMonitor.startTracking(fileId, selectedQuality, "manual");
         }
 
         // Always optimize the URL with quality parameter for better chunking
         if (fileId) {
           const optimizedUrl = src.replace(
             "/binary",
-            `/binary?quality=${recommendedQuality}`,
+            `/binary?quality=${selectedQuality}`,
           );
           console.log(`🔗 Original URL: ${src}`);
           console.log(`⚡ Optimized URL: ${optimizedUrl}`);
@@ -70,7 +73,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     };
 
     optimizeVideoSource();
-  }, [src, fileId, title]);
+  }, [src, fileId, title, currentQuality]);
 
   // Intersection Observer for lazy loading with aggressive preloading
   useEffect(() => {
@@ -211,38 +214,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         </div>
       )}
 
-      {/* Show compression status overlay */}
-      {isVisible &&
-        !loading &&
-        !error &&
-        compressionStatus === "compressing" && (
-          <div
-            className={`video-compression-overlay ${isMinimized ? "minimized" : ""}`}
-            onClick={() => setIsMinimized(!isMinimized)}
-            title={isMinimized ? "Click to expand" : "Click to minimize"}
-          >
-            <div className="compression-indicator">
-              <div className="compression-spinner"></div>
-              {!isMinimized && (
-                <>
-                  <p>Making video load faster...</p>
-                  <small>This will only happen once</small>
-                </>
-              )}
-            </div>
-          </div>
-        )}
-
-      {/* Show compression completed notification */}
-      {isVisible && !loading && !error && compressionStatus === "completed" && (
-        <div className="video-compression-completed">
-          <div className="compression-success">
-            <i className="fas fa-check-circle"></i>
-            <p>Video optimized!</p>
-          </div>
-        </div>
-      )}
-
       {/* Show error overlay only when visible and has error */}
       {isVisible && error && (
         <div className="video-error-overlay">
@@ -285,11 +256,23 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
             height: "100%",
             opacity: loading ? 0 : 1,
             transition: "opacity 0.3s ease",
+            objectFit: "contain", // Ensure video fits properly
           }}
           title={title}
         >
           Your browser does not support the video tag.
         </video>
+      )}
+
+      {/* Quality Selector - only show when video is visible */}
+      {isVisible && !loading && !error && (
+        <div className="video-quality-controls">
+          <VideoQualitySelector
+            currentQuality={currentQuality}
+            availableQualities={availableQualities}
+            onQualityChange={setCurrentQuality}
+          />
+        </div>
       )}
     </div>
   );

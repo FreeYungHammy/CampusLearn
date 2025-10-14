@@ -4,7 +4,41 @@
   height: 100%;
   background: #000;
   border-radius: 8px;
-  overflow: hidden;
+  overflow: visible;
+  /* Ensure all content stays within bounds */
+  contain: layout style paint;
+  /* Add padding to prevent video controls from being cut off */
+  padding-bottom: 60px; /* Space for video controls */
+  box-sizing: border-box;
+}
+
+/* Ensure video element doesn't cut off controls */
+.video-player-container video {
+  object-fit: contain;
+  /* Account for the padding-bottom of the container */
+  height: calc(100% - 60px);
+  width: 100%;
+}
+
+/* Responsive padding for different screen sizes */
+@media (max-height: 600px) {
+  .video-player-container {
+    padding-bottom: 50px; /* Smaller padding for smaller screens */
+  }
+
+  .video-player-container video {
+    height: calc(100% - 50px);
+  }
+}
+
+@media (max-height: 500px) {
+  .video-player-container {
+    padding-bottom: 40px; /* Even smaller padding for very small screens */
+  }
+
+  .video-player-container video {
+    height: calc(100% - 40px);
+  }
 }
 
 .video-placeholder {
@@ -303,4 +337,77 @@
     opacity: 0;
     transform: translateX(100%);
   }
+}
+
+/* Video Quality Controls */
+.video-quality-controls {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 20;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 6px;
+  padding: 6px;
+  backdrop-filter: blur(4px);
+  /* Ensure controls stay within video bounds */
+  max-width: calc(100% - 16px);
+  max-height: calc(100% - 16px);
+  /* Prevent overflow */
+  overflow: visible;
+  contain: layout;
+}
+
+/* Ensure quality selector is visible over video */
+.video-quality-controls .video-quality-selector {
+  color: white;
+}
+
+.video-quality-controls .auto-toggle,
+.video-quality-controls .quality-button {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: white;
+}
+
+.video-quality-controls .auto-toggle:hover,
+.video-quality-controls .quality-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.video-quality-controls .auto-toggle.active {
+  background: var(--blue-primary);
+  border-color: var(--blue-primary);
+}
+
+.video-quality-controls .quality-menu {
+  background: rgba(0, 0, 0, 0.9);
+  border-color: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(8px);
+  /* Ensure dropdown stays within video container */
+  max-width: calc(100vw - 40px);
+  max-height: 120px;
+  /* Position relative to video container, not viewport */
+  position: absolute;
+}
+
+.video-quality-controls .quality-option {
+  color: white;
+}
+
+.video-quality-controls .quality-option:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.video-quality-controls .quality-option.selected {
+  background: rgba(66, 153, 225, 0.3);
+  color: white;
+}
+
+.video-quality-controls .quality-description {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.video-quality-controls .quality-option.selected .quality-description {
+  color: rgba(255, 255, 255, 0.8);
 }
