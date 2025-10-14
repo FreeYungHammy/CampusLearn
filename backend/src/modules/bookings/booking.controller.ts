@@ -49,7 +49,10 @@ export const BookingController = {
       if (error.message.includes("not found")) {
         return res.status(404).json({ error: error.message });
       }
-      if (error.message.includes("already exists")) {
+      if (error.message.includes("already exists") || error.message.includes("Booking must be made at least one week in advance") || error.message.includes("Bookings can only be made between 08:00 and 17:00")) {
+        return res.status(400).json({ error: error.message });
+      }
+      if (error.message.includes("already have a booking")) {
         return res.status(409).json({ error: error.message });
       }
       next(error);

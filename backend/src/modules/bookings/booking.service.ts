@@ -36,6 +36,10 @@ export const BookingService = {
     try {
       console.log("🚀 BookingService.create called with:", bookingData);
       
+      // Validate booking date
+      this.validateBookingDate(bookingData.date);
+      this.validateBookingTime(bookingData.time);
+
       // Validate that student and tutor exist
       const student = await StudentModel.findById(bookingData.studentId).lean();
       const tutor = await TutorModel.findById(bookingData.tutorId).lean();
@@ -279,6 +283,32 @@ export const BookingService = {
     } catch (error) {
       console.error("Error deleting booking:", error);
       throw error;
+    }
+  },
+
+  validateBookingDate(date: string): void {
+    const bookingDate = new Date(date);
+    const today = new Date();
+    const oneWeekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    // Reset time part for accurate date comparison
+    bookingDate.setHours(0, 0, 0, 0);
+    oneWeekFromNow.setHours(0, 0, 0, 0);
+
+    if (bookingDate < oneWeekFromNow) {
+      throw new Error("Booking must be made at least one week in advance.");
+    }
+  },
+
+  validateBookingTime(time: string): void {
+    const [hour, minute] = time.split(':').map(Number);
+    const requestedTime = hour * 60 + minute;
+
+    const startTime = 8 * 60; // 08:00
+    const endTime = 17 * 60; // 17:00
+
+    if (requestedTime < startTime || requestedTime > endTime) {
+      throw new Error("Bookings can only be made between 08:00 and 17:00.");
     }
   },
 
