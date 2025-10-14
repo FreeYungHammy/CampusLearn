@@ -3,6 +3,7 @@ import type { Server as HttpServer } from "http";
 import { ChatService } from "../modules/chat/chat.service";
 import { verifyJwt } from "../auth/jwt";
 import { CacheService } from "../services/cache.service";
+import { env } from "./env";
 
 type SendMessagePayload = {
   chatId: string;
@@ -19,7 +20,10 @@ type SendMessagePayload = {
 let io: Server;
 
 // Track connected users
-const connectedUsers = new Map<string, { socketId: string; userId: string; lastSeen: Date }>();
+const connectedUsers = new Map<
+  string,
+  { socketId: string; userId: string; lastSeen: Date }
+>();
 
 export function createSocketServer(httpServer: HttpServer) {
   const allowed = (process.env.CORS_ORIGIN || "")
@@ -33,13 +37,7 @@ export function createSocketServer(httpServer: HttpServer) {
     transports: ["websocket", "polling"],
     allowUpgrades: true,
     cors: {
-      origin: allowed.length
-        ? allowed
-        : [
-            "http://localhost:5173",
-            "http://localhost:8080",
-            "http://localhost:5001",
-          ],
+      origin: allowed.length ? allowed : env.corsOrigins,
       methods: ["GET", "POST"],
       credentials: true,
     },
@@ -75,33 +73,37 @@ export function createSocketServer(httpServer: HttpServer) {
   // Add authentication middleware to chat namespace
   chat.use(async (socket, next) => {
     try {
-      const token = socket.handshake.auth.token || socket.handshake.headers.authorization?.split(' ')[1];
-      
+      const token =
+        socket.handshake.auth.token ||
+        socket.handshake.headers.authorization?.split(" ")[1];
+
       if (!token) {
-        return next(new Error('Authentication error: No token provided'));
+        return next(new Error("Authentication error: No token provided"));
       }
 
       // Check if token is blacklisted
       const isBlacklisted = await CacheService.get(`jwt:blacklist:${token}`);
       if (isBlacklisted) {
-        return next(new Error('Authentication error: Token has been revoked'));
+        return next(new Error("Authentication error: Token has been revoked"));
       }
 
       const payload = verifyJwt(token);
       if (!payload) {
-        return next(new Error('Authentication error: Invalid or expired token'));
+        return next(
+          new Error("Authentication error: Invalid or expired token"),
+        );
       }
 
       // Attach user info to socket
       socket.data.user = {
         id: payload.id,
         email: payload.email,
-        role: payload.role
+        role: payload.role,
       };
 
       next();
     } catch (error) {
-      next(new Error('Authentication error: Invalid token'));
+      next(new Error("Authentication error: Invalid token"));
     }
   });
 
@@ -111,7 +113,7 @@ export function createSocketServer(httpServer: HttpServer) {
       "Backend: New client connected to /chat namespace. Socket ID:",
       socket.id,
       "User:",
-      userId
+      userId,
     );
 
     // Track connected user
@@ -119,14 +121,14 @@ export function createSocketServer(httpServer: HttpServer) {
       connectedUsers.set(userId, {
         socketId: socket.id,
         userId: userId,
-        lastSeen: new Date()
+        lastSeen: new Date(),
       });
-      
+
       // Emit user online status to all connected clients
-      chat.emit('user_status_change', {
+      chat.emit("user_status_change", {
         userId: userId,
-        status: 'online',
-        lastSeen: new Date()
+        status: "online",
+        lastSeen: new Date(),
       });
     }
 
@@ -146,36 +148,40 @@ export function createSocketServer(httpServer: HttpServer) {
         if (data.senderId !== socket.data.user?.id) {
           console.error("Unauthorized message send attempt:", {
             socketUserId: socket.data.user?.id,
-            messageSenderId: data.senderId
+            messageSenderId: data.senderId,
           });
           if (ack) ack({ ok: false, error: "Unauthorized" });
           return;
         }
-        
+
         // Save message to database and emit to room
         const savedMessage = await ChatService.send(data);
-        
+
         // Send acknowledgment back to sender
         if (ack) ack({ ok: true, message: savedMessage });
       } catch (e) {
         console.error("send_message failed:", e);
-        if (ack) ack({ ok: false, error: e instanceof Error ? e.message : "Send failed" });
+        if (ack)
+          ack({
+            ok: false,
+            error: e instanceof Error ? e.message : "Send failed",
+          });
       }
     });
 
     socket.on("disconnect", () => {
       const userId = socket.data.user?.id;
       console.log("user disconnected from /chat", socket.id, "User:", userId);
-      
+
       // Remove user from connected users and emit offline status
       if (userId) {
         connectedUsers.delete(userId);
-        
+
         // Emit user offline status to all connected clients
-        chat.emit('user_status_change', {
+        chat.emit("user_status_change", {
           userId: userId,
-          status: 'offline',
-          lastSeen: new Date()
+          status: "offline",
+          lastSeen: new Date(),
         });
       }
     });
@@ -185,7 +191,10 @@ export function createSocketServer(httpServer: HttpServer) {
 }
 
 // Function to get user online status
-export function getUserOnlineStatus(userId: string): { isOnline: boolean; lastSeen?: Date } {
+export function getUserOnlineStatus(userId: string): {
+  isOnline: boolean;
+  lastSeen?: Date;
+} {
   const user = connectedUsers.get(userId);
   if (user) {
     return { isOnline: true, lastSeen: user.lastSeen };

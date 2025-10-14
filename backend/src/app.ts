@@ -4,6 +4,7 @@ import cors from "cors";
 import health from "./routes/health";
 import api from "./routes/index";
 import { connectMongo } from "./infra/db/mongoose";
+import { env } from "./config/env";
 
 const app = express();
 const server = http.createServer(app);
@@ -17,9 +18,7 @@ const allowed = (process.env.CORS_ORIGIN || "")
 
 app.use(
   cors({
-    origin: allowed.length
-      ? allowed
-      : ["http://localhost:5173", "http://localhost:8080"],
+    origin: allowed.length ? allowed : env.corsOrigins,
     credentials: true,
   }),
 );
