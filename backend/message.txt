@@ -1,0 +1,97 @@
+# =============================================================================
+# REQUIRED - Core Application Settings
+# =============================================================================
+
+# Node Environment (development, production, test)
+NODE_ENV=development
+
+# Server Port
+PORT=5001
+
+# =============================================================================
+# REQUIRED - Database & Cache Configuration
+# =============================================================================
+
+# MongoDB Connection String
+MONGO_URI=mongodb+srv://Gabriel:admin1@campuslearn.ukgqknw.mongodb.net/campuslearn?retryWrites=true&w=majority&appName=CampusLearn
+
+# Redis Connection String
+REDIS_URL=redis://default:5GfBijg1gkOa8njzhegOEunZgScxTiJq@redis-15014.c341.af-south-1-1.ec2.redns.redis-cloud.com:15014
+
+# =============================================================================
+# REQUIRED - Authentication & Security
+# =============================================================================
+
+# JWT Secret Key
+JWT_SECRET=Cw_e94TFCNIAWSe-e52FF4R9fqMV7ghJ6LZUL_JuZBhqne1mnP3Gv7bTNuDE3Hu5BC3xeONS52e-ZPMCLpVfwA
+
+# =============================================================================
+# REQUIRED - Botpress Integration
+# =============================================================================
+
+# Botpress Client ID (REQUIRED - Please provide)
+BOTPRESS_CLIENT_ID=your-botpress-client-id
+
+# Botpress Bot ID (REQUIRED - Please provide)
+BOTPRESS_BOT_ID=your-botpress-bot-id
+
+# Botpress Personal Access Token (REQUIRED - Please provide)
+BOTPRESS_PAT=your-botpress-personal-access-token
+
+# Botpress Webhook URL (REQUIRED - Please provide)
+BOTPRESS_WEBHOOK_URL=https://webhook.botpress.cloud/your-webhook-id
+
+# =============================================================================
+# Google Cloud Storage Configuration
+# =============================================================================
+
+# GCS Bucket Name
+GCS_BUCKET=tutor-student-videos
+
+# Google Cloud Project ID
+GOOGLE_CLOUD_PROJECT=grounded-elf-472312-c0
+
+# GCS Service Account Credentials (Inline JSON)
+GCS_KEYFILE_JSON={"type": "service_account","project_id": "grounded-elf-472312-c0","private_key_id": "be4117abba0f2355f0dc90b88956e7b1a109ae39","private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCqQrrBcJKalqdT\nxsnHeOhhPcqPpk38cDGvleukwN33Dbx6Osef2CYxpiDhJcptgQ8pN/y25F0Obrpm\nF6HbJEcjNHm1HehaHl3eKQP8NAq2lx2L9OFGH+VaiE0j4BScsIWFUqFNy5/BqaaC\nbJSI2HyINWfUb4tEl7DMsfLBk7zMc13nlOm0n+PIiwuITsvUBwYdrJhW9JPao56D\nHQPdp4qcVvxpsRuxfyTfzwnCcGBK/Q/fgFqVek9RR5aNiOcYi1zjowBaS6MRxDgK\nuDt79PVAHY80LHQttqIBf9mf1oFvM79wlOOacX5A1YqnIwNPr1slNIgsgoZR10Kl\nhqJfTRHvAgMBAAECggEAAT7PhlixoRi/u00M14LyEl7sVY6m2b3vQI63WkHJb0zn\na8AAUOOhlJ1jR/9m21/T1htv6VHUS1RGvPCc8rzC67ejLhRrGsFHvk6HCnrwyXvX\n2HvFPVS0wiAg6zn8Rsrx7Z64eDt53/Fl0h7yGy/1GIDdrmAET5UhMAVhMIxgi/gY\no0ov0ALIFSTacOkW5lI5btGOxQtbNb5/b31DBdzkowa9Wpi9twFFZiqg9Hkgwhym\nHh8496MqLRp4BLRbAqKykRdHUenz6bO2svGLKta6CS+MFam2Zz0+D6Ab0TP1/qig\n1aq29G0Eqs57CdTQLoXrDPVdTZURpE6dhgBjCP6dkQKBgQDWxE9ULXr8ILSo9Y6s\nNAfSu6sUe2PEgeAXSe2nPPZmvWMonTtanMR3vWAq1VDJlihh284utDuUI10fkKu3\nzUi4jcZtB01DjeUmZEChubZ5mW37dZrChEyGsz3/6tsp7p4LO6OXlWO+/oXdJ69a\nOaGCXoEU+PasyCzo9bfqHUTitwKBgQDK8vY/osqNr2WVh8lNuL1BrpKz8JGYuUpA\n4ejWa24FYGC24MBaiPapW1FilftYMUmoaHK37Ayt7Yj2JIXyznNf2Sw4MQ7HNNam\nZNhAXqEOaeHTqykh1hMj68HhjRiC6gpxrrOyJArhrUiG1O3aFj5VFFosisjm7kSJ\nOhM0ABgyiQKBgH59epeCfefXP3AvyEsGDgGAxJ84mScYsyokQZN5JUqXirpV+KpC\noLhBUk2H+5/vD3OraQE658g1F9jKdUi44HbKEa8PWONLxEXbT/GwlpeB1TQALRkZ\noJTJJt/+q/xDbNQC2TQjKW9JKwB5Kh8CyGwnSvFWPLrA3yqJ5js95997AoGBAJey\n0mQwr80GbR0/WTYyP60H63p6+Km63ojvFBaqSJvWNZSdHMrPk+h1bLkPOMfsV419\nPTrDQ5sCcZzjIgijTtQ3RflemhhHI6dOu+IpmaNne7i3ONCk7rur7slEqSy5+kKN\nfp5KmKOl3g+Cu6OHeuIni1u+BXuwYCRe95mn9G5ZAoGASmOMAgzhTfBNrk0/kX9k\nZ3qNABzMVv+HqSJyrOF/EbBwwdHObBikrTMOvbh3bbF17KD5HhI+Im639sYYF2MR\nzQ6r+kS1tcAjjiTLP2vw786HA3I1lL4psFlEu2KSrLHxqFqfWKf0qUealjyXcO2c\ndMTsAbCH4DrnxaphIz8gNtg=\n-----END PRIVATE KEY-----\n","client_email": "user-161@grounded-elf-472312-c0.iam.gserviceaccount.com","client_id": "112768197507270260946","auth_uri": "https://accounts.google.com/o/oauth2/auth","token_uri": "https://oauth2.googleapis.com/token","auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs","client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/user-161%40grounded-elf-472312-c0.iam.gserviceaccount.com","universe_domain": "googleapis.com"}
+
+# GCS Signed URL TTL (seconds)
+GCS_SIGNED_URL_TTL_SECONDS=3600
+
+# =============================================================================
+# Video Processing & CDN Configuration
+# =============================================================================
+
+# Video Cache TTL (seconds)
+VIDEO_CACHE_TTL_SECONDS=3000
+
+# Enable Video Transcoding
+ENABLE_VIDEO_TRANSCODING=true
+
+# Video Quality Settings (comma-separated)
+VIDEO_QUALITIES=720p,480p,360p
+
+# Video Compression Settings
+VIDEO_COMPRESSION_ENABLED=true
+VIDEO_INITIAL_CHUNK_SIZE=2097152
+VIDEO_MAX_CHUNK_SIZE=10485760
+
+# CDN Configuration (Optional)
+CDN_ENABLED=false
+CDN_BASE_URL=https://your-cdn-domain.com
+CDN_CACHE_TTL=86400
+CDN_PROVIDER=google-cloud
+
+# =============================================================================
+# Development & Testing
+# =============================================================================
+
+# Development URLs
+FRONTEND_URL=http://localhost:5173
+BACKEND_URL=http://localhost:5001
+
+# CORS Origins (comma-separated)
+CORS_ORIGINS=http://localhost:5173,http://localhost:8080,http://localhost:5001
+
+# =============================================================================
+# CORS Origin Override (comma-separated, overrides CORS_ORIGINS)
+# CORS_ORIGIN=http://localhost:3000,https://yourdomain.com
