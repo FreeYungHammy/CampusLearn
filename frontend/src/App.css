@@ -3721,7 +3721,7 @@ btn-success:hover {
   gap: 20px;
   padding-top: 5px; /* reduced padding to save space */
   max-width: 100%;
-  min-height: 40vh; /* ensure grid has enough height for content */
+  min-height: 10vh; /* ensure grid has enough height for content */
 }
 
 /* Better horizontal space utilization on larger screens */
