@@ -501,6 +501,18 @@ const BookingFormStep: React.FC<{
   }, [selectedTutor, validateTutorAvailability]); // Only run when tutor changes, not on every render
   
   const handleInputChange = async (field: string, value: any) => {
+    // Validate time input for 08:00-17:00 restriction
+    if (field === 'time' && value) {
+      const [hours, minutes] = value.split(':').map(Number);
+      const totalMinutes = hours * 60 + minutes;
+      const minMinutes = 8 * 60; // 08:00
+      const maxMinutes = 17 * 60; // 17:00
+      
+      if (totalMinutes < minMinutes || totalMinutes > maxMinutes) {
+        setError('Booking times must be between 08:00 and 17:00');
+        return;
+      }
+    }
     setBookingData((prev: Partial<BookingData>) => ({ ...prev, [field]: value }));
     
     // Reset availability error when user changes fields
@@ -571,7 +583,12 @@ const BookingFormStep: React.FC<{
                   validateTutorAvailability(selectedTutor.id, bookingData.date, bookingData.time, bookingData.duration || 60);
                 }
               }}
-              min={new Date().toISOString().split('T')[0]}
+              min={(() => {
+                const today = new Date();
+                const oneWeekFromNow = new Date(today.getTime() + 8 * 24 * 60 * 60 * 1000);
+                oneWeekFromNow.setHours(0, 0, 0, 0);
+                return oneWeekFromNow.toISOString().split('T')[0];
+              })()}
               className="form-input"
             />
           </div>
@@ -582,12 +599,30 @@ const BookingFormStep: React.FC<{
               type="time"
               value={bookingData.time}
               onChange={(e) => handleInputChange('time', e.target.value)}
-              onBlur={() => {
-                // Re-validate when user leaves the time field
+              onBlur={(e) => {
+                // Validate time range
+                const time = e.target.value;
+                if (time) {
+                  const [hours, minutes] = time.split(':').map(Number);
+                  const totalMinutes = hours * 60 + minutes;
+                  const minMinutes = 8 * 60; // 08:00
+                  const maxMinutes = 17 * 60; // 17:00
+                  
+                  if (totalMinutes < minMinutes || totalMinutes > maxMinutes) {
+                    setError('Booking times must be between 08:00 and 17:00');
+                    e.target.value = ''; // Clear invalid time
+                    setBookingData(prev => ({ ...prev, time: '' }));
+                    return;
+                  }
+                }
+                
+                // Re-validate availability when user leaves the time field
                 if (selectedTutor && bookingData.date && bookingData.time) {
                   validateTutorAvailability(selectedTutor.id, bookingData.date, bookingData.time, bookingData.duration || 60);
                 }
               }}
+              min="08:00"
+              max="17:00"
               className="form-input"
             />
           </div>

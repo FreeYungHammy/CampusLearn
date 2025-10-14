@@ -650,6 +650,18 @@ const BookingFormStep: React.FC<{
 }> = ({ bookingData, setBookingData, selectedTutor, error, onSubmit, validateTutorAvailability, isCheckingAvailability, setCurrentStep, setHasAvailabilityError, setError }) => {
   
   const handleInputChange = async (field: string, value: any) => {
+    // Validate time input for 08:00-17:00 restriction
+    if (field === 'time' && value) {
+      const [hours, minutes] = value.split(':').map(Number);
+      const totalMinutes = hours * 60 + minutes;
+      const minMinutes = 8 * 60; // 08:00
+      const maxMinutes = 17 * 60; // 17:00
+      
+      if (totalMinutes < minMinutes || totalMinutes > maxMinutes) {
+        setError('Booking times must be between 08:00 and 17:00');
+        return;
+      }
+    }
     setBookingData((prev: Partial<BookingData>) => ({ ...prev, [field]: value }));
     
     // Reset availability error when user changes fields
@@ -713,7 +725,12 @@ const BookingFormStep: React.FC<{
               type="date"
               value={bookingData.date}
               onChange={(e) => handleInputChange('date', e.target.value)}
-              min={new Date().toISOString().split('T')[0]}
+              min={(() => {
+                const today = new Date();
+                const oneWeekFromNow = new Date(today.getTime() + 8 * 24 * 60 * 60 * 1000);
+                oneWeekFromNow.setHours(0, 0, 0, 0);
+                return oneWeekFromNow.toISOString().split('T')[0];
+              })()}
               className="form-input"
             />
           </div>
@@ -724,6 +741,23 @@ const BookingFormStep: React.FC<{
               type="time"
               value={bookingData.time}
               onChange={(e) => handleInputChange('time', e.target.value)}
+              onBlur={(e) => {
+                const time = e.target.value;
+                if (time) {
+                  const [hours, minutes] = time.split(':').map(Number);
+                  const totalMinutes = hours * 60 + minutes;
+                  const minMinutes = 8 * 60; // 08:00
+                  const maxMinutes = 17 * 60; // 17:00
+                  
+                  if (totalMinutes < minMinutes || totalMinutes > maxMinutes) {
+                    setError('Booking times must be between 08:00 and 17:00');
+                    e.target.value = ''; // Clear invalid time
+                    setBookingData(prev => ({ ...prev, time: '' }));
+                  }
+                }
+              }}
+              min="08:00"
+              max="17:00"
               className="form-input"
             />
           </div>
