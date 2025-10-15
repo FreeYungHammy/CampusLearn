@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react"; // Add useEffect and useCallback
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import { register, checkEmailAvailability } from "../services/authApi";
+import { register, checkEmailAvailability, submitTutorApplication } from "../services/authApi";
 import Stepper from "./Stepper";
 import Dialog from "./ui/Dialog";
 import { useNavigate } from "react-router-dom";
@@ -144,6 +144,7 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
           return (
             basicFieldsValid &&
             formik.values.qualificationFile !== null &&
+            formik.values.qualificationFile.type === "application/pdf" &&
             !emailBlocking
           );
         }
@@ -250,20 +251,42 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
       qualificationFile: Yup.mixed().when("role", {
         is: "tutor",
         then: (schema) =>
-          schema.required("Qualification file is required for tutors"),
+          schema
+            .required("Qualification file is required for tutors")
+            .test(
+              "fileType",
+              "Only PDF files are accepted",
+              (value) => value && value.type === "application/pdf",
+            ),
         otherwise: (schema) => schema.notRequired(),
       }),
     }),
     onSubmit: async (values) => {
       setError("");
       try {
-        await register(values);
-        setRegistrationSuccess(true);
-        // Close modal and navigate after showing success message for 2 seconds
-        setTimeout(() => {
-          onClose();
-          navigate("/login?registered=true");
-        }, 2500);
+        if (values.role === "tutor") {
+          const formData = new FormData();
+          formData.append("firstName", values.firstName);
+          formData.append("lastName", values.lastName);
+          formData.append("email", values.email);
+          formData.append("password", values.password);
+          formData.append("role", values.role);
+          values.subjects.forEach((subject) => formData.append("subjects", subject));
+          if (values.qualificationFile) {
+            formData.append("qualificationFile", values.qualificationFile);
+          }
+
+          await submitTutorApplication(formData);
+          setRegistrationSuccess(true); // Show success message and wait for manual close
+        } else {
+          await register(values);
+          setRegistrationSuccess(true);
+          // For students, auto-redirect after showing success message
+          setTimeout(() => {
+            onClose();
+            navigate("/login?registered=true");
+          }, 2500);
+        }
       } catch (err: any) {
         if (err.response && err.response.data && err.response.data.message) {
           setError(err.response.data.message);
@@ -313,7 +336,14 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
     const files = event.dataTransfer.files;
     if (files.length > 0) {
       const file = files[0];
-      formik.setFieldValue("qualificationFile", file);
+      if (file.type === "application/pdf") {
+        formik.setFieldValue("qualificationFile", file);
+      } else {
+        formik.setFieldError(
+          "qualificationFile",
+          "Only PDF files are accepted",
+        );
+      }
     }
   };
 
@@ -359,16 +389,25 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
                   <div className="success-icon">
                     <i className="fas fa-check-circle"></i>
                   </div>
-                  <h3 className="success-title">
-                    Account Created Successfully!
-                  </h3>
-                  <p className="success-description">
-                    Welcome to CampusLearn! Your account has been created
-                    successfully.
-                  </p>
-                  <p className="success-redirect">
-                    Redirecting you to login...
-                  </p>
+                  {formik.values.role === 'tutor' ? (
+                    <>
+                      <h3 className="success-title">Application Submitted!</h3>
+                      <p className="success-description">
+                        Thank you for applying. Your application is under review.
+                      </p>
+                      <p className="success-redirect">
+                        You will be notified of the outcome via email. You may now close this window.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <h3 className="success-title">Account Created Successfully!</h3>
+                      <p className="success-description">
+                        Welcome to CampusLearn! Your account has been created successfully.
+                      </p>
+                      <p className="success-redirect">Redirecting you to login...</p>
+                    </>
+                  )}
                 </div>
               )}
               {!registrationSuccess && currentStep === 1 && (
@@ -579,10 +618,19 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
                           name="qualificationFile"
                           type="file"
                           className="file-input"
-                          accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                          accept=".pdf"
                           onChange={(event) => {
                             const file = event.currentTarget.files?.[0] || null;
-                            formik.setFieldValue("qualificationFile", file);
+                            if (file && file.type === "application/pdf") {
+                              formik.setFieldValue("qualificationFile", file);
+                            } else if (file) {
+                              formik.setFieldError(
+                                "qualificationFile",
+                                "Only PDF files are accepted",
+                              );
+                            } else {
+                              formik.setFieldValue("qualificationFile", null);
+                            }
                           }}
                           onBlur={formik.handleBlur}
                         />
@@ -600,7 +648,7 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
                               : "Choose file or drag and drop"}
                           </span>
                           <span className="file-upload-subtext">
-                            PDF, DOC, DOCX, JPG, PNG (Max 10MB)
+                            PDF (Max 10MB)
                           </span>
                         </label>
                       </div>

@@ -52,3 +52,13 @@ export const checkEmailAvailability = async (
     throw error;
   }
 };
+
+export const submitTutorApplication = async (
+  applicationData: FormData,
+): Promise<void> => {
+  await api.post("/applications/tutor", applicationData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+};
