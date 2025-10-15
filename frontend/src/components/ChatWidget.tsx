@@ -36,7 +36,7 @@ export default function ChatWidget({ user }: ChatWidgetProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Reset chat when user changes (logs out or logs in as different user)
+  (""); // Reset chat when user changes (logs out or logs in as different user)
   useEffect(() => {
     const currentUserId = user?.id || null;
 
@@ -46,7 +46,7 @@ export default function ChatWidget({ user }: ChatWidgetProps) {
       previousUserId.current = currentUserId;
     }
   }, [user?.id, resetChat]);
-
+  ("");
   // Listen for bot responses via Socket.IO
   useEffect(() => {
     if (!socket || !user?.id) return;

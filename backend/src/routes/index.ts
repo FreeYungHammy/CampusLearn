@@ -7,10 +7,12 @@ import chat from "../modules/chat";
 import forum from "../modules/forum";
 import subscriptions from "../modules/subscriptions";
 import bookings from "../modules/bookings";
-import botpress from "../modules/botpress";
+import botpress from "./botpress";
 import admin from "../modules/admin";
 import health from "./health";
 import { videoRoutes } from "../modules/video";
+
+import mongoose from "mongoose";
 
 const r = Router();
 

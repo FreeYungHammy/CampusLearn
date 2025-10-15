@@ -13,7 +13,9 @@ import { chatApi, type Conversation } from "@/services/chatApi";
 import type { SendMessagePayload, ChatMessage } from "@/types/ChatMessage";
 import { format, isSameDay } from "date-fns";
 import ClearChatConfirmationModal from "@/components/ClearChatConfirmationModal";
-import EnhancedBookingModal, { BookingData } from "@/components/EnhancedBookingModal";
+import EnhancedBookingModal, {
+  BookingData,
+} from "@/components/EnhancedBookingModal";
 import DateSeparator from "@/components/DateSeparator";
 import BookingMessageCard from "@/components/chat/BookingMessageCard";
 import "./Messages.css";
@@ -222,7 +224,7 @@ const fileIcon = (filename: string) => {
 
 const Messages: React.FC = () => {
   console.log("💬 Messages component rendering/re-rendering");
-  
+
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] =
     useState<Conversation | null>(null);
@@ -246,27 +248,29 @@ const Messages: React.FC = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { user, token, pfpTimestamps } = useAuthStore();
-  const { 
-    showBookingModal, 
-    bookingTarget, 
-    openBookingModal, 
-    closeBookingModal, 
-    createBooking 
+  const {
+    showBookingModal,
+    bookingTarget,
+    openBookingModal,
+    closeBookingModal,
+    createBooking,
   } = useBookingStore();
   const location = useLocation();
-  const selectedConversationUserId = (location.state as any)?.selectedConversationUserId;
+  const selectedConversationUserId = (location.state as any)
+    ?.selectedConversationUserId;
 
   const handleBookingCreation = async (bookingData: BookingData) => {
     try {
       const newBooking = await createBooking(bookingData);
-      
+
       // Send automatic message about the booking
       if (bookingTarget && user) {
-        const isStudentBookingTutor = user.role === 'student' && bookingTarget.role === 'tutor';
+        const isStudentBookingTutor =
+          user.role === "student" && bookingTarget.role === "tutor";
         const recipientId = isStudentBookingTutor ? bookingTarget.id : user.id;
-        
-        const messageContent = `📅 New booking request: ${bookingData.subject} session scheduled for ${new Date(bookingData.date).toLocaleDateString()} at ${bookingData.time} (${bookingData.duration} minutes)${bookingData.notes ? `\n\nNotes: ${bookingData.notes}` : ''}`;
-        
+
+        const messageContent = `📅 New booking request: ${bookingData.subject} session scheduled for ${new Date(bookingData.date).toLocaleDateString()} at ${bookingData.time} (${bookingData.duration} minutes)${bookingData.notes ? `\n\nNotes: ${bookingData.notes}` : ""}`;
+
         try {
           // Create a chatId for the booking message
           const chatId = [user.id, recipientId].sort().join("-");
@@ -274,15 +278,15 @@ const Messages: React.FC = () => {
             chatId: chatId,
             content: messageContent,
             senderId: user.id,
-            receiverId: recipientId
+            receiverId: recipientId,
           });
         } catch (messageError) {
-          console.warn('Failed to send booking message:', messageError);
+          console.warn("Failed to send booking message:", messageError);
           // Don't fail the booking creation if message sending fails
         }
       }
     } catch (error) {
-      console.error('Failed to create booking:', error);
+      console.error("Failed to create booking:", error);
       throw error; // Re-throw so the modal can handle the error
     }
   };
@@ -295,17 +299,20 @@ const Messages: React.FC = () => {
   // Handle click outside dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsDropdownOpen(false);
       }
     };
 
     if (isDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isDropdownOpen]);
 
@@ -439,7 +446,7 @@ const Messages: React.FC = () => {
       setIsClearModalOpen(false);
       setIsClearing(false);
       setIsDropdownOpen(false);
-      
+
       // Clear current room reference
       if (currentRoomRef.current) {
         currentRoomRef.current = null;
@@ -447,9 +454,12 @@ const Messages: React.FC = () => {
     };
   }, []);
 
-  /* -------- Switch room + load messages -------- */
+  /* -------- Load messages for selected conversation -------- */
   useEffect(() => {
-    if (!chatId || !token) return;
+    if (!chatId || !token) {
+      setMessages([]); // Clear messages if no chat is selected
+      return;
+    }
 
     const loadThread = async () => {
       try {
@@ -466,20 +476,29 @@ const Messages: React.FC = () => {
       }
     };
 
+    loadThread();
+  }, [chatId, token]);
+
+  /* -------- Switch Socket Room -------- */
+  useEffect(() => {
+    if (!chatId) return;
+
     if (chatId !== currentRoomRef.current) {
-      if (currentRoomRef.current) leaveRoom(currentRoomRef.current);
+      if (currentRoomRef.current) {
+        leaveRoom(currentRoomRef.current);
+      }
       joinRoom(chatId);
       currentRoomRef.current = chatId;
-      loadThread();
     }
 
+    // This cleanup function is important for when the component unmounts
     return () => {
       if (currentRoomRef.current) {
         leaveRoom(currentRoomRef.current);
         currentRoomRef.current = null;
       }
     };
-  }, [chatId, token, joinRoom, leaveRoom]);
+  }, [chatId, joinRoom, leaveRoom]);
 
   /* -------- Auto-scroll on new messages -------- */
   useEffect(() => {
@@ -589,16 +608,19 @@ const Messages: React.FC = () => {
     }
   };
 
-  const handleBookingAction = useCallback(async (bookingId: string, action: 'confirm' | 'cancel') => {
-    try {
-      // Import booking API
-      const { updateBookingStatus } = await import('@/services/bookingApi');
-      const status = action === 'confirm' ? 'confirmed' : 'cancelled';
-      await updateBookingStatus(bookingId, status);
-    } catch (error) {
-      console.error(`Failed to ${action} booking:`, error);
-    }
-  }, []);
+  const handleBookingAction = useCallback(
+    async (bookingId: string, action: "confirm" | "cancel") => {
+      try {
+        // Import booking API
+        const { updateBookingStatus } = await import("@/services/bookingApi");
+        const status = action === "confirm" ? "confirmed" : "cancelled";
+        await updateBookingStatus(bookingId, status);
+      } catch (error) {
+        console.error(`Failed to ${action} booking:`, error);
+      }
+    },
+    [],
+  );
 
   /* IME-safe Enter to send */
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -624,51 +646,30 @@ const Messages: React.FC = () => {
   /* -------- Messages with date separators and profile picture grouping -------- */
   const messagesWithSeparators = useMemo(() => {
     if (messages.length === 0) return [];
-    
-    const result: (ChatMessage | { type: 'date-separator'; date: Date })[] = [];
-    
-    // First pass: find the last message from each sender
-    const lastMessageFromSender = new Map<string, number>();
-    for (let i = 0; i < messages.length; i++) {
-      const senderId = messages[i].senderId || messages[i].sender?._id;
-      if (senderId) {
-        lastMessageFromSender.set(senderId, i);
-      }
-    }
-    
+
+    const result: (ChatMessage | { type: "date-separator"; date: Date })[] = [];
+
     for (let i = 0; i < messages.length; i++) {
       const currentMessage = messages[i];
+      const previousMessage = messages[i - 1];
+      const nextMessage = messages[i + 1];
       const currentDate = new Date(currentMessage.createdAt);
-      
-      // Add date separator before the first message
-      if (i === 0) {
-        result.push({ type: 'date-separator', date: currentDate });
-      } else {
-        // Check if the date has changed from the previous message
-        const previousMessage = messages[i - 1];
-        const previousDate = new Date(previousMessage.createdAt);
-        
-        if (!isSameDay(currentDate, previousDate)) {
-          result.push({ type: 'date-separator', date: currentDate });
-        }
+
+      // Add date separator if the day is different from the previous message
+      if (
+        !previousMessage ||
+        !isSameDay(currentDate, new Date(previousMessage.createdAt))
+      ) {
+        result.push({ type: "date-separator", date: currentDate });
       }
-      
-      // Add the actual message with profile picture grouping info
-      const messageWithGrouping = {
-        ...currentMessage,
-        showProfilePicture: false, // Default to false
-      };
-      
-      // Show profile picture only if this is the last message from this sender
-      const currentSenderId = currentMessage.senderId || currentMessage.sender?._id;
-      if (currentSenderId && lastMessageFromSender.get(currentSenderId) === i) {
-        messageWithGrouping.showProfilePicture = true;
-      }
-      
-      
-      result.push(messageWithGrouping);
+
+      // Determine if the profile picture should be shown
+      const showProfilePicture =
+        !nextMessage || nextMessage.senderId !== currentMessage.senderId;
+
+      result.push({ ...currentMessage, showProfilePicture });
     }
-    
+
     return result;
   }, [messages]);
 
@@ -749,14 +750,13 @@ const Messages: React.FC = () => {
             {filteredConversations.length === 0 && !loading && (
               <div className="empty-tab">
                 <div className="empty-sidebar-centered">
-      
-                <div className="empty-icon">💬</div>
-                <div className="empty-title">No conversations found</div>
-                <div className="empty-desc">
-                Ensure students have subscribed to you as a tutor.
+                  <div className="empty-icon">💬</div>
+                  <div className="empty-title">No conversations found</div>
+                  <div className="empty-desc">
+                    Ensure students have subscribed to you as a tutor.
+                  </div>
                 </div>
               </div>
-            </div>
             )}
           </div>
         </aside>
@@ -830,29 +830,37 @@ const Messages: React.FC = () => {
                       aria-label="More options"
                       aria-expanded={isDropdownOpen}
                     >
-                      <i className={`fas fa-chevron-${isDropdownOpen ? "up" : "down"}`} />
+                      <i
+                        className={`fas fa-chevron-${isDropdownOpen ? "up" : "down"}`}
+                      />
                     </button>
                     {isDropdownOpen && (
-                      <div 
-                        className="cl-menu" 
+                      <div
+                        className="cl-menu"
                         role="menu"
                         style={{
-                          position: 'fixed',
-                          top: '16vh',
-                          left: '135vh',
-                          zIndex: 99999
+                          position: "fixed",
+                          top: "16vh",
+                          left: "135vh",
+                          zIndex: 99999,
                         }}
                       >
-                        {user?.role === 'tutor' && selectedConversation && (
+                        {user?.role === "tutor" && selectedConversation && (
                           <button
                             className="cl-menu__item"
                             onClick={() => {
                               openBookingModal({
                                 id: selectedConversation.otherUser._id,
-                                name: selectedConversation.otherUser.profile?.name || 'Student',
-                                surname: selectedConversation.otherUser.profile?.surname || '',
-                                role: 'student' as const,
-                                subjects: selectedConversation.otherUser.profile?.subjects || []
+                                name:
+                                  selectedConversation.otherUser.profile
+                                    ?.name || "Student",
+                                surname:
+                                  selectedConversation.otherUser.profile
+                                    ?.surname || "",
+                                role: "student" as const,
+                                subjects:
+                                  selectedConversation.otherUser.profile
+                                    ?.subjects || [],
                               });
                               setIsDropdownOpen(false);
                             }}
@@ -861,7 +869,7 @@ const Messages: React.FC = () => {
                             <span>Schedule Session</span>
                           </button>
                         )}
-                        {user?.role === 'tutor' && (
+                        {user?.role === "tutor" && (
                           <button
                             className="cl-menu__item"
                             onClick={() => {
@@ -901,25 +909,32 @@ const Messages: React.FC = () => {
                   <div className="chat-stack">
                     {messagesWithSeparators.map((item, idx) => {
                       // Handle date separator
-                      if ('type' in item && item.type === 'date-separator') {
+                      if ("type" in item && item.type === "date-separator") {
                         return (
-                          <DateSeparator 
+                          <DateSeparator
                             key={`date-${item.date.toISOString()}-${idx}`}
-                            date={item.date} 
+                            date={item.date}
                           />
                         );
                       }
-                      
+
                       // Handle regular message
-                      const msg = item as ChatMessage & { showProfilePicture?: boolean };
-                      const mine = (msg.senderId || msg.sender?._id) === user?.id;
-                      
+                      const msg = item as ChatMessage & {
+                        showProfilePicture?: boolean;
+                      };
+                      const mine =
+                        (msg.senderId || msg.sender?._id) === user?.id;
+
                       // Check if this is a "Conversation started" system message
-                      const isSystemMessage = msg.content?.toLowerCase().includes('conversation started');
-                      
+                      const isSystemMessage = msg.content
+                        ?.toLowerCase()
+                        .includes("conversation started");
+
                       // Check if this is a booking message
-                      const isBookingMessage = msg.messageType && msg.messageType.startsWith('booking_');
-                      
+                      const isBookingMessage =
+                        msg.messageType &&
+                        msg.messageType.startsWith("booking_");
+
                       // Render system message differently
                       if (isSystemMessage) {
                         return (
@@ -945,7 +960,7 @@ const Messages: React.FC = () => {
                           />
                         );
                       }
-                      
+
                       return (
                         <div
                           key={msg._id || `${msg.createdAt}-${idx}`}
@@ -970,7 +985,7 @@ const Messages: React.FC = () => {
                               />
                             </div>
                           )}
-                          
+
                           {!msg.showProfilePicture && (
                             <div className="pfp-wrap xs empty"></div>
                           )}
@@ -984,23 +999,36 @@ const Messages: React.FC = () => {
                                 {msg.content}
                               </p>
 
-                              {((msg as any).uploadFilename || msg.upload?.filename) && (
+                              {((msg as any).uploadFilename ||
+                                msg.upload?.filename) && (
                                 <div
                                   className={`file-preview ${mine ? "mine" : ""} downloadable`}
                                   onClick={async () => {
                                     if (!token) return;
                                     try {
-                                      const blob = await chatApi.downloadMessageFile(msg._id, token);
-                                      const url = window.URL.createObjectURL(blob);
-                                      const link = document.createElement('a');
+                                      const blob =
+                                        await chatApi.downloadMessageFile(
+                                          msg._id,
+                                          token,
+                                        );
+                                      const url =
+                                        window.URL.createObjectURL(blob);
+                                      const link = document.createElement("a");
                                       link.href = url;
-                                      link.setAttribute('download', (msg as any).uploadFilename || 'download');
+                                      link.setAttribute(
+                                        "download",
+                                        (msg as any).uploadFilename ||
+                                          "download",
+                                      );
                                       document.body.appendChild(link);
                                       link.click();
                                       document.body.removeChild(link);
                                       window.URL.revokeObjectURL(url);
                                     } catch (err) {
-                                      console.error("Failed to download file:", err);
+                                      console.error(
+                                        "Failed to download file:",
+                                        err,
+                                      );
                                       alert("Failed to download file.");
                                     }
                                   }}
@@ -1008,12 +1036,17 @@ const Messages: React.FC = () => {
                                 >
                                   <div className="file-line">
                                     <span className="file-icon">
-                                      {fileIcon((msg as any).uploadFilename || msg.upload?.filename || "")}
+                                      {fileIcon(
+                                        (msg as any).uploadFilename ||
+                                          msg.upload?.filename ||
+                                          "",
+                                      )}
                                     </span>
                                     <span
                                       className={`file-name ${mine ? "white" : ""}`}
                                     >
-                                      {(msg as any).uploadFilename || msg.upload?.filename}
+                                      {(msg as any).uploadFilename ||
+                                        msg.upload?.filename}
                                     </span>
                                     <svg
                                       width="16"
@@ -1034,9 +1067,18 @@ const Messages: React.FC = () => {
                                   <div
                                     className={`file-meta ${mine ? "white-50" : "muted"}`}
                                   >
-                                    {((msg as any).uploadContentType || msg.upload?.contentType) === "application/octet-stream" 
-                                        ? ((msg as any).uploadFilename || msg.upload?.filename)?.split('.').pop()?.toUpperCase() || "FILE"
-                                        : ((msg as any).uploadContentType || msg.upload?.contentType)}
+                                    {((msg as any).uploadContentType ||
+                                      msg.upload?.contentType) ===
+                                    "application/octet-stream"
+                                      ? (
+                                          (msg as any).uploadFilename ||
+                                          msg.upload?.filename
+                                        )
+                                          ?.split(".")
+                                          .pop()
+                                          ?.toUpperCase() || "FILE"
+                                      : (msg as any).uploadContentType ||
+                                        msg.upload?.contentType}
                                   </div>
                                 </div>
                               )}
@@ -1127,7 +1169,6 @@ const Messages: React.FC = () => {
                     const f = e.target.files?.[0];
                     if (f) setSelectedFile(f);
                   }}
-
                 />
               </div>
             </>
