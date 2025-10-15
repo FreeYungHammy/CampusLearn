@@ -92,7 +92,7 @@ const Header = () => {
                   <i className="fas fa-database" />
                   <span>Database Tools</span>
                 </NavLink>
-                <NavLink to="/applications" className="cl-nav-item">
+                <NavLink to="/admin/tutor-applications" className="cl-nav-item">
                   <i className="fas fa-tasks" />
                   <span>Applications</span>
                 </NavLink>
