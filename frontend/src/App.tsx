@@ -38,7 +38,6 @@ import BotpressChat from "./components/BotpressChat/BotpressChat";
 import { VideoCallPage } from "./pages/Call/VideoCallPage";
 import { CallNotification } from "./components/CallNotification";
 
-
 import "./App.css";
 
 function App() {
@@ -85,7 +84,10 @@ function App() {
               <Route path="/upload" element={<Upload />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/users" element={<AdminUsers />} />
-              <Route path="/admin/tutor-applications" element={<AdminTutorApplications />} />
+              <Route
+                path="/admin/tutor-applications"
+                element={<AdminTutorApplications />}
+              />
               <Route path="/database-tools" element={<DatabaseTools />} />
             </Route>
           </Route>
@@ -100,10 +102,8 @@ function App() {
 
       {/* Call Notifications */}
       {!isCallPopup && <CallNotification />}
-      
-      {/* Floating Chat Widget */}
-      {!isCallPopup && <ChatWidget />}
 
+      {/* Floating Chat Widget */}
     </>
   );
 }
