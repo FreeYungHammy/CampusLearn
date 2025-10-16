@@ -31,7 +31,7 @@ export default function TutorSelectionModal({
     setIsLoading(true);
     setError(null);
     try {
-      const response = await getMySubscribedTutors(user!.id, token!);
+      const response = await getMySubscribedTutors(user!.id);
       console.log('Subscribed tutors response:', response.data);
       setSubscribedTutors(response.data);
     } catch (err: any) {

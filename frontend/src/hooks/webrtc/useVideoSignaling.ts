@@ -13,7 +13,7 @@ export function useVideoSignaling(callId: string | undefined, token: string | un
       return;
     }
     // Hardcode the URL to avoid any environment variable issues
-    const SOCKET_BASE_URL = "http://localhost:5001";
+    const SOCKET_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
     const url = SOCKET_BASE_URL.replace(/^http/, "ws");
     console.log("[signal] connecting", { url: `${url}/video`, hasToken: !!token });
     const socket = io(`${url}/video`, { auth: { token }, transports: ["websocket", "polling"] });

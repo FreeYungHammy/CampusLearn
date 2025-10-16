@@ -33,7 +33,7 @@ const MyStudents = () => {
         }
         
         // Now use the tutor's MongoDB _id to get subscribed students
-        const fetchedStudents = await studentApi.getSubscribedStudents(tutor.id, token);
+        const fetchedStudents = await studentApi.getSubscribedStudents(tutor.id);
         setStudents(fetchedStudents);
 
         const statusMap = new Map<string, boolean>();

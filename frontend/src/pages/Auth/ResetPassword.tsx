@@ -5,7 +5,7 @@ import "./Login.css";
 import { useState } from "react";
 import { resetPassword } from "../../services/authApi";
 
-const PasswordStrengthIndicator = ({ password }) => {
+const PasswordStrengthIndicator = ({ password }: { password: string }) => {
   const getStrength = () => {
     let score = 0;
     if (password.length >= 8) score++;
@@ -65,14 +65,14 @@ const ResetPassword = () => {
         .required("Required")
         .min(8, "Password must be at least 8 characters"),
       confirmPassword: Yup.string()
-        .oneOf([Yup.ref("password"), null], "Passwords must match")
+        .oneOf([Yup.ref("password")], "Passwords must match")
         .required("Required"),
     }),
     onSubmit: async (values) => {
       setError("");
       setMessage("");
       try {
-        await resetPassword(token, values.password);
+        await resetPassword(token!, values.password);
         setMessage("Password has been reset successfully.");
         setTimeout(() => navigate("/login"), 3000);
       } catch (err) {

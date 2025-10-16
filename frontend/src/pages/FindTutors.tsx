@@ -587,7 +587,7 @@ const FindTutors = () => {
 
       <div className="tutor-grid">
         {tutors.map((tutor) => {
-          const pfpSrc = `/api/users/${tutor.userId}/pfp?t=${pfpTimestamps[tutor.userId] || 0}`;
+          const pfpSrc = `${(import.meta.env.VITE_API_URL || "http://localhost:5001").replace(/\/$/, '')}/api/users/${tutor.userId}/pfp?t=${pfpTimestamps[tutor.userId] || 0}`;
           const avgRating =
             tutor.rating.count > 0
               ? (tutor.rating.totalScore / tutor.rating.count).toFixed(1)

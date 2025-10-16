@@ -1,5 +1,5 @@
 
-import { api } from "../lib/api";
+import api from "../lib/api";
 
 export const getCourseVideos = async (courseId: string, token: string) => {
   const response = await api.get(`/videos/${courseId}`, {

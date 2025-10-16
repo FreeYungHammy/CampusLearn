@@ -13,10 +13,8 @@ export interface SubscribedStudent {
 }
 
 export const studentApi = {
-  async getSubscribedStudents(tutorId: string, token: string): Promise<SubscribedStudent[]> {
-    const response = await http.get(`/subscriptions/tutor/${tutorId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+  async getSubscribedStudents(tutorId: string): Promise<SubscribedStudent[]> {
+    const response = await http.get(`subscriptions/tutor/${tutorId}`);
     return response.data;
   },
 };

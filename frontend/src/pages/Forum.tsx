@@ -65,7 +65,7 @@ const Forum = () => {
       );
 
       const timestamps = fetchedThreads.reduce(
-        (acc, thread) => {
+        (acc: { [userId: string]: number }, thread: any) => {
           if (thread.author && thread.author.pfpTimestamp) {
             acc[thread.author.userId] = thread.author.pfpTimestamp;
           }
@@ -75,7 +75,7 @@ const Forum = () => {
       );
       updatePfpTimestamps(timestamps);
 
-      const threadsWithVotes = fetchedThreads.map((thread) => ({
+      const threadsWithVotes = fetchedThreads.map((thread: any) => ({
         ...thread,
         upvotes: thread.upvotes || 0,
         userVote: thread.userVote || 0,

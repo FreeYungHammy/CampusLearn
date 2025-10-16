@@ -9,7 +9,7 @@ gsap.registerPlugin(InertiaPlugin);
 
 const throttle = (func: Function, limit: number) => {
   let lastCall = 0;
-  return function (...args: any[]) {
+  return function (this: any, ...args: any[]) {
     const now = performance.now();
     if (now - lastCall >= limit) {
       lastCall = now;

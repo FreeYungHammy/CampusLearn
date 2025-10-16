@@ -269,8 +269,8 @@ export default function EnhancedBookingModal({
               className="form-input timepicker-input"
               showPopperArrow={false}
               popperClassName="timepicker-popper"
-              minTime={new Date().setHours(8, 0, 0, 0)}
-              maxTime={new Date().setHours(22, 0, 0, 0)}
+              minTime={new Date(new Date().setHours(8, 0, 0, 0))}
+              maxTime={new Date(new Date().setHours(22, 0, 0, 0))}
             />
           </div>
 

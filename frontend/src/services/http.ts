@@ -2,7 +2,10 @@ import axios from "axios";
 import { useAuthStore } from "../store/authStore";
 import { redirect } from "react-router-dom";
 
-const baseURL = "http://localhost:5001/api"; // Hardcoded to avoid env var issues
+const baseURL = import.meta.env.VITE_API_URL || "http://localhost:5001/api";
+
+console.log('🔧 HTTP Service - BaseURL:', baseURL);
+console.log('🔧 HTTP Service - VITE_API_URL env:', import.meta.env.VITE_API_URL);
 
 const http = axios.create({
   baseURL, // ← actually use it
@@ -16,6 +19,8 @@ http.interceptors.request.use(
     const { token } = useAuthStore.getState();
     console.log('🔑 HTTP Interceptor - Token available:', !!token);
     console.log('🌐 HTTP Interceptor - Request URL:', config.url);
+    console.log('🔧 HTTP Interceptor - BaseURL:', config.baseURL);
+    console.log('🔧 HTTP Interceptor - Full URL will be:', (config.baseURL || '') + config.url);
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
       console.log('✅ HTTP Interceptor - Authorization header added');

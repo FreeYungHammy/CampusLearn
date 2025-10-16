@@ -58,22 +58,22 @@ export function usePeerConnection() {
       console.log("[webrtc] iceConnectionState:", pc.iceConnectionState);
       
       // Update connection quality based on ICE connection state
-      let quality = { score: 0, status: 'unknown' as const, details: 'Connecting...' };
+      let quality: { score: number; status: 'excellent' | 'good' | 'fair' | 'poor' | 'unknown'; details: string } = { score: 0, status: 'unknown', details: 'Connecting...' };
       switch (pc.iceConnectionState) {
         case 'connected':
-          quality = { score: 100, status: 'excellent', details: 'Connected' };
+          quality = { score: 100, status: 'excellent' as const, details: 'Connected' };
           break;
         case 'completed':
-          quality = { score: 95, status: 'excellent', details: 'Connection established' };
+          quality = { score: 95, status: 'excellent' as const, details: 'Connection established' };
           break;
         case 'checking':
-          quality = { score: 50, status: 'fair', details: 'Establishing connection...' };
+          quality = { score: 50, status: 'fair' as const, details: 'Establishing connection...' };
           break;
         case 'disconnected':
-          quality = { score: 30, status: 'poor', details: 'Connection lost' };
+          quality = { score: 30, status: 'poor' as const, details: 'Connection lost' };
           break;
         case 'failed':
-          quality = { score: 0, status: 'poor', details: 'Connection failed' };
+          quality = { score: 0, status: 'poor' as const, details: 'Connection failed' };
           // Trigger reconnection attempt
           setTimeout(() => attemptReconnection(), 2000);
           break;

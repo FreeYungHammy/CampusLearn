@@ -18,7 +18,7 @@ export function useCallNotifications() {
     if (!token || !user) return;
 
     // Hardcode the URL to avoid environment variable issues
-    const SOCKET_BASE_URL = "http://localhost:5001";
+    const SOCKET_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
     const url = SOCKET_BASE_URL.replace(/^http/, "ws");
     
     const newSocket = io(`${url}/video`, { 

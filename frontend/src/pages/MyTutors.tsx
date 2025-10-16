@@ -73,7 +73,7 @@ const MyTutors = () => {
       if (!user || !token) return;
       try {
         setIsLoading(true);
-        const response = await getMySubscribedTutors(user.id, token);
+        const response = await getMySubscribedTutors(user.id);
         setTutors(response.data);
       } catch (error) {
         console.error("Failed to fetch subscribed tutors:", error);
@@ -106,7 +106,7 @@ const MyTutors = () => {
       ) : (
         <div className="tutor-grid">
           {tutors.map((tutor) => {
-            const pfpSrc = `/api/users/${tutor.userId}/pfp?t=${pfpTimestamps[tutor.userId] || 0}`;
+            const pfpSrc = `${(import.meta.env.VITE_API_URL || "http://localhost:5001").replace(/\/$/, '')}/api/users/${tutor.userId}/pfp?t=${pfpTimestamps[tutor.userId] || 0}`;
 
             return (
               <div key={tutor.id} className="tutor-card">

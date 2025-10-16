@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getConversations } from "../../services/chatApi";
+import { chatApi } from "../../services/chatApi";
 import { User } from "../../types/Common";
 import { useAuthStore } from "../../store/authStore";
 
@@ -8,16 +8,16 @@ interface ChatListProps {
 }
 
 const ChatList: React.FC<ChatListProps> = ({ onSelectChat }) => {
-  const [conversations, setConversations] = useState<User[]>([]);
+  const [conversations, setConversations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { user: currentUser } = useAuthStore();
+  const { user: currentUser, token } = useAuthStore();
 
   useEffect(() => {
     const fetchConversations = async () => {
       try {
         setLoading(true);
-        const data = await getConversations();
+        const data = await chatApi.getConversations(currentUser!.id, token!);
         setConversations(data);
       } catch (err) {
         setError("Failed to load conversations.");

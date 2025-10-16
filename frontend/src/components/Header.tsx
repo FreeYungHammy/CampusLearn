@@ -53,7 +53,7 @@ const Header = () => {
   };
 
   const pfpUrl = user
-    ? `/api/users/${user.id}/pfp?t=${pfpTimestamps[user.id] || 0}`
+    ? `${(import.meta.env.VITE_API_URL || "http://localhost:5001").replace(/\/$/, '')}/api/users/${user.id}/pfp?t=${pfpTimestamps[user.id] || 0}`
     : "";
 
   return (

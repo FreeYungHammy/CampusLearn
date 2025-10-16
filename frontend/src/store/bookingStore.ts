@@ -52,7 +52,7 @@ export const useBookingStore = create<BookingState>()(
         const { bookingTarget } = get();
         if (!bookingTarget) {
           set({ error: 'No booking target selected' });
-          return;
+          throw new Error('No booking target selected');
         }
 
         set({ isLoading: true, error: null });

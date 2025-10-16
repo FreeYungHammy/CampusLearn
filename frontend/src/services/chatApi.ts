@@ -1,7 +1,7 @@
 import http from './http';
 import api from "@/lib/api";
 import type { ChatMessage } from "@/types/ChatMessage";
-import type { Conversation } from "./authApi";
+// Conversation type defined below
 
 export interface Conversation {
   _id: string;

@@ -26,9 +26,10 @@ const defaultPfp =
 
 /* ---------- Helpers ---------- */
 const getProfilePictureUrl = (userId: string, bust?: number) => {
-  const baseUrl = "http://localhost:5001"; // Hardcoded to avoid env var issues
+  const baseUrl = (import.meta.env.VITE_API_URL || "http://localhost:5001").replace(/\/$/, '');
   const cacheBuster = bust ? `?t=${bust}` : "";
-  return `${baseUrl}/api/users/${userId}/pfp${cacheBuster}`;
+  const url = `${baseUrl}/api/users/${userId}/pfp${cacheBuster}`;
+  return url;
 };
 
 const subjectBadgeColor = (subject: string) => {
@@ -688,7 +689,7 @@ const Messages: React.FC = () => {
     try {
       console.log("[video-call] Initiating call notification", { callId, targetUserId: otherId });
       const { io } = await import("socket.io-client");
-      const SOCKET_BASE_URL = "http://localhost:5001";
+      const SOCKET_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
       const url = SOCKET_BASE_URL.replace(/^http/, "ws");
       const token = useAuthStore.getState().token;
       

@@ -17,7 +17,7 @@ interface AdminUser extends EntityData {
   updatedAt: string;
 }
 
-interface File extends EntityData {
+interface FileEntity extends EntityData {
   title: string;
   subject: string;
   subtopic: string;
@@ -137,8 +137,8 @@ const DatabaseTools: React.FC = () => {
       setError(null);
       const response = await adminApi.getAllEntities(token, activeTab);
       console.log("API Response:", response);
-      console.log("Entities:", response.entities);
-      setData(response.entities || []);
+      console.log("Entities:", response);
+      setData(response || []);
     } catch (err: any) {
       console.error("Fetch error:", err);
       setError(err.response?.data?.message || "Failed to fetch data");
@@ -508,12 +508,25 @@ const CreateModal: React.FC<CreateModalProps> = ({
   onSubmit,
 }) => {
   const [formData, setFormData] = useState<any>({});
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFile, setSelectedFile] = useState<FileEntity | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setSelectedFile(file);
+      // Convert native File to FileEntity-like object
+      const fileEntity: FileEntity = {
+        id: '',
+        title: file.name,
+        subject: '',
+        subtopic: '',
+        description: '',
+        tutorId: '',
+        contentType: file.type || "application/octet-stream",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        _id: '',
+      };
+      setSelectedFile(fileEntity);
       // Automatically detect content type
       const contentType = file.type || "application/octet-stream";
       setFormData({ ...formData, contentType });
@@ -667,7 +680,7 @@ const CreateModal: React.FC<CreateModalProps> = ({
                 )}
               </div>
             )}
-            {getFormFields(entityType).map((field) => (
+            {getFormFields(entityType).map((field: any) => (
               <div key={field.name} className="form-group">
                 <label>
                   {field.name.charAt(0).toUpperCase() + field.name.slice(1)}
@@ -824,7 +837,7 @@ const EditModal: React.FC<EditModalProps> = ({
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
-            {getFormFields(entityType).map((field) => (
+            {getFormFields(entityType).map((field: any) => (
               <div key={field.name} className="form-group">
                 <label>
                   {field.name.charAt(0).toUpperCase() + field.name.slice(1)}

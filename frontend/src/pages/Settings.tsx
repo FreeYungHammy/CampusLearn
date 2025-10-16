@@ -165,7 +165,7 @@ const Settings = () => {
           return checkPasswordStrength(value || "") >= 4;
         }),
       confirm: Yup.string()
-        .oneOf([Yup.ref("new"), null], "Passwords must match")
+        .oneOf([Yup.ref("new")], "Passwords must match")
         .required("Required"),
     }),
     onSubmit: async (values, { setStatus, setSubmitting }) => {
@@ -335,7 +335,7 @@ const Settings = () => {
   };
 
   const pfpUrl = user
-    ? `/api/users/${user.id}/pfp?t=${pfpTimestamps[user.id] || 0}`
+    ? `${(import.meta.env.VITE_API_URL || "http://localhost:5001").replace(/\/$/, '')}/api/users/${user.id}/pfp?t=${pfpTimestamps[user.id] || 0}`
     : "";
 
   return (

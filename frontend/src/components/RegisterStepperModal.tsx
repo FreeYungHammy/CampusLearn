@@ -144,7 +144,7 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
           return (
             basicFieldsValid &&
             formik.values.qualificationFile !== null &&
-            formik.values.qualificationFile.type === "application/pdf" &&
+            (formik.values.qualificationFile as File).type === "application/pdf" &&
             !emailBlocking
           );
         }
