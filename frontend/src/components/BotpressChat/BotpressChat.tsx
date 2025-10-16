@@ -8,8 +8,7 @@ const botpressConfigScript =
   "https://files.bpcontent.cloud/2025/10/14/21/20251014214803-97L9Z6U3.js";
 
 //Cloudflare tunnel URL
-const API_BASE =
-  "https://distance-proposition-statute-pregnancy.trycloudflare.com";
+const API_BASE = "https://exists-salary-shadows-barely.trycloudflare.com";
 
 declare global {
   interface Window {
