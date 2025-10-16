@@ -456,9 +456,12 @@ const Messages: React.FC = () => {
     };
   }, []);
 
-  /* -------- Switch room + load messages -------- */
+  /* -------- Load messages for selected conversation -------- */
   useEffect(() => {
-    if (!chatId || !token) return;
+    if (!chatId || !token) {
+      setMessages([]); // Clear messages if no chat is selected
+      return;
+    }
 
     const loadThread = async () => {
       try {
@@ -475,20 +478,29 @@ const Messages: React.FC = () => {
       }
     };
 
+    loadThread();
+  }, [chatId, token]);
+
+  /* -------- Switch Socket Room -------- */
+  useEffect(() => {
+    if (!chatId) return;
+
     if (chatId !== currentRoomRef.current) {
-      if (currentRoomRef.current) leaveRoom(currentRoomRef.current);
+      if (currentRoomRef.current) {
+        leaveRoom(currentRoomRef.current);
+      }
       joinRoom(chatId);
       currentRoomRef.current = chatId;
-      loadThread();
     }
 
+    // This cleanup function is important for when the component unmounts
     return () => {
       if (currentRoomRef.current) {
         leaveRoom(currentRoomRef.current);
         currentRoomRef.current = null;
       }
     };
-  }, [chatId, token, joinRoom, leaveRoom]);
+  }, [chatId, joinRoom, leaveRoom]);
 
   /* -------- Auto-scroll on new messages -------- */
   useEffect(() => {
@@ -738,6 +750,8 @@ const Messages: React.FC = () => {
 
     for (let i = 0; i < messages.length; i++) {
       const currentMessage = messages[i];
+      const previousMessage = messages[i - 1];
+      const nextMessage = messages[i + 1];
       const currentDate = new Date(currentMessage.createdAt);
 
       // Add date separator before the first message
