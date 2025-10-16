@@ -3,7 +3,8 @@ import { io, Socket } from "socket.io-client";
 import { type ChatMessage, type SendMessagePayload } from "@/types/ChatMessage";
 import { useAuthStore } from "@/store/authStore";
 
-const SOCKET_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5001";
+// Hardcode the URL to avoid any environment variable issues
+const SOCKET_BASE_URL = "http://localhost:5001";
 
 /* -----------------------------------------------------------
    Module-level SINGLETON + listener registry
@@ -38,9 +39,14 @@ function ensureSocket(token: string): Socket {
     listenersAttached = false;
   }
 
-  socketSingleton = io(`${SOCKET_URL}/chat`, {
+  const socketUrl = `${SOCKET_BASE_URL}/chat`;
+  console.log("🔌 Creating Socket.IO connection to:", socketUrl);
+  console.log("🔑 Using token:", token ? "Present" : "Missing");
+  console.log("🌐 Base URL:", SOCKET_BASE_URL);
+  
+  socketSingleton = io(socketUrl, {
     withCredentials: true,
-    transports: ["websocket"],
+    transports: ["polling", "websocket"],
     auth: { token },
     extraHeaders: { Authorization: `Bearer ${token}` },
     reconnection: true,
@@ -61,6 +67,7 @@ function ensureSocket(token: string): Socket {
    ----------------------------------------------------------- */
 function attachCoreListeners(s: Socket) {
   s.on("connect", () => {
+    console.log("✅ Chat socket connected successfully!");
     onConnectionChangeSubs.forEach((cb) => cb(true));
     // Re-join the last active room on reconnect
     if (currentRoomGlobal) {
@@ -72,6 +79,7 @@ function attachCoreListeners(s: Socket) {
     // Still considered disconnected until 'connect'
     onConnectionChangeSubs.forEach((cb) => cb(false));
     console.error("Chat socket connection error:", err?.message || err);
+    console.error("Full error object:", err);
   });
 
   s.on("disconnect", (reason) => {

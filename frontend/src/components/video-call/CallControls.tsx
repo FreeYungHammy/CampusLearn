@@ -5,12 +5,14 @@ type Props = {
   onToggleCam: () => void;
   onToggleScreenshare: () => void;
   onLeave: () => void;
+  onReconnect?: () => void;
   micOn: boolean;
   camOn: boolean;
   sharing: boolean;
+  isReconnecting?: boolean;
 };
 
-export const CallControls: React.FC<Props> = ({ onToggleMic, onToggleCam, onToggleScreenshare, onLeave, micOn, camOn, sharing }) => {
+export const CallControls: React.FC<Props> = ({ onToggleMic, onToggleCam, onToggleScreenshare, onLeave, onReconnect, micOn, camOn, sharing, isReconnecting }) => {
   return (
     <div className="cl-dock">
       <button onClick={onToggleMic} className={`cl-btn ${micOn ? 'cl-btn--primary' : 'cl-btn--off'}`} title={micOn ? "Mute" : "Unmute"} aria-label={micOn ? "Mute microphone" : "Unmute microphone"}>
@@ -62,6 +64,29 @@ export const CallControls: React.FC<Props> = ({ onToggleMic, onToggleCam, onTogg
           </svg>
         )}
       </button>
+      {onReconnect && (
+        <button 
+          onClick={onReconnect} 
+          disabled={isReconnecting}
+          className={`cl-btn ${isReconnecting ? 'cl-btn--off' : ''}`} 
+          title={isReconnecting ? "Reconnecting..." : "Reconnect"} 
+          aria-label={isReconnecting ? "Reconnecting..." : "Reconnect call"}
+        >
+          {isReconnecting ? (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1 4v6h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M23 20v-6h-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          ) : (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1 4v6h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M23 20v-6h-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          )}
+        </button>
+      )}
       <button onClick={onLeave} className="cl-btn cl-btn--danger" title="Leave" aria-label="Leave call">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M6 6l12 12M18 6L6 18" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>

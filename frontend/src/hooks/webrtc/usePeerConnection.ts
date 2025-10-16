@@ -16,6 +16,13 @@ export function usePeerConnection() {
   const [pcState, setPcState] = useState<string>("new");
   const [iceConnState, setIceConnState] = useState<string>("new");
   const [iceGatherState, setIceGatherState] = useState<string>("new");
+  const [connectionQuality, setConnectionQuality] = useState<{
+    score: number;
+    status: 'excellent' | 'good' | 'fair' | 'poor' | 'unknown';
+    details: string;
+  }>({ score: 0, status: 'unknown', details: 'Connecting...' });
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  const [isReconnecting, setIsReconnecting] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -26,7 +33,9 @@ export function usePeerConnection() {
   }, [localStream]);
 
   const init = async (opts: InitOptions = {}) => {
-    const { data: cfg } = await http.get<IceConfigResponse>(`/videos/ice-config`);
+    // Hardcode the base URL to avoid environment variable issues
+    const baseURL = "http://localhost:5001/api";
+    const { data: cfg } = await http.get<IceConfigResponse>(`${baseURL}/videos/ice-config`);
     const pc = new RTCPeerConnection({ iceServers: cfg.iceServers });
     pcRef.current = pc;
 
@@ -47,6 +56,32 @@ export function usePeerConnection() {
     pc.oniceconnectionstatechange = () => {
       setIceConnState(pc.iceConnectionState);
       console.log("[webrtc] iceConnectionState:", pc.iceConnectionState);
+      
+      // Update connection quality based on ICE connection state
+      let quality = { score: 0, status: 'unknown' as const, details: 'Connecting...' };
+      switch (pc.iceConnectionState) {
+        case 'connected':
+          quality = { score: 100, status: 'excellent', details: 'Connected' };
+          break;
+        case 'completed':
+          quality = { score: 95, status: 'excellent', details: 'Connection established' };
+          break;
+        case 'checking':
+          quality = { score: 50, status: 'fair', details: 'Establishing connection...' };
+          break;
+        case 'disconnected':
+          quality = { score: 30, status: 'poor', details: 'Connection lost' };
+          break;
+        case 'failed':
+          quality = { score: 0, status: 'poor', details: 'Connection failed' };
+          // Trigger reconnection attempt
+          setTimeout(() => attemptReconnection(), 2000);
+          break;
+        case 'closed':
+          quality = { score: 0, status: 'unknown', details: 'Connection closed' };
+          break;
+      }
+      setConnectionQuality(quality);
     };
     pc.onicegatheringstatechange = () => {
       setIceGatherState(pc.iceGatheringState);
@@ -169,6 +204,41 @@ export function usePeerConnection() {
     return true;
   };
 
+  const attemptReconnection = async () => {
+    if (reconnectAttempts >= 3 || isReconnecting) return;
+    
+    setIsReconnecting(true);
+    setReconnectAttempts(prev => prev + 1);
+    setConnectionQuality({ score: 0, status: 'unknown', details: `Reconnecting... (${reconnectAttempts + 1}/3)` });
+    
+    try {
+      // Close existing connection
+      if (pcRef.current) {
+        pcRef.current.close();
+        pcRef.current = null;
+      }
+      
+      // Wait a bit before reconnecting
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Reinitialize the connection
+      await init();
+      
+      setReconnectAttempts(0);
+      setConnectionQuality({ score: 100, status: 'excellent', details: 'Reconnected successfully' });
+    } catch (error) {
+      console.error("[webrtc] Reconnection failed:", error);
+      setConnectionQuality({ score: 0, status: 'poor', details: 'Reconnection failed' });
+      
+      // Try again after a delay
+      if (reconnectAttempts < 2) {
+        setTimeout(() => attemptReconnection(), 3000);
+      }
+    } finally {
+      setIsReconnecting(false);
+    }
+  };
+
   return {
     pcRef,
     localStream,
@@ -176,6 +246,10 @@ export function usePeerConnection() {
     pcState,
     iceConnState,
     iceGatherState,
+    connectionQuality,
+    reconnectAttempts,
+    isReconnecting,
+    attemptReconnection,
     init,
     createOffer,
     createAnswer,

@@ -1,0 +1,189 @@
+🚀 CampusLearn AWS ECS Fargate Deployment Progress
+====================================================
+Date: 2025-10-16
+Region: af-south-1 (Cape Town, South Africa)
+Target: WebRTC + Socket.IO application
+
+📋 DEPLOYMENT CHECKLIST
+=======================
+
+✅ COMPLETED:
+- [x] AWS CLI installed and configured
+- [x] AWS region set to af-south-1 (Cape Town)
+- [x] Docker Desktop installed and working
+- [x] Docker build tested successfully (campuslearn-test:latest)
+- [x] Deployment scripts created
+- [x] CloudFormation templates created
+- [x] ECS task definition created
+- [x] ECS service definition created
+- [x] GitHub repository prepared (public)
+- [x] Added CodeBuild buildspec.yml (Docker build + push + imagedefinitions.json)
+- [x] CodeBuild project created (CampusLearn)
+- [x] CodePipeline created (Source: GitHub via OAuth, Build: CodeBuild)
+
+🔄 IN PROGRESS:
+- [ ] ECR repository creation
+- [ ] VPC stack deployment (or console-created VPC + subnets + SGs)
+- [ ] ALB creation and target group wiring
+- [ ] ECS cluster creation (Fargate)
+- [ ] ECS service creation (campuslearn-backend-service)
+- [ ] CodePipeline Deploy stage (Amazon ECS) configuration
+- [ ] Docker image push to ECR (first pipeline run)
+
+⏳ PENDING:
+- [ ] Environment variables configuration
+- [ ] Frontend deployment (S3 + CloudFront)
+- [ ] WebRTC testing in production
+- [ ] Call notifications testing
+- [ ] Performance optimization
+
+🚨 CURRENT ISSUES:
+- PowerShell script syntax errors (quotes)
+- CodeStar Connections not visible in UI in af-south-1; using GitHub OAuth in CodePipeline Source
+- Need to run infra creation via console/CloudFormation before enabling Deploy stage
+
+📝 NEXT STEPS:
+1. Create ECR repository: campuslearn-backend
+2. Create/network VPC with 2 public subnets + security groups (or deploy VPC stack)
+3. Create ALB (internet-facing) + target group (IP, port 5000)
+4. Create ECS cluster (Fargate) and service (campuslearn-backend-service) using task definition
+5. Update CodePipeline Deploy stage to Amazon ECS with imagedefinitions.json
+6. Run pipeline to build → push to ECR → deploy to ECS
+
+🔧 COMMANDS TO RUN:
+==================
+
+# 1. Create ECR repository
+aws ecr create-repository --repository-name campuslearn-backend --region af-south-1
+
+# 2. Create VPC stack
+aws cloudformation create-stack --stack-name campuslearn-vpc --template-body file://deployment/aws/cloudformation/vpc.yaml --region af-south-1 --capabilities CAPABILITY_IAM
+
+# 3. Wait for VPC completion
+aws cloudformation wait stack-create-complete --stack-name campuslearn-vpc --region af-south-1
+
+# 4. Get VPC outputs
+aws cloudformation describe-stacks --stack-name campuslearn-vpc --query 'Stacks[0].Outputs' --output table
+
+# 5. Create ALB stack (after getting VPC outputs)
+aws cloudformation create-stack --stack-name campuslearn-alb --template-body file://deployment/aws/cloudformation/alb.yaml --region af-south-1 --parameters ParameterKey=VPCId,ParameterValue=<VPC_ID> ParameterKey=PublicSubnet1,ParameterValue=<SUBNET_1> ParameterKey=PublicSubnet2,ParameterValue=<SUBNET_2> ParameterKey=ALBSecurityGroup,ParameterValue=<ALB_SG> ParameterKey=ECSSecurityGroup,ParameterValue=<ECS_SG> --capabilities CAPABILITY_IAM
+
+# 6. Wait for ALB completion
+aws cloudformation wait stack-create-complete --stack-name campuslearn-alb --region af-south-1
+
+# 7. Get account ID
+aws sts get-caller-identity --query Account --output text
+
+# 8. Update task definition with account ID
+# Replace YOUR_ACCOUNT_ID in deployment/aws/ecs/task-definition.json
+
+# 9. Build and push Docker image (first run will also happen via CodePipeline)
+docker build -t campuslearn-backend .
+docker tag campuslearn-backend:latest <ACCOUNT_ID>.dkr.ecr.af-south-1.amazonaws.com/campuslearn-backend:latest
+aws ecr get-login-password --region af-south-1 | docker login --username AWS --password-stdin <ACCOUNT_ID>.dkr.ecr.af-south-1.amazonaws.com
+docker push <ACCOUNT_ID>.dkr.ecr.af-south-1.amazonaws.com/campuslearn-backend:latest
+
+# 10. Register task definition
+aws ecs register-task-definition --cli-input-json file://deployment/aws/ecs/task-definition.json --region af-south-1
+
+# 11. Create ECS service
+aws ecs create-service --cli-input-json file://deployment/aws/ecs/service-definition.json --region af-south-1
+
+🌐 EXPECTED RESULT:
+==================
+- ECS Fargate service running in Cape Town
+- Application Load Balancer with public URL
+- WebRTC app accessible via HTTPS
+- Socket.IO connections working
+- Call notifications functional
+
+📊 MONITORING:
+=============
+# Check ECS service status
+aws ecs describe-services --cluster campuslearn-cluster --services campuslearn-backend-service
+
+# Get ALB URL
+aws cloudformation describe-stacks --stack-name campuslearn-alb --query 'Stacks[0].Outputs[?OutputKey==`ApplicationLoadBalancer`].OutputValue' --output text
+
+# View logs
+aws logs tail /ecs/campuslearn-backend --follow
+
+🔧 ENVIRONMENT VARIABLES TO UPDATE:
+===================================
+In deployment/aws/ecs/task-definition.json:
+- MONGO_URL: Your MongoDB connection string
+- REDIS_URL: Your Redis connection string
+- JWT_SECRET: Strong secret key
+- CORS_ORIGIN: Frontend URL (after frontend deployment)
+
+📞 SUPPORT:
+===========
+- AWS Documentation: https://docs.aws.amazon.com/
+- ECS Documentation: https://docs.aws.amazon.com/ecs/
+- Cape Town Region: https://aws.amazon.com/about-aws/global-infrastructure/regions_az/
+
+Last Updated: 2025-10-16
+Status: In Progress - CI set up (Source+Build). Infra and ECS Deploy pending
+
+📌 CURRENT STATE (HIGH LEVEL)
+============================
+- CI: CodePipeline created with Source (GitHub via OAuth) and Build (CodeBuild project `CampusLearn`).
+- Repo: public; `buildspec.yml` added (build → push to ECR → emit `imagedefinitions.json`).
+- Backend: supports `CORS_ORIGINS`, `FRONTEND_URL`, `BACKEND_URL`; default container `PORT=5000` is recommended for ECS.
+- Local dev: Docker/Compose mapping intended as host `5001` → container `5000`.
+- Pending Infra: ECR repo, VPC/subnets/SGs, ALB + target group, ECS cluster/service.
+
+🧪 LOCAL DOCKER QUICKSTART
+==========================
+- Preferred container port: 5000; host access: http://localhost:5001
+- Required env (minimal):
+  - `PORT=5000`
+  - `CORS_ORIGINS=http://localhost:5173,http://localhost:8080,http://localhost:5001`
+  - `FRONTEND_URL=http://localhost:5173`
+  - `BACKEND_URL=http://localhost:5001`
+  - `MONGO_URL=mongodb://mongo:27017/campuslearn` (or `host.docker.internal` if using host DB)
+  - `REDIS_URL=redis://redis:6379` (or `host.docker.internal` for host Redis)
+  - `JWT_SECRET=<set-strong-secret>`
+- Transformers cache (to avoid EACCES inside container):
+  - `TRANSFORMERS_CACHE=/tmp/transformers`, `XDG_CACHE_HOME=/tmp`
+  - Ensure directory exists (compose or container init can `mkdir -p /tmp/transformers`).
+
+🚦 PIPELINE STATUS
+==================
+- Source: GitHub (OAuth), branch `main` → OK.
+- Build: CodeBuild project `CampusLearn` uses `buildspec.yml` to build and push, emitting `imagedefinitions.json` → OK.
+- Deploy: Not configured yet (awaiting ECS cluster/service). Will use ECS provider with `imagedefinitions.json`.
+
+🧭 NEXT STEPS TO PRODUCTION (ECS FARGATE)
+=========================================
+1) ECR
+   - Create repo `campuslearn-backend` (af-south-1).
+2) Networking
+   - Ensure VPC with 2 public subnets across AZs and security groups:
+     - ALB SG: inbound 80/443 from 0.0.0.0/0
+     - ECS SG: inbound 5000 from ALB SG
+3) ALB
+   - Internet-facing ALB in the VPC; target group: IP, HTTP, port 5000 (name `campuslearn-tg`).
+4) ECS
+   - Cluster: `campuslearn-cluster` (Fargate).
+   - Task definition: `campuslearn-backend` with container `campuslearn-backend`, port 5000, logs → `/ecs/campuslearn-backend`.
+   - Service: `campuslearn-backend-service`, desired count 1, attach to ALB target group; subnets (public), assign public IP Enabled.
+5) CodePipeline – Deploy Stage
+   - Add Deploy: Amazon ECS → Cluster `campuslearn-cluster`, Service `campuslearn-backend-service`, Image definitions file `imagedefinitions.json`, timeout 15 min, auto-rollback enabled.
+6) Environment Variables (Task Definition)
+   - `MONGO_URL`, `REDIS_URL`, `JWT_SECRET`, `FRONTEND_URL`, `BACKEND_URL`, `CORS_ORIGINS`.
+   - Optional: `TRANSFORMERS_CACHE=/tmp/transformers`, `XDG_CACHE_HOME=/tmp`.
+7) Run Pipeline
+   - Push to `main` → build → push ECR → deploy ECS → verify ALB URL and health.
+
+🧯 TROUBLESHOOTING NOTES
+========================
+- 4xx on CORS or Socket.IO: verify `CORS_ORIGINS` includes frontend URL and that ECS SG/ALB listener forwards to target group on 5000.
+- 5xx or health failing: check CloudWatch logs `/ecs/campuslearn-backend`; confirm env vars and DB/Redis reachability from the task.
+- Transformers EACCES: ensure cache env vars point to a writable path as above.
+
+🗂️ BACKLOG / LATER
+===================
+- Add Test stage in CodePipeline (CodeBuild project with `buildspec-test.yml`).
+- Frontend deploy to S3+CloudFront and set `CORS_ORIGINS`/`FRONTEND_URL` accordingly.
+- Review git stashes by branching them (`git stash branch ...`) and merging selectively.

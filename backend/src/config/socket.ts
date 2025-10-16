@@ -243,6 +243,55 @@ export function createSocketServer(httpServer: HttpServer) {
       socket.to(callId).emit("peer_joined", { userId });
     });
 
+    // initiate_call: start a call and notify the other participant
+    socket.on("initiate_call", async ({ callId, targetUserId }: { callId: string; targetUserId: string }) => {
+      console.log("[/video] initiate_call", { socket: socket.id, userId, callId, targetUserId });
+      if (!callId || !targetUserId) return;
+      if (!rateLimit || !rateLimit.allowEvent(socket.id, "video:initiate")) return;
+      
+      // Find the target user's socket
+      const targetUser = connectedUsers.get(targetUserId);
+      if (targetUser) {
+        // Get the caller's name from the database
+        let fromUserName = "User";
+        try {
+          const { UserService } = await import("../modules/users/user.service");
+          const { UserRepo } = await import("../modules/users/user.repo");
+          
+          // First get the user to determine their role
+          const user = await UserRepo.findById(userId || "");
+          if (user) {
+            // Get the profile based on role
+            const profile = await UserService.getProfileByRole(user.id, user.role);
+            if (profile && profile.name) {
+              fromUserName = `${profile.name || ""} ${profile.surname || ""}`.trim() || "User";
+            }
+          }
+        } catch (error) {
+          console.error("Failed to get caller name:", error);
+        }
+        
+        // Send notification to target user
+        io.to(targetUser.socketId).emit("incoming_call", {
+          callId,
+          fromUserId: userId,
+          fromUserName,
+        });
+      }
+    });
+
+    // decline_call: handle call decline
+    socket.on("decline_call", ({ callId, fromUserId }: { callId: string; fromUserId: string }) => {
+      console.log("[/video] decline_call", { socket: socket.id, userId, callId, fromUserId });
+      if (!callId || !fromUserId) return;
+      
+      // Notify the caller that the call was declined
+      const caller = connectedUsers.get(fromUserId);
+      if (caller) {
+        io.to(caller.socketId).emit("call_cancelled", { callId });
+      }
+    });
+
     // signal: relay offer/answer/ice to peers in room
     // payload: { callId: string, data: { type: 'offer'|'answer'|'candidate', sdp?, candidate? } }
     socket.on("signal", ({ callId, data }: { callId: string; data: unknown }) => {

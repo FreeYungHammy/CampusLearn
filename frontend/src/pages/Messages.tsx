@@ -26,7 +26,7 @@ const defaultPfp =
 
 /* ---------- Helpers ---------- */
 const getProfilePictureUrl = (userId: string, bust?: number) => {
-  const baseUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:5001";
+  const baseUrl = "http://localhost:5001"; // Hardcoded to avoid env var issues
   const cacheBuster = bust ? `?t=${bust}` : "";
   return `${baseUrl}/api/users/${userId}/pfp${cacheBuster}`;
 };
@@ -667,10 +667,41 @@ const Messages: React.FC = () => {
     });
   }, [conversations, searchQuery]);
 
-  const handleStartVideoCall = useCallback(() => {
+  const handleStartVideoCall = useCallback(async () => {
     if (!selectedConversation || !user?.id) return;
     const otherId = selectedConversation.otherUser._id;
     const callId = [user.id, otherId].sort().join(":");
+    
+    // Send call notification to the other user first
+    try {
+      console.log("[video-call] Initiating call notification", { callId, targetUserId: otherId });
+      const { io } = await import("socket.io-client");
+      const SOCKET_BASE_URL = "http://localhost:5001";
+      const url = SOCKET_BASE_URL.replace(/^http/, "ws");
+      const token = useAuthStore.getState().token;
+      
+      if (token) {
+        console.log("[video-call] Creating temporary socket connection");
+        const tempSocket = io(`${url}/video`, { auth: { token }, transports: ["websocket", "polling"] });
+        tempSocket.on("connect", () => {
+          console.log("[video-call] Temporary socket connected, sending initiate_call");
+          tempSocket.emit("initiate_call", { callId, targetUserId: otherId });
+          setTimeout(() => {
+            console.log("[video-call] Disconnecting temporary socket");
+            tempSocket.disconnect();
+          }, 1000); // Clean up after sending
+        });
+        tempSocket.on("connect_error", (error) => {
+          console.error("[video-call] Temporary socket connection error:", error);
+        });
+      } else {
+        console.warn("[video-call] No token available for call notification");
+      }
+    } catch (error) {
+      console.error("Failed to send call notification:", error);
+    }
+    
+    // Open the call popup
     import("@/utils/openCallPopup").then(({ openCallPopup }) => {
       openCallPopup(callId);
     });
@@ -738,7 +769,7 @@ const Messages: React.FC = () => {
 
       // Show profile picture only if this is the first message in its timestamp group
       messageWithGrouping.showProfilePicture =
-        timestampGroup && timestampGroup[0] === i;
+        Boolean(timestampGroup && timestampGroup[0] === i);
 
       // Show timestamp only for the last message in each timestamp group (both sides)
       if (timestampGroup && timestampGroup[timestampGroup.length - 1] === i) {
@@ -1105,7 +1136,7 @@ const Messages: React.FC = () => {
                                   <button
                                     className="message-edit-btn"
                                     onClick={() =>
-                                      handleEditMessage(msg._id, msg.content)
+                                      handleEditMessage(msg._id || '', msg.content)
                                     }
                                     title="Edit message"
                                   >
@@ -1114,7 +1145,7 @@ const Messages: React.FC = () => {
                                 )}
                                 <p className={!mine ? "text-dark" : ""}>
                                   {msg.content}
-                                  {msg.isEdited && (
+                                  {(msg as any).isEdited && (
                                     <span className="edited-indicator">
                                       {" "}
                                       (edited)
@@ -1131,7 +1162,7 @@ const Messages: React.FC = () => {
                                       try {
                                         const blob =
                                           await chatApi.downloadMessageFile(
-                                            msg._id,
+                                            msg._id || '',
                                             token,
                                           );
                                         const url =
@@ -1208,7 +1239,7 @@ const Messages: React.FC = () => {
                                 )}
                               </div>
                             )}
-                            {msg.showTimestamp && (
+                            {(msg as any).showTimestamp && (
                               <div
                                 className={`stamp ${mine ? "right" : "left"}`}
                               >
