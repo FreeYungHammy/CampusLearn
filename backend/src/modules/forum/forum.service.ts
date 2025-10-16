@@ -23,6 +23,7 @@ import mongoose from "mongoose";
 
 const logger = createLogger("ForumService");
 const FORUM_THREAD_CACHE_KEY = (id: string) => `forum:thread:${id}`;
+const FORUM_THREADS_CACHE_KEY = "forum:threads:all";
 
 function formatAuthorForList(author: any) {
   if (!author) return null;
@@ -116,6 +117,12 @@ export const ForumService = {
     };
 
     io.emit("new_post", populatedPostForEmit);
+    
+    // Invalidate the forum threads list cache
+    console.log(`[createThread] Invalidating cache for key: ${FORUM_THREADS_CACHE_KEY}`);
+    await CacheService.del(FORUM_THREADS_CACHE_KEY);
+    console.log(`[createThread] Cache invalidation completed for key: ${FORUM_THREADS_CACHE_KEY}`);
+    
     return populatedPostForEmit;
   },
 
@@ -127,6 +134,26 @@ export const ForumService = {
     limit: number = 10,
     offset: number = 0,
   ) {
+    // Only cache if no search/filter parameters (for performance)
+    const shouldCache = !searchQuery && !topic && sortBy !== "upvotes";
+    
+    if (shouldCache && offset === 0) {
+      const cacheKey = FORUM_THREADS_CACHE_KEY;
+      const startTime = performance.now();
+      
+      console.log(`[getThreads] Attempting to get cache for key: ${cacheKey}`);
+      const cachedThreads = await CacheService.get<{ threads: any[]; totalCount: number }>(cacheKey);
+      if (cachedThreads) {
+        console.log(`[getThreads] Cache HIT for key: ${cacheKey}`);
+        logger.info(
+          `[getThreads] Redis retrieval took ${(performance.now() - startTime).toFixed(2)} ms (Cache Hit)`,
+        );
+        return cachedThreads;
+      } else {
+        console.log(`[getThreads] Cache MISS for key: ${cacheKey}`);
+      }
+    }
+
     const dbStartTime = performance.now();
     const matchStage: any = {};
     if (topic) {
@@ -255,7 +282,18 @@ export const ForumService = {
       return thread;
     });
 
-    return { threads: populatedThreads, totalCount };
+    const result = { threads: populatedThreads, totalCount };
+
+    // Cache the result if it's the default query (no filters, first page)
+    if (shouldCache && offset === 0) {
+      console.log(`[getThreads] Setting cache for key: ${FORUM_THREADS_CACHE_KEY} with TTL: 1800`);
+      await CacheService.set(FORUM_THREADS_CACHE_KEY, result, 1800); // 30 minutes TTL
+      console.log(`[getThreads] Cache SET completed for key: ${FORUM_THREADS_CACHE_KEY}`);
+    } else {
+      console.log(`[getThreads] Not caching - shouldCache: ${shouldCache}, offset: ${offset}`);
+    }
+
+    return result;
   },
 
   async getThreadById(threadId: string, user: User) {
@@ -690,8 +728,10 @@ export const ForumService = {
       await session.commitTransaction();
 
       await CacheService.del(FORUM_THREAD_CACHE_KEY(threadId));
-      // In a real-world scenario, you might want to invalidate a general forum list cache as well
-      // await CacheService.del("forum:threads:all");
+      // Invalidate the forum threads list cache as well
+      console.log(`[deleteThread] Invalidating cache for key: ${FORUM_THREADS_CACHE_KEY}`);
+      await CacheService.del(FORUM_THREADS_CACHE_KEY);
+      console.log(`[deleteThread] Cache invalidation completed for key: ${FORUM_THREADS_CACHE_KEY}`);
 
       io.emit("thread_deleted", { threadId });
     } catch (error) {

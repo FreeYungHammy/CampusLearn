@@ -81,8 +81,8 @@ export function createSocketServer(httpServer: HttpServer) {
         return next(new Error("Authentication error: No token provided"));
       }
 
-      // Check if token is blacklisted
-      const isBlacklisted = await CacheService.get(`jwt:blacklist:${token}`);
+      // Check if token is blacklisted (use debug logging to reduce noise)
+      const isBlacklisted = await CacheService.get(`jwt:blacklist:${token}`, 'debug');
       if (isBlacklisted) {
         return next(new Error("Authentication error: Token has been revoked"));
       }
@@ -204,7 +204,7 @@ export function createSocketServer(httpServer: HttpServer) {
       const token = socket.handshake.auth.token || socket.handshake.headers.authorization?.split(' ')[1];
       if (!token) return next(new Error('Authentication error: No token provided'));
 
-      const isBlacklisted = await CacheService.get(`jwt:blacklist:${token}`);
+      const isBlacklisted = await CacheService.get(`jwt:blacklist:${token}`, 'debug');
       if (isBlacklisted) return next(new Error('Authentication error: Token has been revoked'));
 
       const payload = verifyJwt(token);

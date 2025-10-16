@@ -4,16 +4,20 @@ import { createLogger } from "../config/logger";
 const logger = createLogger("CacheService");
 
 export const CacheService = {
-  async get<T>(key: string): Promise<T | null> {
+  async get<T>(key: string, logLevel: 'info' | 'debug' = 'info'): Promise<T | null> {
     const startTime = Date.now();
     try {
       const data = await redis.get(key);
       const duration = Date.now() - startTime;
       if (data) {
-        logger.info(`[CACHE HIT] Key: ${key}, Time: ${duration}ms`);
+        if (logLevel === 'debug') {
+          logger.debug(`[CACHE HIT] Key: ${key}, Time: ${duration}ms`);
+        }
         return JSON.parse(data) as T;
       }
-      logger.info(`[CACHE MISS] Key: ${key}, Time: ${duration}ms`);
+      if (logLevel === 'info') {
+        logger.info(`[CACHE MISS] Key: ${key}, Time: ${duration}ms`);
+      }
       return null;
     } catch (error) {
       logger.error(`Error getting from cache for key ${key}:`, error);
