@@ -4,8 +4,6 @@ import { UserRepo } from "./user.repo";
 import { StudentRepo } from "../students/student.repo";
 import { StudentService } from "../students/student.service";
 import { TutorRepo } from "../tutors/tutor.repo";
-import { StudentModel } from "../../schemas/students.schema";
-import { TutorModel } from "../../schemas/tutor.schema";
 import { AdminModel } from "../../schemas/admin.schema";
 import { UserModel } from "../../schemas/user.schema";
 import type { UserDoc } from "../../schemas/user.schema";
@@ -968,13 +966,5 @@ export const UserService = {
         resetPasswordExpires: undefined,
       },
     });
-  },
-
-  async getUserStats(): Promise<{ students: number; tutors: number }> {
-    const [studentCount, tutorCount] = await Promise.all([
-      StudentModel.countDocuments(),
-      TutorModel.countDocuments(),
-    ]);
-    return { students: studentCount, tutors: tutorCount };
   },
 };

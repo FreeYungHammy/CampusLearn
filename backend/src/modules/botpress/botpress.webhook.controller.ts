@@ -8,48 +8,41 @@ export const BotpressWebhookController = {
    */
   receiveMessage: async (req: Request, res: Response, next: NextFunction) => {
     try {
-      console.log("--- BOTPRESS WEBHOOK RECEIVED ---");
       console.log("Botpress webhook received:", req.body);
-
+      
       // Botpress webhook payload structure
       const { type, payload, conversationId } = req.body;
-
-      if (type === "message" || type === "choice" || type === "text") {
+      
+      if (type === 'message' || type === 'choice' || type === 'text') {
         const { text } = payload;
-
-        console.log(
-          `Botpress response for user ${conversationId}: ${text?.substring(0, 50)}...`,
-        );
-
+        
+        console.log(`✅ Botpress response for user ${conversationId}: ${text?.substring(0, 50)}...`);
+        
         // Send the bot response to the frontend via Socket.IO
         // The conversationId from Botpress webhook is the userId from our system
         if (io && conversationId) {
-          io.emit("botpress_response", {
+          io.emit('botpress_response', {
             userId: conversationId,
             message: text,
-            timestamp: new Date().toISOString(),
+            timestamp: new Date().toISOString()
           });
-          console.log(
-            `Sent bot response to user ${conversationId} via Socket.IO`,
-          );
+          console.log(`✅ Sent bot response to user ${conversationId} via Socket.IO`);
         } else {
-          console.error("Socket.IO emission failed:", {
-            io: !!io,
-            conversationId,
-          });
+          console.error('❌ Socket.IO emission failed:', { io: !!io, conversationId });
         }
-
-        res.json({
-          success: true,
-          message: "Webhook received successfully",
+        
+        res.json({ 
+          success: true, 
+          message: "Webhook received successfully" 
         });
       } else {
         console.log("Unknown webhook type:", type);
-        res.json({
-          success: true,
-          message: "Webhook received but type not handled",
+        res.json({ 
+          success: true, 
+          message: "Webhook received but type not handled" 
         });
       }
+      
     } catch (error) {
       console.error("Botpress webhook error:", error);
       next(error);
@@ -60,10 +53,10 @@ export const BotpressWebhookController = {
    * Health check for webhook
    */
   webhookHealth: async (req: Request, res: Response, next: NextFunction) => {
-    res.json({
-      status: "healthy",
+    res.json({ 
+      status: "healthy", 
       timestamp: new Date().toISOString(),
-      service: "botpress-webhook",
+      service: "botpress-webhook" 
     });
   },
 };
