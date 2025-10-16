@@ -10,12 +10,44 @@ export async function connectMongo(): Promise<void> {
   }
 
   mongoose.set("strictQuery", true);
+  
+  // Reduce MongoDB connection logging verbosity
+  mongoose.set('debug', false);
 
   try {
-    await mongoose.connect(env.mongoUri, {
-      // options can be added if needed
+    // Configure mongoose settings before connecting
+    mongoose.set('bufferCommands', false);
+    
+    // Add Atlas-optimized connection pooling parameters to URI
+    let mongoUri = env.mongoUri;
+    if (mongoUri.includes('mongodb+srv://') || mongoUri.includes('mongodb://')) {
+      const isProduction = process.env.NODE_ENV === 'production';
+      
+      // Environment-specific connection pooling parameters
+      const poolParams = [
+        `maxPoolSize=${isProduction ? '15' : '5'}`,     // Higher pool for production
+        `minPoolSize=${isProduction ? '3' : '1'}`,      // More persistent connections in prod
+        `maxIdleTimeMS=${isProduction ? '600000' : '30000'}`, // 10min prod, 30sec dev
+        'serverSelectionTimeoutMS=5000',
+        'socketTimeoutMS=45000',
+        'connectTimeoutMS=10000',
+        'heartbeatFrequencyMS=10000', // Heartbeat every 10 seconds
+        'compressors=zlib'           // Enable compression for Atlas
+      ].filter(param => !mongoUri.includes(param.split('=')[0] + '=')).join('&');
+      
+      if (poolParams) {
+        mongoUri = mongoUri.includes('?') 
+          ? `${mongoUri}&${poolParams}`
+          : `${mongoUri}?${poolParams}`;
+      }
+    }
+    
+    await mongoose.connect(mongoUri, {
+      bufferCommands: false, // Disable mongoose buffering
     });
-    logger.info(`Connected to MongoDB`);
+    
+    const isProduction = process.env.NODE_ENV === 'production';
+    logger.info(`Connected to MongoDB Atlas with ${isProduction ? 'production' : 'development'} optimized connection pooling`);
   } catch (err) {
     logger.error(`MongoDB connection error`, err as Error);
     throw err;
@@ -27,4 +59,25 @@ export async function connectMongo(): Promise<void> {
   mongoose.connection.on("reconnected", () =>
     logger.info("MongoDB reconnected"),
   );
+  
+  // Add connection monitoring
+  mongoose.connection.on("connected", () => {
+    logger.info(`MongoDB connected - ReadyState: ${mongoose.connection.readyState}`);
+  });
+  
+  // Log when connections are created/destroyed
+  let connectionCount = 0;
+  mongoose.connection.on("connectionCreated", (event) => {
+    connectionCount++;
+    logger.info(`MongoDB connection #${connectionCount} created: ${event.connectionId}`);
+  });
+  
+  mongoose.connection.on("connectionClosed", (event) => {
+    logger.info(`MongoDB connection closed: ${event.connectionId}`);
+  });
+  
+  // Log connection status periodically
+  setInterval(() => {
+    logger.info(`MongoDB Connection Status: ReadyState=${mongoose.connection.readyState}, Host=${mongoose.connection.host}, Port=${mongoose.connection.port}`);
+  }, 30000); // Log every 30 seconds
 }
