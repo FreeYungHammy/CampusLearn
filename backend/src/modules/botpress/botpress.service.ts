@@ -32,6 +32,7 @@ export const BotpressService = {
       // Use the Botpress Messaging API webhook endpoint from environment
       const botpressWebhookUrl = env.botpressWebhookUrl;
 
+
       const possibleEndpoints = [botpressWebhookUrl];
 
       let lastError: Error | null = null;
