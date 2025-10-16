@@ -359,7 +359,10 @@ const TutorContentView = () => {
 
       {isModalOpen && selectedFile && (
         <div className="modal-overlay" onClick={closeModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="content-viewer-modal modal-content"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="modal-header">
               <h3>{selectedFile.title}</h3>
               <div className="modal-actions">

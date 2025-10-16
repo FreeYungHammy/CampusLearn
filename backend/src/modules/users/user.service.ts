@@ -75,6 +75,16 @@ export const UserService = {
     }
   },
 
+  async checkEmailExists(email: string) {
+    try {
+      const existing = await UserRepo.findByEmail(email);
+      return !!existing;
+    } catch (error) {
+      console.error("Error checking email existence:", error);
+      return false;
+    }
+  },
+
   async register(input: {
     email: string;
     password: string;
@@ -538,12 +548,14 @@ export const UserService = {
         });
       }
 
-      // Sort activities by time (most recent first)
-      return activities.sort((a, b) => {
-        const timeA = this.parseTimeAgo(a.time);
-        const timeB = this.parseTimeAgo(b.time);
-        return timeA - timeB;
-      });
+      // Sort activities by time (most recent first) and limit to 5 items
+      return activities
+        .sort((a, b) => {
+          const timeA = this.parseTimeAgo(a.time);
+          const timeB = this.parseTimeAgo(b.time);
+          return timeB - timeA; // Reverse the order to show newest first
+        })
+        .slice(0, 5); // Limit to only the 5 most recent activities
     } catch (error) {
       console.error("Error fetching recent activity:", error);
       return [];
@@ -820,6 +832,26 @@ export const UserService = {
         await StudentService.invalidateCache(id);
         logger.info(`Deleted student profile for user ${id}`);
       } else if (user.role === "tutor" && tutorProfile) {
+        // Delete all files uploaded by this tutor (including compressed versions)
+        try {
+          const { FileService } = await import("../files/file.service");
+          const tutorFiles = await FileService.findByTutorId(
+            tutorProfile._id.toString(),
+          );
+
+          logger.info(
+            `Found ${tutorFiles.length} files to delete for tutor ${id}`,
+          );
+
+          for (const file of tutorFiles) {
+            await FileService.remove((file as any)._id.toString());
+            logger.info(`Deleted file ${(file as any)._id} for tutor ${id}`);
+          }
+        } catch (error) {
+          logger.warn(`Failed to delete files for tutor ${id}:`, error);
+          // Continue with user deletion even if file deletion fails
+        }
+
         await TutorRepo.deleteById(tutorProfile._id.toString());
         logger.info(`Deleted tutor profile for user ${id}`);
       } else if (user.role === "admin") {

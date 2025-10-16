@@ -1,0 +1,67 @@
+{
+  "family": "campuslearn-backend",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::YOUR_ACCOUNT_ID:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::YOUR_ACCOUNT_ID:role/ecsTaskRole",
+  "containerDefinitions": [
+    {
+      "name": "campuslearn-backend",
+      "image": "YOUR_ACCOUNT_ID.dkr.ecr.af-south-1.amazonaws.com/campuslearn-backend:latest",
+      "portMappings": [
+        {
+          "containerPort": 5000,
+          "protocol": "tcp"
+        }
+      ],
+      "essential": true,
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/campuslearn-backend",
+          "awslogs-region": "af-south-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "environment": [
+        {
+          "name": "NODE_ENV",
+          "value": "production"
+        },
+        {
+          "name": "PORT",
+          "value": "5000"
+        },
+        {
+          "name": "MONGO_URL",
+          "value": "mongodb+srv://your-username:your-password@your-cluster.mongodb.net/campuslearn?retryWrites=true&w=majority"
+        },
+        {
+          "name": "REDIS_URL",
+          "value": "redis://your-redis-url:6379"
+        },
+        {
+          "name": "JWT_SECRET",
+          "value": "your-super-secret-jwt-key-here"
+        },
+        {
+          "name": "CORS_ORIGIN",
+          "value": "https://your-frontend-domain.com"
+        },
+        {
+          "name": "PUBLIC_URL",
+          "value": "https://your-alb-url.af-south-1.elb.amazonaws.com"
+        }
+      ],
+      "healthCheck": {
+        "command": ["CMD-SHELL", "curl -f http://localhost:5000/health || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 60
+      }
+    }
+  ]
+}

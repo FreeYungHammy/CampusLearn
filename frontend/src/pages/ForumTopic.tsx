@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import {
+  useParams,
+  Link,
+  useNavigate,
+  useSearchParams,
+} from "react-router-dom";
 import {
   getForumThreadById,
   createForumReply,
@@ -12,10 +17,13 @@ import {
 import { useAuthStore } from "../store/authStore";
 import { useForumSocket } from "../hooks/useForumSocket";
 import PostActions from "../components/forum/PostActions";
+import DeleteConfirmationModal from "../components/forum/DeletePostConfirmationModal";
+import { isWithinEditWindow, getRemainingEditTime } from "../utils/editWindow";
 
 const ForumTopic = () => {
   const { threadId } = useParams<{ threadId: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [thread, setThread] = useState<any>(null);
   const [replyContent, setReplyContent] = useState("");
   const [isAnonymous, setIsAnonymous] = useState(false);
@@ -28,6 +36,9 @@ const ForumTopic = () => {
   const [editingContent, setEditingContent] = useState("");
   const [isVoting, setIsVoting] = useState<{ [key: string]: boolean }>({});
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteType, setDeleteType] = useState<"thread" | "reply" | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
   const formatSubjectClass = (subject: string) => {
     const subjectMap: { [key: string]: string } = {
@@ -63,7 +74,8 @@ const ForumTopic = () => {
             {} as { [userId: string]: number },
           );
           if (fetchedThread.author && fetchedThread.author.pfpTimestamp) {
-            timestamps[fetchedThread.author.userId] = fetchedThread.author.pfpTimestamp;
+            timestamps[fetchedThread.author.userId] =
+              fetchedThread.author.pfpTimestamp;
           }
           updatePfpTimestamps(timestamps);
 
@@ -76,6 +88,20 @@ const ForumTopic = () => {
             })),
           };
           setThread(threadWithVotes);
+
+          // Check if we should automatically open edit mode
+          const shouldEdit = searchParams.get("edit") === "true";
+          if (
+            shouldEdit &&
+            user &&
+            fetchedThread.author &&
+            user.id === fetchedThread.author.userId
+          ) {
+            setEditingId(fetchedThread._id);
+            setEditingContent(fetchedThread.content);
+            // Remove the edit parameter from URL after opening edit mode
+            navigate(`/forum/${threadId}`, { replace: true });
+          }
         } catch (error) {
           console.error("Failed to fetch thread", error);
           setError("Failed to load thread. Please try again.");
@@ -86,7 +112,7 @@ const ForumTopic = () => {
     };
 
     fetchThread();
-  }, [threadId, token]);
+  }, [threadId, token, searchParams, user, navigate]);
 
   useEffect(() => {
     if (socket) {
@@ -272,23 +298,33 @@ const ForumTopic = () => {
     }, 100);
   };
 
-  const handleDeleteThread = async () => {
-    if (!token || !threadId) return;
-    try {
-      await deleteForumPost(threadId, token);
-      // The socket event will handle UI update and navigation
-    } catch (error) {
-      console.error("Failed to delete thread", error);
-    }
+  const handleDeleteThread = () => {
+    setDeleteType("thread");
+    setItemToDelete(threadId || null);
+    setDeleteModalOpen(true);
   };
 
-  const handleDeleteReply = async (replyId: string) => {
-    if (!token) return;
+  const handleDeleteReply = (replyId: string) => {
+    setDeleteType("reply");
+    setItemToDelete(replyId);
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!token || !itemToDelete || !deleteType) return;
     try {
-      await deleteForumReply(replyId, token);
-      // The socket event will handle UI update
+      if (deleteType === "thread") {
+        await deleteForumPost(itemToDelete, token);
+        // The socket event will handle UI update and navigation
+      } else if (deleteType === "reply") {
+        await deleteForumReply(itemToDelete, token);
+        // The socket event will handle UI update
+      }
+      setDeleteModalOpen(false);
+      setDeleteType(null);
+      setItemToDelete(null);
     } catch (error) {
-      console.error("Failed to delete reply", error);
+      console.error("Failed to delete", error);
     }
   };
 
@@ -421,12 +457,34 @@ const ForumTopic = () => {
           </div>
         </div>
         <div className="topic-actions">
-          {user && thread.author && user.id === thread.author.userId && (
-            <button onClick={() => handleEditClick(thread._id, thread.content)} className="edit-btn">
-              <i className="fas fa-pencil-alt"></i>
-            </button>
-          )}
-          {(user && thread.author && user.id === thread.author.userId || user && user.role === 'admin') && (
+          {user &&
+            thread.author &&
+            user.id === thread.author.userId &&
+            (() => {
+              const canEdit = isWithinEditWindow(thread.createdAt);
+              const remainingTime = getRemainingEditTime(thread.createdAt);
+
+              return (
+                <button
+                  onClick={() =>
+                    canEdit && handleEditClick(thread._id, thread.content)
+                  }
+                  disabled={!canEdit}
+                  className={`edit-btn ${!canEdit ? "disabled" : ""}`}
+                  title={
+                    canEdit
+                      ? remainingTime > 0
+                        ? `Edit available for ${remainingTime} more minute${remainingTime !== 1 ? "s" : ""}`
+                        : "Edit my post"
+                      : "Edit window expired (10 minutes)"
+                  }
+                >
+                  <i className="fas fa-pencil-alt"></i>
+                </button>
+              );
+            })()}
+          {((user && thread.author && user.id === thread.author.userId) ||
+            (user && user.role === "admin")) && (
             <button onClick={handleDeleteThread} className="delete-btn">
               <i className="fas fa-trash"></i>
             </button>
@@ -451,6 +509,7 @@ const ForumTopic = () => {
                 rows={5}
                 required
                 className="form-control"
+                data-cy="reply-textarea"
               ></textarea>
             </div>
             <div className="checkbox-group">
@@ -469,6 +528,7 @@ const ForumTopic = () => {
               type="submit"
               className="btn btn-primary"
               disabled={isSubmittingReply}
+              data-cy="post-reply-btn"
             >
               {isSubmittingReply ? (
                 <>
@@ -510,10 +570,13 @@ const ForumTopic = () => {
                     }`}
                     aria-label="Upvote"
                     disabled={isVoting[reply._id]}
+                    data-cy="reply-upvote-btn"
                   >
                     <i className="fas fa-arrow-up"></i>
                   </button>
-                  <span className="vote-count">{reply.upvotes}</span>
+                  <span className="vote-count" data-cy="reply-vote-count">
+                    {reply.upvotes}
+                  </span>
                   <button
                     onClick={(e) => handleReplyDownvote(reply._id, e)}
                     className={`downvote-btn ${
@@ -521,12 +584,67 @@ const ForumTopic = () => {
                     }`}
                     aria-label="Downvote"
                     disabled={isVoting[reply._id]}
+                    data-cy="reply-downvote-btn"
                   >
                     <i className="fas fa-arrow-down"></i>
                   </button>
                 </div>
 
-                <div className="reply-content">
+                <div className="reply-content" style={{ position: "relative" }}>
+                  {/* Move topic-actions inside reply-content */}
+                  <div
+                    className="topic-actions"
+                    style={{
+                      position: "absolute",
+                      top: "1rem",
+                      right: "1rem",
+                      zIndex: 20,
+                      display: "flex",
+                      gap: "8px",
+                    }}
+                  >
+                    {user &&
+                      reply.author &&
+                      user.id === reply.author.userId &&
+                      (() => {
+                        const canEdit = isWithinEditWindow(reply.createdAt);
+                        const remainingTime = getRemainingEditTime(
+                          reply.createdAt,
+                        );
+
+                        return (
+                          <button
+                            onClick={() =>
+                              canEdit &&
+                              handleEditClick(reply._id, reply.content)
+                            }
+                            disabled={!canEdit}
+                            className={`edit-btn ${!canEdit ? "disabled" : ""}`}
+                            title={
+                              canEdit
+                                ? remainingTime > 0
+                                  ? `Edit available for ${remainingTime} more minute${remainingTime !== 1 ? "s" : ""}`
+                                  : "Edit my reply"
+                                : "Edit window expired (10 minutes)"
+                            }
+                          >
+                            <i className="fas fa-pencil-alt"></i>
+                          </button>
+                        );
+                      })()}
+                    {((user &&
+                      reply.author &&
+                      user.id === reply.author.userId) ||
+                      (user && user.role === "admin")) && (
+                      <button
+                        onClick={() => handleDeleteReply(reply._id)}
+                        className="delete-btn"
+                      >
+                        <i className="fas fa-trash"></i>
+                      </button>
+                    )}
+                  </div>
+
                   {editingId === reply._id ? (
                     <div className="edit-form">
                       <textarea
@@ -582,23 +700,23 @@ const ForumTopic = () => {
                     </div>
                   </div>
                 </div>
-                <div className="topic-actions">
-                  {user && reply.author && user.id === reply.author.userId && (
-                    <button onClick={() => handleEditClick(reply._id, reply.content)} className="edit-btn">
-                      <i className="fas fa-pencil-alt"></i>
-                    </button>
-                  )}
-                  {(user && reply.author && user.id === reply.author.userId || user && user.role === 'admin') && (
-                    <button onClick={() => handleDeleteReply(reply._id)} className="delete-btn">
-                      <i className="fas fa-trash"></i>
-                    </button>
-                  )}
-                </div>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      <DeleteConfirmationModal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setDeleteType(null);
+          setItemToDelete(null);
+        }}
+        onConfirm={confirmDelete}
+        title={`Delete ${deleteType === "thread" ? "Forum Post" : "Reply"}`}
+        message={`Are you sure you want to permanently delete this ${deleteType === "thread" ? "forum post" : "reply"}? This action cannot be undone.`}
+      />
     </div>
   );
 };

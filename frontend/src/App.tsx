@@ -1,5 +1,5 @@
 import React, { Suspense } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 
 import LandingPage from "./pages/LandingPage";
 import Dashboard from "./pages/Dashboard";
@@ -14,6 +14,7 @@ import Upload from "./pages/Upload";
 import TutorContentView from "./pages/Tutors/TutorContentView";
 import Settings from "./pages/Settings";
 import AdminUsers from "./pages/AdminUsers";
+import AdminTutorApplications from "./pages/AdminTutorApplications";
 import DatabaseTools from "./pages/DatabaseTools";
 import Login from "./pages/Auth/Login";
 import Register from "./pages/Auth/Register";
@@ -31,16 +32,23 @@ import { useGlobalSocket } from "./hooks/useGlobalSocket";
 
 import { useAuthStore } from "./store/authStore";
 import LogoutConfirmationModal from "./components/LogoutConfirmationModal";
+
 import BotpressChat from "./components/BotpressChat/BotpressChat";
+
+import { VideoCallPage } from "./pages/Call/VideoCallPage";
+import { CallNotification } from "./components/CallNotification";
+
 
 import "./App.css";
 
 function App() {
+  const location = useLocation();
   useInactivityLogout();
   useBackendHealth();
   useGlobalSocket();
 
   const { showLogoutModal, user } = useAuthStore();
+  const isCallPopup = location.pathname.startsWith("/call/");
 
   return (
     <>
@@ -52,6 +60,11 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password/:token" element={<ResetPassword />} />
+
+          {/* Popup call route - standalone, no Layout shell */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/call/:callId" element={<VideoCallPage />} />
+          </Route>
 
           {/* Private routes */}
           <Route element={<ProtectedRoute />}>
@@ -72,6 +85,7 @@ function App() {
               <Route path="/upload" element={<Upload />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/users" element={<AdminUsers />} />
+              <Route path="/admin/tutor-applications" element={<AdminTutorApplications />} />
               <Route path="/database-tools" element={<DatabaseTools />} />
             </Route>
           </Route>
@@ -83,6 +97,13 @@ function App() {
 
       <BotpressChat />
       {showLogoutModal && <LogoutConfirmationModal />}
+
+      {/* Call Notifications */}
+      {!isCallPopup && <CallNotification />}
+      
+      {/* Floating Chat Widget */}
+      {!isCallPopup && <ChatWidget />}
+
     </>
   );
 }

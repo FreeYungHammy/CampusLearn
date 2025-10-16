@@ -27,7 +27,6 @@
 }
 
 [data-theme="dark"] .messages-root {
-  
   --card: #1f2937;
   --border: #374151;
   --text: #f9fafb;
@@ -40,7 +39,7 @@
   display: grid;
   grid-template-columns: 380px 1fr;
   gap: 16px;
-  height: calc(100dvh - 170px); 
+  height: calc(100dvh - 170px);
 }
 
 /* ---------- Sidebar ---------- */
@@ -241,22 +240,23 @@
 
 .empty-tab {
   display: flex;
-  align-items: center;     /* vertical (cross-axis) */
+  align-items: center; /* vertical (cross-axis) */
   justify-content: center; /* horizontal (main-axis) */
   height: 100%;
-  padding: 12px;           /* keeps the card off the edges */
+  padding: 12px; /* keeps the card off the edges */
 }
 
 .empty-sidebar-centered {
   display: grid;
   place-items: center;
-  width: 28vh;
-  height: 15vh;
-  padding: 1vh;
+  width: 100%;
+  max-width: 280px;
+  min-height: 120px;
+  padding: 20px;
   background: var(--blue);
   border-radius: 16px;
+  margin: 0 auto;
 }
-
 
 /* ---------- Chat panel ---------- */
 .chat-panel {
@@ -370,6 +370,12 @@
 .row.me {
   justify-content: flex-end;
 }
+.row.me .pfp-wrap {
+  order: 2; /* Profile picture comes after the bubble */
+}
+.row.me .bubble-wrap {
+  order: 1; /* Bubble comes first */
+}
 .row.them {
   justify-content: flex-start;
 }
@@ -440,6 +446,134 @@
 
 .file-preview.mine {
   background: rgba(255, 255, 255, 0.15);
+}
+
+/* ---------- Message Editing Styles ---------- */
+.chat-bubble.editable {
+  position: relative;
+}
+
+.message-edit-btn {
+  position: absolute;
+  top: 50%;
+  left: -32px;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.1);
+  border: none;
+  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 10px;
+}
+
+.chat-bubble.editable:hover .message-edit-btn {
+  opacity: 1;
+}
+
+.message-edit-btn:hover {
+  background: rgba(0, 0, 0, 0.2);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.message-edit-container {
+  background: var(--bubble-mine);
+  border-radius: 16px;
+  padding: 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  border-top-right-radius: 6px;
+  max-width: 100%;
+}
+
+.message-edit-textarea {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: white;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 60px;
+  outline: none;
+  margin-bottom: 8px;
+}
+
+.message-edit-textarea:focus {
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+}
+
+.message-edit-textarea::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.message-edit-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.edit-cancel-btn,
+.edit-save-btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.edit-cancel-btn {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.edit-cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.edit-save-btn {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.edit-save-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.edit-save-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.edited-indicator {
+  font-size: 11px;
+  opacity: 0.7;
+  font-style: italic;
+  margin-left: 4px;
+}
+
+/* Dark theme adjustments for message editing */
+[data-theme="dark"] .message-edit-container {
+  background: var(--bubble-mine);
+}
+
+[data-theme="dark"] .message-edit-btn {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+[data-theme="dark"] .message-edit-btn:hover {
+  color: rgba(255, 255, 255, 0.9);
 }
 .file-preview:hover {
   transform: translateY(-1px);
@@ -618,6 +752,20 @@
 .empty-title {
   font-weight: 700;
   font-size: 18px;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.empty-desc {
+  font-size: 14px;
+  text-align: center;
+  opacity: 0.9;
+  line-height: 1.4;
+}
+
+.empty-icon {
+  font-size: 24px;
+  margin-bottom: 12px;
 }
 
 /* ---------- Date Separator ---------- */

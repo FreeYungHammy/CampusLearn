@@ -22,7 +22,11 @@ export const UserController = {
     try {
       const result = await UserService.login(req.body);
       res.json(result);
-    } catch (e) {
+    } catch (e: any) {
+      // Handle invalid credentials with proper 401 status
+      if (e.message === "Invalid credentials") {
+        return res.status(401).json({ message: e.message });
+      }
       next(e);
     }
   },
@@ -278,6 +282,25 @@ export const UserController = {
     try {
       const stats = await UserService.getAdminStats();
       res.json(stats);
+    } catch (e) {
+      next(e);
+    }
+  },
+
+  // Check email availability
+  checkEmailAvailability: async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const { email } = req.query;
+      if (!email || typeof email !== "string") {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      const existing = await UserService.checkEmailExists(email);
+      res.json({ available: !existing });
     } catch (e) {
       next(e);
     }

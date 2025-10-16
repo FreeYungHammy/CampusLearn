@@ -18,6 +18,9 @@ r.patch("/:id", UserController.update);
 r.post("/forgot-password", UserController.forgotPassword);
 r.post("/reset-password/:token", UserController.resetPassword);
 
+// Email availability check - MUST come before generic /:id routes
+r.get("/check-email", UserController.checkEmailAvailability);
+
 // Delete account routes - MUST come before generic /:id routes
 r.delete("/account", requireAuth, UserController.deleteAccount);
 r.delete("/admin/:userId", requireAuth, UserController.adminDeleteUser);

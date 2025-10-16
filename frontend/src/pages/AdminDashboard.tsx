@@ -292,11 +292,19 @@ const AdminDashboard = () => {
             onClick={() => navigate("/users")}
           />
           <AdminQuickAction
+            icon="fas fa-user-check"
+            title="Tutor Applications"
+            description="Review and approve/reject applications"
+            color="#2ecc71"
+            delay={0.2}
+            onClick={() => navigate("/admin/tutor-applications")}
+          />
+          <AdminQuickAction
             icon="fas fa-cog"
             title="System Settings"
             description="Configure system parameters"
             color="#e74c3c"
-            delay={0.2}
+            delay={0.3}
             onClick={() => navigate("/settings")}
           />
           <AdminQuickAction
@@ -304,7 +312,7 @@ const AdminDashboard = () => {
             title="Database Tools"
             description="Manage database and backups"
             color="#f39c12"
-            delay={0.3}
+            delay={0.4}
             onClick={() => navigate("/database-tools")}
           />
         </div>

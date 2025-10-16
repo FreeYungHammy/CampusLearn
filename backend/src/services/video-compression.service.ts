@@ -3,6 +3,7 @@ import { env } from "../config/env";
 import { createLogger } from "../config/logger";
 import { spawn } from "child_process";
 import { promises as fs } from "fs";
+import fsSync from "fs";
 import path from "path";
 import os from "os";
 
@@ -23,7 +24,6 @@ export class VideoCompressionService {
   private static activeCompressions = new Set<string>();
 
   private static readonly QUALITIES: VideoQuality[] = [
-    { name: "1080p", width: 1920, height: 1080, bitrate: "5000k", crf: 23 },
     { name: "720p", width: 1280, height: 720, bitrate: "2500k", crf: 23 },
     { name: "480p", width: 854, height: 480, bitrate: "1000k", crf: 25 },
     { name: "360p", width: 640, height: 360, bitrate: "500k", crf: 28 },
@@ -69,6 +69,7 @@ export class VideoCompressionService {
   static async compressVideo(
     inputObjectName: string,
     outputPrefix: string,
+    specificQualities?: string[],
   ): Promise<{ [quality: string]: string }> {
     // Check if compression is already running for this video
     if (this.activeCompressions.has(inputObjectName)) {
@@ -87,6 +88,21 @@ export class VideoCompressionService {
     const storage = this.getStorage();
     const bucket = storage.bucket(env.gcsBucket);
 
+    // Check if input file exists
+    try {
+      const [exists] = await bucket.file(inputObjectName).exists();
+      if (!exists) {
+        logger.error(`❌ Input file does not exist: ${inputObjectName}`);
+        this.activeCompressions.delete(inputObjectName);
+        throw new Error(`Input file does not exist: ${inputObjectName}`);
+      }
+      logger.info(`✅ Input file exists: ${inputObjectName}`);
+    } catch (error) {
+      logger.error(`❌ Error checking input file: ${error}`);
+      this.activeCompressions.delete(inputObjectName);
+      throw error;
+    }
+
     // Download original video to temp file
     const tempDir = os.tmpdir();
     const inputPath = path.join(tempDir, `input_${Date.now()}.mp4`);
@@ -94,15 +110,41 @@ export class VideoCompressionService {
 
     try {
       // Download original video
+      logger.info(`📥 Downloading video from GCS: ${inputObjectName}`);
       await bucket.file(inputObjectName).download({ destination: inputPath });
-      logger.info(`Downloaded video to ${inputPath}`);
+      logger.info(`✅ Downloaded video to ${inputPath}`);
+
+      // Check if file was actually downloaded
+      if (!fsSync.existsSync(inputPath)) {
+        throw new Error(`Download failed: file not found at ${inputPath}`);
+      }
+
+      const stats = fsSync.statSync(inputPath);
+      logger.info(`📊 Downloaded file size: ${stats.size} bytes`);
+
+      if (stats.size === 0) {
+        throw new Error(`Download failed: file is empty`);
+      }
 
       // Compress to each quality
-      for (const quality of this.QUALITIES) {
+      const qualitiesToCompress = specificQualities
+        ? this.QUALITIES.filter((q) => specificQualities.includes(q.name))
+        : this.QUALITIES;
+
+      logger.info(
+        `🎬 Compressing to qualities: ${qualitiesToCompress.map((q) => q.name).join(", ")}`,
+      );
+
+      for (const quality of qualitiesToCompress) {
         const outputPath = path.join(
           tempDir,
           `${outputPrefix}_${quality.name}.mp4`,
         );
+
+        // Ensure output directory exists
+        const outputDir = path.dirname(outputPath);
+        await fs.mkdir(outputDir, { recursive: true });
+        logger.info(`📁 Created output directory: ${outputDir}`);
 
         await this.compressToQuality(inputPath, outputPath, quality);
 
@@ -231,14 +273,19 @@ export class VideoCompressionService {
   static async getBestQualityUrl(
     videoObjectName: string,
     userConnectionSpeed?: "slow" | "medium" | "fast",
+    requestedQuality?: string,
   ): Promise<string> {
     const storage = this.getStorage();
     const bucket = storage.bucket(env.gcsBucket);
 
-    // Determine quality based on connection speed
+    // Determine quality based on connection speed or requested quality
     let preferredQuality = "480p"; // Default to 480p for faster loading
 
-    if (userConnectionSpeed === "slow") {
+    if (requestedQuality) {
+      // Use the specifically requested quality
+      preferredQuality = requestedQuality;
+      logger.info(`🎯 Using requested quality: ${preferredQuality}`);
+    } else if (userConnectionSpeed === "slow") {
       preferredQuality = "360p";
     } else if (userConnectionSpeed === "fast") {
       preferredQuality = "480p"; // Keep 480p even for fast connections
@@ -246,18 +293,21 @@ export class VideoCompressionService {
 
     // Try to find compressed version first - use the CORRECT regex pattern
     // Handle files that already have quality in the name (e.g., "1080p")
+    logger.info(`🔍 Final preferred quality: ${preferredQuality}`);
     logger.info(`🔍 Original filename: ${videoObjectName}`);
 
-    // Use ONLY the working double underscore pattern
+    // Extract base name by removing any existing quality suffix
     const baseName = videoObjectName
-      .replace(/__\d+p__/, "__")
-      .replace(".mp4", ""); // Remove existing quality (double underscores)
+      .replace(/_\d+p\.mp4$/, ".mp4") // Remove existing quality suffix like _480p.mp4
+      .replace(/__\d+p__/, "__") // Remove double underscore pattern
+      .replace(".mp4", ""); // Remove .mp4 extension
     logger.info(`🔍 Base name: ${baseName}`);
 
     const possibleNames = [
-      `${baseName}_${preferredQuality}.mp4`, // Clean base name + quality
-      videoObjectName.replace(/__\d+p__/, `__${preferredQuality}__`), // Replace existing quality (double underscores)
-      videoObjectName.replace(".mp4", `_${preferredQuality}.mp4`), // Original pattern
+      `${baseName}_${preferredQuality}.mp4`, // Most common pattern: base_quality.mp4
+      `${baseName}__${preferredQuality}__.mp4`, // Double underscore pattern
+      videoObjectName.replace(/_\d+p\.mp4$/, `_${preferredQuality}.mp4`), // Replace existing quality
+      videoObjectName.replace(/__\d+p__/, `__${preferredQuality}__`), // Replace double underscore
     ];
 
     logger.info(
@@ -265,6 +315,21 @@ export class VideoCompressionService {
     );
     logger.info(`🔍 Base name: ${baseName}`);
     logger.info(`🔍 Possible names: ${possibleNames.join(", ")}`);
+
+    // Debug: List files in the bucket to see what's actually there
+    try {
+      const [files] = await bucket.getFiles({
+        prefix: baseName.split("/").slice(0, -1).join("/"),
+      });
+      const fileNames = files
+        .map((file) => file.name)
+        .filter((name) => name.includes(baseName.split("/").pop() || ""));
+      logger.info(
+        `🔍 Files in bucket with similar names: ${fileNames.join(", ")}`,
+      );
+    } catch (error) {
+      logger.warn(`🔍 Could not list bucket files: ${error}`);
+    }
 
     for (const compressedObjectName of possibleNames) {
       try {
@@ -336,5 +401,86 @@ export class VideoCompressionService {
     });
 
     return playlistObjectName;
+  }
+
+  /**
+   * Find all compressed versions of a video
+   */
+  static async findAllCompressedVersions(
+    originalObjectName: string,
+  ): Promise<string[]> {
+    const storage = this.getStorage();
+    const bucket = storage.bucket(env.gcsBucket);
+
+    // Extract base name by removing any existing quality suffix
+    const baseName = originalObjectName
+      .replace(/_\d+p\.mp4$/, ".mp4") // Remove existing quality suffix like _480p.mp4
+      .replace(/__\d+p__/, "__") // Remove double underscore pattern
+      .replace(".mp4", ""); // Remove .mp4 extension
+
+    logger.info(`🔍 Looking for compressed versions of: ${originalObjectName}`);
+    logger.info(`🔍 Base name: ${baseName}`);
+
+    const compressedVersions: string[] = [];
+
+    // Check for all possible quality versions
+    const qualities = ["720p", "480p", "360p"]; // Only check for qualities we actually create
+
+    for (const quality of qualities) {
+      const possibleNames = [
+        `${baseName}_${quality}.mp4`, // Most common pattern: base_quality.mp4
+        `${baseName}__${quality}__.mp4`, // Double underscore pattern
+        originalObjectName.replace(/_\d+p\.mp4$/, `_${quality}.mp4`), // Replace existing quality
+        originalObjectName.replace(/__\d+p__/, `__${quality}__`), // Replace double underscore
+      ];
+
+      for (const compressedName of possibleNames) {
+        try {
+          const [exists] = await bucket.file(compressedName).exists();
+          if (exists && !compressedVersions.includes(compressedName)) {
+            logger.info(`✅ Found compressed version: ${compressedName}`);
+            compressedVersions.push(compressedName);
+          }
+        } catch (error) {
+          logger.warn(`❌ Error checking ${compressedName}: ${error}`);
+        }
+      }
+    }
+
+    logger.info(
+      `🔍 Found ${compressedVersions.length} compressed versions: ${compressedVersions.join(", ")}`,
+    );
+    return compressedVersions;
+  }
+
+  /**
+   * Delete all compressed versions of a video
+   */
+  static async deleteAllCompressedVersions(
+    originalObjectName: string,
+  ): Promise<void> {
+    const compressedVersions =
+      await this.findAllCompressedVersions(originalObjectName);
+
+    if (compressedVersions.length === 0) {
+      logger.info(`🔍 No compressed versions found for: ${originalObjectName}`);
+      return;
+    }
+
+    logger.info(
+      `🗑️ Deleting ${compressedVersions.length} compressed versions of: ${originalObjectName}`,
+    );
+
+    const storage = this.getStorage();
+    const bucket = storage.bucket(env.gcsBucket);
+
+    for (const compressedName of compressedVersions) {
+      try {
+        await bucket.file(compressedName).delete();
+        logger.info(`✅ Deleted compressed version: ${compressedName}`);
+      } catch (error) {
+        logger.error(`❌ Failed to delete ${compressedName}: ${error}`);
+      }
+    }
   }
 }

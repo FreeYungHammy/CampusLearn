@@ -10,6 +10,7 @@ import bookings from "../modules/bookings";
 import botpress from "./botpress";
 import admin from "../modules/admin";
 import health from "./health";
+import { tutorApplicationRoutes } from "../modules/tutor-applications";
 import { videoRoutes } from "../modules/video";
 
 import mongoose from "mongoose";
@@ -32,6 +33,7 @@ r.use("/bookings", bookings);
 r.use("/botpress", botpress);
 r.use("/videos", videoRoutes);
 r.use("/admin", admin);
+r.use("/applications", tutorApplicationRoutes);
 r.get("/v1/ping", (_req, res) => {
   res.json({ ok: true, ts: Date.now() });
 });

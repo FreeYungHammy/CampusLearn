@@ -63,6 +63,13 @@ RUN echo "Checking dist contents:" && \
 # The wildcard makes it optional: if no .env files exist, the build will not fail.
 COPY --chown=node:node backend/.env* ./
 
+# Fix permissions for node_modules (needed for @xenova/transformers cache)
+RUN chown -R node:node /app/node_modules
+
+# Create cache directories for transformers and give proper permissions
+RUN mkdir -p /app/node_modules/@xenova/transformers/.cache && \
+    chown -R node:node /app/node_modules/@xenova/transformers/.cache
+
 # Switch to non-root user for security
 USER node
 EXPOSE 5000

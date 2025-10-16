@@ -36,3 +36,29 @@ export const resetPassword = async (
 ): Promise<void> => {
   await api.post(`/users/reset-password/${token}`, { password });
 };
+
+export const checkEmailAvailability = async (
+  email: string,
+): Promise<boolean> => {
+  try {
+    console.log("Checking email availability for:", email);
+    const response = await api.get(
+      `/users/check-email?email=${encodeURIComponent(email)}`,
+    );
+    console.log("Email check response:", response.data);
+    return response.data.available;
+  } catch (error) {
+    console.error("Email availability check failed:", error);
+    throw error;
+  }
+};
+
+export const submitTutorApplication = async (
+  applicationData: FormData,
+): Promise<void> => {
+  await api.post("/applications/tutor", applicationData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+};

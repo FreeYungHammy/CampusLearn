@@ -1,0 +1,134 @@
+/* Video Quality Selector Styles */
+.video-quality-selector {
+  position: relative;
+  z-index: 10;
+}
+
+.quality-dropdown {
+  position: relative;
+}
+
+.quality-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--background-color-light);
+  color: var(--text-color-primary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 80px;
+}
+
+.quality-button:hover:not(:disabled) {
+  background: var(--background-color-hover);
+  border-color: var(--blue-primary);
+}
+
+.quality-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.quality-label {
+  flex: 1;
+  text-align: left;
+}
+
+.quality-button i {
+  font-size: 10px;
+  transition: transform 0.2s;
+}
+
+.quality-button i.open {
+  transform: rotate(180deg);
+}
+
+.quality-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: var(--background-color-light);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 160px;
+  z-index: 1000;
+  overflow: hidden;
+  max-height: 150px;
+  overflow-y: auto;
+  /* Ensure dropdown stays within container bounds */
+  max-width: calc(100vw - 20px);
+  transform: translateX(0);
+}
+
+/* When dropdown would go off-screen, position it upward */
+.quality-menu.upward {
+  top: auto;
+  bottom: 100%;
+  margin-top: 0;
+  margin-bottom: 4px;
+}
+
+.quality-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-color-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.quality-option:hover {
+  background: var(--background-color-hover);
+}
+
+.quality-option.selected {
+  background: var(--blue-light);
+  color: var(--blue-dark);
+}
+
+.quality-name {
+  font-weight: 500;
+  font-size: 12px;
+}
+
+.quality-option i {
+  color: var(--blue-primary);
+  font-size: 12px;
+}
+
+/* Dark mode adjustments */
+[data-theme="dark"] .quality-menu {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .quality-controls {
+    gap: 6px;
+  }
+
+  .auto-toggle,
+  .quality-button {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+
+  .quality-menu {
+    min-width: 180px;
+  }
+
+  .quality-option {
+    padding: 10px 12px;
+  }
+}

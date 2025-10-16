@@ -23,6 +23,7 @@ import mongoose from "mongoose";
 
 const logger = createLogger("ForumService");
 const FORUM_THREAD_CACHE_KEY = (id: string) => `forum:thread:${id}`;
+const FORUM_THREADS_CACHE_KEY = "forum:threads:all";
 
 function formatAuthorForList(author: any) {
   if (!author) return null;
@@ -87,12 +88,17 @@ export const ForumService = {
 
     let authorProfile;
     if (user.role === "student") {
-      authorProfile = await StudentModel.findOne({ userId: user.id }).lean();
+      authorProfile = await StudentModel.findOne({
+        userId: new mongoose.Types.ObjectId(user.id),
+      }).lean();
     } else if (user.role === "tutor") {
-      authorProfile = await TutorModel.findOne({ userId: user.id }).lean();
-    }
- else if (user.role === "admin") {
-      authorProfile = await AdminModel.findOne({ userId: user.id }).lean();
+      authorProfile = await TutorModel.findOne({
+        userId: new mongoose.Types.ObjectId(user.id),
+      }).lean();
+    } else if (user.role === "admin") {
+      authorProfile = await AdminModel.findOne({
+        userId: new mongoose.Types.ObjectId(user.id),
+      }).lean();
     }
 
     if (!authorProfile) {
@@ -111,6 +117,12 @@ export const ForumService = {
     };
 
     io.emit("new_post", populatedPostForEmit);
+    
+    // Invalidate the forum threads list cache
+    console.log(`[createThread] Invalidating cache for key: ${FORUM_THREADS_CACHE_KEY}`);
+    await CacheService.del(FORUM_THREADS_CACHE_KEY);
+    console.log(`[createThread] Cache invalidation completed for key: ${FORUM_THREADS_CACHE_KEY}`);
+    
     return populatedPostForEmit;
   },
 
@@ -122,6 +134,26 @@ export const ForumService = {
     limit: number = 10,
     offset: number = 0,
   ) {
+    // Only cache if no search/filter parameters (for performance)
+    const shouldCache = !searchQuery && !topic && sortBy !== "upvotes";
+    
+    if (shouldCache && offset === 0) {
+      const cacheKey = FORUM_THREADS_CACHE_KEY;
+      const startTime = performance.now();
+      
+      console.log(`[getThreads] Attempting to get cache for key: ${cacheKey}`);
+      const cachedThreads = await CacheService.get<{ threads: any[]; totalCount: number }>(cacheKey);
+      if (cachedThreads) {
+        console.log(`[getThreads] Cache HIT for key: ${cacheKey}`);
+        logger.info(
+          `[getThreads] Redis retrieval took ${(performance.now() - startTime).toFixed(2)} ms (Cache Hit)`,
+        );
+        return cachedThreads;
+      } else {
+        console.log(`[getThreads] Cache MISS for key: ${cacheKey}`);
+      }
+    }
+
     const dbStartTime = performance.now();
     const matchStage: any = {};
     if (topic) {
@@ -197,14 +229,25 @@ export const ForumService = {
           author: {
             $switch: {
               branches: [
-                { case: { $eq: ["$authorRole", "student"] }, then: { $arrayElemAt: ["$studentAuthor", 0] } },
-                { case: { $eq: ["$authorRole", "tutor"] }, then: { $arrayElemAt: ["$tutorAuthor", 0] } },
-                { case: { $eq: ["$authorRole", "admin"] }, then: { $arrayElemAt: ["$adminAuthor", 0] } }
+                {
+                  case: { $eq: ["$authorRole", "student"] },
+                  then: { $arrayElemAt: ["$studentAuthor", 0] },
+                },
+                {
+                  case: { $eq: ["$authorRole", "tutor"] },
+                  then: { $arrayElemAt: ["$tutorAuthor", 0] },
+                },
+                {
+                  case: { $eq: ["$authorRole", "admin"] },
+                  then: { $arrayElemAt: ["$adminAuthor", 0] },
+                },
               ],
-              default: null
-            }
+              default: null,
+            },
           },
-          userVote: { $ifNull: [{ $arrayElemAt: ["$userVoteInfo.voteType", 0] }, 0] },
+          userVote: {
+            $ifNull: [{ $arrayElemAt: ["$userVoteInfo.voteType", 0] }, 0],
+          },
         },
       },
       {
@@ -225,17 +268,32 @@ export const ForumService = {
     ]);
 
     const dbDuration = performance.now() - dbStartTime;
-    logger.info(`[getThreads] Aggregation query took ${dbDuration.toFixed(2)} ms`);
+    logger.info(
+      `[getThreads] Aggregation query took ${dbDuration.toFixed(2)} ms`,
+    );
 
     // Manually add pfpTimestamp
     const populatedThreads = threads.map((thread) => {
       if (thread.author && thread.author.updatedAt) {
-        thread.author.pfpTimestamp = new Date(thread.author.updatedAt).getTime();
+        thread.author.pfpTimestamp = new Date(
+          thread.author.updatedAt,
+        ).getTime();
       }
       return thread;
     });
 
-    return { threads: populatedThreads, totalCount };
+    const result = { threads: populatedThreads, totalCount };
+
+    // Cache the result if it's the default query (no filters, first page)
+    if (shouldCache && offset === 0) {
+      console.log(`[getThreads] Setting cache for key: ${FORUM_THREADS_CACHE_KEY} with TTL: 1800`);
+      await CacheService.set(FORUM_THREADS_CACHE_KEY, result, 1800); // 30 minutes TTL
+      console.log(`[getThreads] Cache SET completed for key: ${FORUM_THREADS_CACHE_KEY}`);
+    } else {
+      console.log(`[getThreads] Not caching - shouldCache: ${shouldCache}, offset: ${offset}`);
+    }
+
+    return result;
   },
 
   async getThreadById(threadId: string, user: User) {
@@ -244,7 +302,9 @@ export const ForumService = {
 
     let thread: any = await CacheService.get<any>(cacheKey);
     if (thread) {
-      logger.info(`[getThreadById] Redis retrieval for thread ${threadId} took ${(performance.now() - startTime).toFixed(2)} ms (Cache Hit)`);
+      logger.info(
+        `[getThreadById] Redis retrieval for thread ${threadId} took ${(performance.now() - startTime).toFixed(2)} ms (Cache Hit)`,
+      );
       return thread;
     }
 
@@ -311,14 +371,25 @@ export const ForumService = {
           author: {
             $switch: {
               branches: [
-                { case: { $eq: ["$authorRole", "student"] }, then: { $arrayElemAt: ["$studentAuthor", 0] } },
-                { case: { $eq: ["$authorRole", "tutor"] }, then: { $arrayElemAt: ["$tutorAuthor", 0] } },
-                { case: { $eq: ["$authorRole", "admin"] }, then: { $arrayElemAt: ["$adminAuthor", 0] } }
+                {
+                  case: { $eq: ["$authorRole", "student"] },
+                  then: { $arrayElemAt: ["$studentAuthor", 0] },
+                },
+                {
+                  case: { $eq: ["$authorRole", "tutor"] },
+                  then: { $arrayElemAt: ["$tutorAuthor", 0] },
+                },
+                {
+                  case: { $eq: ["$authorRole", "admin"] },
+                  then: { $arrayElemAt: ["$adminAuthor", 0] },
+                },
               ],
-              default: null
-            }
+              default: null,
+            },
           },
-          userVote: { $ifNull: [{ $arrayElemAt: ["$userVoteInfo.voteType", 0] }, 0] },
+          userVote: {
+            $ifNull: [{ $arrayElemAt: ["$userVoteInfo.voteType", 0] }, 0],
+          },
         },
       },
       // Unwind replies to process them
@@ -373,14 +444,25 @@ export const ForumService = {
           "replies.author": {
             $switch: {
               branches: [
-                { case: { $eq: ["$replies.authorRole", "student"] }, then: { $arrayElemAt: ["$replyStudentAuthor", 0] } },
-                { case: { $eq: ["$replies.authorRole", "tutor"] }, then: { $arrayElemAt: ["$replyTutorAuthor", 0] } },
-                { case: { $eq: ["$replies.authorRole", "admin"] }, then: { $arrayElemAt: ["$replyAdminAuthor", 0] } }
+                {
+                  case: { $eq: ["$replies.authorRole", "student"] },
+                  then: { $arrayElemAt: ["$replyStudentAuthor", 0] },
+                },
+                {
+                  case: { $eq: ["$replies.authorRole", "tutor"] },
+                  then: { $arrayElemAt: ["$replyTutorAuthor", 0] },
+                },
+                {
+                  case: { $eq: ["$replies.authorRole", "admin"] },
+                  then: { $arrayElemAt: ["$replyAdminAuthor", 0] },
+                },
               ],
-              default: null
-            }
+              default: null,
+            },
           },
-          "replies.userVote": { $ifNull: [{ $arrayElemAt: ["$replyUserVoteInfo.voteType", 0] }, 0] },
+          "replies.userVote": {
+            $ifNull: [{ $arrayElemAt: ["$replyUserVoteInfo.voteType", 0] }, 0],
+          },
         },
       },
       // Group back to reconstruct the thread
@@ -390,7 +472,11 @@ export const ForumService = {
           root: { $first: "$$ROOT" },
           replies: {
             $push: {
-              $cond: [{ $ifNull: ["$replies._id", false] }, "$replies", "$$REMOVE"],
+              $cond: [
+                { $ifNull: ["$replies._id", false] },
+                "$replies",
+                "$$REMOVE",
+              ],
             },
           },
         },
@@ -421,19 +507,25 @@ export const ForumService = {
 
     if (thread) {
       if (thread.author && thread.author.updatedAt) {
-        thread.author.pfpTimestamp = new Date(thread.author.updatedAt).getTime();
+        thread.author.pfpTimestamp = new Date(
+          thread.author.updatedAt,
+        ).getTime();
       }
       if (thread.replies) {
         thread.replies.forEach((reply: any) => {
           if (reply.author && reply.author.updatedAt) {
-            reply.author.pfpTimestamp = new Date(reply.author.updatedAt).getTime();
+            reply.author.pfpTimestamp = new Date(
+              reply.author.updatedAt,
+            ).getTime();
           }
         });
       }
     }
 
     const dbDuration = performance.now() - dbStartTime;
-    logger.info(`[getThreadById] Aggregation query took ${dbDuration.toFixed(2)} ms`);
+    logger.info(
+      `[getThreadById] Aggregation query took ${dbDuration.toFixed(2)} ms`,
+    );
 
     // 3. Store in cache
     if (thread) {
@@ -530,11 +622,6 @@ export const ForumService = {
         throw new HttpException(404, `${targetType} not found`);
       }
 
-      // @ts-ignore
-      if (targetDoc.authorId.toString() === user.id) {
-        throw new HttpException(403, "You cannot vote on your own content.");
-      }
-
       const existingVote = await UserVoteModel.findOne({
         userId: user.id,
         targetId,
@@ -617,16 +704,22 @@ export const ForumService = {
         post.authorId.toString(),
         post.authorRole,
       );
-      if (user.role !== 'admin' && authorProfile?.userId.toString() !== user.id) {
-        throw new HttpException(403, "You are not authorized to delete this post");
+      if (
+        user.role !== "admin" &&
+        authorProfile?.userId.toString() !== user.id
+      ) {
+        throw new HttpException(
+          403,
+          "You are not authorized to delete this post",
+        );
       }
 
       const replyIds = post.replies;
       const allTargetIds = [threadId, ...replyIds];
 
-      await UserVoteModel.deleteMany({ targetId: { $in: allTargetIds } }).session(
-        session,
-      );
+      await UserVoteModel.deleteMany({
+        targetId: { $in: allTargetIds },
+      }).session(session);
       await ForumReplyModel.deleteMany({ _id: { $in: replyIds } }).session(
         session,
       );
@@ -635,8 +728,10 @@ export const ForumService = {
       await session.commitTransaction();
 
       await CacheService.del(FORUM_THREAD_CACHE_KEY(threadId));
-      // In a real-world scenario, you might want to invalidate a general forum list cache as well
-      // await CacheService.del("forum:threads:all");
+      // Invalidate the forum threads list cache as well
+      console.log(`[deleteThread] Invalidating cache for key: ${FORUM_THREADS_CACHE_KEY}`);
+      await CacheService.del(FORUM_THREADS_CACHE_KEY);
+      console.log(`[deleteThread] Cache invalidation completed for key: ${FORUM_THREADS_CACHE_KEY}`);
 
       io.emit("thread_deleted", { threadId });
     } catch (error) {
@@ -660,7 +755,10 @@ export const ForumService = {
         reply.authorId.toString(),
         reply.authorRole,
       );
-      if (user.role !== 'admin' && authorProfile?.userId.toString() !== user.id) {
+      if (
+        user.role !== "admin" &&
+        authorProfile?.userId.toString() !== user.id
+      ) {
         throw new HttpException(
           403,
           "You are not authorized to delete this reply",
@@ -708,6 +806,19 @@ export const ForumService = {
       throw new HttpException(403, "You are not authorized to edit this post");
     }
 
+    // Check if the post is within the 10-minute edit window
+    const now = new Date();
+    const createdAt = post.createdAt;
+    const timeDifference = now.getTime() - createdAt.getTime();
+    const tenMinutesInMs = 10 * 60 * 1000; // 10 minutes in milliseconds
+
+    if (timeDifference > tenMinutesInMs) {
+      throw new HttpException(
+        403,
+        "You can only edit your post within 10 minutes of creation for accountability purposes",
+      );
+    }
+
     const { title, content, topic } = updateData;
     if (title) post.title = title;
     if (content) post.content = content;
@@ -740,6 +851,19 @@ export const ForumService = {
     );
     if (authorProfile?.userId.toString() !== user.id) {
       throw new HttpException(403, "You are not authorized to edit this reply");
+    }
+
+    // Check if the reply is within the 10-minute edit window
+    const now = new Date();
+    const createdAt = reply.createdAt;
+    const timeDifference = now.getTime() - createdAt.getTime();
+    const tenMinutesInMs = 10 * 60 * 1000; // 10 minutes in milliseconds
+
+    if (timeDifference > tenMinutesInMs) {
+      throw new HttpException(
+        403,
+        "You can only edit your reply within 10 minutes of creation for accountability purposes",
+      );
     }
 
     const { content } = updateData;

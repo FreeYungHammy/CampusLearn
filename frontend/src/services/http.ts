@@ -2,7 +2,7 @@ import axios from "axios";
 import { useAuthStore } from "../store/authStore";
 import { redirect } from "react-router-dom";
 
-const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5001/api";
+const baseURL = "http://localhost:5001/api"; // Hardcoded to avoid env var issues
 
 const http = axios.create({
   baseURL, // ← actually use it

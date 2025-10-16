@@ -3,6 +3,7 @@ import type { Server as HttpServer } from "http";
 import { ChatService } from "../modules/chat/chat.service";
 import { verifyJwt } from "../auth/jwt";
 import { CacheService } from "../services/cache.service";
+import { env } from "./env";
 
 type SendMessagePayload = {
   chatId: string;
@@ -19,7 +20,10 @@ type SendMessagePayload = {
 let io: Server;
 
 // Track connected users
-const connectedUsers = new Map<string, { socketId: string; userId: string; lastSeen: Date }>();
+const connectedUsers = new Map<
+  string,
+  { socketId: string; userId: string; lastSeen: Date }
+>();
 
 export function createSocketServer(httpServer: HttpServer) {
   const allowed = (process.env.CORS_ORIGIN || "")
@@ -33,13 +37,7 @@ export function createSocketServer(httpServer: HttpServer) {
     transports: ["websocket", "polling"],
     allowUpgrades: true,
     cors: {
-      origin: allowed.length
-        ? allowed
-        : [
-            "http://localhost:5173",
-            "http://localhost:8080",
-            "http://localhost:5001",
-          ],
+      origin: allowed.length ? allowed : env.corsOrigins,
       methods: ["GET", "POST"],
       credentials: true,
     },
@@ -75,33 +73,37 @@ export function createSocketServer(httpServer: HttpServer) {
   // Add authentication middleware to chat namespace
   chat.use(async (socket, next) => {
     try {
-      const token = socket.handshake.auth.token || socket.handshake.headers.authorization?.split(' ')[1];
-      
+      const token =
+        socket.handshake.auth.token ||
+        socket.handshake.headers.authorization?.split(" ")[1];
+
       if (!token) {
-        return next(new Error('Authentication error: No token provided'));
+        return next(new Error("Authentication error: No token provided"));
       }
 
-      // Check if token is blacklisted
-      const isBlacklisted = await CacheService.get(`jwt:blacklist:${token}`);
+      // Check if token is blacklisted (use debug logging to reduce noise)
+      const isBlacklisted = await CacheService.get(`jwt:blacklist:${token}`, 'debug');
       if (isBlacklisted) {
-        return next(new Error('Authentication error: Token has been revoked'));
+        return next(new Error("Authentication error: Token has been revoked"));
       }
 
       const payload = verifyJwt(token);
       if (!payload) {
-        return next(new Error('Authentication error: Invalid or expired token'));
+        return next(
+          new Error("Authentication error: Invalid or expired token"),
+        );
       }
 
       // Attach user info to socket
       socket.data.user = {
         id: payload.id,
         email: payload.email,
-        role: payload.role
+        role: payload.role,
       };
 
       next();
     } catch (error) {
-      next(new Error('Authentication error: Invalid token'));
+      next(new Error("Authentication error: Invalid token"));
     }
   });
 
@@ -111,7 +113,7 @@ export function createSocketServer(httpServer: HttpServer) {
       "Backend: New client connected to /chat namespace. Socket ID:",
       socket.id,
       "User:",
-      userId
+      userId,
     );
 
     // Track connected user
@@ -119,14 +121,14 @@ export function createSocketServer(httpServer: HttpServer) {
       connectedUsers.set(userId, {
         socketId: socket.id,
         userId: userId,
-        lastSeen: new Date()
+        lastSeen: new Date(),
       });
-      
+
       // Emit user online status to all connected clients
-      chat.emit('user_status_change', {
+      chat.emit("user_status_change", {
         userId: userId,
-        status: 'online',
-        lastSeen: new Date()
+        status: "online",
+        lastSeen: new Date(),
       });
     }
 
@@ -146,37 +148,182 @@ export function createSocketServer(httpServer: HttpServer) {
         if (data.senderId !== socket.data.user?.id) {
           console.error("Unauthorized message send attempt:", {
             socketUserId: socket.data.user?.id,
-            messageSenderId: data.senderId
+            messageSenderId: data.senderId,
           });
           if (ack) ack({ ok: false, error: "Unauthorized" });
           return;
         }
-        
+
         // Save message to database and emit to room
         const savedMessage = await ChatService.send(data);
-        
+
         // Send acknowledgment back to sender
         if (ack) ack({ ok: true, message: savedMessage });
       } catch (e) {
         console.error("send_message failed:", e);
-        if (ack) ack({ ok: false, error: e instanceof Error ? e.message : "Send failed" });
+        if (ack)
+          ack({
+            ok: false,
+            error: e instanceof Error ? e.message : "Send failed",
+          });
       }
     });
 
     socket.on("disconnect", () => {
       const userId = socket.data.user?.id;
       console.log("user disconnected from /chat", socket.id, "User:", userId);
-      
+
       // Remove user from connected users and emit offline status
       if (userId) {
         connectedUsers.delete(userId);
-        
+
         // Emit user offline status to all connected clients
-        chat.emit('user_status_change', {
+        chat.emit("user_status_change", {
           userId: userId,
-          status: 'offline',
-          lastSeen: new Date()
+          status: "offline",
+          lastSeen: new Date(),
         });
+      }
+    });
+  });
+
+  /* ---------- VIDEO NAMESPACE (WebRTC signaling) ---------- */
+  const video = io.of("/video");
+  // Lazy imports to avoid circular deps at module load time
+  // Presence + rate limiting helpers
+  let presence: typeof import("../realtime/presence.service");
+  let rateLimit: typeof import("../realtime/rateLimit.service");
+  (async () => {
+    presence = await import("../realtime/presence.service");
+    rateLimit = await import("../realtime/rateLimit.service");
+  })();
+
+  // Reuse JWT auth for /video namespace
+  video.use(async (socket, next) => {
+    try {
+      const token = socket.handshake.auth.token || socket.handshake.headers.authorization?.split(' ')[1];
+      if (!token) return next(new Error('Authentication error: No token provided'));
+
+      const isBlacklisted = await CacheService.get(`jwt:blacklist:${token}`, 'debug');
+      if (isBlacklisted) return next(new Error('Authentication error: Token has been revoked'));
+
+      const payload = verifyJwt(token);
+      if (!payload) return next(new Error('Authentication error: Invalid or expired token'));
+
+      socket.data.user = { id: payload.id, email: payload.email, role: payload.role };
+      next();
+    } catch {
+      next(new Error('Authentication error: Invalid token'));
+    }
+  });
+
+  video.on("connection", (socket) => {
+    const userId = socket.data.user?.id as string | undefined;
+    if (userId) {
+      connectedUsers.set(userId, { socketId: socket.id, userId, lastSeen: new Date() });
+    }
+
+    // join_call: client joins a signaling room for a given callId
+    // payload: { callId: string }
+    socket.on("join_call", async ({ callId, role }: { callId: string; role?: "tutor"|"student"|"guest" }) => {
+      console.log("[/video] join_call", { socket: socket.id, userId, callId, role });
+      if (!callId) return;
+      if (!rateLimit || !rateLimit.allowEvent(socket.id, "video:join")) return;
+      socket.join(callId);
+      if (userId && presence) {
+        await presence.markSocketOnline(userId, socket.id);
+        await presence.addMemberToRoom(callId, userId);
+      }
+      // Persist lifecycle (best-effort, non-blocking on errors)
+      try {
+        const { CallService } = await import("../realtime/call.service");
+        await CallService.startCall(callId, userId || "unknown");
+        if (userId) await CallService.joinCall(callId, userId, role || "guest");
+      } catch {}
+      socket.to(callId).emit("peer_joined", { userId });
+    });
+
+    // initiate_call: start a call and notify the other participant
+    socket.on("initiate_call", async ({ callId, targetUserId }: { callId: string; targetUserId: string }) => {
+      console.log("[/video] initiate_call", { socket: socket.id, userId, callId, targetUserId });
+      if (!callId || !targetUserId) return;
+      if (!rateLimit || !rateLimit.allowEvent(socket.id, "video:initiate")) return;
+      
+      // Find the target user's socket
+      const targetUser = connectedUsers.get(targetUserId);
+      if (targetUser) {
+        // Get the caller's name from the database
+        let fromUserName = "User";
+        try {
+          const { UserService } = await import("../modules/users/user.service");
+          const { UserRepo } = await import("../modules/users/user.repo");
+          
+          // First get the user to determine their role
+          const user = await UserRepo.findById(userId || "");
+          if (user) {
+            // Get the profile based on role
+            const profile = await UserService.getProfileByRole(user.id, user.role);
+            if (profile && profile.name) {
+              fromUserName = `${profile.name || ""} ${profile.surname || ""}`.trim() || "User";
+            }
+          }
+        } catch (error) {
+          console.error("Failed to get caller name:", error);
+        }
+        
+        // Send notification to target user
+        io.to(targetUser.socketId).emit("incoming_call", {
+          callId,
+          fromUserId: userId,
+          fromUserName,
+        });
+      }
+    });
+
+    // decline_call: handle call decline
+    socket.on("decline_call", ({ callId, fromUserId }: { callId: string; fromUserId: string }) => {
+      console.log("[/video] decline_call", { socket: socket.id, userId, callId, fromUserId });
+      if (!callId || !fromUserId) return;
+      
+      // Notify the caller that the call was declined
+      const caller = connectedUsers.get(fromUserId);
+      if (caller) {
+        io.to(caller.socketId).emit("call_cancelled", { callId });
+      }
+    });
+
+    // signal: relay offer/answer/ice to peers in room
+    // payload: { callId: string, data: { type: 'offer'|'answer'|'candidate', sdp?, candidate? } }
+    socket.on("signal", ({ callId, data }: { callId: string; data: unknown }) => {
+      if (!callId) return;
+      if (!rateLimit || !rateLimit.allowEvent(socket.id, "video:signal")) return;
+      console.log("[/video] signal", { socket: socket.id, type: (data as any)?.type, callId });
+      socket.to(callId).emit("signal", { fromUserId: userId, data });
+    });
+
+    // leave_call: remove from room and notify others
+    // payload: { callId: string }
+    socket.on("leave_call", async ({ callId }: { callId: string }) => {
+      console.log("[/video] leave_call", { socket: socket.id, userId, callId });
+      if (!callId) return;
+      if (!rateLimit || !rateLimit.allowEvent(socket.id, "video:leave")) return;
+      socket.leave(callId);
+      if (userId && presence) {
+        await presence.removeMemberFromRoom(callId, userId);
+      }
+      try {
+        if (userId) {
+          const { CallService } = await import("../realtime/call.service");
+          await CallService.leaveCall(callId, userId);
+        }
+      } catch {}
+      socket.to(callId).emit("peer_left", { userId });
+    });
+
+    socket.on("disconnect", async () => {
+      if (userId) {
+        connectedUsers.delete(userId);
+        if (presence) await presence.markSocketOffline(userId, socket.id);
       }
     });
   });
@@ -185,7 +332,10 @@ export function createSocketServer(httpServer: HttpServer) {
 }
 
 // Function to get user online status
-export function getUserOnlineStatus(userId: string): { isOnline: boolean; lastSeen?: Date } {
+export function getUserOnlineStatus(userId: string): {
+  isOnline: boolean;
+  lastSeen?: Date;
+} {
   const user = connectedUsers.get(userId);
   if (user) {
     return { isOnline: true, lastSeen: user.lastSeen };

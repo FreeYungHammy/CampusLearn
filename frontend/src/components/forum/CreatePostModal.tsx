@@ -46,7 +46,7 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ onClose }) => {
 
   return (
     <div className="create-post-modal-overlay" onClick={onClose}>
-      <div className="create-post-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="create-post-modal" onClick={(e) => e.stopPropagation()} data-cy="create-post-modal">
         <div className="create-post-modal-header">
           <h2>
             <i className="fas fa-edit"></i>
@@ -66,12 +66,14 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ onClose }) => {
               </label>
               <input
                 type="text"
+                name="title"
                 className="form-control-enhanced"
                 placeholder="Enter a clear, descriptive title..."
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
                 maxLength={200}
+                data-cy="post-title-input"
               />
               <div className="char-counter">{title.length}/200</div>
             </div>
@@ -82,10 +84,12 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ onClose }) => {
                 Topic
               </label>
               <select
+                name="topic"
                 className="form-control-enhanced select-enhanced"
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
                 required
+                data-cy="post-topic-select"
               >
                 {topics.map((topicOption) => (
                   <option key={topicOption} value={topicOption}>
@@ -101,12 +105,14 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ onClose }) => {
                 Content
               </label>
               <textarea
+                name="content"
                 className="form-control-enhanced textarea-enhanced"
                 placeholder="Describe your question or topic in detail..."
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 required
                 maxLength={2000}
+                data-cy="post-content-textarea"
               />
               <div className="char-counter">{content.length}/2000</div>
             </div>
@@ -136,10 +142,11 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ onClose }) => {
             Cancel
           </button>
           <button
-            type="button"
+            type="submit"
             className={`btn-submit ${isSubmitting ? "loading" : ""}`}
             onClick={handleSubmit}
             disabled={!title.trim() || !content.trim() || isSubmitting}
+            data-cy="submit-post-btn"
           >
             {isSubmitting ? "" : "Submit Post"}
           </button>

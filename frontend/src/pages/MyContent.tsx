@@ -5,7 +5,20 @@ import { apiBaseUrl } from "../lib/api";
 import { deleteFile, getMyContent } from "../services/fileApi";
 import type { TutorUpload } from "../types/tutorUploads";
 import VideoPlayer from "../components/VideoPlayer";
+import DocxViewer from "../components/DocxViewer";
 import "../components/VideoPlayer.css";
+
+const formatBytes = (bytes: number, decimals = 2) => {
+  if (!+bytes) return "0 Bytes";
+
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+};
 
 // List of MIME types that can be safely displayed in a browser
 const VIEWABLE_MIME_TYPES = [
@@ -17,6 +30,27 @@ const VIEWABLE_MIME_TYPES = [
   "image/svg+xml",
   "text/plain",
   "video/mp4",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+];
+
+// List of MIME types for which to use the local DocxViewer
+const WORD_MIME_TYPES = [
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+];
+
+// List of MIME types for which to use the production Office viewer
+const OFFICE_MIME_TYPES = [
+  ...WORD_MIME_TYPES,
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 ];
 
 type Grouped = Record<string, Record<string, TutorUpload[]>>; // subject -> subtopic -> files
@@ -291,10 +325,19 @@ const MyContent = () => {
                               {Object.keys(grouped).map((subject) => (
                                 <div
                                   key={subject}
-                                  className="subject-card"
+                                  className="subject-card enhanced"
                                   onClick={() => navigateToSubject(subject)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" || e.key === " ") {
+                                      e.preventDefault();
+                                      navigateToSubject(subject);
+                                    }
+                                  }}
+                                  tabIndex={0}
+                                  role="button"
+                                  aria-label={`View ${subject} content`}
                                 >
-                                  <div className="subject-icon">
+                                  <div className="subject-icon enhanced">
                                     <i className="fas fa-book"></i>
                                   </div>
                                   <div className="subject-info">
@@ -333,15 +376,27 @@ const MyContent = () => {
                               (subtopic) => (
                                 <div
                                   key={subtopic}
-                                  className="subtopic-card"
+                                  className="subtopic-card enhanced"
                                   onClick={() =>
                                     navigateToSubtopic(
                                       selectedSubject,
                                       subtopic,
                                     )
                                   }
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" || e.key === " ") {
+                                      e.preventDefault();
+                                      navigateToSubtopic(
+                                        selectedSubject,
+                                        subtopic,
+                                      );
+                                    }
+                                  }}
+                                  tabIndex={0}
+                                  role="button"
+                                  aria-label={`View ${subtopic} files`}
                                 >
-                                  <div className="subtopic-icon">
+                                  <div className="subtopic-icon enhanced">
                                     <i className="fas fa-folder"></i>
                                   </div>
                                   <div className="subtopic-info">
@@ -372,11 +427,27 @@ const MyContent = () => {
                             >
                               <i className="fas fa-arrow-left"></i> Back
                             </button>
+                            <div className="results-info">
+                              <h3 className="content-section-title">
+                                {selectedSubject}{" "}
+                                <i className="fas fa-chevron-right"></i>{" "}
+                                {selectedSubtopic}
+                              </h3>
+                              <span className="results-count">
+                                {filteredItems.length} file
+                                {filteredItems.length !== 1 ? "s" : ""}
+                              </span>
+                            </div>
                           </div>
 
-                          <div className="files-grid">
-                            {grouped[selectedSubject][selectedSubtopic].map(
-                              (file) => {
+                          {filteredItems.length === 0 ? (
+                            <div className="empty-state">
+                              <i className="fas fa-folder-open"></i>
+                              <p>No files in this subtopic yet.</p>
+                            </div>
+                          ) : (
+                            <div className="files-grid">
+                              {filteredItems.map((file) => {
                                 const fileId =
                                   (file as any).id || (file as any)._id;
                                 const fileType = file.contentType.split("/")[0];
@@ -385,30 +456,110 @@ const MyContent = () => {
                                     ? "fa-video"
                                     : fileType === "image"
                                       ? "fa-image"
-                                      : fileType === "application" &&
-                                          file.contentType.includes("pdf")
+                                      : file.contentType === "application/pdf"
                                         ? "fa-file-pdf"
-                                        : "fa-file";
+                                        : file.contentType ===
+                                              "application/msword" ||
+                                            file.contentType ===
+                                              "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                                          ? "fa-file-word"
+                                          : "fa-file";
+
+                                const fileSize = (file as any).size
+                                  ? `${((file as any).size / 1024 / 1024).toFixed(1)} MB`
+                                  : "Unknown size";
+
+                                // Get the actual file type for the badge
+                                const getFileTypeBadge = (
+                                  contentType: string,
+                                ) => {
+                                  if (contentType === "application/pdf")
+                                    return "PDF";
+                                  if (contentType === "application/msword")
+                                    return "DOC";
+                                  if (
+                                    contentType ===
+                                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                                  )
+                                    return "DOCX";
+                                  if (
+                                    contentType === "application/vnd.ms-excel"
+                                  )
+                                    return "XLS";
+                                  if (
+                                    contentType ===
+                                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                                  )
+                                    return "XLSX";
+                                  if (
+                                    contentType ===
+                                    "application/vnd.ms-powerpoint"
+                                  )
+                                    return "PPT";
+                                  if (
+                                    contentType ===
+                                    "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                                  )
+                                    return "PPTX";
+                                  if (contentType.startsWith("image/"))
+                                    return "IMAGE";
+                                  if (contentType.startsWith("video/"))
+                                    return "VIDEO";
+                                  if (contentType.startsWith("text/"))
+                                    return "TEXT";
+                                  if (contentType.startsWith("application/"))
+                                    return "APP";
+                                  return (
+                                    contentType.split("/")[1]?.toUpperCase() ||
+                                    "FILE"
+                                  );
+                                };
 
                                 return (
-                                  <div key={fileId} className="file-card">
-                                    <div className="file-icon">
-                                      <i className={`fas ${fileIcon}`}></i>
+                                  <div
+                                    key={fileId}
+                                    className="file-card enhanced"
+                                  >
+                                    <div className="file-header">
+                                      <div className="file-icon">
+                                        <i className={`fas ${fileIcon}`}></i>
+                                      </div>
+                                      <div className="file-badge">
+                                        {getFileTypeBadge(file.contentType)}
+                                      </div>
                                     </div>
                                     <div className="file-info">
-                                      <h4>{file.title}</h4>
-                                      <p className="file-description">
-                                        {file.description}
-                                      </p>
+                                      <h4 className="file-title">
+                                        {file.title}
+                                      </h4>
+                                      {file.description && (
+                                        <p className="file-description">
+                                          {file.description}
+                                        </p>
+                                      )}
                                       <div className="file-meta">
-                                        <span className="file-type">
-                                          {file.contentType}
-                                        </span>
-                                        <span className="file-date">
-                                          {new Date(
-                                            file.uploadDate || Date.now(),
-                                          ).toLocaleDateString()}
-                                        </span>
+                                        <div className="meta-item">
+                                          <i className="fas fa-calendar"></i>
+                                          <span>
+                                            {new Date(
+                                              file.uploadDate || Date.now(),
+                                            ).toLocaleDateString()}
+                                          </span>
+                                        </div>
+                                        <div className="meta-item">
+                                          <i className="fas fa-weight-hanging"></i>
+                                          <span>
+                                            {file.size
+                                              ? formatBytes(file.size)
+                                              : "Unknown size"}
+                                          </span>
+                                        </div>
+                                        {file.subject && (
+                                          <div className="meta-item">
+                                            <i className="fas fa-book"></i>
+                                            <span>{file.subject}</span>
+                                          </div>
+                                        )}
                                       </div>
                                     </div>
                                     <div className="file-actions">
@@ -442,9 +593,9 @@ const MyContent = () => {
                                     </div>
                                   </div>
                                 );
-                              },
-                            )}
-                          </div>
+                              })}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -458,42 +609,84 @@ const MyContent = () => {
 
       {isModalOpen && selectedFile && (
         <div className="modal-overlay" onClick={closeModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div
+            className={`modal-content ${VIEWABLE_MIME_TYPES.some((type) => selectedFile.contentType.startsWith(type)) ? "content-viewer-modal" : ""}`}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="modal-header">
               <h3>{selectedFile.title}</h3>
               <div className="modal-actions">
-                {selectedFile.contentType !== "application/pdf" && (
-                  <a
-                    href={`${apiBaseUrl}/files/${(selectedFile as any).id || (selectedFile as any)._id}/binary?download=true`}
-                    className="btn btn-sm btn-primary"
-                    download
-                  >
-                    <i className="fas fa-download"></i> Download
-                  </a>
-                )}
+                <a
+                  href={`${apiBaseUrl}/files/${(selectedFile as any).id || (selectedFile as any)._id}/binary?download=true`}
+                  className="btn btn-sm btn-primary"
+                  download
+                >
+                  <i className="fas fa-download"></i> Download
+                </a>
                 <button className="modal-close-btn" onClick={closeModal}>
                   <i className="fas fa-times"></i>
                 </button>
               </div>
             </div>
             <div className="modal-body">
-              {selectedFile.contentType.startsWith("video/") ? (
-                <VideoPlayer
-                  src={`${apiBaseUrl}/files/${(selectedFile as any).id || (selectedFile as any)._id}/binary`}
-                  title={selectedFile.title}
-                  fileId={(selectedFile as any).id || (selectedFile as any)._id}
-                  style={{ width: "100%", height: "100%" }}
-                />
-              ) : (
-                <iframe
-                  src={`${apiBaseUrl}/files/${(selectedFile as any).id || (selectedFile as any)._id}/binary`}
-                  width="100%"
-                  height="100%"
-                  style={{ border: "none", minHeight: "60vh" }}
-                  title={selectedFile.title}
-                  allowFullScreen={true}
-                ></iframe>
-              )}
+              {(() => {
+                const isWordDoc = WORD_MIME_TYPES.some((type) =>
+                  selectedFile.contentType.startsWith(type),
+                );
+                const isOfficeDoc = OFFICE_MIME_TYPES.some((type) =>
+                  selectedFile.contentType.startsWith(type),
+                );
+                const isLocalhost = window.location.hostname === "localhost";
+
+                const fileId =
+                  (selectedFile as any).id || (selectedFile as any)._id;
+                const fileUrl = `${apiBaseUrl}/files/${fileId}/binary`;
+
+                // On localhost, use the local viewer for Word docs
+                if (isLocalhost && isWordDoc) {
+                  return <DocxViewer file={selectedFile} />;
+                }
+
+                // On a deployed server, use the MS viewer for any Office doc
+                if (!isLocalhost && isOfficeDoc) {
+                  return (
+                    <iframe
+                      src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(
+                        fileUrl,
+                      )}`}
+                      width="100%"
+                      height="100%"
+                      style={{ border: "none", minHeight: "80vh" }}
+                      title={selectedFile.title}
+                      allowFullScreen={true}
+                    ></iframe>
+                  );
+                }
+
+                // Fallback for videos
+                if (selectedFile.contentType.startsWith("video/")) {
+                  return (
+                    <VideoPlayer
+                      src={fileUrl}
+                      title={selectedFile.title}
+                      fileId={fileId}
+                      style={{ width: "100%", height: "100%" }}
+                    />
+                  );
+                }
+
+                // Fallback for PDFs, images, and other viewable types
+                return (
+                  <iframe
+                    src={fileUrl}
+                    width="100%"
+                    height="100%"
+                    style={{ border: "none", minHeight: "60vh" }}
+                    title={selectedFile.title}
+                    allowFullScreen={true}
+                  ></iframe>
+                );
+              })()}
             </div>
           </div>
         </div>

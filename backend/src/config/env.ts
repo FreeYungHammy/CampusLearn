@@ -3,13 +3,19 @@ export const env = {
   port: Number(process.env.PORT ?? 5001),
   mongoUri:
     process.env.MONGO_URI ??
-    "mongodb+srv://Gabriel:admin1@campuslearn.ukgqknw.mongodb.net/campuslearn?retryWrites=true&w=majority&appName=CampusLearn",
+    (() => {
+      throw new Error("MONGO_URI environment variable is required");
+    })(),
   jwtSecret:
     process.env.JWT_SECRET ??
-    "Cw_e94TFCNIAWSe-e52FF4R9fqMV7ghJ6LZUL_JuZBhqne1mnP3Gv7bTNuDE3Hu5BC3xeONS52e-ZPMCLpVfwA",
+    (() => {
+      throw new Error("JWT_SECRET environment variable is required");
+    })(),
   redisUrl:
     process.env.REDIS_URL ??
-    "REDIS_URL=redis://default:5GfBijg1gkOa8njzhegOEunZgScxTiJq@redis-15014.c341.af-south-1-1.ec2.redns.redis-cloud.com:15014",
+    (() => {
+      throw new Error("REDIS_URL environment variable is required");
+    })(),
   // Google Cloud Storage
   gcsBucket: process.env.GCS_BUCKET ?? "tutor-student-videos",
   gcsProjectId: process.env.GCLOUD_PROJECT || process.env.GOOGLE_CLOUD_PROJECT,
@@ -44,4 +50,22 @@ export const env = {
   botpressClientId: process.env.BOTPRESS_CLIENT_ID,
   botpressBotId: process.env.BOTPRESS_BOT_ID,
   botpressPat: process.env.BOTPRESS_PAT, // Personal Access Token
+  botpressWebhookUrl:
+    process.env.BOTPRESS_WEBHOOK_URL ??
+    (() => {
+      throw new Error("BOTPRESS_WEBHOOK_URL environment variable is required");
+    })(),
+
+  // Test user credentials (for development/testing only)
+  testUserEmail:
+    process.env.TEST_USER_EMAIL ?? "test.student@student.belgiumcampus.ac.za",
+  testUserPassword: process.env.TEST_USER_PASSWORD ?? "password123",
+
+  // Development URLs
+  frontendUrl: process.env.FRONTEND_URL ?? "http://localhost:5173",
+  backendUrl: process.env.BACKEND_URL ?? "http://localhost:5001",
+  corsOrigins: process.env.CORS_ORIGINS?.split(",") ?? [
+    "http://localhost:5173",
+    "http://localhost:8080",
+  ],
 };

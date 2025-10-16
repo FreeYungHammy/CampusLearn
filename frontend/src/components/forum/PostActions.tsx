@@ -1,16 +1,46 @@
-import React, { useState, useRef, useEffect } from 'react';
-import DeleteConfirmationModal from './DeletePostConfirmationModal';
+import React, { useState, useRef, useEffect } from "react";
+import DeleteConfirmationModal from "./DeletePostConfirmationModal";
+import {
+  isWithinEditWindow,
+  getRemainingEditTime,
+} from "../../utils/editWindow";
 
 interface PostActionsProps {
   onEdit: () => void;
   onDelete: () => Promise<void>;
   isReply?: boolean;
+  createdAt?: string | Date;
 }
 
-const PostActions: React.FC<PostActionsProps> = ({ onEdit, onDelete, isReply = false }) => {
+const PostActions: React.FC<PostActionsProps> = ({
+  onEdit,
+  onDelete,
+  isReply = false,
+  createdAt,
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [remainingTime, setRemainingTime] = useState<number | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Check if within edit window and calculate remaining time
+  const canEdit = createdAt ? isWithinEditWindow(createdAt) : true;
+  const remainingEditTime = createdAt ? getRemainingEditTime(createdAt) : null;
+
+  // Update remaining time every minute
+  useEffect(() => {
+    if (!createdAt || !canEdit) return;
+
+    const updateRemainingTime = () => {
+      const time = getRemainingEditTime(createdAt);
+      setRemainingTime(time);
+    };
+
+    updateRemainingTime();
+    const interval = setInterval(updateRemainingTime, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, [createdAt, canEdit]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -19,9 +49,9 @@ const PostActions: React.FC<PostActionsProps> = ({ onEdit, onDelete, isReply = f
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
@@ -61,9 +91,32 @@ const PostActions: React.FC<PostActionsProps> = ({ onEdit, onDelete, isReply = f
                   onEdit();
                   setIsOpen(false);
                 }}
-                className="block w-full text-left px-4 py-2 text-sm text-gray-800 hover:bg-gray-100"
+                disabled={!canEdit}
+                className={`block w-full text-left px-4 py-2 text-sm ${
+                  canEdit
+                    ? "text-gray-800 hover:bg-gray-100"
+                    : "text-gray-400 cursor-not-allowed"
+                }`}
+                title={
+                  canEdit
+                    ? remainingTime && remainingTime > 0
+                      ? `Edit available for ${remainingTime} more minute${remainingTime !== 1 ? "s" : ""}`
+                      : "Edit my post"
+                    : "Edit window expired (10 minutes)"
+                }
               >
-                Edit my post
+                {canEdit ? (
+                  <>
+                    Edit my post
+                    {remainingTime && remainingTime > 0 && (
+                      <span className="block text-xs text-gray-500">
+                        {remainingTime} min left
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  "Edit expired (10 min)"
+                )}
               </button>
               <button
                 onClick={handleDeleteClick}
@@ -79,8 +132,8 @@ const PostActions: React.FC<PostActionsProps> = ({ onEdit, onDelete, isReply = f
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={onDelete}
-        title={`Delete ${isReply ? 'Reply' : 'Post'}`}
-        message={`Are you sure you want to permanently delete this ${isReply ? 'reply' : 'post'}? This action cannot be undone.`}
+        title={`Delete ${isReply ? "Reply" : "Post"}`}
+        message={`Are you sure you want to permanently delete this ${isReply ? "reply" : "post"}? This action cannot be undone.`}
       />
     </>
   );

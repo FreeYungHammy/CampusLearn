@@ -26,7 +26,7 @@ const defaultPfp =
 
 /* ---------- Helpers ---------- */
 const getProfilePictureUrl = (userId: string, bust?: number) => {
-  const baseUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:5001";
+  const baseUrl = "http://localhost:5001"; // Hardcoded to avoid env var issues
   const cacheBuster = bust ? `?t=${bust}` : "";
   return `${baseUrl}/api/users/${userId}/pfp${cacheBuster}`;
 };
@@ -241,6 +241,8 @@ const Messages: React.FC = () => {
   const [isClearModalOpen, setIsClearModalOpen] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState("");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -632,6 +634,40 @@ const Messages: React.FC = () => {
     }
   };
 
+  /* -------- Message editing handlers -------- */
+  const handleEditMessage = (messageId: string, currentContent: string) => {
+    setEditingMessageId(messageId);
+    setEditingContent(currentContent);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessageId(null);
+    setEditingContent("");
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingMessageId || !token || !editingContent.trim()) return;
+
+    try {
+      // TODO: Call backend API to update message
+      // await chatApi.updateMessage(editingMessageId, editingContent, token);
+
+      // Update local state for now
+      setMessages((prevMessages) =>
+        prevMessages.map((msg) =>
+          msg._id === editingMessageId
+            ? { ...msg, content: editingContent, isEdited: true }
+            : msg,
+        ),
+      );
+
+      handleCancelEdit();
+    } catch (error) {
+      console.error("Failed to edit message:", error);
+      // Handle error (show toast notification, etc.)
+    }
+  };
+
   /* -------- Derived lists -------- */
   const filteredConversations = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -643,11 +679,74 @@ const Messages: React.FC = () => {
     });
   }, [conversations, searchQuery]);
 
-  /* -------- Messages with date separators and profile picture grouping -------- */
+  const handleStartVideoCall = useCallback(async () => {
+    if (!selectedConversation || !user?.id) return;
+    const otherId = selectedConversation.otherUser._id;
+    const callId = [user.id, otherId].sort().join(":");
+    
+    // Send call notification to the other user first
+    try {
+      console.log("[video-call] Initiating call notification", { callId, targetUserId: otherId });
+      const { io } = await import("socket.io-client");
+      const SOCKET_BASE_URL = "http://localhost:5001";
+      const url = SOCKET_BASE_URL.replace(/^http/, "ws");
+      const token = useAuthStore.getState().token;
+      
+      if (token) {
+        console.log("[video-call] Creating temporary socket connection");
+        const tempSocket = io(`${url}/video`, { auth: { token }, transports: ["websocket", "polling"] });
+        tempSocket.on("connect", () => {
+          console.log("[video-call] Temporary socket connected, sending initiate_call");
+          tempSocket.emit("initiate_call", { callId, targetUserId: otherId });
+          setTimeout(() => {
+            console.log("[video-call] Disconnecting temporary socket");
+            tempSocket.disconnect();
+          }, 1000); // Clean up after sending
+        });
+        tempSocket.on("connect_error", (error) => {
+          console.error("[video-call] Temporary socket connection error:", error);
+        });
+      } else {
+        console.warn("[video-call] No token available for call notification");
+      }
+    } catch (error) {
+      console.error("Failed to send call notification:", error);
+    }
+    
+    // Open the call popup
+    import("@/utils/openCallPopup").then(({ openCallPopup }) => {
+      openCallPopup(callId);
+    });
+  }, [selectedConversation, user?.id]);
+
+  /* -------- Messages with date separators, profile picture grouping, and timestamp grouping -------- */
   const messagesWithSeparators = useMemo(() => {
     if (messages.length === 0) return [];
 
     const result: (ChatMessage | { type: "date-separator"; date: Date })[] = [];
+
+    // First pass: find the last message from each sender
+    const lastMessageFromSender = new Map<string, number>();
+    for (let i = 0; i < messages.length; i++) {
+      const senderId = messages[i].senderId || messages[i].sender?._id;
+      if (senderId) {
+        lastMessageFromSender.set(senderId, i);
+      }
+    }
+
+    // Group messages by timestamp AND sender (same minute + same sender)
+    const timestampGroups = new Map<string, number[]>();
+    for (let i = 0; i < messages.length; i++) {
+      const message = messages[i];
+      const timestamp = new Date(message.createdAt);
+      const senderId = message.senderId || message.sender?._id;
+      const timestampKey = `${format(timestamp, "yyyy-MM-dd HH:mm")}-${senderId}`; // Group by minute AND sender
+
+      if (!timestampGroups.has(timestampKey)) {
+        timestampGroups.set(timestampKey, []);
+      }
+      timestampGroups.get(timestampKey)!.push(i);
+    }
 
     for (let i = 0; i < messages.length; i++) {
       const currentMessage = messages[i];
@@ -655,19 +754,43 @@ const Messages: React.FC = () => {
       const nextMessage = messages[i + 1];
       const currentDate = new Date(currentMessage.createdAt);
 
-      // Add date separator if the day is different from the previous message
-      if (
-        !previousMessage ||
-        !isSameDay(currentDate, new Date(previousMessage.createdAt))
-      ) {
+      // Add date separator before the first message
+      if (i === 0) {
         result.push({ type: "date-separator", date: currentDate });
+      } else {
+        // Check if the date has changed from the previous message
+        const previousMessage = messages[i - 1];
+        const previousDate = new Date(previousMessage.createdAt);
+
+        if (!isSameDay(currentDate, previousDate)) {
+          result.push({ type: "date-separator", date: currentDate });
+        }
       }
 
-      // Determine if the profile picture should be shown
-      const showProfilePicture =
-        !nextMessage || nextMessage.senderId !== currentMessage.senderId;
+      // Add the actual message with grouping info
+      const messageWithGrouping = {
+        ...currentMessage,
+        showProfilePicture: false, // Default to false
+        showTimestamp: false, // Default to false
+      };
 
-      result.push({ ...currentMessage, showProfilePicture });
+      // Show profile picture only for the first message in each timestamp group
+      const currentSenderId =
+        currentMessage.senderId || currentMessage.sender?._id;
+      const timestamp = format(currentDate, "yyyy-MM-dd HH:mm");
+      const timestampKey = `${timestamp}-${currentSenderId}`;
+      const timestampGroup = timestampGroups.get(timestampKey);
+
+      // Show profile picture only if this is the first message in its timestamp group
+      messageWithGrouping.showProfilePicture =
+        Boolean(timestampGroup && timestampGroup[0] === i);
+
+      // Show timestamp only for the last message in each timestamp group (both sides)
+      if (timestampGroup && timestampGroup[timestampGroup.length - 1] === i) {
+        messageWithGrouping.showTimestamp = true;
+      }
+
+      result.push(messageWithGrouping);
     }
 
     return result;
@@ -815,7 +938,7 @@ const Messages: React.FC = () => {
                       />
                     </svg>
                   </button>
-                  <button className="action-button" aria-label="Video">
+                  <button className="action-button" aria-label="Video" onClick={handleStartVideoCall}>
                     <svg width="16" height="16" fill="none" viewBox="0 0 16 16">
                       <path
                         d="M0 5a2 2 0 0 1 2-2h7.5a2 2 0 0 1 1.983 1.738l3.11-1.382A1 1 0 0 1 16 4.269v7.462a1 1 0 0 1-1.406.913l-3.111-1.382A2 2 0 0 1 9.5 13H2a2 2 0 0 1-2-2V5z"
@@ -991,101 +1114,152 @@ const Messages: React.FC = () => {
                           )}
 
                           <div className="bubble-wrap">
-                            <div
-                              className={`chat-bubble ${mine ? "mine" : "theirs"}`}
-                              title={new Date(msg.createdAt).toLocaleString()}
-                            >
-                              <p className={!mine ? "text-dark" : ""}>
-                                {msg.content}
-                              </p>
-
-                              {((msg as any).uploadFilename ||
-                                msg.upload?.filename) && (
-                                <div
-                                  className={`file-preview ${mine ? "mine" : ""} downloadable`}
-                                  onClick={async () => {
-                                    if (!token) return;
-                                    try {
-                                      const blob =
-                                        await chatApi.downloadMessageFile(
-                                          msg._id,
-                                          token,
-                                        );
-                                      const url =
-                                        window.URL.createObjectURL(blob);
-                                      const link = document.createElement("a");
-                                      link.href = url;
-                                      link.setAttribute(
-                                        "download",
-                                        (msg as any).uploadFilename ||
-                                          "download",
-                                      );
-                                      document.body.appendChild(link);
-                                      link.click();
-                                      document.body.removeChild(link);
-                                      window.URL.revokeObjectURL(url);
-                                    } catch (err) {
-                                      console.error(
-                                        "Failed to download file:",
-                                        err,
-                                      );
-                                      alert("Failed to download file.");
-                                    }
-                                  }}
-                                  style={{ cursor: "pointer" }}
-                                >
-                                  <div className="file-line">
-                                    <span className="file-icon">
-                                      {fileIcon(
-                                        (msg as any).uploadFilename ||
-                                          msg.upload?.filename ||
-                                          "",
-                                      )}
-                                    </span>
-                                    <span
-                                      className={`file-name ${mine ? "white" : ""}`}
-                                    >
-                                      {(msg as any).uploadFilename ||
-                                        msg.upload?.filename}
-                                    </span>
-                                    <svg
-                                      width="16"
-                                      height="16"
-                                      fill="none"
-                                      viewBox="0 0 16 16"
-                                      className="download-icon"
-                                    >
-                                      <path
-                                        d="M8 1v10m0 0l-3-3m3 3l3-3M2 13h12"
-                                        stroke="currentColor"
-                                        strokeWidth="1.5"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                      />
-                                    </svg>
-                                  </div>
-                                  <div
-                                    className={`file-meta ${mine ? "white-50" : "muted"}`}
+                            {editingMessageId === msg._id ? (
+                              <div className="message-edit-container">
+                                <textarea
+                                  className="message-edit-textarea"
+                                  value={editingContent}
+                                  onChange={(e) =>
+                                    setEditingContent(e.target.value)
+                                  }
+                                  rows={3}
+                                  autoFocus
+                                />
+                                <div className="message-edit-actions">
+                                  <button
+                                    className="edit-cancel-btn"
+                                    onClick={handleCancelEdit}
                                   >
-                                    {((msg as any).uploadContentType ||
-                                      msg.upload?.contentType) ===
-                                    "application/octet-stream"
-                                      ? (
-                                          (msg as any).uploadFilename ||
-                                          msg.upload?.filename
-                                        )
-                                          ?.split(".")
-                                          .pop()
-                                          ?.toUpperCase() || "FILE"
-                                      : (msg as any).uploadContentType ||
-                                        msg.upload?.contentType}
-                                  </div>
+                                    Cancel
+                                  </button>
+                                  <button
+                                    className="edit-save-btn"
+                                    onClick={handleSaveEdit}
+                                    disabled={!editingContent.trim()}
+                                  >
+                                    Save
+                                  </button>
                                 </div>
-                              )}
-                            </div>
-                            <div className={`stamp ${mine ? "right" : "left"}`}>
-                              {format(new Date(msg.createdAt), "p")}
-                            </div>
+                              </div>
+                            ) : (
+                              <div
+                                className={`chat-bubble ${mine ? "mine" : "theirs"} ${mine ? "editable" : ""}`}
+                                title={new Date(msg.createdAt).toLocaleString()}
+                              >
+                                {mine && (
+                                  <button
+                                    className="message-edit-btn"
+                                    onClick={() =>
+                                      handleEditMessage(msg._id || '', msg.content)
+                                    }
+                                    title="Edit message"
+                                  >
+                                    <i className="fas fa-edit"></i>
+                                  </button>
+                                )}
+                                <p className={!mine ? "text-dark" : ""}>
+                                  {msg.content}
+                                  {(msg as any).isEdited && (
+                                    <span className="edited-indicator">
+                                      {" "}
+                                      (edited)
+                                    </span>
+                                  )}
+                                </p>
+
+                                {((msg as any).uploadFilename ||
+                                  msg.upload?.filename) && (
+                                  <div
+                                    className={`file-preview ${mine ? "mine" : ""} downloadable`}
+                                    onClick={async () => {
+                                      if (!token) return;
+                                      try {
+                                        const blob =
+                                          await chatApi.downloadMessageFile(
+                                            msg._id || '',
+                                            token,
+                                          );
+                                        const url =
+                                          window.URL.createObjectURL(blob);
+                                        const link =
+                                          document.createElement("a");
+                                        link.href = url;
+                                        link.setAttribute(
+                                          "download",
+                                          (msg as any).uploadFilename ||
+                                            "download",
+                                        );
+                                        document.body.appendChild(link);
+                                        link.click();
+                                        document.body.removeChild(link);
+                                        window.URL.revokeObjectURL(url);
+                                      } catch (err) {
+                                        console.error(
+                                          "Failed to download file:",
+                                          err,
+                                        );
+                                        alert("Failed to download file.");
+                                      }
+                                    }}
+                                    style={{ cursor: "pointer" }}
+                                  >
+                                    <div className="file-line">
+                                      <span className="file-icon">
+                                        {fileIcon(
+                                          (msg as any).uploadFilename ||
+                                            msg.upload?.filename ||
+                                            "",
+                                        )}
+                                      </span>
+                                      <span
+                                        className={`file-name ${mine ? "white" : ""}`}
+                                      >
+                                        {(msg as any).uploadFilename ||
+                                          msg.upload?.filename}
+                                      </span>
+                                      <svg
+                                        width="16"
+                                        height="16"
+                                        fill="none"
+                                        viewBox="0 0 16 16"
+                                        className="download-icon"
+                                      >
+                                        <path
+                                          d="M8 1v10m0 0l-3-3m3 3l3-3M2 13h12"
+                                          stroke="currentColor"
+                                          strokeWidth="1.5"
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                        />
+                                      </svg>
+                                    </div>
+                                    <div
+                                      className={`file-meta ${mine ? "white-50" : "muted"}`}
+                                    >
+                                      {((msg as any).uploadContentType ||
+                                        msg.upload?.contentType) ===
+                                      "application/octet-stream"
+                                        ? (
+                                            (msg as any).uploadFilename ||
+                                            msg.upload?.filename
+                                          )
+                                            ?.split(".")
+                                            .pop()
+                                            ?.toUpperCase() || "FILE"
+                                        : (msg as any).uploadContentType ||
+                                          msg.upload?.contentType}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                            {(msg as any).showTimestamp && (
+                              <div
+                                className={`stamp ${mine ? "right" : "left"}`}
+                              >
+                                {format(new Date(msg.createdAt), "p")}
+                              </div>
+                            )}
                           </div>
                         </div>
                       );

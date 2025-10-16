@@ -1,10 +1,13 @@
 import express from "express";
+import http from "http";
 import cors from "cors";
 import health from "./routes/health";
 import api from "./routes/index";
 import { connectMongo } from "./infra/db/mongoose";
+import { env } from "./config/env";
 
 const app = express();
+const server = http.createServer(app);
 app.disable("etag");
 
 /* ---------- CORS ---------- */
@@ -15,9 +18,7 @@ const allowed = (process.env.CORS_ORIGIN || "")
 
 app.use(
   cors({
-    origin: allowed.length
-      ? allowed
-      : ["http://localhost:5173", "http://localhost:8080"],
+    origin: allowed.length ? allowed : env.corsOrigins,
     credentials: true,
   }),
 );
@@ -55,4 +56,4 @@ app.use((req, res) => {
   res.status(404).json({ error: "Not found", path: req.path });
 });
 
-export default app;
+export { app, server };

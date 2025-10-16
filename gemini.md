@@ -743,7 +743,7 @@ This section outlines the complete, multi-phase implementation plan for the foru
 - **Backend (Voting Feature - Phase 1):**
   - Created a new `UserVote` schema (`userVote.schema.ts`) to track individual user votes on posts and replies, ensuring a user can only vote once per item.
   - Added two new authenticated API endpoints: `POST /api/forum/threads/:threadId/vote` and `POST /api/forum/replies/:replyId/vote`.
-  - Implemented a `castVote` method in `ForumService` using a database transaction to atomically handle vote creation, deletion (toggling a vote), and changing a vote (e.g., up to down). This service also prevents self-voting.
+  - Implemented a `castVote` method in `ForumService` using a database transaction to atomically handle vote creation, deletion (toggling a vote), and changing a vote (e.g., up to down).
   - Modified `getThreads` and `getThreadById` to be authenticated endpoints. They now query the `UserVote` collection to include the current user's vote status (`userVote: 1, -1, or 0`) on every post and reply returned to the frontend.
 
 - **Bug Fix (Forum Persistence):**
@@ -780,7 +780,6 @@ This section details the comprehensive plan for implementing upvote/downvote fun
 3.  **Persistence:** Votes must be saved to the database.
 4.  **Single Vote:** A user can only cast one vote (up or down) per post/reply.
 5.  **Vote Change:** Users can change their vote (e.g., from upvote to downvote, or remove a vote).
-6.  **No Self-Voting:** Users cannot upvote/downvote their own content.
 
 **Schema Analysis and Proposed Changes:**
 
@@ -847,7 +846,7 @@ The existing `upvotes` field in `ForumPostSchema` and `ForumReplySchema` only st
       - Get authenticated `user` from `req.user`.
       - Validate `voteType` (must be 1 or -1).
       - Call `ForumService.castVote(user, threadId, "ForumPost", voteType)`.
-      - Handle success (200 OK) and error responses (e.g., 400 for invalid input, 403 for self-voting, 404 for not found, 500 for unexpected errors).
+      - Handle success (200 OK) and error responses (e.g., 400 for invalid input, 404 for not found, 500 for unexpected errors).
     - **`voteOnReply(req: AuthedRequest, res: Response)`:**
       - Extract `replyId` from `req.params`.
       - Extract `voteType` (1 or -1) from `req.body`.
@@ -864,9 +863,6 @@ The existing `upvotes` field in `ForumPostSchema` and `ForumReplySchema` only st
       - Determine `Model` (ForumPostModel or ForumReplyModel) based on `targetType`.
       - Fetch `targetDoc` (the post or reply being voted on) using `findById(targetId).session(session)`.
       - If `targetDoc` is not found, throw a 404 `HttpException`.
-    - **No Self-Voting Check:**
-      - Compare `targetDoc.authorId.toString()` with `user.id`.
-      - If they match, throw a 403 `HttpException` ("You cannot vote on your own content.").
     - **Find Existing Vote:**
       - Query `UserVoteModel.findOne()` for a vote by `userId`, `targetId`, `targetType` within the current session.
     - **Handle Vote Logic:**
@@ -928,7 +924,7 @@ The existing `upvotes` field in `ForumPostSchema` and `ForumReplySchema` only st
       - When fetching threads/thread, perform an additional lookup in the `UserVote` collection for the currently authenticated user's vote on each post/reply.
       - Include this `userVote` (1, -1, or 0 if no vote) in the returned data for each post/reply. This will require accessing `req.user` in `getThreads` and `getThreadById` (potentially requiring `requireAuth` for these endpoints or a separate authenticated endpoint for fetching user-specific vote data).
 
-This detailed plan covers all aspects of the upvote/downvote feature, from schema design to frontend UI and real-time updates, including the "no self-voting" rule and vote change logic.
+This detailed plan covers all aspects of the upvote/downvote feature, from schema design to frontend UI and real-time updates, including vote change logic.
 
 --- 
 

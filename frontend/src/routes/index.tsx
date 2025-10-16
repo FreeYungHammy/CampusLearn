@@ -12,6 +12,7 @@ import Threads from "../pages/Forum/Threads";
 import ChatRoom from "../pages/Chat/ChatRoom";
 import Messages from "../pages/Messages";
 import NotFound from "./NotFound";
+import { VideoCallPage } from "../pages/Call/VideoCallPage";
 
 export const router = createBrowserRouter([
   {
@@ -31,6 +32,10 @@ export const router = createBrowserRouter([
       { path: "messages", element: <Messages /> },
     ],
     errorElement: <NotFound />,
+  },
+  {
+    path: "/call/:callId",
+    element: <VideoCallPage />, // standalone route (popup window)
   },
 ], {
   future: {
