@@ -439,7 +439,7 @@ html, body {
 }
 
 .auth-page-container {
-  background: var();
+  background: linear-gradient(135deg, var(--bg-grad-start) 0%, var(--bg-grad-end) 100%);
   color: var(--dark);
   display: flex;
   flex-direction: column;
@@ -450,4 +450,107 @@ html, body {
   width: 100%;
   overflow-x: hidden;
   overflow-y: auto;
+}
+
+/* Dark mode support for login page */
+[data-theme="dark"] .login-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+[data-theme="dark"] .form-control {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .form-control:focus {
+  background: var(--surface-2);
+  border-color: var(--primary);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .form-label {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .login-title {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .login-subtitle {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .subject-label {
+  background-color: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .subject-label:hover {
+  background-color: rgba(52, 152, 219, 0.1);
+  border-color: var(--primary);
+}
+
+[data-theme="dark"] .subject-checkbox:checked + .subject-label {
+  background-color: rgba(52, 152, 219, 0.2);
+  border-color: var(--primary);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .role-option {
+  background-color: var(--surface-2);
+  border: 2px solid var(--border);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .role-option:hover {
+  background-color: rgba(52, 152, 219, 0.05);
+  border-color: var(--primary);
+}
+
+[data-theme="dark"] .role-option.selected {
+  background-color: rgba(52, 152, 219, 0.1);
+  border-color: var(--primary);
+}
+
+[data-theme="dark"] .role-option h3 {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .role-option p {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .password-strength-meter {
+  background-color: var(--surface-2);
+}
+
+[data-theme="dark"] .form-control.is-invalid {
+  border-color: var(--danger);
+  background-color: var(--surface-2);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .form-control.is-valid {
+  border-color: var(--secondary);
+  background-color: var(--surface-2);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .error-message {
+  color: var(--danger);
+}
+
+[data-theme="dark"] .footer {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .footer-links a {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .footer-links a:hover {
+  color: var(--primary);
 }
