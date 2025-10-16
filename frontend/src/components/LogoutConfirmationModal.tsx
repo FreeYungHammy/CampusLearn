@@ -17,8 +17,8 @@ export default function LogoutConfirmationModal() {
       await doLogout();
       // after logout, also close modal just to be safe
       close();
-      // Navigate to landing page by forcing a refresh
-      window.location.href = "/";
+      // Navigate to landing page
+      navigate("/");
     } finally {
       setBusy(false);
     }

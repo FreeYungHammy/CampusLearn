@@ -3,32 +3,6 @@ import { persist } from "zustand/middleware";
 import { type User } from "../types/Common";
 import { logout as logoutApi } from "../services/authApi";
 
-// Botpress cleanup helpers
-const isBpKey = (k: string) =>
-  k.startsWith("bp:") ||
-  k.startsWith("bp_") ||
-  k.includes("webchat") ||
-  k.includes("botpress");
-
-function clearBotpressStorage() {
-  try {
-    Object.keys(localStorage).forEach((k) => {
-      if (isBpKey(k)) localStorage.removeItem(k);
-    });
-    Object.keys(sessionStorage).forEach((k) => {
-      if (isBpKey(k)) sessionStorage.removeItem(k);
-    });
-  } catch {}
-}
-
-function destroyWebchat() {
-  try {
-    (window as any).botpress?.sendEvent?.({ type: "reset" });
-    (window as any).botpress?.close?.();
-    (window as any).botpress?.destroy?.(); // if available
-  } catch {}
-}
-
 interface AuthState {
   token: string | null;
   user: User | null;
@@ -69,12 +43,7 @@ export const useAuthStore = create<AuthState>()(
         }
       },
       clearAuth: () =>
-        set({
-          token: null,
-          user: null,
-          showLogoutModal: false,
-          pfpTimestamps: {},
-        }),
+        set({ token: null, user: null, showLogoutModal: false, pfpTimestamps: {} }),
       refreshPfpForUser: (userId: string, timestamp?: number) =>
         set((state) => ({
           pfpTimestamps: {
@@ -90,24 +59,9 @@ export const useAuthStore = create<AuthState>()(
       logout: async () => {
         const token = get().token;
         if (token) {
-          try {
-            await logoutApi(token);
-          } catch {
-            /* ignore */
-          }
+          await logoutApi(token);
         }
-
-        //Kill the Botpress session & cached convo so the next user starts fresh
-        destroyWebchat();
-        clearBotpressStorage();
-
-        // Your existing state reset
-        set({
-          token: null,
-          user: null,
-          showLogoutModal: false,
-          pfpTimestamps: {},
-        });
+        set({ token: null, user: null, showLogoutModal: false, pfpTimestamps: {} });
       },
 
       openLogoutModal: () => set({ showLogoutModal: true }),

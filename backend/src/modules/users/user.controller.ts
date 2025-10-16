@@ -145,15 +145,6 @@ export const UserController = {
     }
   },
 
-  getUserStats: async (_: Request, res: Response, next: NextFunction) => {
-    try {
-      const stats = await UserService.getUserStats();
-      res.json(stats);
-    } catch (e) {
-      next(e);
-    }
-  },
-
   get: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = await UserService.get(req.params.id);
