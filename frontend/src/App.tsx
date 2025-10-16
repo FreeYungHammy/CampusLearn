@@ -34,6 +34,7 @@ import { useGlobalSocket } from "./hooks/useGlobalSocket";
 import { useAuthStore } from "./store/authStore";
 import LogoutConfirmationModal from "./components/LogoutConfirmationModal";
 import { VideoCallPage } from "./pages/Call/VideoCallPage";
+import { CallNotification } from "./components/CallNotification";
 
 import "./App.css";
 
@@ -92,6 +93,9 @@ function App() {
       </Suspense>
 
       {showLogoutModal && <LogoutConfirmationModal />}
+      
+      {/* Call Notifications */}
+      {!isCallPopup && <CallNotification />}
       
       {/* Floating Chat Widget */}
       {!isCallPopup && <ChatWidget />}

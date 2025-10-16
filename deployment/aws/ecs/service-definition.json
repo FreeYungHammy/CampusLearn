@@ -1,0 +1,46 @@
+{
+  "serviceName": "campuslearn-backend-service",
+  "cluster": "campuslearn-cluster",
+  "taskDefinition": "campuslearn-backend",
+  "desiredCount": 1,
+  "launchType": "FARGATE",
+  "platformVersion": "LATEST",
+  "networkConfiguration": {
+    "awsvpcConfiguration": {
+      "subnets": ["subnet-xxxxxxxxx", "subnet-yyyyyyyyy"],
+      "securityGroups": ["sg-xxxxxxxxx"],
+      "assignPublicIp": "ENABLED"
+    }
+  },
+  "loadBalancers": [
+    {
+      "targetGroupArn": "arn:aws:elasticloadbalancing:af-south-1:YOUR_ACCOUNT_ID:targetgroup/campuslearn-tg/xxxxxxxxx",
+      "containerName": "campuslearn-backend",
+      "containerPort": 5000
+    }
+  ],
+  "serviceRegistries": [
+    {
+      "registryArn": "arn:aws:servicediscovery:af-south-1:YOUR_ACCOUNT_ID:service/srv-xxxxxxxxx"
+    }
+  ],
+  "deploymentConfiguration": {
+    "maximumPercent": 200,
+    "minimumHealthyPercent": 50,
+    "deploymentCircuitBreaker": {
+      "enable": true,
+      "rollback": true
+    }
+  },
+  "enableExecuteCommand": true,
+  "tags": [
+    {
+      "key": "Environment",
+      "value": "production"
+    },
+    {
+      "key": "Application",
+      "value": "campuslearn"
+    }
+  ]
+}

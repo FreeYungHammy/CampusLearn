@@ -104,18 +104,37 @@ export const VideoCallPage: React.FC = () => {
           <>
             <VideoCallPanel localStream={pc.localStream} remoteStream={pc.remoteStream} />
             <div style={{ position: "absolute", left: 16, bottom: 16, backdropFilter: "blur(6px)", background: "rgba(255,255,255,0.08)", padding: "8px 10px", borderRadius: 8, fontSize: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                <div style={{ 
+                  width: 8, 
+                  height: 8, 
+                  borderRadius: "50%", 
+                  backgroundColor: pc.connectionQuality.status === 'excellent' ? '#10b981' : 
+                                 pc.connectionQuality.status === 'good' ? '#3b82f6' :
+                                 pc.connectionQuality.status === 'fair' ? '#f59e0b' : '#ef4444'
+                }} />
+                <span style={{ fontWeight: 500 }}>{pc.connectionQuality.details}</span>
+                {pc.isReconnecting && (
+                  <span style={{ color: '#f59e0b', fontSize: 10 }}>🔄 Reconnecting...</span>
+                )}
+              </div>
               <div>Signaling: {pc.pcState}</div>
               <div>ICE Conn: {pc.iceConnState}</div>
               <div>ICE Gather: {pc.iceGatherState}</div>
+              {pc.reconnectAttempts > 0 && (
+                <div style={{ color: '#f59e0b' }}>Reconnect attempts: {pc.reconnectAttempts}/3</div>
+              )}
             </div>
             <CallControls
               onToggleMic={() => pc.toggleMic()}
               onToggleCam={() => pc.toggleCam()}
               onToggleScreenshare={() => pc.toggleScreenShare()}
               onLeave={() => window.close()}
+              onReconnect={() => pc.attemptReconnection()}
               micOn={pc.audioEnabled}
               camOn={pc.videoEnabled}
               sharing={pc.isScreenSharing}
+              isReconnecting={pc.isReconnecting}
             />
           </>
         )}

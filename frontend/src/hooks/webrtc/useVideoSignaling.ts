@@ -12,8 +12,9 @@ export function useVideoSignaling(callId: string | undefined, token: string | un
       console.warn("[signal] no token available for /video namespace");
       return;
     }
-    const base = import.meta.env.VITE_WS_URL || import.meta.env.VITE_BACKEND_URL || "http://localhost:5001";
-    const url = base.replace(/^http/, "ws");
+    // Hardcode the URL to avoid any environment variable issues
+    const SOCKET_BASE_URL = "http://localhost:5001";
+    const url = SOCKET_BASE_URL.replace(/^http/, "ws");
     console.log("[signal] connecting", { url: `${url}/video`, hasToken: !!token });
     const socket = io(`${url}/video`, { auth: { token }, transports: ["websocket", "polling"] });
     socketRef.current = socket;
@@ -56,7 +57,13 @@ export function useVideoSignaling(callId: string | undefined, token: string | un
     socketRef.current?.on("signal", (p) => { console.log("[signal] inbound", p?.data?.type); handler(p); });
   };
 
-  return { connected, join, leave, sendSignal, onPeerJoined, onPeerLeft, onSignal };
+  const initiateCall = (targetUserId: string) => {
+    if (!socketRef.current || !callId) return;
+    console.log("[signal] initiate_call", { callId, targetUserId });
+    socketRef.current.emit("initiate_call", { callId, targetUserId });
+  };
+
+  return { connected, join, leave, sendSignal, initiateCall, onPeerJoined, onPeerLeft, onSignal };
 }
 
 
