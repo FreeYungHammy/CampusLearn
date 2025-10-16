@@ -5,6 +5,9 @@ env:
     AWS_REGION: af-south-1
     ECR_REPOSITORY: campuslearn-backend
     CONTAINER_NAME: campuslearn-backend
+    ECS_CLUSTER: strong-dolphin-qr0d3scampuslearn-cluster
+    ECS_SERVICE: CampusLearn-Backend-Service
+    TASK_DEFINITION_FAMILY: CampusLearn-Backend
 
 phases:
   pre_build:
@@ -15,6 +18,8 @@ phases:
       - ECR_URI=$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY
       - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
       - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c1-7)
+      - echo IMAGE_TAG=$IMAGE_TAG > image_tag.txt
+      - echo ECR_URI=$ECR_URI > ecr_uri.txt
   build:
     commands:
       - echo Building the Docker image $ECR_URI:$IMAGE_TAG
@@ -25,6 +30,40 @@ phases:
       - docker push $ECR_URI:$IMAGE_TAG
       - echo Writing imagedefinitions.json for ECS deploy...
       - printf '[{"name":"%s","imageUri":"%s"}]' "$CONTAINER_NAME" "$ECR_URI:$IMAGE_TAG" > imagedefinitions.json
+      - echo Creating new task definition with latest image...
+      - |
+        # Get the latest task definition
+        TASK_DEF_ARN=$(aws ecs describe-task-definition --task-definition $TASK_DEFINITION_FAMILY --region $AWS_REGION --query 'taskDefinition.taskDefinitionArn' --output text)
+        echo Current task definition: $TASK_DEF_ARN
+        
+        # Extract task definition JSON and update image URI
+        aws ecs describe-task-definition --task-definition $TASK_DEFINITION_FAMILY --region $AWS_REGION --query 'taskDefinition' > current-task-def.json
+        
+        # Update the image URI in the task definition
+        sed -i "s|559935790394.dkr.ecr.af-south-1.amazonaws.com/campuslearn-backend:[a-f0-9]*|$ECR_URI:$IMAGE_TAG|g" current-task-def.json
+        
+        # Remove fields that shouldn't be in the new task definition
+        jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .placementConstraints, .compatibilities, .registeredAt, .registeredBy)' current-task-def.json > new-task-def.json
+        
+        # Register new task definition
+        NEW_TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json file://new-task-def.json --region $AWS_REGION --query 'taskDefinition.taskDefinitionArn' --output text)
+        echo New task definition created: $NEW_TASK_DEF_ARN
+        echo NEW_TASK_DEF_ARN=$NEW_TASK_DEF_ARN > new_task_def_arn.txt
+        
+        # Update ECS service to use new task definition
+        echo Updating ECS service to use new task definition...
+        aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE --task-definition $NEW_TASK_DEF_ARN --region $AWS_REGION --force-new-deployment
+        
+        # Wait for deployment to complete
+        echo Waiting for deployment to complete...
+        aws ecs wait services-stable --cluster $ECS_CLUSTER --services $ECS_SERVICE --region $AWS_REGION
+        
+        echo Deployment completed successfully!
 artifacts:
   files:
     - imagedefinitions.json
+    - image_tag.txt
+    - ecr_uri.txt
+    - new_task_def_arn.txt
+    - current-task-def.json
+    - new-task-def.json
