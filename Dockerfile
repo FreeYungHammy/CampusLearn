@@ -39,6 +39,7 @@ ENV PORT=5000
 # Install required system dependencies for onnxruntime and sharp
 RUN apt-get update && apt-get install -y \
     wget \
+    curl \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 

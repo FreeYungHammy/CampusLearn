@@ -35,7 +35,7 @@ app.get("/", (_req, res) => {
   res.json({
     status: "ok",
     service: "campuslearn-api",
-    version: process.env.npm_package_version ?? "unknown",
+    version: process.env.VERSION ?? "unknown",
   });
 });
 
