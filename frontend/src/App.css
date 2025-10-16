@@ -3546,7 +3546,8 @@ btn-success:hover {
 }
 
 /* My Content Styles */
-#mycontent-view {
+#mycontent-view,
+#tutor-content-view {
   padding: 20px;
   max-width: 1200px;
   margin: 0 auto;
@@ -3615,7 +3616,8 @@ btn-success:hover {
 }
 
 /* Specific styling for My Content subjects container */
-#mycontent-view .subjects-container {
+#mycontent-view .subjects-container,
+#tutor-content-view .subjects-container {
   min-height: 50vh; /* ensure subjects container has enough height */
   padding-bottom: 20px; /* add bottom padding to prevent cut-off */
 }
@@ -4810,7 +4812,8 @@ btn-success:hover {
 }
 
 @media (max-width: 768px) {
-  #mycontent-view {
+  #mycontent-view,
+  #tutor-content-view {
     padding: 16px;
     min-height: 90vh; /* ensure mobile has enough height */
   }
@@ -4833,7 +4836,8 @@ btn-success:hover {
     min-height: 35vh; /* ensure mobile grid has enough height */
   }
 
-  #mycontent-view .subjects-container {
+  #mycontent-view .subjects-container,
+  #tutor-content-view .subjects-container {
     min-height: 45vh; /* adjust mobile subjects container height */
     padding-bottom: 15px; /* adjust mobile bottom padding */
   }
@@ -6930,12 +6934,14 @@ body,
 }
 
 /* Override for My Content page subjects container */
-#mycontent-view .subjects-container {
+#mycontent-view .subjects-container,
+#tutor-content-view .subjects-container {
   display: block !important; /* Let the subjects-grid handle the layout */
 }
 
 /* Force 2-column layout for My Content subjects grid */
-#mycontent-view .subjects-grid {
+#mycontent-view .subjects-grid,
+#tutor-content-view .subjects-grid {
   display: grid !important;
   grid-template-columns: repeat(2, minmax(250px, 1fr)) !important;
   gap: 20px 20px !important;
@@ -6946,7 +6952,8 @@ body,
 }
 
 /* Force fixed width on subject cards */
-#mycontent-view .subject-card {
+#mycontent-view .subject-card,
+#tutor-content-view .subject-card {
   height: 150px !important;
   width: 500px !important;
   max-width: 100% !important;
@@ -6954,37 +6961,43 @@ body,
 }
 
 /* Larger text and icons for My Content subject cards */
-#mycontent-view .subject-card h4 {
+#mycontent-view .subject-card h4,
+#tutor-content-view .subject-card h4 {
   font-size: 20px !important;
   font-weight: 700 !important;
   margin-bottom: 8px !important;
 }
 
-#mycontent-view .subject-card .file-count {
+#mycontent-view .subject-card .file-count,
+#tutor-content-view .subject-card .file-count {
   font-size: 16px !important;
   font-weight: 600 !important;
 }
 
-#mycontent-view .subject-card .subject-icon {
+#mycontent-view .subject-card .subject-icon,
+#tutor-content-view .subject-card .subject-icon {
   width: 60px !important;
   height: 60px !important;
   font-size: 24px !important;
 }
 
-#mycontent-view .subject-card .subject-arrow {
+#mycontent-view .subject-card .subject-arrow,
+#tutor-content-view .subject-card .subject-arrow {
   font-size: 18px !important;
 }
 
 /* Responsive overrides for My Content subjects grid */
 @media (max-width: 768px) {
-  #mycontent-view .subjects-grid {
+  #mycontent-view .subjects-grid,
+  #tutor-content-view .subjects-grid {
     grid-template-columns: 1fr !important;
     gap: 16px !important;
     max-width: 100% !important;
     padding: 0 16px !important;
   }
 
-  #mycontent-view .subject-card {
+  #mycontent-view .subject-card,
+  #tutor-content-view .subject-card {
     width: 100% !important;
     max-width: 100% !important;
     min-width: auto !important;
@@ -6993,7 +7006,8 @@ body,
     margin: 0 !important;
   }
 
-  #mycontent-view .subject-card h4 {
+  #mycontent-view .subject-card h4,
+  #tutor-content-view .subject-card h4 {
     font-size: 16px !important;
     font-weight: 600 !important;
     margin-bottom: 4px !important;
@@ -7001,23 +7015,27 @@ body,
     overflow-wrap: break-word !important;
   }
 
-  #mycontent-view .subject-card .file-count {
+  #mycontent-view .subject-card .file-count,
+  #tutor-content-view .subject-card .file-count {
     font-size: 14px !important;
     font-weight: 500 !important;
   }
 
-  #mycontent-view .subject-card .subject-icon {
+  #mycontent-view .subject-card .subject-icon,
+  #tutor-content-view .subject-card .subject-icon {
     width: 40px !important;
     height: 40px !important;
     font-size: 18px !important;
     flex-shrink: 0 !important;
   }
 
-  #mycontent-view .subject-card .subject-arrow {
+  #mycontent-view .subject-card .subject-arrow,
+  #tutor-content-view .subject-card .subject-arrow {
     font-size: 14px !important;
   }
 
-  #mycontent-view .subject-info {
+  #mycontent-view .subject-info,
+  #tutor-content-view .subject-info {
     flex: 1 !important;
     min-width: 0 !important;
     overflow: hidden !important;
@@ -7026,24 +7044,29 @@ body,
 
 /* Extra small mobile devices */
 @media (max-width: 480px) {
-  #mycontent-view .subjects-grid {
+  #mycontent-view .subjects-grid,
+  #tutor-content-view .subjects-grid {
     padding: 0 12px !important;
     gap: 12px !important;
   }
 
-  #mycontent-view .subject-card {
+  #mycontent-view .subject-card,
+  #tutor-content-view .subject-card {
     padding: 12px !important;
   }
 
-  #mycontent-view .subject-card h4 {
+  #mycontent-view .subject-card h4,
+  #tutor-content-view .subject-card h4 {
     font-size: 15px !important;
   }
 
-  #mycontent-view .subject-card .file-count {
+  #mycontent-view .subject-card .file-count,
+  #tutor-content-view .subject-card .file-count {
     font-size: 13px !important;
   }
 
-  #mycontent-view .subject-card .subject-icon {
+  #mycontent-view .subject-card .subject-icon,
+  #tutor-content-view .subject-card .subject-icon {
     width: 36px !important;
     height: 36px !important;
     font-size: 16px !important;
@@ -7243,7 +7266,8 @@ body,
     padding: 2px 6px;
   }
 
-  #mycontent-view {
+  #mycontent-view,
+  #tutor-content-view {
     min-height: 95vh; /* ensure smallest screens have enough height */
   }
 
@@ -7260,7 +7284,8 @@ body,
     min-height: 40vh; /* ensure grid has enough height on smallest screens */
   }
 
-  #mycontent-view .subjects-container {
+  #mycontent-view .subjects-container,
+  #tutor-content-view .subjects-container {
     min-height: 50vh; /* adjust smallest screen subjects container height */
     padding-bottom: 10px; /* adjust smallest screen bottom padding */
   }
