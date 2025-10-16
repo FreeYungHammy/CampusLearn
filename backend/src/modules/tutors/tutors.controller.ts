@@ -13,18 +13,23 @@ export const TutorController = {
 
   list: async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { limit, offset, searchQuery, subjects, rating, sortBy } = req.query;
+      const { limit, offset, searchQuery, subjects, rating, sortBy } =
+        req.query;
       const parsedLimit = limit ? parseInt(limit as string, 10) : 10;
       const parsedOffset = offset ? parseInt(offset as string, 10) : 0;
 
       const filters = {
         searchQuery: searchQuery as string,
-        subjects: subjects ? (subjects as string).split(',') : [],
+        subjects: subjects ? (subjects as string).split(",") : [],
         rating: rating ? parseFloat(rating as string) : 0,
         sortBy: sortBy as string,
       };
 
-      const result = await TutorService.list(parsedLimit, parsedOffset, filters);
+      const result = await TutorService.list(
+        parsedLimit,
+        parsedOffset,
+        filters,
+      );
       res.json(result);
     } catch (e) {
       console.error("Error in TutorController.list:", e);

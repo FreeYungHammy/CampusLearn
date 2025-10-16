@@ -11,6 +11,7 @@ r.patch("/profile", requireAuth, UserController.updateProfile);
 r.patch("/password", requireAuth, UserController.updatePassword);
 r.patch("/enrolled-courses", requireAuth, UserController.updateEnrolledCourses);
 r.get("/", UserController.list);
+r.get("/stats", UserController.getUserStats);
 r.get("/:userId/pfp", UserController.getPfp);
 r.patch("/:id", UserController.update);
 

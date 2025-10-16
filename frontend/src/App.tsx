@@ -23,7 +23,6 @@ import ResetPassword from "./pages/Auth/ResetPassword";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
 import Layout from "./components/Layout";
-import ChatWidget from "./components/ChatWidget";
 
 const Messages = React.lazy(() => import("./pages/Messages"));
 
@@ -33,8 +32,12 @@ import { useGlobalSocket } from "./hooks/useGlobalSocket";
 
 import { useAuthStore } from "./store/authStore";
 import LogoutConfirmationModal from "./components/LogoutConfirmationModal";
+
+import BotpressChat from "./components/BotpressChat/BotpressChat";
+
 import { VideoCallPage } from "./pages/Call/VideoCallPage";
 import { CallNotification } from "./components/CallNotification";
+
 
 import "./App.css";
 
@@ -92,13 +95,15 @@ function App() {
         </Routes>
       </Suspense>
 
+      <BotpressChat />
       {showLogoutModal && <LogoutConfirmationModal />}
-      
+
       {/* Call Notifications */}
       {!isCallPopup && <CallNotification />}
       
       {/* Floating Chat Widget */}
       {!isCallPopup && <ChatWidget />}
+
     </>
   );
 }
