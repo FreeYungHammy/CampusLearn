@@ -111,6 +111,7 @@ export const useBookingStore = create<BookingState>()(
             error: error instanceof Error ? error.message : 'Failed to create booking',
             isLoading: false 
           });
+          throw error;
         }
       },
 

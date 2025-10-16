@@ -4,7 +4,7 @@ import { type ChatMessage, type SendMessagePayload } from "@/types/ChatMessage";
 import { useAuthStore } from "@/store/authStore";
 
 // Hardcode the URL to avoid any environment variable issues
-const SOCKET_BASE_URL = "http://localhost:5001";
+const SOCKET_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
 
 /* -----------------------------------------------------------
    Module-level SINGLETON + listener registry

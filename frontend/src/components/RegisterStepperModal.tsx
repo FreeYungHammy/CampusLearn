@@ -256,7 +256,7 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
             .test(
               "fileType",
               "Only PDF files are accepted",
-              (value) => value && value.type === "application/pdf",
+              (value) => value && (value as File).type === "application/pdf",
             ),
         otherwise: (schema) => schema.notRequired(),
       }),
@@ -348,7 +348,7 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
   };
 
   return (
-    <Dialog isOpen={show} onClose={handleClose} width="lg">
+    <Dialog isOpen={show} onClose={handleClose} width="lg" labelledById="register-modal">
       {" "}
       {/* Change onClose to handleClose */}
       <div className="register-stepper-modal">
@@ -364,10 +364,15 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
           <div className="modal-body">
             {!registrationSuccess && (
               <Stepper
-                steps={steps}
                 currentStep={currentStep}
-                onStepClick={setCurrentStep}
-              />
+                onStepChange={setCurrentStep}
+              >
+                {steps.map((step, index) => (
+                  <div key={index} className="step-content">
+                    {step}
+                  </div>
+                ))}
+              </Stepper>
             )}
             <div
               className={`step-content ${transitionDirection === "prev" ? "back-transition" : ""}`}
@@ -644,7 +649,7 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
                           <i className="fas fa-cloud-upload-alt"></i>
                           <span className="file-upload-text">
                             {formik.values.qualificationFile
-                              ? formik.values.qualificationFile.name
+                              ? (formik.values.qualificationFile as File).name
                               : "Choose file or drag and drop"}
                           </span>
                           <span className="file-upload-subtext">
@@ -661,7 +666,7 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
                       {formik.values.qualificationFile && (
                         <div className="file-preview">
                           <i className="fas fa-file"></i>
-                          <span>{formik.values.qualificationFile.name}</span>
+                          <span>{(formik.values.qualificationFile as File).name}</span>
                           <button
                             type="button"
                             className="file-remove"
@@ -703,7 +708,7 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
                           className="subject-checkbox"
                           name="subjects"
                           value={subject}
-                          checked={formik.values.subjects.includes(subject)}
+                          checked={(formik.values.subjects as string[]).includes(subject)}
                           onChange={formik.handleChange}
                         />
                         <label htmlFor={subject} className="subject-label">

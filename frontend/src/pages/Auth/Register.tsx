@@ -287,7 +287,7 @@ const Register = () => {
                     className="subject-checkbox"
                     name="subjects"
                     value={subject}
-                    checked={formik.values.subjects.includes(subject)}
+                    checked={(formik.values.subjects as string[]).includes(subject)}
                     onChange={formik.handleChange}
                   />
                   <label htmlFor={subject} className="subject-label">

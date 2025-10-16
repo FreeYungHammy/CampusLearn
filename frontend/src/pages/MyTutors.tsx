@@ -56,7 +56,7 @@ const MyTutors = () => {
   const handleConfirmUnsubscribe = async () => {
     if (!token || !selectedTutor) return;
     try {
-      await unsubscribeFromTutor(selectedTutor.id, token);
+      await unsubscribeFromTutor(selectedTutor.id);
       setTutors((prev) =>
         prev.filter((tutor) => tutor.id !== selectedTutor.id),
       );

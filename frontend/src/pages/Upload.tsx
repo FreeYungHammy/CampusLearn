@@ -190,7 +190,7 @@ const Upload = () => {
                 <option value="" disabled>
                   Select a subject
                 </option>
-                {tutorSubjects.map((sub: string) => (
+                {tutorSubjects?.map((sub: string) => (
                   <option key={sub} value={sub}>
                     {sub}
                   </option>

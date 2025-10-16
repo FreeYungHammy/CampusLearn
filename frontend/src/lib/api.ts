@@ -9,10 +9,10 @@ export function resolveBaseUrl(): string {
   if (configured && /^(https?:)?\/\//.test(configured)) return configured; // absolute
   if (configured && configured.startsWith("/")) {
     // Always map relative to backend dev server (no Vite proxy configured)
-    return "http://localhost:5001" + configured;
+        return (import.meta.env.VITE_API_URL || "http://localhost:5001") + configured;
   }
   // default: explicit backend dev URL
-  return "http://localhost:5001/api";
+  return (import.meta.env.VITE_API_URL || "http://localhost:5001") + "/api";
 }
 
 export const apiBaseUrl = resolveBaseUrl();

@@ -112,9 +112,9 @@ const TutorBookingModal: React.FC<TutorBookingModalProps> = ({
             result.message || "Tutor is not available at this time";
 
           // Add more context based on conflict type
-          if (result.conflictType === "student") {
+          if ((result as any).conflictType === "student") {
             errorMessage = `❌ You already have another booking scheduled at this time. ${result.message}`;
-          } else if (result.conflictType === "tutor") {
+          } else if ((result as any).conflictType === "tutor") {
             errorMessage = `❌ Tutor is not available at this time. ${result.message}`;
           }
 

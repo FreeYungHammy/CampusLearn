@@ -84,7 +84,7 @@ const DotGrid: React.FC<DotGridProps> = ({
     return p;
   }, [dotSize]);
 
-  const buildGrid = useCallback(() => {
+  const buildGrid = useCallback((): void => {
     const wrap = wrapperRef.current;
     const canvas = canvasRef.current;
     if (!wrap || !canvas) return;
@@ -172,15 +172,17 @@ const DotGrid: React.FC<DotGridProps> = ({
   useEffect(() => {
     buildGrid();
     let ro: ResizeObserver | null = null;
+    const handleResizeObserver: ResizeObserverCallback = () => (buildGrid as any)();
+    const handleResizeEvent: EventListener = () => (buildGrid as any)();
     if ('ResizeObserver' in window) {
-      ro = new ResizeObserver(buildGrid);
+      ro = new ResizeObserver(handleResizeObserver);
       wrapperRef.current && ro.observe(wrapperRef.current);
     } else {
-      window.addEventListener('resize', buildGrid);
+      (window as any).addEventListener('resize', handleResizeEvent);
     }
     return () => {
       if (ro) ro.disconnect();
-      else window.removeEventListener('resize', buildGrid);
+      else (window as any).removeEventListener('resize', handleResizeEvent);
     };
   }, [buildGrid]);
 
