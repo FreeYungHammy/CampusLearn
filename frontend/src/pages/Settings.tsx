@@ -335,7 +335,7 @@ const Settings = () => {
   };
 
   const pfpUrl = user
-    ? `${(import.meta.env.VITE_API_URL || "http://localhost:5001").replace(/\/$/, '')}/api/users/${user.id}/pfp?t=${pfpTimestamps[user.id] || 0}`
+    ? `${(import.meta.env.VITE_API_URL as string).replace(/\/$/, '')}/api/users/${user.id}/pfp?t=${pfpTimestamps[user.id] || 0}`
     : "";
 
   return (

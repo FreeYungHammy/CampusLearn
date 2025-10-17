@@ -33,8 +33,7 @@ export function usePeerConnection() {
   }, [localStream]);
 
   const init = async (opts: InitOptions = {}) => {
-    // Hardcode the base URL to avoid environment variable issues
-      const baseURL = import.meta.env.VITE_API_URL || "http://localhost:5001/api";
+    const baseURL = (import.meta.env.VITE_API_URL as string).replace(/\/$/, "") + "/api";
     const { data: cfg } = await http.get<IceConfigResponse>(`${baseURL}/videos/ice-config`);
     const pc = new RTCPeerConnection({ iceServers: cfg.iceServers });
     pcRef.current = pc;

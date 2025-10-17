@@ -26,7 +26,7 @@ const defaultPfp =
 
 /* ---------- Helpers ---------- */
 const getProfilePictureUrl = (userId: string, bust?: number) => {
-  const baseUrl = (import.meta.env.VITE_API_URL || "http://localhost:5001").replace(/\/$/, '');
+  const baseUrl = (import.meta.env.VITE_API_URL as string).replace(/\/$/, '');
   const cacheBuster = bust ? `?t=${bust}` : "";
   const url = `${baseUrl}/api/users/${userId}/pfp${cacheBuster}`;
   return url;
@@ -689,7 +689,7 @@ const Messages: React.FC = () => {
     try {
       console.log("[video-call] Initiating call notification", { callId, targetUserId: otherId });
       const { io } = await import("socket.io-client");
-      const SOCKET_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
+      const SOCKET_BASE_URL = (import.meta.env.VITE_WS_URL as string).replace(/\/$/, '');
       const url = SOCKET_BASE_URL.replace(/^http/, "ws");
       const token = useAuthStore.getState().token;
       

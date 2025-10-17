@@ -106,7 +106,7 @@ const MyTutors = () => {
       ) : (
         <div className="tutor-grid">
           {tutors.map((tutor) => {
-            const pfpSrc = `${(import.meta.env.VITE_API_URL || "http://localhost:5001").replace(/\/$/, '')}/api/users/${tutor.userId}/pfp?t=${pfpTimestamps[tutor.userId] || 0}`;
+            const pfpSrc = `${(import.meta.env.VITE_API_URL as string).replace(/\/$/, '')}/api/users/${tutor.userId}/pfp?t=${pfpTimestamps[tutor.userId] || 0}`;
 
             return (
               <div key={tutor.id} className="tutor-card">

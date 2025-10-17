@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { io, Socket } from "socket.io-client";
 import { useAuthStore } from "../store/authStore";
 
-const SOCKET_URL = import.meta.env.VITE_WS_URL || "ws://localhost:5001";
+const SOCKET_URL = import.meta.env.VITE_WS_URL as string;
 
 let socket: Socket | null = null;
 
