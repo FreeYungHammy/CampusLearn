@@ -14,7 +14,7 @@ User → Render (Static Frontend) → AWS Backend (Dynamic API)
 - ✅ GitHub repository with frontend code
 - ✅ AWS backend running and accessible
 - ✅ Render account (free tier available)
-- ✅ Backend URL: `http://campuslearn-alb-322147549.af-south-1.elb.amazonaws.com`
+- ✅ Backend URL: `https://campuslearn-api.run.place` (HTTPS with SSL)
 
 ## 📝 Step-by-Step Implementation
 
@@ -22,8 +22,9 @@ User → Render (Static Frontend) → AWS Backend (Dynamic API)
 #### 1.1 Environment Variables Setup
 Create/update `.env` file in frontend directory:
 ```bash
-# Production API URL
-VITE_API_URL=http://campuslearn-alb-322147549.af-south-1.elb.amazonaws.com
+# Production API URL (HTTPS with SSL)
+VITE_API_URL=https://campuslearn-api.run.place
+VITE_WS_URL=wss://campuslearn-api.run.place
 
 # Optional: Enable production optimizations
 VITE_NODE_ENV=production
@@ -70,7 +71,8 @@ export default defineConfig({
 #### 2.3 Environment Variables in Render
 Add these environment variables in Render dashboard:
 ```
-VITE_API_URL = http://campuslearn-alb-322147549.af-south-1.elb.amazonaws.com
+VITE_API_URL = https://campuslearn-api.run.place
+VITE_WS_URL = wss://campuslearn-api.run.place
 VITE_NODE_ENV = production
 ```
 
@@ -95,7 +97,8 @@ Update `frontend/package.json` scripts if needed:
 #### 3.2 CORS Configuration
 Ensure AWS backend allows requests from Render domain:
 - Update `CORS_ORIGINS` in ECS task definition to include Render URL
-- Example: `http://localhost:5173,http://localhost:8080,http://localhost:5001,https://campuslearn-frontend.onrender.com`
+- Example: `http://localhost:5173,http://localhost:8080,http://localhost:5001,https://campuslearn.onrender.com`
+- **HTTPS Required**: All production URLs must use HTTPS
 
 #### 3.3 Health Check Setup
 Render will automatically check:
@@ -300,7 +303,8 @@ jobs:
 ```bash
 # 1. Configure environment
 cd frontend
-echo "VITE_API_URL=http://campuslearn-alb-322147549.af-south-1.elb.amazonaws.com" > .env.production
+echo "VITE_API_URL=https://campuslearn-api.run.place" > .env.production
+echo "VITE_WS_URL=wss://campuslearn-api.run.place" >> .env.production
 
 # 2. Test build locally
 npm run build
@@ -308,7 +312,7 @@ npm run preview
 
 # 3. Push to GitHub (triggers Render deployment)
 git add .
-git commit -m "Configure frontend for Render deployment"
+git commit -m "Configure frontend for Render deployment with HTTPS"
 git push origin main
 
 # 4. Monitor deployment in Render dashboard

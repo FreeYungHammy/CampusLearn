@@ -4,9 +4,10 @@ A modern educational platform connecting students and tutors with real-time comm
 
 ## 🚀 Live Application
 
-- **Backend API**: http://campuslearn-alb-322147549.af-south-1.elb.amazonaws.com
-- **Frontend**: Coming soon (Render deployment)
-- **Health Check**: http://campuslearn-alb-322147549.af-south-1.elb.amazonaws.com/health
+- **Frontend**: https://campuslearn.onrender.com
+- **Backend API**: https://campuslearn-api.run.place
+- **Health Check**: https://campuslearn-api.run.place/api/health
+- **Status**: Production Ready
 
 ## 🏗️ Architecture
 
@@ -26,13 +27,16 @@ A modern educational platform connecting students and tutors with real-time comm
 - **File Storage**: Google Cloud Storage
 - **AI Integration**: Botpress for chatbot functionality
 
-### **Infrastructure** (AWS)
+### **Infrastructure** (AWS + Render)
 - **Container Orchestration**: Amazon ECS with Fargate
-- **Load Balancing**: Application Load Balancer (ALB)
+- **Load Balancing**: Application Load Balancer (ALB) with SSL
 - **Container Registry**: Amazon ECR
 - **CI/CD**: AWS CodePipeline with CodeBuild
 - **Networking**: VPC with public/private subnets
 - **Monitoring**: CloudWatch Logs
+- **Frontend Hosting**: Render (Static Site)
+- **Custom Domain**: campuslearn-api.run.place with SSL certificate
+- **Security**: HTTPS enforcement, CSP headers, HSTS
 
 ## 🛠️ Development Setup
 
@@ -78,8 +82,13 @@ BOTPRESS_PAT=your-botpress-pat
 
 ### **Frontend (.env)**
 ```env
+# Local Development
 VITE_API_URL=http://localhost:5001
-VITE_WS_URL=http://localhost:5001
+VITE_WS_URL=ws://localhost:5001
+
+# Production (Render)
+VITE_API_URL=https://campuslearn-api.run.place
+VITE_WS_URL=wss://campuslearn-api.run.place
 ```
 
 ## 🚀 Deployment
@@ -103,7 +112,21 @@ aws ecs update-service --cluster strong-dolphin-qr0d3scampuslearn-cluster --serv
 ```
 
 ### **Frontend (Render)**
-Coming soon - will be deployed to Render for static hosting.
+The frontend is deployed to Render as a static site:
+
+1. **Automatic Deployment**: Connected to GitHub repository
+2. **Build Command**: `npm run build`
+3. **Publish Directory**: `dist`
+4. **Environment Variables**:
+   - `VITE_API_URL=https://campuslearn-api.run.place`
+   - `VITE_WS_URL=wss://campuslearn-api.run.place`
+
+**Manual Deployment:**
+```bash
+cd frontend
+npm run build
+# Files are automatically deployed to Render
+```
 
 ## 📊 Key Features
 
@@ -144,6 +167,10 @@ Coming soon - will be deployed to Render for static hosting.
 - Rate limiting
 - Input validation and sanitization
 - Secure file upload handling
+- **HTTPS Enforcement**: All production traffic encrypted
+- **SSL Certificate**: Custom domain with valid certificate
+- **Mixed Content Protection**: CSP headers block insecure resources
+- **HSTS Headers**: Strict Transport Security enabled
 
 ## 📈 Performance Optimizations
 
