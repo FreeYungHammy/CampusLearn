@@ -177,7 +177,6 @@ class EmailService {
             <li>Join engaging forum discussions</li>
             <li>Schedule one-on-one video calls</li>
             <li>Access comprehensive learning resources</li>
-            <li>Track your learning progress</li>
           </ul>
           
           <div style="text-align: center; margin: 30px 0;">
