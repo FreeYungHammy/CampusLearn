@@ -12,6 +12,7 @@ import admin from "../modules/admin";
 import health from "./health";
 import { tutorApplicationRoutes } from "../modules/tutor-applications";
 import { videoRoutes } from "../modules/video";
+import email from "./email";
 
 import mongoose from "mongoose";
 
@@ -34,6 +35,7 @@ r.use("/botpress", botpress);
 r.use("/videos", videoRoutes);
 r.use("/admin", admin);
 r.use("/applications", tutorApplicationRoutes);
+r.use("/email", email);
 r.get("/v1/ping", (_req, res) => {
   res.json({ ok: true, ts: Date.now() });
 });

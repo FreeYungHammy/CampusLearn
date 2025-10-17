@@ -189,7 +189,7 @@ export const UserController = {
       await UserService.forgotPassword(req.body.email);
       res
         .status(200)
-        .json({ message: "Password reset link sent to your email." });
+        .json({ message: "Password reset link sent to your email. Please check your spam/junk folder if you don't see it in your inbox." });
     } catch (e) {
       next(e);
     }

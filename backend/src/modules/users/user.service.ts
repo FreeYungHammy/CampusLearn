@@ -8,6 +8,7 @@ import { StudentModel } from "../../schemas/students.schema";
 import { TutorModel } from "../../schemas/tutor.schema";
 import { AdminModel } from "../../schemas/admin.schema";
 import { UserModel } from "../../schemas/user.schema";
+import { emailService } from "../../services/email.service";
 import type { UserDoc } from "../../schemas/user.schema";
 import fs from "fs";
 import path from "path";
@@ -942,6 +943,21 @@ export const UserService = {
         resetPasswordExpires: passwordResetExpires,
       },
     });
+
+    // Generate the reset link
+    const resetLink = `${process.env.FRONTEND_URL || 'https://campuslearn.onrender.com'}/reset-password/${resetToken}`;
+    
+    // Send password reset email using our new email service
+    try {
+      const emailSent = await emailService.sendPasswordResetEmail(email, resetLink);
+      if (emailSent) {
+        console.log(`Password reset email sent to ${email}`);
+      } else {
+        console.log(`Failed to send password reset email to ${email}`);
+      }
+    } catch (error) {
+      console.error(`Error sending password reset email to ${email}:`, error);
+    }
 
     console.log(`Password reset token for ${email}: ${resetToken}`);
   },
