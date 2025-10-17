@@ -374,7 +374,7 @@ const BookingStepperModal: React.FC<BookingStepperModalProps> = ({
   };
 
   const getPfpSrc = (tutor: Tutor) => {
-    return `/api/users/${tutor.userId}/pfp?t=${pfpTimestamps[tutor.userId] || 0}`;
+    return `${(import.meta.env.VITE_API_URL as string).replace(/\/$/, '')}/api/users/${tutor.userId}/pfp?t=${pfpTimestamps[tutor.userId] || 0}`;
   };
 
   // Custom step indicator that respects validation

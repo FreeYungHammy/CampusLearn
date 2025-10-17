@@ -13,6 +13,7 @@ const MyStudents = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [conversationStatus, setConversationStatus] = useState<Map<string, boolean>>(new Map());
+  const [pfpTimestamps, setPfpTimestamps] = useState<{ [userId: string]: number }>({});
 
   useEffect(() => {
     if (!user?.id || !token || user.role !== "tutor") {
@@ -35,6 +36,18 @@ const MyStudents = () => {
         // Now use the tutor's MongoDB _id to get subscribed students
         const fetchedStudents = await studentApi.getSubscribedStudents(tutor.id);
         setStudents(fetchedStudents);
+
+        // Initialize pfp timestamps for cache busting
+        const timestamps = fetchedStudents.reduce(
+          (acc: { [userId: string]: number }, student: any) => {
+            if (student.pfpTimestamp) {
+              acc[student.userId] = student.pfpTimestamp;
+            }
+            return acc;
+          },
+          {} as { [userId: string]: number },
+        );
+        setPfpTimestamps(timestamps);
 
         const statusMap = new Map<string, boolean>();
         for (const student of fetchedStudents) {
@@ -104,14 +117,22 @@ const MyStudents = () => {
             <div className="student-card" key={student._id}>
               <div className="student-header">
                 <div className="student-avatar">
-                  {student.pfp ? (
-                    <img
-                      src={`data:${student.pfp.contentType};base64,${student.pfp.data}`}
-                      alt={`${student.name} ${student.surname}`}
-                    />
-                  ) : (
-                    `${student.name.charAt(0)}${student.surname.charAt(0)}`
-                  )}
+                  <img
+                    src={(() => {
+                      const url = `${(import.meta.env.VITE_API_URL as string).replace(/\/$/, '')}/api/users/${student.userId}/pfp?t=${pfpTimestamps[student.userId] || 0}`;
+                      console.log('🖼️ MyStudents Profile Picture URL:', url, 'for student:', student.name);
+                      return url;
+                    })()}
+                    alt={`${student.name} ${student.surname}`}
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src =
+                        "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iNDAiIGN5PSI0MCIgcj0iNDAiIGZpbGw9IiMzNDk4REIiLz4KPHN2ZyB4PSIyMCIgeT0iMjAiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDQwIDQwIiBmaWxsPSJ3aGl0ZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIwIDBDMTMgMzcgMCA0MCAwIDQwSDQwQzQwIDQwIDI3IDM3IDIwIDBaIiBmaWxsPSJ3aGl0ZSIvPgo8Y2lyY2xlIGN4PSIyMCIgY3k9IjE1IiByPSIxMCIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cjwvc3ZnPg==";
+                    }}
+                    onLoad={() => {
+                      console.log('✅ Profile picture loaded for student:', student.userId, student.name);
+                    }}
+                  />
                 </div>
                 <div className="student-name">{`${student.name} ${student.surname}`}</div>
                 <div className="student-course">{student.email}</div>

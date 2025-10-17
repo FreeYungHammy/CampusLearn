@@ -379,9 +379,20 @@ const Forum = () => {
                       "A"
                     ) : thread.author ? (
                       <img
-                        src={`/api/users/${thread.author.userId}/pfp?t=${pfpTimestamps[thread.author.userId] || 0}`}
+                        src={(() => {
+                          const url = `${(import.meta.env.VITE_API_URL as string).replace(/\/$/, '')}/api/users/${thread.author.userId}/pfp?t=${pfpTimestamps[thread.author.userId] || 0}`;
+                          console.log('🖼️ Forum Profile Picture URL:', url);
+                          return url;
+                        })()}
                         alt="Profile"
                         className="pfp-avatar"
+                        onError={(e) => {
+                          console.log('❌ Profile picture failed to load for user:', thread.author.userId);
+                          console.log('❌ Failed URL:', e.currentTarget.src);
+                        }}
+                        onLoad={() => {
+                          console.log('✅ Profile picture loaded for user:', thread.author.userId);
+                        }}
                       />
                     ) : (
                       "?"

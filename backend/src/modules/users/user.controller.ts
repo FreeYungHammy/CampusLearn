@@ -128,7 +128,7 @@ export const UserController = {
       if (!pfp || !pfp.data) {
         return res.status(404).json({ message: "Profile picture not found" });
       }
-      res.setHeader("Content-Type", pfp.contentType);
+      res.setHeader("Content-Type", `image/${pfp.contentType}`);
       res.setHeader("Cache-Control", "public, max-age=1800"); // 30 minute browser cache
       res.send(pfp.data);
     } catch (e) {

@@ -226,11 +226,12 @@ export const UserService = {
         data: pfp.data.toString("base64"),
       };
       await CacheService.set(cacheKey, pfpToCache, 1800);
+      return pfp;
     } else {
+      // Return default profile picture when user has no profile picture
       await CacheService.set(cacheKey, null, 300);
+      return defaultPfp;
     }
-
-    return pfp;
   },
 
   async updatePfp(userId: string, pfp: string) {

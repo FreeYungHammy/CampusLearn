@@ -53,7 +53,7 @@ export default function TutorSelectionModal({
 
   const getPfpSrc = (tutor: Tutor) => {
     // Use the same approach as FindTutors for consistency
-    return `/api/users/${tutor.userId}/pfp?t=${pfpTimestamps[tutor.userId] || 0}`;
+    return `${(import.meta.env.VITE_API_URL as string).replace(/\/$/, '')}/api/users/${tutor.userId}/pfp?t=${pfpTimestamps[tutor.userId] || 0}`;
   };
 
   return (

@@ -433,7 +433,7 @@ const ForumTopic = () => {
                   <div className="anonymous-avatar">A</div>
                 ) : thread.author ? (
                   <img
-                    src={`/api/users/${thread.author.userId}/pfp?t=${pfpTimestamps[thread.author.userId] || 0}`}
+                    src={`${(import.meta.env.VITE_API_URL as string).replace(/\/$/, '')}/api/users/${thread.author.userId}/pfp?t=${pfpTimestamps[thread.author.userId] || 0}`}
                     alt="Profile"
                     className="pfp-avatar"
                   />
@@ -678,7 +678,7 @@ const ForumTopic = () => {
                         <div className="anonymous-avatar">A</div>
                       ) : reply.author ? (
                         <img
-                          src={`/api/users/${reply.author.userId}/pfp?t=${pfpTimestamps[reply.author.userId] || 0}`}
+                          src={`${(import.meta.env.VITE_API_URL as string).replace(/\/$/, '')}/api/users/${reply.author.userId}/pfp?t=${pfpTimestamps[reply.author.userId] || 0}`}
                           alt="Profile"
                           className="pfp-avatar"
                         />
