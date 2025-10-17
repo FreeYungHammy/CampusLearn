@@ -26,24 +26,28 @@ export default function LogoutConfirmationModal() {
 
   return (
     <Dialog isOpen={show} onClose={close} labelledById="logout-title">
-      <h2 id="logout-title" className="modal-title">
-        Confirm Logout
-      </h2>
-      <p className="modal-body">Are you sure you want to end your session?</p>
-
       <div className="modal-actions">
-        <button type="button" className="btn btn-outline" onClick={close}>
-          Cancel
-        </button>
-        <button
-          type="button"
-          className="btn btn-danger"
-          disabled={busy}
-          onClick={onConfirm}
-        >
-          <i className="fas fa-sign-out-alt"></i>
-          {busy ? "Logging out…" : "Logout"}
-        </button>
+        <div className="modal-content-text">
+          <h2 id="logout-title" className="modal-title">
+            Confirm Logout
+          </h2>
+          <p className="modal-body">Are you sure you want to end your session?</p>
+        </div>
+        
+        <div className="modal-buttons">
+          <button
+            type="button"
+            className="btn btn-danger"
+            disabled={busy}
+            onClick={onConfirm}
+          >
+            <i className="fas fa-sign-out-alt"></i>
+            {busy ? "Logging out…" : "Logout"}
+          </button>
+          <button type="button" className="btn btn-outline" onClick={close}>
+            Cancel
+          </button>
+        </div>
       </div>
     </Dialog>
   );

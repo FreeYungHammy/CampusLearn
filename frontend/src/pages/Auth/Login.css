@@ -213,7 +213,6 @@ html, body {
   border: 2px solid var(--primary);
   color: var(--primary);
   font-weight: 600;
-  margin-top: 10px;
 }
 
 .btn-outline:hover {

@@ -20,12 +20,31 @@ const Header = () => {
   const [theme, setTheme] = useState<Theme>("dark");
   const menuRef = useRef<HTMLDivElement | null>(null);
 
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.classList.add('mobile-menu-open');
+    } else {
+      document.body.classList.remove('mobile-menu-open');
+    }
+    
+    // Cleanup on unmount
+    return () => {
+      document.body.classList.remove('mobile-menu-open');
+    };
+  }, [isMobileMenuOpen]);
+
   // Close dropdown on outside click
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
       const t = e.target as Node | null;
-      if (menuRef.current && t && !menuRef.current.contains(t))
+      // Check if click is outside both the profile button area and the dropdown
+      const isOutsideProfile = menuRef.current && t && !menuRef.current.contains(t);
+      const isOutsideDropdown = t && !(t as Element).closest('.cl-menu-portal');
+      
+      if (isOutsideProfile && isOutsideDropdown) {
         setMenuOpen(false);
+      }
     };
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
@@ -144,7 +163,10 @@ const Header = () => {
           {/* Right: Logout icon + Profile menu (theme toggle moved inside) */}
           <div className="cl-right" ref={menuRef}>
             {user && (
-              <div className="cl-mobile-profile-pfp">
+              <div 
+                className="cl-mobile-profile-pfp"
+                onClick={() => setMenuOpen((v) => !v)}
+              >
                 <img
                   src={
                     user.pfp
@@ -202,93 +224,114 @@ const Header = () => {
                     />
                   </button>
 
-                  {menuOpen && (
-                    <div className="cl-menu" role="menu">
-                      {/* Theme toggle moved into dropdown */}
-                      <button
-                        role="menuitemcheckbox"
-                        aria-checked={theme === "dark"}
-                        className="cl-menu__item"
-                        onClick={() => {
-                          toggleTheme();
-                          // keep menu open so user sees the state change
-                        }}
-                        title={`Toggle ${theme === "dark" ? "light" : "dark"} mode`}
-                      >
-                        {theme === "dark" ? (
-                          <i className="fas fa-sun" aria-hidden="true" />
-                        ) : (
-                          <i className="fas fa-moon" aria-hidden="true" />
-                        )}
-                        <span>
-                          {theme === "dark" ? "Light mode" : "Dark mode"}
-                        </span>
-                      </button>
-
-                      <NavLink
-                        to="/settings"
-                        role="menuitem"
-                        className="cl-menu__item"
-                        onClick={() => setMenuOpen(false)}
-                      >
-                        <i className="fas fa-cog" />
-                        <span>Settings</span>
-                      </NavLink>
-
-                      <button
-                        role="menuitem"
-                        className="cl-menu__item"
-                        onClick={() => {
-                          setMenuOpen(false);
-                          openLogoutModal();
-                        }}
-                      >
-                        <i className="fas fa-sign-out-alt" />
-                        <span>Logout</span>
-                      </button>
-                    </div>
-                  )}
                 </>
               )}
             </div>
           </div>
         </div>
+
       </header>
 
+      {/* Desktop Profile Dropdown - MOVED OUTSIDE HEADER */}
+      {menuOpen && (
+        <div className="cl-menu cl-menu-portal" role="menu">
+          {/* Theme toggle moved into dropdown */}
+          <button
+            role="menuitemcheckbox"
+            aria-checked={theme === "dark"}
+            className="cl-menu__item"
+            onClick={(e) => {
+              console.log('Theme toggle clicked!', e);
+              e.stopPropagation(); // Prevent event bubbling
+              toggleTheme();
+              // keep menu open so user sees the state change
+            }}
+            title={`Toggle ${theme === "dark" ? "light" : "dark"} mode`}
+          >
+            {theme === "dark" ? (
+              <i className="fas fa-sun" aria-hidden="true" />
+            ) : (
+              <i className="fas fa-moon" aria-hidden="true" />
+            )}
+            <span>
+              {theme === "dark" ? "Light mode" : "Dark mode"}
+            </span>
+          </button>
+
+          <NavLink
+            to="/settings"
+            role="menuitem"
+            className="cl-menu__item"
+            onClick={(e) => {
+              console.log('Settings clicked!', e);
+              e.stopPropagation(); // Prevent event bubbling
+              setMenuOpen(false);
+            }}
+          >
+            <i className="fas fa-cog" />
+            <span>Settings</span>
+          </NavLink>
+
+          <button
+            role="menuitem"
+            className="cl-menu__item"
+            onClick={(e) => {
+              console.log('Logout clicked!', e);
+              e.stopPropagation(); // Prevent event bubbling
+              setMenuOpen(false);
+              openLogoutModal();
+            }}
+          >
+            <i className="fas fa-sign-out-alt" />
+            <span>Logout</span>
+          </button>
+        </div>
+      )}
+
+
       {isMobileMenuOpen && (
-        <div className={`cl-mobile-menu ${isMobileMenuOpen ? "open" : ""}`}>
-          <div className="cl-mobile-menu-header">
-            <div className="cl-mobile-menu-user">
-              <img src={pfpUrl} alt="User Avatar" className="user-avatar" />
-              <span className="user-name">
-                {user ? `${user.name} ${user.surname ?? ""}`.trim() : "Guest"}
-              </span>
+        <div 
+          className={`cl-mobile-menu ${isMobileMenuOpen ? "open" : ""}`}
+          onClick={(e) => {
+            // Close menu when clicking on backdrop
+            if (e.target === e.currentTarget) {
+              setIsMobileMenuOpen(false);
+            }
+          }}
+        >
+          <div className="cl-mobile-menu-content">
+            <div className="cl-mobile-menu-header">
+              <div className="cl-mobile-menu-user">
+                <img src={pfpUrl} alt="User Avatar" className="user-avatar" />
+                <span className="user-name">
+                  {user ? `${user.name} ${user.surname ?? ""}`.trim() : "Guest"}
+                </span>
+              </div>
+              <button
+                className="cl-mobile-menu-close-btn"
+                aria-label="Close menu"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <i className="fas fa-times"></i>
+              </button>
             </div>
-            <button
-              className="cl-mobile-menu-close-btn"
-              aria-label="Close menu"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              <i className="fas fa-times"></i>
-            </button>
-          </div>
 
-          <div className="cl-mobile-theme-toggle">
-            <span>Theme</span>
-            <button
-              onClick={toggleTheme}
-              className="cl-theme-btn"
-              title={`Toggle ${theme === "dark" ? "light" : "dark"} mode`}
-            >
-              {theme === "dark" ? (
-                <i className="fas fa-sun" aria-hidden="true" />
-              ) : (
-                <i className="fas fa-moon" aria-hidden="true" />
-              )}
-            </button>
-          </div>
+            <div className="cl-mobile-theme-toggle">
+              <span>Theme</span>
+              <button
+                onClick={toggleTheme}
+                className="cl-theme-btn"
+                title={`Toggle ${theme === "dark" ? "light" : "dark"} mode`}
+              >
+                {theme === "dark" ? (
+                  <i className="fas fa-sun" aria-hidden="true" />
+                ) : (
+                  <i className="fas fa-moon" aria-hidden="true" />
+                )}
+              </button>
+            </div>
 
-          <nav className="cl-mobile-nav">
+            <nav className="cl-mobile-nav">
             <NavLink
               to="/schedule"
               className="cl-nav-item"
@@ -409,7 +452,8 @@ const Header = () => {
                 </button>
               </>
             )}
-          </nav>
+            </nav>
+          </div>
         </div>
       )}
 
