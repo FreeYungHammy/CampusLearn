@@ -73,7 +73,55 @@
 }
 
 .topic-title {
-  color: white !important;
+  color: var(--text-color-dark) !important;
+}
+
+[data-theme="dark"] .topic-title {
+  color: var(--text-color-primary) !important;
+}
+
+/* Additional dark mode forum fixes */
+[data-theme="dark"] .forum-container {
+  background: var(--background-color-light);
+  color: var(--text-color-primary);
+}
+
+[data-theme="dark"] .topics-list {
+  background: var(--background-color-light);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .topic-card {
+  background: var(--background-color-light);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .topic-link:hover {
+  background: var(--background-color-hover);
+}
+
+[data-theme="dark"] .forum-pagination {
+  background: var(--background-color-light);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .pagination-btn {
+  background: var(--background-color-light);
+  border-color: var(--border-color);
+  color: var(--text-color-primary);
+}
+
+[data-theme="dark"] .pagination-btn:hover {
+  background: var(--background-color-hover);
+}
+
+[data-theme="dark"] .edit-btn {
+  color: var(--text-color-secondary);
+}
+
+[data-theme="dark"] .edit-btn:hover:not(.disabled) {
+  background: var(--background-color-hover);
+  color: var(--text-color-primary);
 }
 
 .new-topic-btn:hover {

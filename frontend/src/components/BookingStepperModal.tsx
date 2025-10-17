@@ -427,8 +427,29 @@ const BookingStepperModal: React.FC<BookingStepperModalProps> = ({
 
   return (
     <div className="booking-stepper-overlay" onClick={onClose}>
+      {/* Mobile Buttons - Only show on step 1, outside modal wrapper */}
+      {currentStep === 1 && (
+        <>
+          <button
+            className="mobile-cancel-button"
+            onClick={onClose}
+            aria-label="Close booking modal"
+          >
+            Cancel
+          </button>
+          <button
+            className="mobile-continue-button"
+            onClick={() => handleStepChange(2)}
+            disabled={!selectedSubject}
+            aria-label="Continue to next step"
+          >
+            Continue
+          </button>
+        </>
+      )}
+      
       <div
-        className="booking-stepper-overlay-container"
+        className={`booking-stepper-overlay-container ${currentStep === 1 ? 'step-1-active' : ''}`}
         onClick={(e) => e.stopPropagation()}
       >
         <Stepper
@@ -436,7 +457,7 @@ const BookingStepperModal: React.FC<BookingStepperModalProps> = ({
           currentStep={currentStep}
           onStepChange={handleStepChange}
           onFinalStepCompleted={onClose}
-          onCancel={currentStep === 4 ? handleBookingSubmit : undefined}
+          onCancel={currentStep === 4 ? (isBookingSubmitted ? onClose : handleBookingSubmit) : undefined}
           backButtonText="Previous"
           nextButtonText={
             currentStep === 4
@@ -447,11 +468,7 @@ const BookingStepperModal: React.FC<BookingStepperModalProps> = ({
           }
           stepCircleContainerClassName="booking-stepper-container"
           contentClassName="booking-stepper-content"
-          footerClassName={
-            currentStep === 4
-              ? "booking-stepper-footer hidden"
-              : "booking-stepper-footer"
-          }
+          footerClassName="booking-stepper-footer"
           renderStepIndicator={renderStepIndicator}
           canProceedToNext={(step) => {
             if (step === 1) return !!selectedSubject; // Need subject selection
@@ -983,53 +1000,48 @@ const ConfirmationStep: React.FC<{
           : "Please review your booking details and confirm to schedule your session."}
       </p>
 
-      <div className="booking-summary">
-        <div className="summary-item">
-          <i className="fas fa-user"></i>
-          <span>
-            Tutor: {selectedTutor?.name} {selectedTutor?.surname}
-          </span>
+      <div className="booking-summary-compact">
+        <div className="summary-row">
+          <div className="summary-item-compact">
+            <i className="fas fa-user"></i>
+            <div className="summary-content">
+              <span className="summary-label">Tutor</span>
+              <span className="summary-value">{selectedTutor?.name} {selectedTutor?.surname}</span>
+            </div>
+          </div>
+          <div className="summary-item-compact">
+            <i className="fas fa-book"></i>
+            <div className="summary-content">
+              <span className="summary-label">Subject</span>
+              <span className="summary-value">{selectedSubject}</span>
+            </div>
+          </div>
         </div>
-        <div className="summary-item">
-          <i className="fas fa-book"></i>
-          <span>Subject: {selectedSubject}</span>
-        </div>
-        <div className="summary-item">
-          <i className="fas fa-calendar"></i>
-          <span>Date: {bookingData.date}</span>
-        </div>
-        <div className="summary-item">
-          <i className="fas fa-clock"></i>
-          <span>Time: {bookingData.time}</span>
-        </div>
-        <div className="summary-item">
-          <i className="fas fa-hourglass-half"></i>
-          <span>Duration: {bookingData.duration} minutes</span>
+        <div className="summary-row">
+          <div className="summary-item-compact">
+            <i className="fas fa-calendar"></i>
+            <div className="summary-content">
+              <span className="summary-label">Date</span>
+              <span className="summary-value">{bookingData.date}</span>
+            </div>
+          </div>
+          <div className="summary-item-compact">
+            <i className="fas fa-clock"></i>
+            <div className="summary-content">
+              <span className="summary-label">Time</span>
+              <span className="summary-value">{bookingData.time}</span>
+            </div>
+          </div>
+          <div className="summary-item-compact">
+            <i className="fas fa-hourglass-half"></i>
+            <div className="summary-content">
+              <span className="summary-label">Duration</span>
+              <span className="summary-value">{bookingData.duration} min</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="modal-actions">
-        {!isBookingSubmitted ? (
-          <>
-            <button
-              type="button"
-              onClick={onPrevious}
-              className="btn-secondary"
-            >
-              Previous
-            </button>
-            <button type="button" onClick={onSubmit} className="btn-primary">
-              <i className="fas fa-calendar-plus"></i>
-              Book Session
-            </button>
-          </>
-        ) : (
-          <button type="button" onClick={onClose} className="btn-primary">
-            <i className="fas fa-check"></i>
-            Complete
-          </button>
-        )}
-      </div>
     </motion.div>
   );
 };

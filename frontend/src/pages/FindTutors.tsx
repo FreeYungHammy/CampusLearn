@@ -551,21 +551,6 @@ const FindTutors = () => {
                 ))}
               </div>
 
-              {selectedSubjects.length > 0 && (
-                <div className="selected-subjects">
-                  {selectedSubjects.map((subject) => (
-                    <div key={subject} className="selected-tag">
-                      {subject}
-                      <button
-                        onClick={() => toggleSubject(subject)}
-                        className="remove-tag"
-                      >
-                        <i className="fas fa-times"></i>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
           </div>
         )}

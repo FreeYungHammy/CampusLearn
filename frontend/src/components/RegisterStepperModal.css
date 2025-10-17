@@ -59,9 +59,6 @@
     margin: 1rem auto;
   }
 
-  .modal-body {
-    padding: 1rem 1.5rem;
-  }
 
   .role-selection {
     gap: 1rem;
@@ -137,7 +134,7 @@
   flex-shrink: 0;
 }
 
-.modal-title {
+.register-stepper-modal .modal-title {
   font-size: 1.5rem;
   font-weight: 600;
   color: var(--text-color);
@@ -161,8 +158,8 @@
   color: var(--text-color);
 }
 
-.modal-body {
-  padding: 1.5rem 2rem;
+.register-stepper-modal .modal-body {
+  padding: 24px;
   flex-grow: 1;
   overflow-y: auto;
   max-height: calc(80vh - 120px);
@@ -220,7 +217,7 @@
   }
 }
 
-.modal-actions {
+.register-stepper-modal .modal-actions {
   padding: 1rem 1.5rem;
   border-top: 1px solid var(--border-color);
   display: flex;
