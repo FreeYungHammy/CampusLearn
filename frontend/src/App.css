@@ -28,14 +28,6 @@
   --message-sent: #3498db;
   --message-received: #e3f2fd;
 
-  /* Dark mode CSS variables */
-  --surface: #ffffff;
-  --surface-2: #f8f9fa;
-  --text-primary: #2c3e50;
-  --text-secondary: #6c757d;
-  --border-light: #dfe6e9;
-  --bg: #ffffff;
-
   /* Effects & rhythm */
   --card-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
   --elev-1: 0 6px 18px rgba(0, 0, 0, 0.08);
@@ -3531,25 +3523,26 @@ btn-success:hover {
 
 .student-avatar {
   width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  margin: 0 auto 14px;
-  background: #3498db;
-  border: 3px solid #3498db;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  font-size: 32px;
-  font-weight: 800;
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
-}
 
-.student-avatar img {
-  width: 100%;
-  height: 100%;
+  height: 80px;
+
   border-radius: 50%;
-  object-fit: cover;
+
+  margin: 0 auto 14px;
+
+  background: #fff;
+
+  color: var(--primary);
+
+  display: grid;
+
+  place-items: center;
+
+  font-size: 32px;
+
+  font-weight: 800;
+
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
 }
 
 /* My Content Styles */
@@ -5019,14 +5012,6 @@ main.content {
   /* Text */
   --dark: #e5e7eb;
   --gray: #9aa3b2;
-
-  /* Dark mode CSS variables */
-  --surface: #1a1a1a;
-  --surface-2: #2d2d2d;
-  --text-primary: #ffffff;
-  --text-secondary: #b0b0b0;
-  --border-light: #404040;
-  --bg: #0f0f0f;
 
   /* Surfaces */
   --white: #0f172a; /* used for .header, cards, etc. */
@@ -7525,104 +7510,6 @@ body,
   background: var(--surface);
   border-color: var(--border);
   color: var(--dark);
-}
-
-/* Forum post dark mode fixes */
-[data-theme="dark"] .topic-card {
-  background: var(--surface-2);
-  border-color: var(--border-light);
-}
-
-[data-theme="dark"] .topic-title {
-  color: var(--text-primary) !important;
-}
-
-[data-theme="dark"] .topic-excerpt {
-  color: var(--text-secondary) !important;
-}
-
-[data-theme="dark"] .topic-subject {
-  background: var(--surface);
-  color: var(--text-primary);
-  border-color: var(--border-light);
-}
-
-[data-theme="dark"] .author-name {
-  color: var(--text-primary) !important;
-}
-
-[data-theme="dark"] .post-time {
-  color: var(--text-secondary) !important;
-}
-
-[data-theme="dark"] .stat-item {
-  color: var(--text-secondary) !important;
-}
-
-[data-theme="dark"] .topic-link {
-  color: inherit;
-}
-
-[data-theme="dark"] .topic-link:hover .topic-title {
-  color: var(--primary) !important;
-}
-
-/* General dark mode fixes for all pages */
-[data-theme="dark"] body {
-  background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
-  color: var(--text-primary);
-}
-
-[data-theme="dark"] h1,
-[data-theme="dark"] h2,
-[data-theme="dark"] h3,
-[data-theme="dark"] h4,
-[data-theme="dark"] h5,
-[data-theme="dark"] h6 {
-  color: var(--text-primary) !important;
-}
-
-[data-theme="dark"] p {
-  color: var(--text-secondary) !important;
-}
-
-[data-theme="dark"] .card,
-[data-theme="dark"] .settings-card,
-[data-theme="dark"] .stat-card,
-[data-theme="dark"] .tutor-card {
-  background: var(--surface-2) !important;
-  border-color: var(--border-light) !important;
-}
-
-[data-theme="dark"] .card-title,
-[data-theme="dark"] .settings-title,
-[data-theme="dark"] .section-title {
-  color: var(--text-primary) !important;
-}
-
-[data-theme="dark"] .form-control,
-[data-theme="dark"] input,
-[data-theme="dark"] textarea,
-[data-theme="dark"] select {
-  background: var(--surface) !important;
-  border-color: var(--border-light) !important;
-  color: var(--text-primary) !important;
-}
-
-[data-theme="dark"] .form-label,
-[data-theme="dark"] label {
-  color: var(--text-primary) !important;
-}
-
-[data-theme="dark"] .btn-primary {
-  background-color: var(--primary) !important;
-  color: white !important;
-}
-
-[data-theme="dark"] .btn-secondary {
-  background-color: var(--surface-2) !important;
-  border-color: var(--border-light) !important;
-  color: var(--text-primary) !important;
 }
 
 /* Responsive design */
