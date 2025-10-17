@@ -358,9 +358,11 @@ const Messages: React.FC = () => {
 
   const handleUserStatusChange = useCallback(
     (userId: string, status: "online" | "offline", lastSeen: Date) => {
+      console.log(`🟢 Status update received: User ${userId} is ${status} (last seen: ${lastSeen})`);
       setUserOnlineStatus((prev) => {
         const m = new Map(prev);
         m.set(userId, { isOnline: status === "online", lastSeen });
+        console.log(`📊 Updated status map:`, Array.from(m.entries()));
         return m;
       });
     },

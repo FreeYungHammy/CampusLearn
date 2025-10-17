@@ -93,6 +93,7 @@ function attachCoreListeners(s: Socket) {
   });
 
   s.on("user_status_change", (data: { userId: string; status: "online" | "offline"; lastSeen: string | Date }) => {
+    console.log("🔌 Socket received user_status_change:", data);
     const lastSeenDate = new Date(data.lastSeen);
     onUserStatusSubs.forEach((cb) => cb(data.userId, data.status, lastSeenDate));
   });

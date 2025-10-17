@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview --port $PORT --host 0.0.0.0",
+    "preview": "vite preview --port 5001 --host 0.0.0.0",
     "lint": "eslint . --ext .ts,.tsx --max-warnings=0",
     "fmt": "prettier --write ."
   },
@@ -38,11 +38,8 @@
     "@types/react": "^18.3.9",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^5.0.2",
-    "autoprefixer": "^10.4.20",
     "cypress": "^15.4.0",
-    "postcss": "^8.4.47",
     "prettier": "^3.6.2",
-    "tailwindcss": "^3.4.14",
     "terser": "^5.44.0",
     "typescript": "^5.5.4",
     "vite": "^7.1.4"
