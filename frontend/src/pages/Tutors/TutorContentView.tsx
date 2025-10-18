@@ -456,7 +456,7 @@ const TutorContentView = () => {
                                   {file.contentType !== "application/pdf" && (
                                     <a
                                       href={`${apiBaseUrl}/files/${fileId}/binary?download=true`}
-                                      className="btn btn-sm btn-outline"
+                                      className="btn btn-sm btn-outline-download"
                                       download
                                     >
                                       <i className="fas fa-download"></i>{" "}
