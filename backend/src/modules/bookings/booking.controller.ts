@@ -158,6 +158,7 @@ export const BookingController = {
   async getMyBookings(req: AuthedRequest, res: Response, next: NextFunction) {
     try {
       const user = req.user;
+      
       if (!user) {
         return res.status(401).json({ error: "User not authenticated" });
       }
@@ -189,7 +190,7 @@ export const BookingController = {
     }
   },
 
-  async updateStatus(req: Request, res: Response, next: NextFunction) {
+  async updateStatus(req: AuthedRequest, res: Response, next: NextFunction) {
     try {
       const { status } = req.body;
       const validStatuses = ["confirmed", "cancelled", "completed"];
@@ -198,7 +199,12 @@ export const BookingController = {
         return res.status(400).json({ error: "Invalid status. Must be one of: " + validStatuses.join(", ") });
       }
 
-      const booking = await BookingService.updateStatus(req.params.id, status);
+      // Check authorization - only tutors can update booking status
+      if (req.user?.role !== "tutor") {
+        return res.status(403).json({ error: "Only tutors can update booking status" });
+      }
+
+      const booking = await BookingService.updateStatus(req.params.id, status, req.user);
       if (!booking) {
         return res.status(404).json({ error: "Booking not found" });
       }
@@ -209,9 +215,9 @@ export const BookingController = {
     }
   },
 
-  async cancel(req: Request, res: Response, next: NextFunction) {
+  async cancel(req: AuthedRequest, res: Response, next: NextFunction) {
     try {
-      const booking = await BookingService.updateStatus(req.params.id, "cancelled");
+      const booking = await BookingService.updateStatus(req.params.id, "cancelled", req.user!);
       if (!booking) {
         return res.status(404).json({ error: "Booking not found" });
       }
@@ -221,10 +227,55 @@ export const BookingController = {
     }
   },
 
-  async delete(req: Request, res: Response, next: NextFunction) {
+  async delete(req: AuthedRequest, res: Response, next: NextFunction) {
     try {
-      await BookingService.delete(req.params.id);
+      await BookingService.delete(req.params.id, req.user!);
       res.status(204).send();
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async acceptBooking(req: AuthedRequest, res: Response, next: NextFunction) {
+    try {
+      const booking = await BookingService.acceptBooking(req.params.id, req.user!);
+      res.status(200).json(booking);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async rejectBooking(req: AuthedRequest, res: Response, next: NextFunction) {
+    try {
+      await BookingService.rejectBooking(req.params.id, req.user!);
+      res.status(204).send(); // No content
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async completeBooking(req: AuthedRequest, res: Response, next: NextFunction) {
+    try {
+      const booking = await BookingService.completeBooking(req.params.id, req.user!);
+      res.status(200).json(booking);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  // Auto-reject expired pending bookings (admin endpoint)
+  async autoRejectExpired(req: AuthedRequest, res: Response, next: NextFunction) {
+    try {
+      // Only allow admins to manually trigger this
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can trigger auto-rejection" });
+      }
+
+      const rejectedCount = await BookingService.autoRejectExpiredBookings();
+      res.json({ 
+        message: `Auto-rejected ${rejectedCount} expired pending bookings`,
+        rejectedCount 
+      });
     } catch (error) {
       next(error);
     }
