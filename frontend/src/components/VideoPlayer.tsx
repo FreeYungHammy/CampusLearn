@@ -29,7 +29,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   
   // Get compression status from the hook
   const token = useAuthStore((state) => state.token);
-  const { compressionStatus, compressedQualities, loading: statusLoading } = useVideoCompressionStatus(fileId, token);
+  const { compressionStatus, compressedQualities, loading: statusLoading } = useVideoCompressionStatus(fileId || undefined, token || undefined);
 
   // Quality selection state
   const [currentQuality, setCurrentQuality] = useState<string>("480p");
@@ -121,7 +121,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       optimizedSrc.includes("quality=480p") &&
       !optimizedSrc.includes("compressed")
     ) {
-      setCompressionStatus("compressing");
       console.log(
         `🔄 Video is playing original version, compression may be running in background`,
       );
@@ -133,7 +132,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
       // Auto-hide compression indicator after 10 seconds since background compression is disabled
       setTimeout(() => {
-        setCompressionStatus("none");
         console.log(
           `✅ Compression indicator auto-hidden (background compression disabled)`,
         );
