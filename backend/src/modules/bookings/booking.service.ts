@@ -4,6 +4,7 @@ import { StudentModel } from "../../schemas/students.schema";
 import { TutorModel } from "../../schemas/tutor.schema";
 import { UserModel } from "../../schemas/user.schema";
 import { ChatService } from "../chat/chat.service";
+import { HttpException } from "../../infra/http/HttpException";
 
 export interface CreateBookingRequest {
   studentId: string;
@@ -25,6 +26,7 @@ export interface BookingWithDetails extends BookingDoc {
   };
   tutor: {
     id: string;
+    userId: string;
     name: string;
     surname: string;
     email: string;
@@ -211,7 +213,14 @@ export const BookingService = {
 
   async getByStudent(studentId: string): Promise<BookingWithDetails[]> {
     try {
-      const bookings = await BookingModel.find({ studentId: new Types.ObjectId(studentId) })
+      // First, auto-reject any expired pending bookings
+      await this.autoRejectExpiredBookings();
+      
+      // Get bookings excluding rejected ones
+      const bookings = await BookingModel.find({ 
+        studentId: new Types.ObjectId(studentId),
+        status: { $ne: 'rejected' }
+      })
         .sort({ createdAt: -1 })
         .lean();
 
@@ -228,7 +237,14 @@ export const BookingService = {
 
   async getByTutor(tutorId: string): Promise<BookingWithDetails[]> {
     try {
-      const bookings = await BookingModel.find({ tutorId: new Types.ObjectId(tutorId) })
+      // First, auto-reject any expired pending bookings
+      await this.autoRejectExpiredBookings();
+      
+      // Get bookings excluding rejected ones
+      const bookings = await BookingModel.find({ 
+        tutorId: new Types.ObjectId(tutorId),
+        status: { $ne: 'rejected' }
+      })
         .sort({ createdAt: -1 })
         .lean();
 
@@ -243,11 +259,44 @@ export const BookingService = {
     }
   },
 
-  async updateStatus(id: string, status: "confirmed" | "cancelled" | "completed"): Promise<BookingWithDetails | null> {
+  async updateStatus(id: string, status: "confirmed" | "cancelled" | "completed" | "rejected", user: any): Promise<BookingWithDetails | null> {
     try {
       const booking = await BookingModel.findById(id);
       if (!booking) {
-        throw new Error("Booking not found");
+        throw new HttpException(404, "Booking not found");
+      }
+
+      // Check authorization - tutors can update status, students can only cancel
+      if (user.role === 'tutor') {
+        const tutor = await TutorModel.findByUserId(user.id);
+        if (!tutor || booking.tutorId.toString() !== tutor._id.toString()) {
+          throw new HttpException(403, "You are not authorized to update this booking.");
+        }
+      } else if (user.role === 'student') {
+        // Students can only cancel their own bookings
+        if (status !== 'cancelled') {
+          throw new HttpException(403, "Students can only cancel bookings, not update status.");
+        }
+        const student = await StudentModel.findById(booking.studentId);
+        if (!student || student.userId.toString() !== user.id) {
+          throw new HttpException(403, "You are not authorized to cancel this booking.");
+        }
+        
+        // If student cancels a pending booking, mark it as rejected instead
+        if (booking.status === 'pending') {
+          status = 'rejected';
+          booking.rejectionReason = 'Cancelled by student';
+        }
+      } else {
+        throw new HttpException(403, "You are not authorized to update this booking.");
+      }
+
+      // Validate status transitions
+      if (status === "confirmed" && booking.status !== 'pending') {
+        throw new HttpException(400, "Only pending bookings can be confirmed.");
+      }
+      if (status === "completed" && booking.status !== 'confirmed') {
+        throw new HttpException(400, "Only confirmed bookings can be completed.");
       }
 
       // Update status and timestamp
@@ -258,6 +307,8 @@ export const BookingService = {
         booking.cancelledAt = new Date();
       } else if (status === "completed") {
         booking.completedAt = new Date();
+      } else if (status === "rejected") {
+        booking.rejectedAt = new Date();
       }
 
       await booking.save();
@@ -272,11 +323,22 @@ export const BookingService = {
     }
   },
 
-  async delete(id: string): Promise<void> {
+  async delete(id: string, user: any): Promise<void> {
     try {
       const booking = await BookingModel.findById(id);
       if (!booking) {
-        throw new Error("Booking not found");
+        throw new HttpException(404, "Booking not found");
+      }
+
+      // Check authorization - only the tutor assigned to this booking can delete it
+      const tutor = await TutorModel.findByUserId(user.id);
+      if (!tutor || user.role !== 'tutor' || booking.tutorId.toString() !== tutor._id.toString()) {
+        throw new HttpException(403, "You are not authorized to delete this booking.");
+      }
+
+      // Only allow deletion of pending bookings
+      if (booking.status !== 'pending') {
+        throw new HttpException(400, "Only pending bookings can be deleted.");
       }
 
       await BookingModel.findByIdAndDelete(id);
@@ -334,6 +396,7 @@ export const BookingService = {
 
       return {
         ...booking,
+        id: booking._id.toString(),
         student: {
           id: student._id.toString(),
           name: student.name,
@@ -342,6 +405,7 @@ export const BookingService = {
         },
         tutor: {
           id: tutor._id.toString(),
+          userId: tutor.userId.toString(),
           name: tutor.name,
           surname: tutor.surname,
           email: tutorUser.email,
@@ -353,7 +417,55 @@ export const BookingService = {
     }
   },
 
-  createBookingMessage(booking: BookingDoc, type: "booking_created" | "booking_confirmed" | "booking_cancelled"): string {
+  // Auto-reject expired pending bookings
+  async autoRejectExpiredBookings(): Promise<number> {
+    try {
+      const now = new Date();
+      
+      // Find all pending bookings where the booking time has passed
+      const expiredBookings = await BookingModel.find({
+        status: 'pending',
+        $expr: {
+          $lt: [
+            {
+              $dateAdd: {
+                startDate: { $dateFromString: { dateString: { $concat: ["$date", "T", "$time"] } } },
+                unit: "minute",
+                amount: "$duration"
+              }
+            },
+            now
+          ]
+        }
+      });
+
+      let rejectedCount = 0;
+
+      for (const booking of expiredBookings) {
+        // Mark as rejected
+        booking.status = 'rejected';
+        booking.rejectedAt = new Date();
+        booking.rejectionReason = 'Automatically rejected - booking time has passed';
+        await booking.save();
+
+        // Send notification message
+        await this.sendStatusUpdateMessage(booking, "rejected");
+
+        rejectedCount++;
+      }
+
+      if (rejectedCount > 0) {
+        console.log(`Auto-rejected ${rejectedCount} expired pending bookings`);
+      }
+
+      return rejectedCount;
+    } catch (error) {
+      console.error("Error auto-rejecting expired bookings:", error);
+      throw error;
+    }
+  },
+
+  createBookingMessage(booking: BookingDoc, type: "booking_created" | "booking_confirmed" | "booking_cancelled" | "booking_rejected"): string {
     const date = new Date(booking.date);
     const formattedDate = date.toLocaleDateString();
     
@@ -364,12 +476,14 @@ export const BookingService = {
         return `✅ Booking confirmed: ${booking.subject} session on ${formattedDate} at ${booking.time} (${booking.duration} minutes)`;
       case "booking_cancelled":
         return `❌ Booking cancelled: ${booking.subject} session on ${formattedDate} at ${booking.time}`;
+      case "booking_rejected":
+        return `🚫 Booking rejected: ${booking.subject} session on ${formattedDate} at ${booking.time} - Booking time has passed`;
       default:
         return `Booking update: ${booking.subject} session on ${formattedDate} at ${booking.time}`;
     }
   },
 
-  async sendStatusUpdateMessage(booking: BookingDoc, status: "confirmed" | "cancelled" | "completed"): Promise<void> {
+  async sendStatusUpdateMessage(booking: BookingDoc, status: "confirmed" | "cancelled" | "completed" | "rejected"): Promise<void> {
     try {
       // Get user details for messaging
       const student = await StudentModel.findById(booking.studentId).lean();
@@ -406,5 +520,78 @@ export const BookingService = {
       console.error("Error sending status update message:", error);
       // Don't throw here as the booking update should still succeed
     }
+  },
+
+  async acceptBooking(bookingId: string, user: any): Promise<BookingWithDetails> {
+    const booking = await BookingModel.findById(bookingId);
+    if (!booking) throw new HttpException(404, "Booking not found.");
+
+    const tutor = await TutorModel.findByUserId(user.id);
+    if (!tutor || user.role !== 'tutor' || booking.tutorId.toString() !== tutor._id.toString()) {
+      throw new HttpException(403, "You are not authorized to accept this booking.");
+    }
+
+    if (booking.status !== 'pending') {
+      throw new HttpException(400, "This booking is not pending and cannot be accepted.");
+    }
+
+    booking.status = 'confirmed';
+    booking.confirmedAt = new Date();
+    await booking.save();
+
+    // Send confirmation message
+    await this.sendStatusUpdateMessage(booking, "confirmed");
+
+    const bookingWithDetails = await this.getBookingWithDetails(bookingId);
+    if (!bookingWithDetails) {
+      throw new HttpException(500, "Failed to retrieve booking details after acceptance");
+    }
+    return bookingWithDetails;
+  },
+
+  async rejectBooking(bookingId: string, user: any): Promise<void> {
+    const booking = await BookingModel.findById(bookingId);
+    if (!booking) throw new HttpException(404, "Booking not found.");
+
+    const tutor = await TutorModel.findByUserId(user.id);
+    if (!tutor || user.role !== 'tutor' || booking.tutorId.toString() !== tutor._id.toString()) {
+      throw new HttpException(403, "You are not authorized to reject this booking.");
+    }
+
+    if (booking.status !== 'pending') {
+      throw new HttpException(400, "This booking is not pending and cannot be rejected.");
+    }
+
+    // Send rejection message before deleting
+    await this.sendStatusUpdateMessage(booking, "cancelled");
+    
+    await BookingModel.findByIdAndDelete(bookingId);
+  },
+
+  async completeBooking(bookingId: string, user: any): Promise<BookingWithDetails> {
+    const booking = await BookingModel.findById(bookingId);
+    if (!booking) throw new HttpException(404, "Booking not found.");
+
+    const tutor = await TutorModel.findByUserId(user.id);
+    if (!tutor || user.role !== 'tutor' || booking.tutorId.toString() !== tutor._id.toString()) {
+      throw new HttpException(403, "Only tutors can complete a booking.");
+    }
+
+    if (booking.status !== 'confirmed') {
+      throw new HttpException(400, "Only confirmed bookings can be marked as complete.");
+    }
+
+    booking.status = 'completed';
+    booking.completedAt = new Date();
+    await booking.save();
+
+    // Send completion message
+    await this.sendStatusUpdateMessage(booking, "completed");
+
+    const bookingWithDetails = await this.getBookingWithDetails(bookingId);
+    if (!bookingWithDetails) {
+      throw new HttpException(500, "Failed to retrieve booking details after completion");
+    }
+    return bookingWithDetails;
   },
 };

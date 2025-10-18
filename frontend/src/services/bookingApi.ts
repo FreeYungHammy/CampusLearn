@@ -61,6 +61,7 @@ export interface Booking {
   };
   tutor: {
     id: string;
+    userId: string;
     name: string;
     surname: string;
     email: string;
@@ -98,7 +99,7 @@ export const createBooking = async (bookingData: BookingRequest): Promise<Bookin
 };
 
 export const getBookings = async (): Promise<Booking[]> => {
-  const response = await http.get('/bookings');
+  const response = await http.get('/bookings/my/bookings');
   return response.data;
 };
 
@@ -119,6 +120,21 @@ export const cancelBooking = async (id: string): Promise<Booking> => {
 
 export const deleteBooking = async (id: string): Promise<void> => {
   await http.delete(`/bookings/${id}`);
+};
+
+// New booking lifecycle management endpoints
+export const acceptBooking = async (id: string): Promise<Booking> => {
+  const response = await http.patch(`/bookings/${id}/accept`);
+  return response.data;
+};
+
+export const rejectBooking = async (id: string): Promise<void> => {
+  await http.delete(`/bookings/${id}/reject`);
+};
+
+export const completeBooking = async (id: string): Promise<Booking> => {
+  const response = await http.patch(`/bookings/${id}/complete`);
+  return response.data;
 };
 
 // Check tutor availability for a specific time slot

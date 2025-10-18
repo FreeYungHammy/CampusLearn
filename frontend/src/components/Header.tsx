@@ -100,6 +100,10 @@ const Header = () => {
               <i className="fas fa-calendar" />
               <span>Schedule</span>
             </NavLink>
+            <NavLink to="/bookings" className="cl-nav-item">
+              <i className="fas fa-calendar-alt" />
+              <span>Bookings</span>
+            </NavLink>
 
             {isAdmin && (
               <>
@@ -341,6 +345,15 @@ const Header = () => {
             >
               <i className="fas fa-calendar" />
               <span>Schedule</span>
+            </NavLink>
+
+            <NavLink
+              to="/bookings"
+              className="cl-nav-item"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              <i className="fas fa-calendar-alt" />
+              <span>Bookings</span>
             </NavLink>
 
             {isAdmin && (
