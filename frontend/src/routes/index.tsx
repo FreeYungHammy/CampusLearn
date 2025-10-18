@@ -14,6 +14,7 @@ import ChatRoom from "../pages/Chat/ChatRoom";
 import Messages from "../pages/Messages";
 import NotFound from "./NotFound";
 import { VideoCallPage } from "../pages/Call/VideoCallPage";
+import Bookings from "../pages/Bookings";
 
 export const router = createBrowserRouter([
   {
@@ -32,6 +33,7 @@ export const router = createBrowserRouter([
       { path: "forum/:threadId", element: <ForumTopic /> },
       { path: "chat", element: <ChatRoom /> },
       { path: "messages", element: <Messages /> },
+      { path: "bookings", element: <Bookings /> },
     ],
     errorElement: <NotFound />,
   },
