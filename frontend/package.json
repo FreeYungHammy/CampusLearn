@@ -38,11 +38,11 @@
     "@types/animejs": "^3.1.13",
     "@types/react": "^18.3.9",
     "@types/react-dom": "^18.3.0",
-    "@vitejs/plugin-react": "^5.0.2",
+    "@vitejs/plugin-react": "^4.3.3",
     "cypress": "^15.4.0",
     "prettier": "^3.6.2",
     "terser": "^5.44.0",
     "typescript": "^5.5.4",
-    "vite": "^5.4.10"
+    "vite": "^4.5.3"
   }
 }
