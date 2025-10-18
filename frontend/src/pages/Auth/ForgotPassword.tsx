@@ -33,7 +33,7 @@ const ForgotPassword = () => {
       setMessage("");
       try {
         await forgotPassword(values.email);
-        setMessage("Password reset link sent to your email.");
+        setMessage("Password reset link sent to your email. Please check your spam/junk folder if you don't see it in your inbox.");
       } catch (err) {
         setError("Error sending password reset link.");
       }

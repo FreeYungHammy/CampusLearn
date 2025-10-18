@@ -25,6 +25,10 @@ r.get("/check-email", UserController.checkEmailAvailability);
 r.delete("/account", requireAuth, UserController.deleteAccount);
 r.delete("/admin/:userId", requireAuth, UserController.adminDeleteUser);
 
+// Email verification routes
+r.get("/verify-email/:token", UserController.verifyEmail);
+r.post("/resend-verification", UserController.resendEmailVerification);
+
 // Admin dashboard routes
 r.get("/admin/stats", requireAuth, UserController.getAdminStats);
 r.get("/admin/activity", requireAuth, UserController.getRecentActivity);

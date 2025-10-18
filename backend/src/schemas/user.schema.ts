@@ -13,6 +13,9 @@ const UserSchema = new Schema(
     role: { type: String, enum: ["student", "tutor", "admin"], required: true },
     resetPasswordToken: { type: String, select: false },
     resetPasswordExpires: { type: Date, select: false },
+    emailVerified: { type: Boolean, default: false },
+    emailVerificationToken: { type: String, select: false },
+    emailVerificationExpires: { type: Date, select: false },
   },
   { timestamps: true },
 );

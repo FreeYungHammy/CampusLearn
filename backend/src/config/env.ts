@@ -67,5 +67,6 @@ export const env = {
   corsOrigins: process.env.CORS_ORIGINS?.split(",") ?? [
     "http://localhost:5173",
     "http://localhost:8080",
+    "https://campuslearn.onrender.com",
   ],
 };
