@@ -7,6 +7,7 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import { useAuthStore } from "../store/authStore";
 import BookingStepperModal from "../components/BookingStepperModal";
 import AdminDashboard from "./AdminDashboard";
+import { getBookings, type Booking } from "../services/bookingApi";
 import type { Tutor } from "../types/Tutors";
 
 // Daily motivational quotes
@@ -43,33 +44,6 @@ const motivationalQuotes = [
   "Wake up with determination. Go to bed with satisfaction.",
 ];
 
-const events = [
-  {
-    title: "Calculus with Gideon",
-    start: "2023-11-03T14:00:00",
-    className: "event-math",
-  },
-  {
-    title: "Programming with Sarah",
-    start: "2023-11-08T15:30:00",
-    className: "event-cs",
-  },
-  {
-    title: "Finance with David",
-    start: "2023-11-14T11:00:00",
-    className: "event-business",
-  },
-  {
-    title: "Algebra with Gideon",
-    start: "2023-11-22T16:00:00",
-    className: "event-math",
-  },
-  {
-    title: "Web Dev with Sarah",
-    start: "2023-11-30T13:00:00",
-    className: "event-cs",
-  },
-];
 
 // Quick Action Button Component
 const QuickAction: React.FC<{
@@ -106,6 +80,8 @@ const Dashboard = () => {
   const [todaysQuote, setTodaysQuote] = useState("");
   const [showDashboardBookingStepper, setShowDashboardBookingStepper] =
     useState(false);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [isLoadingBookings, setIsLoadingBookings] = useState(false);
   const { user } = useAuthStore();
   const navigate = useNavigate();
 
@@ -143,6 +119,74 @@ const Dashboard = () => {
     const quoteIndex = dayOfYear % motivationalQuotes.length;
     setTodaysQuote(motivationalQuotes[quoteIndex]);
   }, []);
+
+  // Fetch bookings for the schedule calendar
+  const fetchBookings = async () => {
+    try {
+      setIsLoadingBookings(true);
+      const data = await getBookings();
+      setBookings(data);
+    } catch (err: any) {
+      console.error("Error fetching bookings:", err);
+    } finally {
+      setIsLoadingBookings(false);
+    }
+  };
+
+  // Handle calendar event click to navigate to bookings page
+  const handleEventClick = (clickInfo: any) => {
+    const booking = clickInfo.event.extendedProps;
+    // Navigate to bookings page with booking ID in URL hash
+    navigate(`/bookings#${booking.id}`);
+  };
+
+  useEffect(() => {
+    fetchBookings();
+  }, []);
+
+  // Transform bookings into calendar events
+  const calendarEvents = bookings.map((booking) => ({
+    id: booking.id || (booking as any)._id,
+    title: `${booking.student.name} ${booking.student.surname}`,
+    start: new Date(`${booking.date}T${booking.time}`),
+    end: new Date(new Date(`${booking.date}T${booking.time}`).getTime() + booking.duration * 60000),
+    backgroundColor: getStatusColor(booking.status),
+    borderColor: getStatusColor(booking.status),
+    textColor: '#ffffff',
+    className: `fc-event-${booking.status}`, // Add status class for popover styling
+    extendedProps: booking
+  }));
+
+  // Get color based on booking status
+  function getStatusColor(status: string): string {
+    switch (status) {
+      case 'pending':
+        return '#facc15'; // Yellow
+      case 'confirmed':
+        return '#4ade80'; // Green
+      case 'completed':
+        return '#60a5fa'; // Blue
+      case 'cancelled':
+        return '#ef4444'; // Red
+      default:
+        return '#6b7280'; // Gray
+    }
+  }
+
+  // Filter upcoming bookings (future bookings only, sorted by date/time)
+  const upcomingBookings = bookings
+    .filter(booking => {
+      const bookingDateTime = new Date(`${booking.date}T${booking.time}`);
+      const now = new Date();
+      return bookingDateTime >= now && booking.status !== 'cancelled' && booking.status !== 'completed';
+    })
+    .sort((a, b) => {
+      const dateA = new Date(`${a.date}T${a.time}`);
+      const dateB = new Date(`${b.date}T${b.time}`);
+      return dateA.getTime() - dateB.getTime();
+    });
+
+
 
   return (
     <div className="content-view active dashboard-modern" id="dashboard-view">
@@ -284,25 +328,40 @@ const Dashboard = () => {
           My Schedule
         </h3>
         <div className="calendar-shell-modern">
-          <FullCalendar
-            plugins={[dayGridPlugin, timeGridPlugin]}
-            initialView="dayGridMonth"
-            events={events}
-            headerToolbar={{
-              left: "prev,next today",
-              center: "title",
-              right: "dayGridMonth",
-            }}
-            height="auto"
-            expandRows={true}
-            fixedWeekCount={false}
-            showNonCurrentDates={false}
-            dayMaxEventRows={3}
-            moreLinkClick="popover"
-            titleFormat={{ year: "numeric", month: "long" }}
-            dayHeaderFormat={{ weekday: "short" }}
-            firstDay={1}
-          />
+          {isLoadingBookings ? (
+            <div className="loading-container">
+              <div className="loading-spinner">
+                <i className="fas fa-spinner fa-spin"></i>
+              </div>
+              <p>Loading your schedule...</p>
+            </div>
+          ) : (
+            <FullCalendar
+              plugins={[dayGridPlugin, timeGridPlugin]}
+              initialView="dayGridMonth"
+              events={calendarEvents}
+              eventClick={handleEventClick}
+              headerToolbar={{
+                left: "prev,next today",
+                center: "title",
+                right: "dayGridMonth",
+              }}
+              height="auto"
+              expandRows={true}
+              fixedWeekCount={false}
+              showNonCurrentDates={false}
+              dayMaxEventRows={2}
+              moreLinkClick="popover"
+              titleFormat={{ year: "numeric", month: "long" }}
+              weekends={true}
+              editable={false}
+              selectable={false}
+              eventDisplay="block"
+              dayHeaderFormat={{ weekday: "short" }}
+              firstDay={1}
+              displayEventTime={false}
+            />
+          )}
         </div>
 
         {/* Mobile Upcoming Bookings */}
@@ -311,34 +370,42 @@ const Dashboard = () => {
             <i className="fas fa-clock"></i>
             Upcoming Bookings
           </h3>
-
-          {/* Sample booking items - replace with real data later */}
-          <div className="booking-item" onClick={() => navigate("/bookings")}>
-            <div className="booking-time">10:00</div>
-            <div className="booking-details">
-              <div className="booking-title">Math Tutoring Session</div>
-              <div className="booking-subtitle">with Dr. Smith</div>
+          
+          {isLoadingBookings ? (
+            <div className="loading-container">
+              <div className="loading-spinner">
+                <i className="fas fa-spinner fa-spin"></i>
+              </div>
+              <p>Loading upcoming bookings...</p>
             </div>
-            <div className="booking-status confirmed">Confirmed</div>
-          </div>
-
-          <div className="booking-item" onClick={() => navigate("/bookings")}>
-            <div className="booking-time">14:30</div>
-            <div className="booking-details">
-              <div className="booking-title">Physics Study Group</div>
-              <div className="booking-subtitle">with Prof. Johnson</div>
+          ) : upcomingBookings.length === 0 ? (
+            <div className="no-bookings">
+              <i className="fas fa-calendar-times"></i>
+              <p>No upcoming bookings</p>
+              <small>Your next sessions will appear here</small>
             </div>
-            <div className="booking-status pending">Pending</div>
-          </div>
-
-          <div className="booking-item" onClick={() => navigate("/bookings")}>
-            <div className="booking-time">16:00</div>
-            <div className="booking-details">
-              <div className="booking-title">Chemistry Lab Review</div>
-              <div className="booking-subtitle">with Dr. Williams</div>
-            </div>
-            <div className="booking-status confirmed">Confirmed</div>
-          </div>
+          ) : (
+            upcomingBookings.slice(0, 3).map((booking) => (
+              <div key={booking.id} className="booking-item" onClick={() => navigate(`/bookings#${booking.id}`)}>
+                <div className="booking-time">
+                  <div className="booking-date">{new Date(booking.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                  <div className="booking-time-only">{booking.time}</div>
+                </div>
+                <div className="booking-details">
+                  <div className="booking-title">{booking.subject}</div>
+                  <div className="booking-subtitle">
+                    {user?.role === 'student' 
+                      ? `with ${booking.tutor.name} ${booking.tutor.surname}`
+                      : `with ${booking.student.name} ${booking.student.surname}`
+                    }
+                  </div>
+                </div>
+                <div className={`booking-status ${booking.status}`}>
+                  {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </motion.div>
 

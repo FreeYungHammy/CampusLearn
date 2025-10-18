@@ -105,18 +105,77 @@ export const gcsService = {
     const bucket = client.bucket(env.gcsBucket);
     const file = bucket.file(destination);
 
-    await file.save(buffer, {
-      contentType,
-      resumable: false,
-      public: false,
-      metadata: { contentType },
-    });
+    try {
+      console.log(`GCS: Uploading buffer to ${destination}, size: ${buffer.length} bytes`);
+      
+      await file.save(buffer, {
+        contentType,
+        resumable: true, // Enable resumable uploads for better reliability
+        public: false,
+        metadata: { 
+          contentType,
+          cacheControl: 'public, max-age=3600'
+        },
+        validation: 'crc32c', // Use CRC32C validation
+      });
 
-    return {
-      bucket: env.gcsBucket,
-      objectName: destination,
-      publicUrl: `gs://${env.gcsBucket}/${destination}`,
-    };
+      console.log(`GCS: Successfully uploaded ${destination}`);
+      
+      return {
+        bucket: env.gcsBucket,
+        objectName: destination,
+        publicUrl: `gs://${env.gcsBucket}/${destination}`,
+      };
+    } catch (error) {
+      console.error(`GCS: Upload failed for ${destination}:`, error);
+      throw error;
+    }
+  },
+
+  async uploadBufferSimple(
+    buffer: Buffer,
+    contentType: string,
+    destination: string,
+  ): Promise<GcsUploadResult> {
+    if (!env.gcsBucket) throw new Error("GCS bucket not configured");
+    const client = getStorage();
+    const bucket = client.bucket(env.gcsBucket);
+    const file = bucket.file(destination);
+
+    try {
+      console.log(`GCS: Simple upload to ${destination}, size: ${buffer.length} bytes`);
+      
+      // Use createWriteStream for better stream handling
+      const stream = file.createWriteStream({
+        metadata: {
+          contentType,
+          cacheControl: 'public, max-age=3600'
+        },
+        resumable: false,
+        validation: 'crc32c',
+      });
+
+      return new Promise((resolve, reject) => {
+        stream.on('error', (error) => {
+          console.error(`GCS: Stream error for ${destination}:`, error);
+          reject(error);
+        });
+
+        stream.on('finish', () => {
+          console.log(`GCS: Successfully uploaded ${destination}`);
+          resolve({
+            bucket: env.gcsBucket,
+            objectName: destination,
+            publicUrl: `gs://${env.gcsBucket}/${destination}`,
+          });
+        });
+
+        stream.end(buffer);
+      });
+    } catch (error) {
+      console.error(`GCS: Simple upload failed for ${destination}:`, error);
+      throw error;
+    }
   },
 
   async getSignedReadUrl(objectName: string): Promise<string> {

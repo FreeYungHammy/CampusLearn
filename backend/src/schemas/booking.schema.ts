@@ -36,7 +36,7 @@ const BookingSchema = new Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "confirmed", "cancelled", "completed"],
+      enum: ["pending", "confirmed", "cancelled", "completed", "rejected"],
       default: "pending",
     },
     initiatedBy: {
@@ -53,6 +53,12 @@ const BookingSchema = new Schema(
     },
     completedAt: {
       type: Date,
+    },
+    rejectedAt: {
+      type: Date,
+    },
+    rejectionReason: {
+      type: String,
     },
   },
   { timestamps: true },

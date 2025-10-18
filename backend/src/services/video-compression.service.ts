@@ -6,6 +6,7 @@ import { promises as fs } from "fs";
 import fsSync from "fs";
 import path from "path";
 import os from "os";
+import { FileModel } from "../schemas/tutorUpload.schema";
 
 const logger = createLogger("VideoCompressionService");
 
@@ -84,6 +85,9 @@ export class VideoCompressionService {
     logger.info(
       `🚀 Starting compression for ${inputObjectName} (${this.activeCompressions.size} active)`,
     );
+
+    // Update database to show compression is starting
+    await this.updateCompressionStatus(inputObjectName, "compressing");
 
     const storage = this.getStorage();
     const bucket = storage.bucket(env.gcsBucket);
@@ -179,9 +183,15 @@ export class VideoCompressionService {
       // Clean up input file
       await fs.unlink(inputPath);
 
+      // Update database to show compression completed
+      await this.updateCompressionStatus(inputObjectName, "completed", Object.keys(outputPaths));
+
       return outputPaths;
     } catch (error) {
       logger.error("Video compression failed:", error);
+
+      // Update database to show compression failed
+      await this.updateCompressionStatus(inputObjectName, "failed");
 
       // Clean up temp files
       try {
@@ -481,6 +491,32 @@ export class VideoCompressionService {
       } catch (error) {
         logger.error(`❌ Failed to delete ${compressedName}: ${error}`);
       }
+    }
+  }
+
+  /**
+   * Update compression status in the database
+   */
+  private static async updateCompressionStatus(
+    bucketPath: string,
+    status: "pending" | "compressing" | "completed" | "failed",
+    compressedQualities?: string[]
+  ): Promise<void> {
+    try {
+      // Find file by externalUri (which contains the bucketPath)
+      const file = await FileModel.findOne({ externalUri: bucketPath });
+      if (file) {
+        file.compressionStatus = status;
+        if (compressedQualities) {
+          file.compressedQualities = compressedQualities;
+        }
+        await file.save();
+        logger.info(`📊 Updated compression status for ${bucketPath}: ${status}`);
+      } else {
+        logger.warn(`⚠️ File not found for externalUri: ${bucketPath}`);
+      }
+    } catch (error) {
+      logger.error(`❌ Failed to update compression status for ${bucketPath}:`, error);
     }
   }
 }

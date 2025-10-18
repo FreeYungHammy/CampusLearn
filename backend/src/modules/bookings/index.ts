@@ -60,6 +60,18 @@ r.patch(
   BookingController.cancel
 );
 
+// ADD THESE NEW ROUTES FOR BOOKING LIFECYCLE MANAGEMENT
+r.patch("/:id/accept", requireAuth, BookingController.acceptBooking);
+r.delete("/:id/reject", requireAuth, BookingController.rejectBooking);
+r.patch("/:id/complete", requireAuth, BookingController.completeBooking);
+
+// Auto-reject expired pending bookings (admin only)
+r.post(
+  "/auto-reject-expired",
+  requireAuth,
+  BookingController.autoRejectExpired
+);
+
 // Delete booking
 r.delete(
   "/:id",

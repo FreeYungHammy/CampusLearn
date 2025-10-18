@@ -1,0 +1,289 @@
+/* Bookings Page Styles */
+.bookings-page {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.bookings-container {
+  margin-top: 24px;
+}
+
+.calendar-container {
+  background: var(--white, #ffffff);
+  border-radius: var(--border-radius, 12px);
+  box-shadow: var(--card-shadow, 0 10px 20px rgba(0, 0, 0, 0.08));
+  padding: 20px;
+  border: 1px solid var(--border, #dfe6e9);
+}
+
+/* FullCalendar custom styles */
+.fc {
+  font-family: inherit;
+}
+
+.fc-toolbar {
+  margin-bottom: 20px;
+}
+
+.fc-toolbar-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--dark, #2c3e50);
+}
+
+.fc-button {
+  background: var(--primary, #3498db);
+  border: none;
+  border-radius: var(--radius-md, 10px);
+  color: white;
+  font-weight: 500;
+  padding: 8px 16px;
+  transition: var(--transition, all 0.25s ease);
+}
+
+.fc-button:hover {
+  background: var(--primary-dark, #2980b9);
+  transform: translateY(-1px);
+}
+
+.fc-button:disabled {
+  background: var(--gray, #95a5a6);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.fc-button-active {
+  background: var(--primary-dark, #2980b9);
+  box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+}
+
+.fc-daygrid-day-number,
+.fc-col-header-cell-cushion {
+  color: var(--dark, #2c3e50);
+  font-weight: 500;
+}
+
+.fc-day-today {
+  background: rgba(52, 152, 219, 0.1);
+}
+
+.fc-event {
+  border-radius: 6px;
+  border: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: var(--transition, all 0.25s ease);
+}
+
+.fc-event:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.fc-event-title {
+  font-weight: 600;
+}
+
+.fc-timegrid-slot {
+  border-color: var(--border, #dfe6e9);
+}
+
+.fc-timegrid-axis {
+  color: var(--gray, #95a5a6);
+}
+
+.fc-timegrid-slot-label {
+  color: var(--gray, #95a5a6);
+}
+
+
+/* Loading Container */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: var(--gray, #95a5a6);
+}
+
+.loading-container i {
+  font-size: 2rem;
+  margin-bottom: 16px;
+  color: var(--primary, #3498db);
+}
+
+.loading-container p {
+  font-size: 1.125rem;
+  margin: 0;
+}
+
+/* Alert Styles */
+.alert {
+  padding: 16px;
+  border-radius: var(--border-radius, 12px);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 500;
+}
+
+.alert-danger {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #dc2626;
+}
+
+.alert i {
+  font-size: 1.125rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .fc-toolbar {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .fc-toolbar-chunk {
+    display: flex;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .bookings-page {
+    padding: 16px;
+  }
+  
+  .calendar-container,
+  .booking-legend {
+    padding: 16px;
+  }
+  
+  .fc-toolbar-title {
+    font-size: 1.25rem;
+  }
+  
+  .fc-button {
+    padding: 6px 12px;
+    font-size: 0.875rem;
+  }
+}
+
+/* Dark mode support */
+[data-theme="dark"] .calendar-container {
+  background: var(--white, #1f2937);
+  border-color: var(--border, #374151);
+}
+
+[data-theme="dark"] .fc-toolbar-title,
+[data-theme="dark"] .fc-daygrid-day-number,
+[data-theme="dark"] .fc-col-header-cell-cushion {
+  color: var(--dark, #e5e7eb);
+}
+
+[data-theme="dark"] .fc-timegrid-slot,
+[data-theme="dark"] .fc-timegrid-axis,
+[data-theme="dark"] .fc-timegrid-slot-label {
+  border-color: var(--border, #374151);
+  color: var(--gray, #9ca3af);
+}
+
+[data-theme="dark"] .fc-day-today {
+  background: rgba(52, 152, 219, 0.2);
+}
+
+
+[data-theme="dark"] .loading-container {
+  color: var(--gray, #9ca3af);
+}
+
+/* FullCalendar Popover Styles */
+.fc-popover {
+  background: var(--white, #ffffff) !important;
+  border: 1px solid var(--border, #dfe6e9) !important;
+  border-radius: var(--border-radius, 12px) !important;
+  box-shadow: var(--card-shadow, 0 10px 20px rgba(0, 0, 0, 0.08)) !important;
+  z-index: 1000 !important;
+}
+
+.fc-popover-header {
+  background: var(--primary, #3498db) !important;
+  color: white !important;
+  padding: 12px 16px !important;
+  border-radius: var(--border-radius, 12px) var(--border-radius, 12px) 0 0 !important;
+  font-weight: 600 !important;
+}
+
+.fc-popover-body {
+  padding: 16px !important;
+  background: var(--white, #ffffff) !important;
+}
+
+.fc-popover .fc-event {
+  border: none !important;
+  border-radius: var(--radius-sm, 6px) !important;
+  color: white !important;
+  padding: 8px 12px !important;
+  margin: 4px 0 !important;
+  font-size: 0.875rem !important;
+}
+
+/* Status-specific colors for popover events */
+.fc-popover .fc-event.fc-event-pending {
+  background: #facc15 !important; /* Yellow for pending */
+}
+
+.fc-popover .fc-event.fc-event-confirmed {
+  background: #4ade80 !important; /* Green for confirmed */
+}
+
+.fc-popover .fc-event.fc-event-completed {
+  background: #60a5fa !important; /* Blue for completed */
+}
+
+.fc-popover .fc-event.fc-event-cancelled {
+  background: #ef4444 !important; /* Red for cancelled */
+}
+
+/* Dark mode popover styles */
+[data-theme="dark"] .fc-popover {
+  background: var(--dark-blue, #1e3a8a) !important;
+  border-color: var(--border, #374151) !important;
+}
+
+[data-theme="dark"] .fc-popover-header {
+  background: var(--primary, #3498db) !important;
+  color: white !important;
+}
+
+[data-theme="dark"] .fc-popover-body {
+  background: var(--dark-blue, #1e3a8a) !important;
+  color: var(--light, #e5e7eb) !important;
+}
+
+[data-theme="dark"] .fc-popover .fc-event {
+  color: white !important;
+}
+
+/* Dark mode status-specific colors for popover events */
+[data-theme="dark"] .fc-popover .fc-event.fc-event-pending {
+  background: #facc15 !important; /* Yellow for pending */
+}
+
+[data-theme="dark"] .fc-popover .fc-event.fc-event-confirmed {
+  background: #4ade80 !important; /* Green for confirmed */
+}
+
+[data-theme="dark"] .fc-popover .fc-event.fc-event-completed {
+  background: #60a5fa !important; /* Blue for completed */
+}
+
+[data-theme="dark"] .fc-popover .fc-event.fc-event-cancelled {
+  background: #ef4444 !important; /* Red for cancelled */
+}
