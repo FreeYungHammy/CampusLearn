@@ -655,7 +655,7 @@ export const UserService = {
     return UserRepo.updateById(id, { $set: p });
   },
 
-  async remove(id: string) {
+  async remove(id: string, isAdminDeletion: boolean = false) {
     // Validate input
     if (!id) {
       throw new Error("User ID is required");
@@ -936,9 +936,12 @@ export const UserService = {
 
       // 10. Send account deletion confirmation email
       try {
-        const emailSent = await emailService.sendAccountDeletionEmail(user.email, userName);
+        const emailSent = isAdminDeletion 
+          ? await emailService.sendAdminAccountDeletionEmail(user.email, userName)
+          : await emailService.sendAccountDeletionEmail(user.email, userName);
+        
         if (emailSent) {
-          logger.info(`Account deletion email sent to ${user.email}`);
+          logger.info(`Account deletion email sent to ${user.email} (${isAdminDeletion ? 'admin-initiated' : 'self-initiated'})`);
         } else {
           logger.warn(`Failed to send account deletion email to ${user.email}`);
         }
@@ -1145,5 +1148,46 @@ export const UserService = {
     }
 
     return { message: "Verification email sent successfully" };
+  },
+
+  async updateEmailPreferences(userId: string, preferences: {
+    bookingConfirmations?: boolean;
+    tutorApplicationUpdates?: boolean;
+    generalNotifications?: boolean;
+    marketingEmails?: boolean;
+  }) {
+    const user = await UserRepo.findById(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Update email preferences
+    const updatedPreferences = {
+      ...user.emailPreferences,
+      ...preferences,
+    };
+
+    await UserRepo.updateById(userId, {
+      $set: { emailPreferences: updatedPreferences },
+    });
+
+    logger.info(`Email preferences updated for user ${userId}:`, updatedPreferences);
+    return { message: "Email preferences updated successfully", preferences: updatedPreferences };
+  },
+
+  async getEmailPreferences(userId: string) {
+    const user = await UserRepo.findById(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    return {
+      preferences: user.emailPreferences || {
+        bookingConfirmations: true,
+        tutorApplicationUpdates: true,
+        generalNotifications: true,
+        marketingEmails: false,
+      },
+    };
   },
 };

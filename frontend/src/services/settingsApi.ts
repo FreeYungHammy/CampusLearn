@@ -102,3 +102,46 @@ export const adminDeleteUser = async (
     },
   });
 };
+
+export const getEmailPreferences = async (
+  token: string,
+): Promise<{
+  preferences: {
+    bookingConfirmations: boolean;
+    tutorApplicationUpdates: boolean;
+    generalNotifications: boolean;
+    marketingEmails: boolean;
+  };
+}> => {
+  const response = await api.get("/users/email-preferences", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return response.data;
+};
+
+export const updateEmailPreferences = async (
+  token: string,
+  preferences: {
+    bookingConfirmations?: boolean;
+    tutorApplicationUpdates?: boolean;
+    generalNotifications?: boolean;
+    marketingEmails?: boolean;
+  },
+): Promise<{
+  message: string;
+  preferences: {
+    bookingConfirmations: boolean;
+    tutorApplicationUpdates: boolean;
+    generalNotifications: boolean;
+    marketingEmails: boolean;
+  };
+}> => {
+  const response = await api.patch("/users/email-preferences", preferences, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return response.data;
+};
