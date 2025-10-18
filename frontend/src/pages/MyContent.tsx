@@ -6,6 +6,7 @@ import { deleteFile, getMyContent } from "../services/fileApi";
 import type { TutorUpload } from "../types/tutorUploads";
 import VideoPlayer from "../components/VideoPlayer";
 import DocxViewer from "../components/DocxViewer";
+import PageHeader from "../components/PageHeader";
 import "../components/VideoPlayer.css";
 
 const formatBytes = (bytes: number, decimals = 2) => {
@@ -229,16 +230,13 @@ const MyContent = () => {
 
   return (
     <div className="content-view" id="mycontent-view">
-      <div className="section-header">
-        <h2 className="section-title">
-          <i className="fas fa-folder"></i>
-          <span id="content-title">
-            {user?.firstName && user?.lastName
-              ? `${user.firstName} ${user.lastName}'s Content`
-              : "My Content"}
-          </span>
-        </h2>
-      </div>
+      <PageHeader
+        title={user?.firstName && user?.lastName
+          ? `${user.firstName} ${user.lastName}'s Content`
+          : "My Content"}
+        subtitle="Manage and organize your educational content"
+        icon="fas fa-folder"
+      />
 
       <div className="content-browser">
         {/* Breadcrumb Navigation */}

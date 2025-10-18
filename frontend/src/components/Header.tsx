@@ -153,11 +153,13 @@ const Header = () => {
               <span>Forum</span>
             </NavLink>
 
-            {/* NEW: Messages in the main nav */}
-            <NavLink to="/messages" className="cl-nav-item">
-              <i className="fas fa-envelope" />
-              <span>Messages</span>
-            </NavLink>
+            {/* NEW: Messages in the main nav - hidden for admin users */}
+            {user?.role !== "admin" && (
+              <NavLink to="/messages" className="cl-nav-item">
+                <i className="fas fa-envelope" />
+                <span>Messages</span>
+              </NavLink>
+            )}
           </nav>
 
           {/* Right: Logout icon + Profile menu (theme toggle moved inside) */}
@@ -352,7 +354,7 @@ const Header = () => {
                   <span>Users</span>
                 </NavLink>
                 <NavLink
-                  to="/applications"
+                  to="/admin/tutor-applications"
                   className="cl-nav-item"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
@@ -421,14 +423,16 @@ const Header = () => {
               <span>Forum</span>
             </NavLink>
 
-            <NavLink
-              to="/messages"
-              className="cl-nav-item"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              <i className="fas fa-envelope" />
-              <span>Messages</span>
-            </NavLink>
+            {user?.role !== "admin" && (
+              <NavLink
+                to="/messages"
+                className="cl-nav-item"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <i className="fas fa-envelope" />
+                <span>Messages</span>
+              </NavLink>
+            )}
 
             {user && (
               <>

@@ -9,6 +9,7 @@ import {
   type HealthCheckResult,
   type HealthScore,
 } from "../services/adminApi";
+import "./Admin.css";
 
 // Admin Stat Card Component
 const AdminStatCard: React.FC<{
@@ -202,7 +203,7 @@ const AdminDashboard = () => {
         className="admin-stats"
       >
         <h3 className="admin-section-title">
-          <i className="fas fa-chart-bar"></i>
+          <i className="fas fa-chart-line"></i>
           System Overview
         </h3>
         <div className="admin-stats-grid">
@@ -279,7 +280,7 @@ const AdminDashboard = () => {
         className="admin-quick-actions"
       >
         <h3 className="admin-section-title">
-          <i className="fas fa-bolt"></i>
+          <i className="fas fa-rocket"></i>
           Quick Actions
         </h3>
         <div className="admin-actions-grid">
@@ -327,7 +328,7 @@ const AdminDashboard = () => {
           className="admin-recent-activity"
         >
           <h3 className="admin-section-title">
-            <i className="fas fa-history"></i>
+            <i className="fas fa-clock"></i>
             Recent Activity
           </h3>
           <div className="activity-list">
@@ -368,7 +369,7 @@ const AdminDashboard = () => {
           className="admin-system-status"
         >
           <h3 className="admin-section-title">
-            <i className="fas fa-server"></i>
+            <i className="fas fa-heartbeat"></i>
             System Status
           </h3>
           <div className="status-cards">

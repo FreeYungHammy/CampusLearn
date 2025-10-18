@@ -30,7 +30,8 @@ html:has(.landing-page),
   margin: 0 !important;
   padding: 0 !important;
   height: 100vh !important;
-  overflow: hidden !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
 }
 
 /* More specific overrides for App.css conflicts */
@@ -40,8 +41,9 @@ html:has(.landing-page),
   background: transparent !important;
   margin: 0 !important;
   padding: 0 !important;
-  height: 100vh !important;
-  overflow: hidden !important;
+  min-height: 100vh !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
 }
 
 /* Override App.css main content styles */
@@ -62,6 +64,27 @@ html:has(.landing-page),
   box-sizing: border-box;
 }
 
+/* Ensure all sections are visible and scrollable */
+.landing-page section {
+  position: relative !important;
+  z-index: 1 !important;
+  overflow: visible !important;
+}
+
+.landing-page .features-section {
+  position: relative !important;
+  z-index: 1 !important;
+  overflow: visible !important;
+  min-height: auto !important;
+  padding: 80px 0 !important;
+}
+
+.landing-page .footer {
+  position: relative !important;
+  z-index: 1 !important;
+  overflow: visible !important;
+}
+
 .landing-page {
   font-family:
     "Inter",
@@ -74,7 +97,7 @@ html:has(.landing-page),
   color: #ffffff;
   overflow-y: auto;
   overflow-x: hidden;
-  height: 100vh;
+  min-height: 100vh;
   background: rgb(13, 20, 38) !important;
   width: 100%;
   position: relative;
@@ -399,7 +422,8 @@ section.hero-section {
   display: flex !important;
   align-items: center !important;
   position: relative !important;
-  overflow: hidden !important;
+  overflow-x: hidden !important;
+  overflow-y: visible !important;
   background: transparent !important;
   padding-top: 80px !important; /* Account for fixed header */
   margin-top: 0 !important;
@@ -792,12 +816,12 @@ div.landing-page .hero-content,
   z-index: 10;
 }
 
-.section-header {
+.landing-page .section-header {
   text-align: center;
   margin-bottom: 4rem;
 }
 
-.section-header h2 {
+.landing-page .section-header h2 {
   font-size: 2.5rem;
   font-weight: 700;
   margin-bottom: 1rem;
@@ -807,7 +831,7 @@ div.landing-page .hero-content,
   background-clip: text;
 }
 
-.section-header p {
+.landing-page .section-header p {
   font-size: 1.1rem;
   color: var(--text-secondary);
   max-width: 600px;
@@ -930,10 +954,25 @@ div.landing-page .hero-content,
   .hero-section .container {
     grid-template-columns: 1fr;
     text-align: center;
+    padding: 0 1rem;
+    max-width: 100%;
+    overflow-x: hidden;
   }
 
   .hero-title {
     font-size: 2.5rem;
+    word-wrap: break-word;
+    white-space: normal;
+    line-height: 1.1;
+    max-width: 100%;
+  }
+
+  .hero-line-shadow-text {
+    font-size: 2.5rem !important;
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    line-height: 1.1 !important;
+    max-width: 100% !important;
   }
 
   .hero-buttons {
@@ -959,18 +998,49 @@ div.landing-page .hero-content,
 @media (max-width: 480px) {
   .container {
     padding: 0 1rem;
+    max-width: 100%;
+    overflow-x: hidden;
   }
 
   .hero-title {
-    font-size: 2rem;
+    font-size: 1.8rem;
+    word-wrap: break-word;
+    white-space: normal;
+    line-height: 1.1;
+    max-width: 100%;
+  }
+
+  .hero-line-shadow-text {
+    font-size: 1.8rem !important;
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    line-height: 1.1 !important;
+    max-width: 100% !important;
+  }
+
+  /* Additional mobile overflow fixes */
+  .landing-page {
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
+  .hero-section {
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
+  .hero-content {
+    max-width: 100%;
+    overflow-x: hidden;
+    word-wrap: break-word;
   }
 
   .section-header h2 {
-    font-size: 2rem;
+    font-size: 1.8rem;
   }
 
   .cta-content h2 {
-    font-size: 2rem;
+    font-size: 1.8rem;
   }
 }
 

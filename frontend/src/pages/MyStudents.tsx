@@ -4,6 +4,7 @@ import { studentApi, type SubscribedStudent } from "@/services/studentApi";
 import { chatApi } from "@/services/chatApi";
 import { getTutorByUserId } from "@/services/tutorApi";
 import { useNavigate } from "react-router-dom";
+import PageHeader from "../components/PageHeader";
 
 const MyStudents = () => {
   const { user, token } = useAuthStore();
@@ -106,9 +107,11 @@ const MyStudents = () => {
 
   return (
     <div className="content-view" id="mystudents-view">
-      <h2 className="section-title">
-        <i className="fas fa-users"></i>My Students
-      </h2>
+      <PageHeader
+        title="My Students"
+        subtitle="Manage your subscribed students and track their progress"
+        icon="fas fa-users"
+      />
       <div className="students-grid">
         {students.length === 0 ? (
           <p>No subscribed students found.</p>

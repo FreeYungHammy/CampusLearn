@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useAuthStore } from "../store/authStore";
 import { adminApi } from "../services/adminApi";
+import PageHeader from "../components/PageHeader";
 import "./DatabaseTools.css";
+import "./Admin.css";
 
 interface EntityData {
   id: string;
@@ -138,7 +140,9 @@ const DatabaseTools: React.FC = () => {
       const response = await adminApi.getAllEntities(token, activeTab);
       console.log("API Response:", response);
       console.log("Entities:", response);
-      setData(response || []);
+      // Handle both direct array response and object with entities property
+      const entities = Array.isArray(response) ? response : ((response as any)?.entities || []);
+      setData(entities);
     } catch (err: any) {
       console.error("Fetch error:", err);
       setError(err.response?.data?.message || "Failed to fetch data");
@@ -303,14 +307,11 @@ const DatabaseTools: React.FC = () => {
 
   return (
     <div className="database-tools">
-      <div className="database-tools-header">
-        <div className="header-content">
-          <h1>
-            <i className="fas fa-database"></i> Database Tools
-          </h1>
-          <p>Manage all entities in the system</p>
-        </div>
-      </div>
+      <PageHeader
+        title="Database Tools"
+        subtitle="Manage all entities in the system"
+        icon="fas fa-database"
+      />
 
       <div className="database-tools-content">
         <div className="tabs">
@@ -945,6 +946,20 @@ const ViewModal: React.FC<ViewModalProps> = ({ entityType, item, onClose }) => {
   const formatValue = (value: any, field: string): string => {
     if (value === null || value === undefined) return "N/A";
 
+    // Handle objects properly
+    if (typeof value === "object" && !Array.isArray(value) && !(value instanceof Date)) {
+      // For objects like profile pictures, show a more meaningful message
+      if (field === "pfp" || field === "profilePicture") {
+        return "Profile picture available";
+      }
+      // For other objects, show the object keys or a generic message
+      const keys = Object.keys(value);
+      if (keys.length > 0) {
+        return `Object with ${keys.length} properties: ${keys.slice(0, 3).join(", ")}${keys.length > 3 ? "..." : ""}`;
+      }
+      return "Object";
+    }
+
     if (field === "createdAt" || field === "updatedAt") {
       return new Date(value).toLocaleString();
     }
@@ -981,15 +996,23 @@ const ViewModal: React.FC<ViewModalProps> = ({ entityType, item, onClose }) => {
         </div>
         <div className="modal-body">
           <div className="view-content">
-            {Object.entries(item).map(([key, value]) => (
-              <div key={key} className="detail-row">
-                <div className="detail-label">
-                  {key.charAt(0).toUpperCase() +
-                    key.slice(1).replace(/([A-Z])/g, " $1")}
+            {Object.entries(item)
+              .filter(([key, value]) => {
+                // Filter out internal MongoDB fields and empty values
+                const internalFields = ['_v', '__v'];
+                const isEmpty = value === null || value === undefined || value === '';
+                const isInternal = internalFields.includes(key);
+                return !isEmpty && !isInternal;
+              })
+              .map(([key, value]) => (
+                <div key={key} className="detail-row">
+                  <div className="detail-label">
+                    {key.charAt(0).toUpperCase() +
+                      key.slice(1).replace(/([A-Z])/g, " $1")}
+                  </div>
+                  <div className="detail-value">{formatValue(value, key)}</div>
                 </div>
-                <div className="detail-value">{formatValue(value, key)}</div>
-              </div>
-            ))}
+              ))}
           </div>
         </div>
         <div className="modal-footer">

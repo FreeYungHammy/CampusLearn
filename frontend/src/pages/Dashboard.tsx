@@ -114,6 +114,13 @@ const Dashboard = () => {
     return <AdminDashboard />;
   }
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return " Good Morning";
+    if (hour < 17) return " Good Afternoon";
+    return "Good Evening";
+  };
+
   // Use a stable callback for opening the modal to avoid closure issues
   const openBookingStepper = useCallback(() => {
     setShowDashboardBookingStepper(true);
@@ -137,12 +144,7 @@ const Dashboard = () => {
     setTodaysQuote(motivationalQuotes[quoteIndex]);
   }, []);
 
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return "Good Morning";
-    if (hour < 17) return "Good Afternoon";
-    return "Good Evening";
-  };
+
 
   return (
     <div className="content-view active dashboard-modern" id="dashboard-view">
@@ -190,6 +192,7 @@ const Dashboard = () => {
           )}
         </div>
       </motion.div>
+      
 
       {/* Quick Actions */}
       <motion.div

@@ -9,6 +9,7 @@ import type { Tutor } from "../types/Tutors";
 import UnsubscribeConfirmationModal from "../components/UnsubscribeConfirmationModal";
 import TutorBookingModal from "../components/TutorBookingModal";
 import AnimatedList from "../components/AnimatedList";
+import PageHeader from "../components/PageHeader";
 
 const MyTutors = () => {
   const [tutors, setTutors] = useState<Tutor[]>([]);
@@ -214,11 +215,11 @@ const MyTutors = () => {
 
   return (
     <div className="content-view" id="mytutors-view">
-      <div className="section-header">
-        <h2 className="section-title">
-          <i className="fas fa-user-friends"></i>My Tutors
-        </h2>
-      </div>
+      <PageHeader
+        title="My Tutors"
+        subtitle="Manage your subscribed tutors and book sessions"
+        icon="fas fa-user-friends"
+      />
 
       {/* MINIMALISTIC FILTER BAR - GRID LAYOUT */}
       <div className="minimal-filter-bar-grid">
