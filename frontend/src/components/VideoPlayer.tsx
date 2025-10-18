@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from "react";
 import { ConnectionDetector } from "../utils/connectionDetector";
 import { VideoPerformanceMonitor } from "../utils/videoPerformanceMonitor";
 import VideoQualitySelector, { VideoQuality } from "./VideoQualitySelector";
+import { useVideoCompressionStatus } from "../hooks/useVideoCompressionStatus";
+import { useAuthStore } from "../store/authStore";
 import "./VideoQualitySelector.css";
 
 interface VideoPlayerProps {
@@ -23,10 +25,11 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [optimizedSrc, setOptimizedSrc] = useState(src);
-  const [compressionStatus, setCompressionStatus] = useState<
-    "none" | "compressing" | "completed"
-  >("none");
   const [isMinimized, setIsMinimized] = useState(false);
+  
+  // Get compression status from the hook
+  const token = useAuthStore((state) => state.token);
+  const { compressionStatus, compressedQualities, loading: statusLoading } = useVideoCompressionStatus(fileId, token);
 
   // Quality selection state
   const [currentQuality, setCurrentQuality] = useState<string>("480p");
@@ -139,25 +142,23 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   };
 
   const handleVideoClick = () => {
-    // Hide compression indicator when user interacts with video
-    if (compressionStatus === "compressing") {
-      console.log(`👆 User clicked video, hiding compression indicator`);
-      setCompressionStatus("none");
-    }
+    console.log(`👆 User clicked video`);
   };
 
   const handleVideoPlay = () => {
-    // Hide compression indicator when user starts playing
-    if (compressionStatus === "compressing") {
-      console.log(
-        `▶️ User started playing video, hiding compression indicator`,
-      );
-      setCompressionStatus("none");
-    }
+    console.log(`▶️ User started playing video`);
   };
 
   const handleError = (e: React.SyntheticEvent<HTMLVideoElement, Event>) => {
     console.error("Video loading error:", e);
+    
+    // If compression is still in progress, don't show error
+    if (compressionStatus === "compressing") {
+      console.log("Video failed to load but compression is in progress, showing compression state instead of error");
+      setLoading(true);
+      return;
+    }
+    
     setError("Failed to load video. Please try again.");
     setLoading(false);
 
@@ -204,8 +205,21 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         </div>
       )}
 
-      {/* Show loading overlay only when visible and loading */}
-      {isVisible && loading && !error && (
+      {/* Show compression overlay when compressing */}
+      {isVisible && compressionStatus === "compressing" && (
+        <div className="video-loading-overlay">
+          <div className="loading-spinner">
+            <div className="spinner"></div>
+            <p>Processing video...</p>
+            <p style={{ fontSize: '0.9rem', opacity: 0.8, marginTop: '0.5rem' }}>
+              Your video is being optimized for better streaming. This may take a few minutes.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Show loading overlay only when visible and loading (and not compressing) */}
+      {isVisible && loading && !error && compressionStatus !== "compressing" && (
         <div className="video-loading-overlay">
           <div className="loading-spinner">
             <div className="spinner"></div>
@@ -214,8 +228,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         </div>
       )}
 
-      {/* Show error overlay only when visible and has error */}
-      {isVisible && error && (
+      {/* Show error overlay only when visible and has error (and not compressing) */}
+      {isVisible && error && compressionStatus !== "compressing" && (
         <div className="video-error-overlay">
           <div className="error-content">
             <i className="fas fa-exclamation-triangle"></i>

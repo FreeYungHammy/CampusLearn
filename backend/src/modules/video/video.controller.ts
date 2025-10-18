@@ -17,4 +17,13 @@ export class VideoController {
     }
     res.status(200).json(result);
   }
+
+  static async getVideoCompressionStatus(req: Request, res: Response) {
+    const { videoId } = req.params;
+    const result = await VideoService.getVideoCompressionStatus(videoId);
+    if (!result) {
+      return res.status(404).json({ message: "Video not found" });
+    }
+    res.status(200).json(result);
+  }
 }

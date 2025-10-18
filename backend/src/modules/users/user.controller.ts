@@ -189,7 +189,7 @@ export const UserController = {
       await UserService.forgotPassword(req.body.email);
       res
         .status(200)
-        .json({ message: "Password reset link sent to your email." });
+        .json({ message: "Password reset link sent to your email. Please check your spam/junk folder if you don't see it in your inbox." });
     } catch (e) {
       next(e);
     }
@@ -348,6 +348,32 @@ export const UserController = {
         HealthService.calculateAggregateScore(healthChecks);
       res.json(aggregateScore);
     } catch (e) {
+      next(e);
+    }
+  },
+
+  verifyEmail: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { token } = req.params;
+      const result = await UserService.verifyEmail(token);
+      res.status(200).json(result);
+    } catch (e: any) {
+      if (e.message === "Email verification token is invalid or has expired.") {
+        return res.status(400).json({ message: e.message });
+      }
+      next(e);
+    }
+  },
+
+  resendEmailVerification: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { email } = req.body;
+      const result = await UserService.resendEmailVerification(email);
+      res.status(200).json(result);
+    } catch (e: any) {
+      if (e.message === "User not found" || e.message === "Email is already verified" || e.message === "Failed to send verification email") {
+        return res.status(400).json({ message: e.message });
+      }
       next(e);
     }
   },
