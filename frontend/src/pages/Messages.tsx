@@ -18,6 +18,7 @@ import EnhancedBookingModal, {
 } from "@/components/EnhancedBookingModal";
 import DateSeparator from "@/components/DateSeparator";
 import BookingMessageCard from "@/components/chat/BookingMessageCard";
+import PageHeader from "@/components/PageHeader";
 import "./Messages.css";
 
 /* ---------- Default PFP (base64) ---------- */
@@ -33,14 +34,8 @@ const getProfilePictureUrl = (userId: string, bust?: number) => {
 };
 
 const subjectBadgeColor = (subject: string) => {
-  const m: Record<string, string> = {
-    Mathematics: "bg-blue-500",
-    Research: "bg-green-500",
-    Programming: "bg-purple-500",
-    Business: "bg-yellow-500",
-    Statistics: "bg-red-500",
-  };
-  return m[subject] || "bg-gray-500";
+  // Return consistent glass-like styling for all subjects
+  return "glass-subject-badge";
 };
 
 const formatFileSize = (bytes?: number) => {
@@ -803,6 +798,12 @@ const Messages: React.FC = () => {
 
   return (
     <main className="messages-root">
+      <PageHeader
+        title="Messages"
+        subtitle="Connect and communicate with your tutors and students"
+        icon="fas fa-comments"
+      />
+      
       <div className="messages-shell">
         {/* Sidebar */}
         <aside className="sidebar">

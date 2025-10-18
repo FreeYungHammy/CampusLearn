@@ -6,6 +6,7 @@ import { deleteFile, getMyContent } from "../services/fileApi";
 import type { TutorUpload } from "../types/tutorUploads";
 import VideoPlayer from "../components/VideoPlayer";
 import DocxViewer from "../components/DocxViewer";
+import PageHeader from "../components/PageHeader";
 import "../components/VideoPlayer.css";
 
 const formatBytes = (bytes: number, decimals = 2) => {
@@ -229,44 +230,52 @@ const MyContent = () => {
 
   return (
     <div className="content-view" id="mycontent-view">
-      <div className="section-header">
-        <h2 className="section-title">
-          <i className="fas fa-folder"></i>
-          <span id="content-title">
-            {user?.firstName && user?.lastName
-              ? `${user.firstName} ${user.lastName}'s Content`
-              : "My Content"}
-          </span>
-        </h2>
-      </div>
+      <PageHeader
+        title={user?.firstName && user?.lastName
+          ? `${user.firstName} ${user.lastName}'s Content`
+          : "My Content"}
+        subtitle="Manage and organize your educational content"
+        icon="fas fa-folder"
+      />
 
       <div className="content-browser">
         {/* Breadcrumb Navigation */}
         <div className="breadcrumb-nav">
-          <button
-            className={`breadcrumb-item ${currentPath.length === 0 ? "active" : ""}`}
-            onClick={navigateToRoot}
-          >
-            <i className="fas fa-home"></i> All Content
-          </button>
+          <div className="breadcrumb-items">
+            <button
+              className={`breadcrumb-item ${currentPath.length === 0 ? "active" : ""}`}
+              onClick={navigateToRoot}
+            >
+              <i className="fas fa-home"></i> All Content
+            </button>
 
-          {currentPath.map((path, index) => (
-            <React.Fragment key={index}>
-              <i className="fas fa-chevron-right breadcrumb-separator"></i>
-              <button
-                className={`breadcrumb-item ${index === currentPath.length - 1 ? "active" : ""}`}
-                onClick={() => {
-                  if (index === 0) {
-                    navigateToSubject(path);
-                  } else {
-                    navigateToSubtopic(currentPath[0], path);
-                  }
-                }}
-              >
-                {path}
-              </button>
-            </React.Fragment>
-          ))}
+            {currentPath.map((path, index) => (
+              <React.Fragment key={index}>
+                <i className="fas fa-chevron-right breadcrumb-separator"></i>
+                <button
+                  className={`breadcrumb-item ${index === currentPath.length - 1 ? "active" : ""}`}
+                  onClick={() => {
+                    if (index === 0) {
+                      navigateToSubject(path);
+                    } else {
+                      navigateToSubtopic(currentPath[0], path);
+                    }
+                  }}
+                >
+                  {path}
+                </button>
+              </React.Fragment>
+            ))}
+          </div>
+          
+          {currentPath.length > 0 && (
+            <button
+              className="back-button"
+              onClick={navigateBack}
+            >
+              <i className="fas fa-arrow-left"></i> Back
+            </button>
+          )}
         </div>
 
         <div id="content-display">
@@ -316,60 +325,47 @@ const MyContent = () => {
                     <div className="content-grid">
                       {/* Show subjects when at root level */}
                       {!selectedSubject && (
-                        <>
-                          <div className="content-header justify-content-center">
-                            <h3 className="content-section-title">Subjects</h3>
-                          </div>
-                          <div className="subjects-container">
-                            <div className="subjects-grid">
-                              {Object.keys(grouped).map((subject) => (
-                                <div
-                                  key={subject}
-                                  className="subject-card enhanced"
-                                  onClick={() => navigateToSubject(subject)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter" || e.key === " ") {
-                                      e.preventDefault();
-                                      navigateToSubject(subject);
-                                    }
-                                  }}
-                                  tabIndex={0}
-                                  role="button"
-                                  aria-label={`View ${subject} content`}
-                                >
-                                  <div className="subject-icon enhanced">
-                                    <i className="fas fa-book"></i>
-                                  </div>
-                                  <div className="subject-info">
-                                    <h4>{subject}</h4>
-
-                                    <span className="file-count">
-                                      {
-                                        Object.values(grouped[subject]).flat()
-                                          .length
-                                      }{" "}
-                                      files
-                                    </span>
-                                  </div>
-                                  <i className="fas fa-chevron-right subject-arrow"></i>
+                        <div className="subjects-container">
+                          <div className="subjects-grid">
+                            {Object.keys(grouped).map((subject) => (
+                              <div
+                                key={subject}
+                                className="subject-card enhanced"
+                                onClick={() => navigateToSubject(subject)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    e.preventDefault();
+                                    navigateToSubject(subject);
+                                  }
+                                }}
+                                tabIndex={0}
+                                role="button"
+                                aria-label={`View ${subject} content`}
+                              >
+                                <div className="subject-icon enhanced">
+                                  <i className="fas fa-book"></i>
                                 </div>
-                              ))}
-                            </div>
+                                <div className="subject-info">
+                                  <h4>{subject}</h4>
+
+                                  <span className="file-count">
+                                    {
+                                      Object.values(grouped[subject]).flat()
+                                        .length
+                                    }{" "}
+                                    files
+                                  </span>
+                                </div>
+                                <i className="fas fa-chevron-right subject-arrow"></i>
+                              </div>
+                            ))}
                           </div>
-                        </>
+                        </div>
                       )}
 
                       {/* Show subtopics when a subject is selected */}
                       {selectedSubject && !selectedSubtopic && (
                         <div className="subtopics-container">
-                          <div className="content-header">
-                            <button
-                              className="back-button"
-                              onClick={navigateBack}
-                            >
-                              <i className="fas fa-arrow-left"></i> Back
-                            </button>
-                          </div>
 
                           <div className="subtopics-grid">
                             {Object.keys(grouped[selectedSubject]).map(
@@ -420,24 +416,16 @@ const MyContent = () => {
                       {/* Show files when a subtopic is selected */}
                       {selectedSubject && selectedSubtopic && (
                         <div className="files-container">
-                          <div className="content-header">
-                            <button
-                              className="back-button"
-                              onClick={navigateBack}
-                            >
-                              <i className="fas fa-arrow-left"></i> Back
-                            </button>
-                            <div className="results-info">
-                              <h3 className="content-section-title">
-                                {selectedSubject}{" "}
-                                <i className="fas fa-chevron-right"></i>{" "}
-                                {selectedSubtopic}
-                              </h3>
-                              <span className="results-count">
-                                {filteredItems.length} file
-                                {filteredItems.length !== 1 ? "s" : ""}
-                              </span>
-                            </div>
+                          <div className="results-info">
+                            <h3 className="content-section-title">
+                              {selectedSubject}{" "}
+                              <i className="fas fa-chevron-right"></i>{" "}
+                              {selectedSubtopic}
+                            </h3>
+                            <span className="results-count">
+                              {filteredItems.length} file
+                              {filteredItems.length !== 1 ? "s" : ""}
+                            </span>
                           </div>
 
                           {filteredItems.length === 0 ? (

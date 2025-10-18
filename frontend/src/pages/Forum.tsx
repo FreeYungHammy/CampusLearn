@@ -13,6 +13,7 @@ import { useForumSocket } from "../hooks/useForumSocket";
 import { useAuthStore } from "../store/authStore";
 import PostActions from "../components/forum/PostActions";
 import { isWithinEditWindow, getRemainingEditTime } from "../utils/editWindow";
+import PageHeader from "../components/PageHeader";
 
 const formatSubjectClass = (subject: string) => {
   const subjectMap: { [key: string]: string } = {
@@ -44,12 +45,86 @@ const Forum = () => {
 
   const [sortBy, setSortBy] = useState("newest"); // 'newest' or 'upvotes'
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedTopic, setSelectedTopic] = useState(""); // For filtering by subject
+  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]); // For filtering by subjects (multiple)
+  const [availableSubjects, setAvailableSubjects] = useState<string[]>([]);
+  
+  // Advanced Filter State
+  const [subjectSearchQuery, setSubjectSearchQuery] = useState("");
+  
+  // Dropdown State
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [postsPerPage] = useState(10);
   const [totalPosts, setTotalPosts] = useState(0);
   const [hasMorePosts, setHasMorePosts] = useState(true);
+
+  // Filter options
+  const sortOptions = [
+    { value: "newest", label: "Newest" },
+    { value: "upvotes", label: "Most Upvoted" },
+    { value: "replies", label: "Most Replies" },
+  ];
+
+  // Dropdown toggle function
+  const toggleDropdown = (dropdown: string) => {
+    setActiveDropdown(activeDropdown === dropdown ? null : dropdown);
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setActiveDropdown(null);
+    };
+
+    if (activeDropdown) {
+      document.addEventListener("click", handleClickOutside);
+      return () => document.removeEventListener("click", handleClickOutside);
+    }
+  }, [activeDropdown]);
+
+  // Helper functions for icons
+  const getSortIcon = (sortValue: string) => {
+    const iconMap: { [key: string]: string } = {
+      newest: "fas fa-clock",
+      upvotes: "fas fa-thumbs-up",
+      replies: "fas fa-comments",
+    };
+    return <i className={iconMap[sortValue] || "fas fa-sort"}></i>;
+  };
+
+  const getSubjectIcon = (subject: string) => {
+    const iconMap: { [key: string]: string } = {
+      Mathematics: "fas fa-calculator",
+      Programming: "fas fa-code",
+      "Computer Architecture": "fas fa-microchip",
+      "Database Development": "fas fa-database",
+      "Web Programming": "fas fa-globe",
+      "Linear Programming": "fas fa-chart-line",
+      Statistics: "fas fa-chart-bar",
+      "Software Testing": "fas fa-bug",
+      "Network Development": "fas fa-network-wired",
+      "Machine Learning": "fas fa-brain",
+    };
+    return <i className={iconMap[subject] || "fas fa-book"}></i>;
+  };
+
+  // Initialize available subjects
+  useEffect(() => {
+    const subjects = [
+      "Programming",
+      "Mathematics", 
+      "Linear Programming",
+      "Database Development",
+      "Web Programming",
+      "Computer Architecture",
+      "Statistics",
+      "Software Testing",
+      "Network Development",
+      "Machine Learning",
+    ];
+    setAvailableSubjects(subjects);
+  }, []);
 
   const fetchAndSetThreads = async (page: number, append: boolean = false) => {
     if (!token) return;
@@ -59,7 +134,7 @@ const Forum = () => {
         token,
         sortBy,
         searchQuery,
-        selectedTopic,
+        selectedSubjects.length > 0 ? selectedSubjects.join(",") : "",
         postsPerPage,
         offset,
       );
@@ -98,7 +173,7 @@ const Forum = () => {
     setCurrentPage(1);
     setThreads([]); // Clear threads to show loading state or new filtered results
     fetchAndSetThreads(1);
-  }, [token, sortBy, searchQuery, selectedTopic]);
+  }, [token, sortBy, searchQuery, selectedSubjects]);
 
   const handleLoadMore = () => {
     if (hasMorePosts) {
@@ -270,57 +345,168 @@ const Forum = () => {
   };
 
   return (
-    <div className="forum-container">
-      <div className="forum-header">
-        <div className="header-content">
-          <h1>
-            <i className="fas fa-comments"></i> Discussion Forum
-          </h1>
-          <p>
-            Ask questions and get answers from the entire student community.
-          </p>
+    <div className="content-view" id="forum-view">
+      <PageHeader
+        title="Discussion Forum"
+        subtitle="Connect with peers, ask questions, and share knowledge"
+        icon="fas fa-comments"
+      />
+
+      {/* MINIMALISTIC FILTER BAR - GRID LAYOUT */}
+      <div className="minimal-filter-bar-grid">
+        {/* ROW 1: Filter buttons + Info */}
+        <div className="filter-row-1">
+          <div className="filter-buttons">
+            <button
+              className={`filter-btn ${activeDropdown === "sort" ? "active" : ""}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleDropdown("sort");
+              }}
+            >
+              <i className="fas fa-sort"></i>
+              Sort By
+              <i className="fas fa-chevron-down"></i>
+            </button>
+
+            <button
+              className={`filter-btn ${activeDropdown === "subjects" ? "active" : ""}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleDropdown("subjects");
+              }}
+            >
+              <i className="fas fa-book-open"></i>
+              Subjects
+              <i className="fas fa-chevron-down"></i>
+            </button>
+          </div>
+
+          <div className="search-container">
+            <input
+              type="text"
+              placeholder="Search by title or content..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="search-input"
+            />
+          </div>
+
+          <div className="filter-info">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="new-topic-btn"
+              data-cy="new-topic-btn"
+            >
+              <i className="fas fa-plus"></i> New Topic
+            </button>
+            {(selectedSubjects.length > 0 ||
+              sortBy !== "newest") && (
+              <button className="clear-filters-btn" onClick={() => {
+                setSelectedSubjects([]);
+                setSortBy("newest");
+              }}>
+                Clear Filters
+              </button>
+            )}
+          </div>
         </div>
-        <div className="forum-controls">
-          <input
-            type="text"
-            placeholder="Search by title or content..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="search-input"
-          />
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="sort-select"
+
+        {/* ROW 2: Selected subjects (inside filter bar) */}
+        {selectedSubjects.length > 0 && (
+          <div className="filter-row-2">
+            <div className="selected-subjects-container">
+              {selectedSubjects.map((subject) => (
+                <div key={subject} className="selected-subject-tag">
+                  <span className="subject-name">{subject}</span>
+                  <button
+                    onClick={() => setSelectedSubjects(prev => prev.filter(s => s !== subject))}
+                    className="remove-subject-btn"
+                    title={`Remove ${subject} filter`}
+                  >
+                    <i className="fas fa-times"></i>
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* DROPDOWN MENUS */}
+        {activeDropdown === "sort" && (
+          <div
+            className="dropdown-menu sort-dropdown"
+            onClick={(e) => e.stopPropagation()}
           >
-            <option value="newest">Newest</option>
-            <option value="upvotes">Most Upvoted</option>
-          </select>
-          <select
-            value={selectedTopic}
-            onChange={(e) => setSelectedTopic(e.target.value)}
-            className="topic-select"
+            <div className="dropdown-header">
+              <i className="fas fa-sort"></i>
+              Sort By
+              <span className="dropdown-subtitle">Choose sorting method</span>
+            </div>
+            <div className="dropdown-content">
+              {sortOptions.map((option) => (
+                <button
+                  key={option.value}
+                  className={`dropdown-option ${sortBy === option.value ? "active" : ""}`}
+                  onClick={() => {
+                    setSortBy(option.value);
+                    setActiveDropdown(null);
+                  }}
+                >
+                  <div className="option-icon">{getSortIcon(option.value)}</div>
+                  <span className="option-label">{option.label}</span>
+                  {sortBy === option.value && <i className="fas fa-check"></i>}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {activeDropdown === "subjects" && (
+          <div
+            className="dropdown-menu subjects-dropdown"
+            onClick={(e) => e.stopPropagation()}
           >
-            <option value="">All Subjects</option>
-            <option value="Programming">Programming</option>
-            <option value="Mathematics">Mathematics</option>
-            <option value="Linear Programming">Linear Programming</option>
-            <option value="Database Development">Database Development</option>
-            <option value="Web Programming">Web Programming</option>
-            <option value="Computer Architecture">Computer Architecture</option>
-            <option value="Statistics">Statistics</option>
-            <option value="Software Testing">Software Testing</option>
-            <option value="Network Development">Network Development</option>
-            <option value="Machine Learning">Machine Learning</option>
-          </select>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="new-topic-btn"
-            data-cy="new-topic-btn"
-          >
-            <i className="fas fa-plus"></i> New Topic
-          </button>
-        </div>
+            <div className="dropdown-header">
+              <i className="fas fa-book-open"></i>
+              Subjects
+              <span className="dropdown-subtitle">Select one or more</span>
+            </div>
+            <div className="dropdown-content">
+              <div className="subject-search">
+                <i className="fas fa-search"></i>
+                <input
+                  type="text"
+                  placeholder="Search subjects..."
+                  className="subject-search-input"
+                  value={subjectSearchQuery}
+                  onChange={(e) => setSubjectSearchQuery(e.target.value)}
+                />
+              </div>
+
+              <div className="subjects-list">
+                {availableSubjects.filter(subject => 
+                  subject.toLowerCase().includes(subjectSearchQuery.toLowerCase())
+                ).map((subject) => (
+                  <button
+                    key={subject}
+                    className={`subject-option ${selectedSubjects.includes(subject) ? "selected" : ""}`}
+                    onClick={() => setSelectedSubjects(prev => 
+                      prev.includes(subject) 
+                        ? prev.filter(s => s !== subject)
+                        : [...prev, subject]
+                    )}
+                  >
+                    <span>{subject}</span>
+                    {selectedSubjects.includes(subject) && (
+                      <i className="fas fa-check"></i>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="topics-list">
@@ -363,8 +549,53 @@ const Forum = () => {
                   >
                     {thread.topic}
                   </span>
+                  <div className="topic-header-actions">
+                    {user &&
+                      thread.author &&
+                      user.id === thread.author.userId &&
+                      (() => {
+                        const canEdit = isWithinEditWindow(thread.createdAt);
+                        const remainingTime = getRemainingEditTime(thread.createdAt);
+
+                        return (
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              canEdit && handleEditClick(thread._id, thread.content);
+                            }}
+                            disabled={!canEdit}
+                            className={`edit-btn ${!canEdit ? "disabled" : ""}`}
+                            title={
+                              canEdit
+                                ? remainingTime > 0
+                                  ? `Edit available for ${remainingTime} more minute${remainingTime !== 1 ? "s" : ""}`
+                                  : "Edit my post"
+                                : "Edit window expired (10 minutes)"
+                            }
+                          >
+                            <i className="fas fa-pencil-alt"></i>
+                          </button>
+                        );
+                      })()}
+                    {((user && thread.author && user.id === thread.author.userId) ||
+                      (user && user.role === "admin")) && (
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleDeleteThread(thread._id);
+                        }}
+                        className="delete-btn"
+                      >
+                        <i className="fas fa-trash"></i>
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <p className="topic-excerpt">{thread.content}</p>
+                <div className="topic-excerpt-wrapper">
+                  <p className="topic-excerpt">{thread.content}</p>
+                </div>
               </Link>
               <div className="topic-meta">
                 <div className="meta-stats">
@@ -412,43 +643,6 @@ const Forum = () => {
                   </div>
                 </div>
               </div>
-            </div>
-            <div className="topic-actions">
-              {user &&
-                thread.author &&
-                user.id === thread.author.userId &&
-                (() => {
-                  const canEdit = isWithinEditWindow(thread.createdAt);
-                  const remainingTime = getRemainingEditTime(thread.createdAt);
-
-                  return (
-                    <button
-                      onClick={() =>
-                        canEdit && handleEditClick(thread._id, thread.content)
-                      }
-                      disabled={!canEdit}
-                      className={`edit-btn ${!canEdit ? "disabled" : ""}`}
-                      title={
-                        canEdit
-                          ? remainingTime > 0
-                            ? `Edit available for ${remainingTime} more minute${remainingTime !== 1 ? "s" : ""}`
-                            : "Edit my post"
-                          : "Edit window expired (10 minutes)"
-                      }
-                    >
-                      <i className="fas fa-pencil-alt"></i>
-                    </button>
-                  );
-                })()}
-              {((user && thread.author && user.id === thread.author.userId) ||
-                (user && user.role === "admin")) && (
-                <button
-                  onClick={() => handleDeleteThread(thread._id)}
-                  className="delete-btn"
-                >
-                  <i className="fas fa-trash"></i>
-                </button>
-              )}
             </div>
           </div>
         ))}

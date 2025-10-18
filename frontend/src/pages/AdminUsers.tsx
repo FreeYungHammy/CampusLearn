@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useAuthStore } from "../store/authStore";
 import { adminDeleteUser } from "../services/settingsApi";
 import api from "../lib/api";
+import "./Admin.css";
 
 interface User {
   id: string;
@@ -210,12 +211,12 @@ const AdminUsers: React.FC = () => {
         isDeleting={isDeleting}
       />
 
-      <div style={{ padding: "2rem" }}>
-        <div style={{ marginBottom: "2rem" }}>
-          <h1 style={{ marginBottom: "0.5rem" }}>User Management</h1>
-          <p style={{ color: "var(--text-secondary)" }}>
-            Manage user accounts and permissions
-          </p>
+      <div className="admin-users">
+        <div className="users-header">
+          <h1 className="users-title">
+            <i className="fas fa-users-cog"></i> User Management
+          </h1>
+          <p className="users-subtitle">Manage user accounts and permissions</p>
         </div>
 
         {/* Filters */}
@@ -360,25 +361,14 @@ const AdminUsers: React.FC = () => {
                     >
                       <td style={{ padding: "1rem" }}>
                         <div>
-                          <div
-                            style={{
-                              fontWeight: "500",
-                              marginBottom: "0.25rem",
-                              color: "var(--text-primary)",
-                            }}
-                          >
+                          <div className="admin-user-name">
                             {user.name && user.surname
                               ? `${user.name} ${user.surname}`
                               : user.name ||
                                 user.surname ||
                                 "Name not available"}
                           </div>
-                          <div
-                            style={{
-                              color: "var(--text-secondary)",
-                              fontSize: "0.875rem",
-                            }}
-                          >
+                          <div className="admin-user-email">
                             {user.email}
                           </div>
                         </div>

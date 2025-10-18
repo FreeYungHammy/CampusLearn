@@ -114,6 +114,13 @@ const Dashboard = () => {
     return <AdminDashboard />;
   }
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return " Good Morning";
+    if (hour < 17) return " Good Afternoon";
+    return "Good Evening";
+  };
+
   // Use a stable callback for opening the modal to avoid closure issues
   const openBookingStepper = useCallback(() => {
     setShowDashboardBookingStepper(true);
@@ -137,12 +144,7 @@ const Dashboard = () => {
     setTodaysQuote(motivationalQuotes[quoteIndex]);
   }, []);
 
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return "Good Morning";
-    if (hour < 17) return "Good Afternoon";
-    return "Good Evening";
-  };
+
 
   return (
     <div className="content-view active dashboard-modern" id="dashboard-view">
@@ -153,12 +155,12 @@ const Dashboard = () => {
         transition={{ duration: 0.6 }}
         className="dashboard-header"
       >
-        <div className="header-content">
-          <h1 className="dashboard-title">
-            <i className="fas fa-tachometer-alt"></i>
+        <div className="welcome-section">
+          <h1 className="dashboard-title welcome-greeting">
+            <i className="fas fa-clock"></i>
             {getGreeting()}, {user?.name} {user?.surname}!
           </h1>
-          <div className="time-info">
+          <div className="time-info welcome-time-date">
             <div className="current-time">
               {currentTime.toLocaleTimeString([], {
                 hour: "2-digit",
@@ -173,13 +175,9 @@ const Dashboard = () => {
               })}
             </div>
           </div>
-        </div>
-        <div className="header-right">
-          <p className="dashboard-subtitle">
-            {user?.role === "student"
-              ? "Welcome back to your learning journey!"
-              : "Welcome back to your teaching dashboard!"}
-          </p>
+          <h2 className="welcome-message">
+            Welcome back to your learning journey!
+          </h2>
           {todaysQuote && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -187,13 +185,14 @@ const Dashboard = () => {
               transition={{ duration: 0.6, delay: 0.3 }}
               className="motivational-quote"
             >
-              <i className="fas fa-quote-left"></i>
-              <span className="quote-text">{todaysQuote}</span>
-              <i className="fas fa-quote-right"></i>
+              <span className="quote-mark opening">"</span>
+              <span className="quote-text">Your limitation—it's only your imagination.</span>
+              <span className="quote-mark closing">"</span>
             </motion.div>
           )}
         </div>
       </motion.div>
+      
 
       {/* Quick Actions */}
       <motion.div
@@ -304,6 +303,42 @@ const Dashboard = () => {
             dayHeaderFormat={{ weekday: "short" }}
             firstDay={1}
           />
+        </div>
+        
+        {/* Mobile Upcoming Bookings */}
+        <div className="upcoming-bookings-mobile">
+          <h3 className="upcoming-bookings-title">
+            <i className="fas fa-clock"></i>
+            Upcoming Bookings
+          </h3>
+          
+          {/* Sample booking items - replace with real data later */}
+          <div className="booking-item" onClick={() => navigate("/bookings")}>
+            <div className="booking-time">10:00</div>
+            <div className="booking-details">
+              <div className="booking-title">Math Tutoring Session</div>
+              <div className="booking-subtitle">with Dr. Smith</div>
+            </div>
+            <div className="booking-status confirmed">Confirmed</div>
+          </div>
+          
+          <div className="booking-item" onClick={() => navigate("/bookings")}>
+            <div className="booking-time">14:30</div>
+            <div className="booking-details">
+              <div className="booking-title">Physics Study Group</div>
+              <div className="booking-subtitle">with Prof. Johnson</div>
+            </div>
+            <div className="booking-status pending">Pending</div>
+          </div>
+          
+          <div className="booking-item" onClick={() => navigate("/bookings")}>
+            <div className="booking-time">16:00</div>
+            <div className="booking-details">
+              <div className="booking-title">Chemistry Lab Review</div>
+              <div className="booking-subtitle">with Dr. Williams</div>
+            </div>
+            <div className="booking-status confirmed">Confirmed</div>
+          </div>
         </div>
       </motion.div>
 

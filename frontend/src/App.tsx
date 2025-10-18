@@ -38,7 +38,6 @@ import BotpressChat from "./components/BotpressChat/BotpressChat";
 import { VideoCallPage } from "./pages/Call/VideoCallPage";
 import { CallNotification } from "./components/CallNotification";
 
-import "./App.css";
 
 function App() {
   const location = useLocation();

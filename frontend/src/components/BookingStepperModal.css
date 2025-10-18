@@ -33,10 +33,10 @@
 
 .booking-stepper-overlay-container {
   width: 700px;
-  height: 750px;
-  max-height: 90vh;
+  height: fit-content;
+  max-height: 85vh;
   margin: 0 auto;
-  background: rgb(15, 22, 40);
+  background: rgb(15, 22, 40) !important;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-radius: 2rem;
@@ -48,6 +48,82 @@
   display: flex;
   flex-direction: column;
   position: relative;
+}
+
+/* Mobile Cancel Button - Match stepper button styles */
+.mobile-cancel-button {
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  padding: 16px 32px;
+  min-height: 52px;
+  min-width: 140px;
+  font-size: 16px;
+  font-weight: 600;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: var(--white);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  display: none; /* Hidden by default, shown on mobile */
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 100000 !important;
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+}
+
+.mobile-cancel-button:hover {
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+}
+
+.mobile-cancel-button:active {
+  transform: scale(0.95);
+}
+
+/* Mobile Continue Button - Match stepper button styles */
+.mobile-continue-button {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  padding: 16px 32px;
+  min-height: 52px;
+  min-width: 140px;
+  font-size: 16px;
+  font-weight: 600;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: var(--white);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  display: none; /* Hidden by default, shown on mobile */
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 100000 !important;
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+}
+
+.mobile-continue-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+}
+
+.mobile-continue-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.mobile-continue-button:active {
+  transform: scale(0.95);
 }
 
 .booking-stepper-container {
@@ -125,11 +201,22 @@
 /* Content Areas */
 .booking-stepper-content {
   flex: 1;
-  overflow-y: visible;
+  overflow-y: auto;
   min-height: 300px;
   padding: 1rem 2rem;
   /* Ensure content doesn't interfere with scrolling */
   overscroll-behavior: contain;
+  /* Hide scrollbar while maintaining scrollability */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  position: relative;
+  z-index: 1;
+  /* Allow content to scroll over fixed button */
+  margin-bottom: 0;
+}
+
+.booking-stepper-content::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }
 
 /* Footer */
@@ -138,9 +225,80 @@
   padding-right: 2rem;
   padding-bottom: 2rem;
   position: relative;
-  z-index: 10;
+  z-index: 100;
   max-height: fit-content;
   flex-shrink: 0;
+  background: rgb(15, 22, 40);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Booking Stepper Button Styles - Override for Continue button */
+.booking-stepper-footer .btn-primary {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%) !important;
+  color: var(--white) !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3) !important;
+  padding: 16px 32px !important;
+  min-height: 52px !important;
+  min-width: 140px !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  border-radius: 12px !important;
+}
+
+.booking-stepper-footer .btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4) !important;
+}
+
+.booking-stepper-footer .btn-primary:disabled {
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: rgba(255, 255, 255, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.booking-stepper-footer .btn-secondary {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%) !important;
+  color: var(--white) !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3) !important;
+  padding: 16px 32px !important;
+  min-height: 52px !important;
+  min-width: 140px !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  border-radius: 12px !important;
+}
+
+.booking-stepper-footer .btn-secondary:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4) !important;
+}
+
+.booking-stepper-footer .btn-secondary:disabled {
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: rgba(255, 255, 255, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Ensure all buttons in booking stepper footer are properly sized */
+.booking-stepper-footer .btn {
+  padding: 16px 32px !important;
+  min-height: 52px !important;
+  min-width: 140px !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  border-radius: 12px !important;
 }
 
 .booking-stepper-footer.hidden {
@@ -180,7 +338,6 @@
 }
 
 .subjects-grid-container::after {
-  content: "Scroll to see more subjects";
   position: absolute;
   bottom: -25px;
   left: 50%;
@@ -232,12 +389,14 @@
   font-size: 1.125rem;
   font-weight: 600;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  text-align: center;
 }
 
 .subject-selection-step p {
   color: var(--text-color-secondary);
   margin-bottom: 1.5rem;
   font-size: 0.875rem;
+  text-align: center;
 }
 
 .subjects-grid {
@@ -253,35 +412,22 @@
   justify-content: flex-start;
   overflow-y: auto;
   padding: 0 1rem;
-  max-height: 400px;
-  min-height: 200px;
+  max-height: 500px;
+  min-height: 300px;
+  position: relative;
+  z-index: 1;
   /* Ensure scroll wheel works */
   overscroll-behavior: contain;
   scroll-behavior: smooth;
   /* Ensure scroll events work */
   touch-action: pan-y;
-  /* Show scrollbar for better UX */
-  scrollbar-width: thin; /* Firefox */
-  scrollbar-color: var(--blue-primary) rgba(0, 0, 0, 0.1); /* Firefox */
+  /* Hide scrollbar while maintaining scrollability */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
 }
 
 .subjects-grid::-webkit-scrollbar {
-  width: 8px; /* Chrome, Safari, Opera */
-}
-
-.subjects-grid::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 4px;
-}
-
-.subjects-grid::-webkit-scrollbar-thumb {
-  background: var(--blue-primary);
-  border-radius: 4px;
-  transition: background 0.3s ease;
-}
-
-.subjects-grid::-webkit-scrollbar-thumb:hover {
-  background: #2980b9;
+  display: none; /* Chrome, Safari, Opera */
 }
 
 .subject-card {
@@ -453,30 +599,17 @@
   padding: 0 1rem 1rem 1rem;
   flex: 1;
   overflow-y: auto;
-  min-height: 150px;
-  max-height: 50vh;
-  /* Show scrollbar for better UX */
-  scrollbar-width: thin; /* Firefox */
-  scrollbar-color: var(--blue-primary) rgba(0, 0, 0, 0.1); /* Firefox */
+  min-height: 400px;
+  max-height: 600px;
+  position: relative;
+  z-index: 1;
+  /* Hide scrollbar for cleaner look */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
 }
 
 .tutors-grid::-webkit-scrollbar {
-  width: 8px; /* Chrome, Safari, Opera */
-}
-
-.tutors-grid::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 4px;
-}
-
-.tutors-grid::-webkit-scrollbar-thumb {
-  background: var(--blue-primary);
-  border-radius: 4px;
-  transition: background 0.3s ease;
-}
-
-.tutors-grid::-webkit-scrollbar-thumb:hover {
-  background: #2980b9;
+  display: none; /* Chrome, Safari, Opera */
 }
 
 .tutor-character-card {
@@ -745,34 +878,18 @@
 /* Booking Form Step */
 .booking-form-step {
   padding: 1rem 0;
-  height: 100%;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
-  max-height: 50vh;
-  min-height: 200px;
-  /* Show scrollbar for better UX */
-  scrollbar-width: thin; /* Firefox */
-  scrollbar-color: var(--blue-primary) rgba(0, 0, 0, 0.1); /* Firefox */
+  max-height: 700px;
+  min-height: 500px;
+  /* Hide scrollbar while maintaining scrollability */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
 }
 
 .booking-form-step::-webkit-scrollbar {
-  width: 8px; /* Chrome, Safari, Opera */
-}
-
-.booking-form-step::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 4px;
-}
-
-.booking-form-step::-webkit-scrollbar-thumb {
-  background: var(--blue-primary);
-  border-radius: 4px;
-  transition: background 0.3s ease;
-}
-
-.booking-form-step::-webkit-scrollbar-thumb:hover {
-  background: #2980b9;
+  display: none; /* Chrome, Safari, Opera */
 }
 
 .booking-form-step h3 {
@@ -913,35 +1030,20 @@ select.form-input option {
 /* Confirmation Step */
 .confirmation-step {
   text-align: center;
-  padding: 1rem 0 0.5rem 0;
-  max-height: 50vh;
-  min-height: 200px;
+  padding: 0.5rem 0;
+  max-height: 550px;
+  min-height: 350px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  /* Show scrollbar for better UX */
-  scrollbar-width: thin; /* Firefox */
-  scrollbar-color: var(--blue-primary) rgba(0, 0, 0, 0.1); /* Firefox */
+  justify-content: flex-start;
+  /* Hide scrollbar while maintaining scrollability */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
 }
 
 .confirmation-step::-webkit-scrollbar {
-  width: 8px; /* Chrome, Safari, Opera */
-}
-
-.confirmation-step::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 4px;
-}
-
-.confirmation-step::-webkit-scrollbar-thumb {
-  background: var(--blue-primary);
-  border-radius: 4px;
-  transition: background 0.3s ease;
-}
-
-.confirmation-step::-webkit-scrollbar-thumb:hover {
-  background: #2980b9;
+  display: none; /* Chrome, Safari, Opera */
 }
 
 .success-icon {
@@ -969,15 +1071,76 @@ select.form-input option {
   margin-bottom: 1.5rem;
 }
 
-.booking-summary {
+.booking-summary-compact {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
-  padding: 1.5rem;
+  padding: 1rem;
   text-align: left;
-  max-width: 400px;
+  max-width: 700px;
   margin: 0 auto;
   backdrop-filter: blur(10px);
+}
+
+.summary-row {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.summary-row:last-child {
+  margin-bottom: 0;
+}
+
+.summary-item-compact {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.summary-item-compact i {
+  color: var(--blue-primary);
+  width: 16px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.summary-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.summary-label {
+  font-size: 0.75rem;
+  color: var(--text-color-secondary);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.summary-value {
+  font-size: 0.875rem;
+  color: var(--text-color-dark);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 480px) {
+  .summary-row {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .summary-item-compact {
+    flex: none;
+  }
 }
 
 .summary-item {
@@ -1125,23 +1288,23 @@ select.form-input option {
   }
 
   .subjects-grid {
-    max-height: 250px;
-    min-height: 150px;
+    max-height: 400px;
+    min-height: 200px;
   }
 
   .tutors-grid {
-    max-height: 250px;
-    min-height: 150px;
+    max-height: 500px;
+    min-height: 300px;
   }
 
   .booking-form-step {
-    max-height: 250px;
-    min-height: 150px;
+    max-height: 600px;
+    min-height: 400px;
   }
 
   .confirmation-step {
-    max-height: 250px;
-    min-height: 150px;
+    max-height: 500px;
+    min-height: 300px;
   }
 }
 
@@ -1172,19 +1335,19 @@ select.form-input option {
   }
 
   .subjects-grid {
-    max-height: 35vh;
+    max-height: 70vh;
     min-height: 100px;
     padding: 0 0.75rem;
   }
 
   .tutors-grid {
-    max-height: 35vh;
+    max-height: 70vh;
     min-height: 100px;
   }
 
   .booking-form-step {
-    max-height: 35vh;
-    min-height: 120px;
+    max-height: 80vh;
+    min-height: 200px;
     padding: 0.5rem 0;
   }
 
@@ -1199,7 +1362,7 @@ select.form-input option {
   }
 
   .confirmation-step {
-    max-height: 35vh;
+    max-height: 70vh;
     min-height: 120px;
     padding: 0.5rem 0;
   }
@@ -1230,23 +1393,60 @@ select.form-input option {
     min-height: 400px;
   }
 
+  .booking-summary-compact {
+    max-width: 90%;
+  }
+
+  /* Mobile responsive buttons */
+  .booking-stepper-footer .btn-primary,
+  .booking-stepper-footer .btn-secondary,
+  .booking-stepper-footer .btn {
+    padding: 12px 24px !important;
+    min-height: 44px !important;
+    min-width: 120px !important;
+    font-size: 14px !important;
+  }
+
+  /* Hide chat bubble when booking modal is open on mobile */
+  .bpFabWrapper,
+  .bpFab,
+  .botpress-chat-bubble {
+    display: none !important;
+  }
+
+  /* Show mobile buttons */
+  .mobile-cancel-button,
+  .mobile-continue-button {
+    display: flex !important;
+  }
+
+  /* Hide stepper footer only on step 1 to show mobile cancel button */
+  .step-1-active .booking-stepper-footer {
+    display: none !important;
+  }
+
+  /* Add bottom margin to ensure content doesn't overlap with fixed buttons */
+  .step-1-active .booking-stepper-content {
+    margin-bottom: 80px;
+  }
+
   .subjects-grid {
-    max-height: 60vh;
+    max-height: 70vh;
     min-height: 150px;
   }
 
   .tutors-grid {
-    max-height: 60vh;
+    max-height: 70vh;
     min-height: 150px;
   }
 
   .booking-form-step {
-    max-height: 60vh;
-    min-height: 200px;
+    max-height: 80vh;
+    min-height: 300px;
   }
 
   .confirmation-step {
-    max-height: 60vh;
+    max-height: 70vh;
     min-height: 200px;
   }
 
@@ -1269,6 +1469,39 @@ select.form-input option {
     border-radius: 0;
   }
 
+  /* Extra small mobile buttons */
+  .booking-stepper-footer .btn-primary,
+  .booking-stepper-footer .btn-secondary,
+  .booking-stepper-footer .btn {
+    padding: 10px 20px !important;
+    min-height: 40px !important;
+    min-width: 100px !important;
+    font-size: 13px !important;
+  }
+
+  /* Hide chat bubble when booking modal is open on mobile */
+  .bpFabWrapper,
+  .bpFab,
+  .botpress-chat-bubble {
+    display: none !important;
+  }
+
+  /* Show mobile buttons */
+  .mobile-cancel-button,
+  .mobile-continue-button {
+    display: flex !important;
+  }
+
+  /* Hide stepper footer only on step 1 to show mobile cancel button */
+  .step-1-active .booking-stepper-footer {
+    display: none !important;
+  }
+
+  /* Add bottom margin to ensure content doesn't overlap with fixed buttons */
+  .step-1-active .booking-stepper-content {
+    margin-bottom: 80px;
+  }
+
   .subjects-grid {
     max-height: 70vh;
     min-height: 120px;
@@ -1280,8 +1513,8 @@ select.form-input option {
   }
 
   .booking-form-step {
-    max-height: 70vh;
-    min-height: 150px;
+    max-height: 80vh;
+    min-height: 250px;
   }
 
   .confirmation-step {
@@ -1298,23 +1531,56 @@ select.form-input option {
     border-radius: 0;
   }
 
+  /* Ultra small mobile buttons */
+  .booking-stepper-footer .btn-primary,
+  .booking-stepper-footer .btn-secondary,
+  .booking-stepper-footer .btn {
+    padding: 8px 16px !important;
+    min-height: 36px !important;
+    min-width: 80px !important;
+    font-size: 12px !important;
+  }
+
+  /* Hide chat bubble when booking modal is open on mobile */
+  .bpFabWrapper,
+  .bpFab,
+  .botpress-chat-bubble {
+    display: none !important;
+  }
+
+  /* Show mobile buttons */
+  .mobile-cancel-button,
+  .mobile-continue-button {
+    display: flex !important;
+  }
+
+  /* Hide stepper footer only on step 1 to show mobile cancel button */
+  .step-1-active .booking-stepper-footer {
+    display: none !important;
+  }
+
+  /* Add bottom margin to ensure content doesn't overlap with fixed buttons */
+  .step-1-active .booking-stepper-content {
+    margin-bottom: 80px;
+  }
+
   .subjects-grid {
-    max-height: 60vh;
+    max-height: 70vh;
     min-height: 100px;
   }
 
   .tutors-grid {
-    max-height: 60vh;
+    max-height: 70vh;
     min-height: 100px;
   }
 
   .booking-form-step {
-    max-height: 60vh;
-    min-height: 120px;
+    max-height: 80vh;
+    min-height: 200px;
   }
 
   .confirmation-step {
-    max-height: 60vh;
+    max-height: 70vh;
     min-height: 120px;
   }
 }

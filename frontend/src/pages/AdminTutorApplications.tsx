@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import http from "../services/http";
 import { useAuthStore } from "../store/authStore";
+import "./Admin.css";
 
 type Application = {
   _id: string;
@@ -80,9 +81,12 @@ const AdminTutorApplications: React.FC = () => {
   };
 
   return (
-    <div className="container" style={{ padding: 24 }}>
-      <div className="page-header" style={{ marginBottom: 16 }}>
-        <h2 style={{ margin: 0 }}>Tutor Applications</h2>
+    <div className="admin-tutor-applications">
+      <div className="applications-header">
+        <h1 className="applications-title">
+          <i className="fas fa-user-graduate"></i> Tutor Applications
+        </h1>
+        <p className="applications-subtitle">Review and approve/reject tutor applications</p>
       </div>
 
       {error && (

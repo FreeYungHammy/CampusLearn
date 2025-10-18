@@ -6,30 +6,7 @@
   overflow-x: hidden;
 }
 
-.database-tools-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 30px;
-}
-
-.header-content h1 {
-  font-size: 28px;
-  font-weight: 700;
-  margin: 0 0 8px 0;
-  color: var(--text-color-dark);
-}
-
-.header-content h1 i {
-  color: var(--primary);
-  margin-right: 10px;
-}
-
-.header-content p {
-  color: var(--text-color-light);
-  font-size: 16px;
-  margin: 0;
-}
+/* Old header styles removed - now using PageHeader component */
 
 .database-tools-content {
   max-width: 1400px;
@@ -177,7 +154,7 @@
 .data-table {
   background: var(--surface);
   border-radius: 12px;
-  overflow: visible; /* Remove internal scrolling */
+  overflow: hidden;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   /* Remove max-height and overflow properties to allow natural page scrolling */
 }
@@ -185,9 +162,10 @@
 .data-table table {
   width: 100%;
   min-width: 1000px; /* Increased minimum width to accommodate wider actions column */
-  border-collapse: collapse;
-  table-layout: fixed;
-  border-spacing: 0; /* Ensure no spacing between cells */
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: 12px;
+  overflow: hidden;
 }
 
 .data-table th {
@@ -209,6 +187,11 @@
 
 .data-table th:last-child {
   border-right: none; /* Remove border from last column */
+  border-top-right-radius: 12px;
+}
+
+.data-table th:first-child {
+  border-top-left-radius: 12px;
 }
 
 .data-table td {
@@ -227,6 +210,18 @@
 
 .data-table td:last-child {
   border-right: none; /* Remove border from last column */
+}
+
+.data-table tr:last-child td:first-child {
+  border-bottom-left-radius: 12px;
+}
+
+.data-table tr:last-child td:last-child {
+  border-bottom-right-radius: 12px;
+}
+
+.data-table tr:last-child td {
+  border-bottom: none;
 }
 
 /* Specific column widths for better layout */
@@ -348,30 +343,7 @@
   margin: 0;
 }
 
-/* Modal Styles */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 20px;
-}
-
-.modal {
-  background: var(--surface);
-  border-radius: 12px;
-  width: 100%;
-  max-width: 600px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-}
+/* Database Tools Specific Styles - Using global modal styles */
 
 .modal-header {
   display: flex;
@@ -409,7 +381,8 @@
 }
 
 .modal-body {
-  padding: 24px;
+  padding-top: 10px;
+  padding-bottom: 20px;
 }
 
 .form-group {
@@ -586,10 +559,7 @@
     min-width: 45px;
   }
 
-  .modal {
-    margin: 10px;
-    max-height: calc(100vh - 20px);
-  }
+  /* Using global modal styles - no overrides needed */
 
   .modal-header,
   .modal-body,

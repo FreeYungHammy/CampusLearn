@@ -138,11 +138,8 @@ const Upload = () => {
               onDragOver={handleDragOver}
               onDrop={handleDrop}
             >
-              <div className="upload-icon">
-                <i className="fas fa-cloud-upload-alt"></i>
-              </div>
               <div className="upload-text">
-                <p>Drag & drop files here or click to browse</p>
+                <p><i className="fas fa-cloud-upload-alt"></i> Drag & drop files here or click to browse</p>
                 {file && <p>Selected file: {file.name}</p>}
               </div>
               <input

@@ -148,7 +148,7 @@ export default function Stepper({
               )}
               <button 
                 onClick={onCancel || (isLastStep ? handleComplete : handleNext)} 
-                className={isLastStep ? "btn-primary" : "btn-secondary"} 
+                className="btn-primary" 
                 disabled={isNextButtonDisabled(currentStep)}
                 {...nextButtonProps}
               >
@@ -174,7 +174,7 @@ function StepContentWrapper({ isCompleted, currentStep, direction, children, cla
   return (
     <motion.div
       className={className}
-      style={{ position: 'relative', overflow: 'hidden' }}
+      style={{ position: 'relative', overflow: 'auto' }}
       animate={{ height: isCompleted ? 0 : parentHeight }}
       transition={{ type: 'spring', duration: 0.4 }}
     >
