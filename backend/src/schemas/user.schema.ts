@@ -18,7 +18,6 @@ const UserSchema = new Schema(
     emailVerificationExpires: { type: Date, select: false },
     emailPreferences: {
       bookingConfirmations: { type: Boolean, default: true },
-      tutorApplicationUpdates: { type: Boolean, default: true },
       generalNotifications: { type: Boolean, default: true },
       marketingEmails: { type: Boolean, default: false },
     },

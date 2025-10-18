@@ -1152,7 +1152,6 @@ export const UserService = {
 
   async updateEmailPreferences(userId: string, preferences: {
     bookingConfirmations?: boolean;
-    tutorApplicationUpdates?: boolean;
     generalNotifications?: boolean;
     marketingEmails?: boolean;
   }) {
@@ -1184,7 +1183,6 @@ export const UserService = {
     return {
       preferences: user.emailPreferences || {
         bookingConfirmations: true,
-        tutorApplicationUpdates: true,
         generalNotifications: true,
         marketingEmails: false,
       },

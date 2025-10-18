@@ -108,7 +108,6 @@ export const getEmailPreferences = async (
 ): Promise<{
   preferences: {
     bookingConfirmations: boolean;
-    tutorApplicationUpdates: boolean;
     generalNotifications: boolean;
     marketingEmails: boolean;
   };
@@ -125,7 +124,6 @@ export const updateEmailPreferences = async (
   token: string,
   preferences: {
     bookingConfirmations?: boolean;
-    tutorApplicationUpdates?: boolean;
     generalNotifications?: boolean;
     marketingEmails?: boolean;
   },
@@ -133,7 +131,6 @@ export const updateEmailPreferences = async (
   message: string;
   preferences: {
     bookingConfirmations: boolean;
-    tutorApplicationUpdates: boolean;
     generalNotifications: boolean;
     marketingEmails: boolean;
   };

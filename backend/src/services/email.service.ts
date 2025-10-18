@@ -80,7 +80,7 @@ class EmailService {
     return true;
   }
 
-  private async checkUserEmailPreference(email: string, preferenceType: 'bookingConfirmations' | 'tutorApplicationUpdates' | 'generalNotifications' | 'marketingEmails'): Promise<boolean> {
+  private async checkUserEmailPreference(email: string, preferenceType: 'bookingConfirmations' | 'generalNotifications' | 'marketingEmails'): Promise<boolean> {
     try {
       const user = await UserModel.findOne({ email }).select('emailPreferences').lean();
       if (!user || !user.emailPreferences) {
@@ -197,13 +197,6 @@ class EmailService {
   }
 
   async sendTutorApplicationReceivedEmail(to: string, applicantName: string): Promise<boolean> {
-    // Check if user wants to receive tutor application updates
-    const wantsEmails = await this.checkUserEmailPreference(to, 'tutorApplicationUpdates');
-    if (!wantsEmails) {
-      logger.info(`User ${to} has opted out of tutor application update emails`);
-      return true; // Return true to indicate "success" (email was intentionally not sent)
-    }
-
     const template = this.getTutorApplicationReceivedTemplate(applicantName);
     return this.sendEmail({
       to,
@@ -224,13 +217,6 @@ class EmailService {
   }
 
   async sendTutorApplicationRejectionEmail(to: string, applicantName: string): Promise<boolean> {
-    // Check if user wants to receive tutor application updates
-    const wantsEmails = await this.checkUserEmailPreference(to, 'tutorApplicationUpdates');
-    if (!wantsEmails) {
-      logger.info(`User ${to} has opted out of tutor application update emails`);
-      return true; // Return true to indicate "success" (email was intentionally not sent)
-    }
-
     const template = this.getTutorApplicationRejectionTemplate(applicantName);
     return this.sendEmail({
       to,

@@ -27,7 +27,6 @@ const Settings = () => {
 
   const [emailPreferences, setEmailPreferences] = useState({
     bookingConfirmations: true,
-    tutorApplicationUpdates: true,
     generalNotifications: true,
     marketingEmails: false,
   });
@@ -818,21 +817,6 @@ const Settings = () => {
                   type="checkbox"
                   name="bookingConfirmations"
                   checked={emailPreferences.bookingConfirmations}
-                  onChange={handleEmailPreferenceChange}
-                />
-                <span className="slider"></span>
-              </label>
-            </div>
-            <div className="notification-group">
-              <div>
-                <div className="notification-label">Tutor Application Updates</div>
-                <p>Receive updates about your tutor application status.</p>
-              </div>
-              <label className="switch">
-                <input
-                  type="checkbox"
-                  name="tutorApplicationUpdates"
-                  checked={emailPreferences.tutorApplicationUpdates}
                   onChange={handleEmailPreferenceChange}
                 />
                 <span className="slider"></span>
