@@ -157,7 +157,11 @@ export const ForumService = {
     const dbStartTime = performance.now();
     const matchStage: any = {};
     if (topic) {
-      matchStage.topic = topic;
+      // Split comma-separated topics and use OR logic
+      const topics = topic.split(',').map(t => t.trim()).filter(t => t.length > 0);
+      if (topics.length > 0) {
+        matchStage.topic = { $in: topics };
+      }
     }
     if (searchQuery) {
       matchStage.$or = [

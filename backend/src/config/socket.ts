@@ -132,9 +132,47 @@ export function createSocketServer(httpServer: HttpServer) {
       });
     }
 
-    socket.on("join_room", (chatId: string) => {
+    socket.on("join_room", async (chatId: string) => {
       socket.join(chatId);
       console.log(`joined room: ${chatId}`);
+      
+      // Emit current user's online status to all users in this room
+      if (userId) {
+        const userStatus = connectedUsers.get(userId);
+        if (userStatus) {
+          socket.to(chatId).emit("user_status_change", {
+            userId: userId,
+            status: "online",
+            lastSeen: userStatus.lastSeen,
+          });
+        }
+      }
+      
+      // Send current online status of all users in this room to the joining user
+      const roomSockets = await chat.in(chatId).fetchSockets();
+      const roomUserIds = roomSockets
+        .map(s => s.data.user?.id)
+        .filter(Boolean);
+      
+      console.log(`Room ${chatId} has ${roomUserIds.length} users:`, roomUserIds);
+      console.log(`Joining user ${userId} will receive status for:`, roomUserIds.filter(id => id !== userId));
+      
+      // Send status of all users currently in this room
+      for (const roomUserId of roomUserIds) {
+        if (roomUserId !== userId) { // Don't send own status
+          const status = connectedUsers.get(roomUserId);
+          if (status) {
+            console.log(`Sending online status for ${roomUserId} to ${userId}`);
+            socket.emit("user_status_change", {
+              userId: roomUserId,
+              status: "online",
+              lastSeen: status.lastSeen,
+            });
+          } else {
+            console.log(`No status found for user ${roomUserId}`);
+          }
+        }
+      }
     });
 
     socket.on("leave_room", (chatId: string) => {
@@ -221,6 +259,13 @@ export function createSocketServer(httpServer: HttpServer) {
     const userId = socket.data.user?.id as string | undefined;
     if (userId) {
       connectedUsers.set(userId, { socketId: socket.id, userId, lastSeen: new Date() });
+      
+      // Emit user online status to all connected clients in chat namespace
+      chat.emit("user_status_change", {
+        userId: userId,
+        status: "online",
+        lastSeen: new Date(),
+      });
     }
 
     // join_call: client joins a signaling room for a given callId
@@ -324,6 +369,13 @@ export function createSocketServer(httpServer: HttpServer) {
       if (userId) {
         connectedUsers.delete(userId);
         if (presence) await presence.markSocketOffline(userId, socket.id);
+        
+        // Emit user offline status to all connected clients in chat namespace
+        chat.emit("user_status_change", {
+          userId: userId,
+          status: "offline",
+          lastSeen: new Date(),
+        });
       }
     });
   });
