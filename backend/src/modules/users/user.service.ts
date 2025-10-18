@@ -1147,7 +1147,7 @@ export const UserService = {
       throw new Error("Failed to send verification email");
     }
 
-    return { message: "Verification email sent successfully" };
+    return { message: "Verification email sent successfully. Please check your spam/junk folder if you don't see it in your inbox." };
   },
 
   async updateEmailPreferences(userId: string, preferences: {

@@ -121,7 +121,7 @@ router.post('/password-reset', async (req, res) => {
     if (success) {
       res.json({ 
         success: true, 
-        message: 'Password reset email sent successfully' 
+        message: 'Password reset email sent successfully. Please check your spam/junk folder if you don\'t see it in your inbox.' 
       });
     } else {
       res.status(500).json({ 
@@ -189,7 +189,7 @@ router.post('/tutor-application', requireAuth, async (req, res) => {
     if (success) {
       res.json({ 
         success: true, 
-        message: 'Tutor application email sent successfully' 
+        message: 'Tutor application email sent successfully. Please check your spam/junk folder if you don\'t see it in your inbox.' 
       });
     } else {
       res.status(500).json({ 
@@ -223,7 +223,7 @@ router.post('/booking-confirmation', requireAuth, async (req, res) => {
     if (success) {
       res.json({ 
         success: true, 
-        message: 'Booking confirmation email sent successfully' 
+        message: 'Booking confirmation email sent successfully. Please check your spam/junk folder if you don\'t see it in your inbox.' 
       });
     } else {
       res.status(500).json({ 
@@ -291,7 +291,7 @@ router.post('/tutor-application-received', async (req, res) => {
     if (success) {
       res.json({ 
         success: true, 
-        message: 'Tutor application received email sent successfully' 
+        message: 'Tutor application received email sent successfully. Please check your spam/junk folder if you don\'t see it in your inbox.' 
       });
     } else {
       res.status(500).json({ 
@@ -325,7 +325,7 @@ router.post('/email-verification', async (req, res) => {
     if (success) {
       res.json({ 
         success: true, 
-        message: 'Email verification email sent successfully' 
+        message: 'Email verification email sent successfully. Please check your spam/junk folder if you don\'t see it in your inbox.' 
       });
     } else {
       res.status(500).json({ 
@@ -378,7 +378,7 @@ router.post('/session-reminder', requireAuth, async (req, res) => {
     if (success) {
       res.json({ 
         success: true, 
-        message: 'Session reminder email sent successfully' 
+        message: 'Session reminder email sent successfully. Please check your spam/junk folder if you don\'t see it in your inbox.' 
       });
     } else {
       res.status(500).json({ 
@@ -446,7 +446,7 @@ router.post('/forum-reply', requireAuth, async (req, res) => {
     if (success) {
       res.json({ 
         success: true, 
-        message: 'Forum reply email sent successfully' 
+        message: 'Forum reply email sent successfully. Please check your spam/junk folder if you don\'t see it in your inbox.' 
       });
     } else {
       res.status(500).json({ 
