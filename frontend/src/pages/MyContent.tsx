@@ -8,6 +8,7 @@ import VideoPlayer from "../components/VideoPlayer";
 import DocxViewer from "../components/DocxViewer";
 import PageHeader from "../components/PageHeader";
 import "../components/VideoPlayer.css";
+import "./MyContent.css";
 
 const formatBytes = (bytes: number, decimals = 2) => {
   if (!+bytes) return "0 Bytes";
@@ -231,9 +232,11 @@ const MyContent = () => {
   return (
     <div className="content-view" id="mycontent-view">
       <PageHeader
-        title={user?.firstName && user?.lastName
-          ? `${user.firstName} ${user.lastName}'s Content`
-          : "My Content"}
+        title={
+          user?.firstName && user?.lastName
+            ? `${user.firstName} ${user.lastName}'s Content`
+            : "My Content"
+        }
         subtitle="Manage and organize your educational content"
         icon="fas fa-folder"
       />
@@ -267,12 +270,9 @@ const MyContent = () => {
               </React.Fragment>
             ))}
           </div>
-          
+
           {currentPath.length > 0 && (
-            <button
-              className="back-button"
-              onClick={navigateBack}
-            >
+            <button className="back-button" onClick={navigateBack}>
               <i className="fas fa-arrow-left"></i> Back
             </button>
           )}
@@ -366,7 +366,6 @@ const MyContent = () => {
                       {/* Show subtopics when a subject is selected */}
                       {selectedSubject && !selectedSubtopic && (
                         <div className="subtopics-container">
-
                           <div className="subtopics-grid">
                             {Object.keys(grouped[selectedSubject]).map(
                               (subtopic) => (
@@ -565,7 +564,7 @@ const MyContent = () => {
                                         "application/pdf" && (
                                         <a
                                           href={`${apiBaseUrl}/files/${fileId}/binary?download=true`}
-                                          className="btn btn-sm btn-outline"
+                                          className="btn btn-sm btn-outline-download"
                                           download
                                         >
                                           <i className="fas fa-download"></i>{" "}

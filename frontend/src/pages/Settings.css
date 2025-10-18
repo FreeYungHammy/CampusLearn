@@ -43,13 +43,18 @@
 
 .card-header {
   border-bottom: 1px solid var(--border);
-  padding-bottom: 15px;
+  padding-bottom: 20px;
+  margin-bottom: 20px;
 }
 
 .card-title {
   font-size: 20px;
   font-weight: 600;
   color: var(--dark);
+}
+
+.card-body {
+  padding-top: 10px;
 }
 
 .form-grid {
@@ -114,6 +119,24 @@
 .card-footer {
   margin-top: 20px;
   text-align: right;
+}
+
+/* Delete Account Section */
+.delete-warning {
+  margin-bottom: 20px;
+  color: var(--dark);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.btn-danger {
+  background-color: var(--danger);
+  color: white;
+}
+
+.btn-danger:hover {
+  background-color: #d32f2f;
+  transform: translateY(-1px);
 }
 
 /* Notification Settings */
@@ -289,9 +312,11 @@ input:checked + .slider:before {
 
 .subjects-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 12px;
   margin-bottom: 10px;
+  max-height: 400px;
+  overflow-y: auto;
 }
 
 .subject-chip {
@@ -304,7 +329,8 @@ input:checked + .slider:before {
   font-weight: 500;
   transition: var(--transition);
   position: relative;
-  height: 100px;
+  height: 60px;
+  width: 100%;
 }
 
 .subject-chip.enrolled {
@@ -451,10 +477,12 @@ input:checked + .slider:before {
 @media (max-width: 768px) {
   .subjects-grid {
     grid-template-columns: 1fr;
+    max-height: 300px;
   }
 
   .subject-chip {
     padding: 10px 12px;
+    height: 50px;
   }
 
   .subjects-section {

@@ -144,8 +144,6 @@ const Dashboard = () => {
     setTodaysQuote(motivationalQuotes[quoteIndex]);
   }, []);
 
-
-
   return (
     <div className="content-view active dashboard-modern" id="dashboard-view">
       {/* Dashboard Header */}
@@ -155,12 +153,11 @@ const Dashboard = () => {
         transition={{ duration: 0.6 }}
         className="dashboard-header"
       >
-        <div className="welcome-section">
-          <h1 className="dashboard-title welcome-greeting">
-            <i className="fas fa-clock"></i>
-            {getGreeting()}, {user?.name} {user?.surname}!
+        <div className="header-content">
+          <h1 className="dashboard-title">
+            {getGreeting()}, {user?.name} {user?.surname}! 👋
           </h1>
-          <div className="time-info welcome-time-date">
+          <div className="time-info">
             <div className="current-time">
               {currentTime.toLocaleTimeString([], {
                 hour: "2-digit",
@@ -175,9 +172,13 @@ const Dashboard = () => {
               })}
             </div>
           </div>
-          <h2 className="welcome-message">
-            Welcome back to your learning journey!
-          </h2>
+        </div>
+        <div className="header-right">
+          <p className="dashboard-subtitle">
+            {user?.role === "student"
+              ? "Welcome back to your learning journey!"
+              : "Welcome back to your teaching dashboard!"}
+          </p>
           {todaysQuote && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -185,14 +186,13 @@ const Dashboard = () => {
               transition={{ duration: 0.6, delay: 0.3 }}
               className="motivational-quote"
             >
-              <span className="quote-mark opening">"</span>
-              <span className="quote-text">Your limitation—it's only your imagination.</span>
-              <span className="quote-mark closing">"</span>
+              <i className="fas fa-quote-left"></i>
+              <span className="quote-text">{todaysQuote}</span>
+              <i className="fas fa-quote-right"></i>
             </motion.div>
           )}
         </div>
       </motion.div>
-      
 
       {/* Quick Actions */}
       <motion.div
@@ -304,14 +304,14 @@ const Dashboard = () => {
             firstDay={1}
           />
         </div>
-        
+
         {/* Mobile Upcoming Bookings */}
         <div className="upcoming-bookings-mobile">
           <h3 className="upcoming-bookings-title">
             <i className="fas fa-clock"></i>
             Upcoming Bookings
           </h3>
-          
+
           {/* Sample booking items - replace with real data later */}
           <div className="booking-item" onClick={() => navigate("/bookings")}>
             <div className="booking-time">10:00</div>
@@ -321,7 +321,7 @@ const Dashboard = () => {
             </div>
             <div className="booking-status confirmed">Confirmed</div>
           </div>
-          
+
           <div className="booking-item" onClick={() => navigate("/bookings")}>
             <div className="booking-time">14:30</div>
             <div className="booking-details">
@@ -330,7 +330,7 @@ const Dashboard = () => {
             </div>
             <div className="booking-status pending">Pending</div>
           </div>
-          
+
           <div className="booking-item" onClick={() => navigate("/bookings")}>
             <div className="booking-time">16:00</div>
             <div className="booking-details">
