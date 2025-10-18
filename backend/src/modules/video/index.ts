@@ -24,4 +24,10 @@ router.get(
   VideoController.getSignedUrlForVideo,
 );
 
+router.get(
+  "/:videoId/compression-status",
+  requireAuth,
+  VideoController.getVideoCompressionStatus,
+);
+
 export const videoRoutes = router;

@@ -9,6 +9,12 @@ const VideoSchema = new Schema(
     courseId: { type: Schema.Types.ObjectId, ref: "Course", required: true },
     description: { type: String },
     duration: { type: Number }, // in seconds
+    compressionStatus: { 
+      type: String, 
+      enum: ["pending", "compressing", "completed", "failed"], 
+      default: "pending" 
+    },
+    compressedQualities: [{ type: String }], // Array of available qualities (e.g., ["360p", "480p", "720p"])
   },
   { timestamps: true },
 );

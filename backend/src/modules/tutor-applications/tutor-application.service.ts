@@ -4,6 +4,7 @@ import path from "path";
 import { TutorApplicationModel } from "../../schemas/tutorApplication.schema";
 import { UserModel } from "../../schemas/user.schema";
 import { TutorModel } from "../../schemas/tutor.schema";
+import { emailService } from "../../services/email.service";
 import type { TutorApplicationDoc } from "../../schemas/tutorApplication.schema";
 
 // Define defaultPfp by reading the file from the correct relative path
@@ -21,7 +22,55 @@ export const TutorApplicationService = {
     const { password, ...rest } = applicationData;
     // Hash the password once upon application creation
     const passwordHash = await bcrypt.hash(password, 10);
-    return TutorApplicationModel.create({ ...rest, passwordHash });
+    const application = await TutorApplicationModel.create({ ...rest, passwordHash });
+    
+    // Send confirmation email to applicant
+    try {
+      const applicantName = `${applicationData.firstName} ${applicationData.lastName}`;
+      const emailSent = await emailService.sendTutorApplicationReceivedEmail(
+        applicationData.email, 
+        applicantName
+      );
+      if (emailSent) {
+        console.log(`Tutor application received email sent to ${applicationData.email}`);
+      } else {
+        console.log(`Failed to send tutor application received email to ${applicationData.email}`);
+      }
+    } catch (error) {
+      console.error(`Error sending tutor application received email to ${applicationData.email}:`, error);
+      // Continue with application creation even if email fails
+    }
+
+    // Send notification email to admins
+    try {
+      const applicantName = `${applicationData.firstName} ${applicationData.lastName}`;
+      // Get all admin emails
+      const { AdminModel } = await import("../../schemas/admin.schema");
+      const { UserModel } = await import("../../schemas/user.schema");
+      
+      const adminUsers = await UserModel.find({ role: "admin" }).lean();
+      const adminEmails = adminUsers.map(admin => admin.email);
+      
+      if (adminEmails.length > 0) {
+        // Send to all admins
+        for (const adminEmail of adminEmails) {
+          const adminEmailSent = await emailService.sendTutorApplicationEmail(
+            adminEmail,
+            applicantName
+          );
+          if (adminEmailSent) {
+            console.log(`Tutor application notification sent to admin: ${adminEmail}`);
+          } else {
+            console.log(`Failed to send tutor application notification to admin: ${adminEmail}`);
+          }
+        }
+      }
+    } catch (error) {
+      console.error(`Error sending tutor application notification to admins:`, error);
+      // Continue with application creation even if admin notification fails
+    }
+    
+    return application;
   },
 
   async list() {
@@ -54,6 +103,23 @@ export const TutorApplicationService = {
       pfp: defaultPfp, // Assign the default PFP
     });
 
+    // Send approval email to applicant
+    try {
+      const applicantName = `${application.firstName} ${application.lastName}`;
+      const emailSent = await emailService.sendWelcomeEmail(
+        application.email,
+        applicantName
+      );
+      if (emailSent) {
+        console.log(`Tutor application approval email sent to ${application.email}`);
+      } else {
+        console.log(`Failed to send tutor application approval email to ${application.email}`);
+      }
+    } catch (error) {
+      console.error(`Error sending tutor application approval email to ${application.email}:`, error);
+      // Continue with approval even if email fails
+    }
+
     // Delete Application
     await TutorApplicationModel.findByIdAndDelete(id);
 
@@ -61,10 +127,30 @@ export const TutorApplicationService = {
   },
 
   async reject(id: string) {
-    const result = await TutorApplicationModel.findByIdAndDelete(id);
-    if (!result) {
+    const application = await TutorApplicationModel.findById(id);
+    if (!application) {
       throw new Error("Application not found");
     }
+
+    // Send rejection email to applicant
+    try {
+      const applicantName = `${application.firstName} ${application.lastName}`;
+      const emailSent = await emailService.sendTutorApplicationRejectionEmail(
+        application.email,
+        applicantName
+      );
+      if (emailSent) {
+        console.log(`Tutor application rejection email sent to ${application.email}`);
+      } else {
+        console.log(`Failed to send tutor application rejection email to ${application.email}`);
+      }
+    } catch (error) {
+      console.error(`Error sending tutor application rejection email to ${application.email}:`, error);
+      // Continue with rejection even if email fails
+    }
+
+    // Delete Application
+    await TutorApplicationModel.findByIdAndDelete(id);
     return { message: "Application rejected successfully" };
   },
 };

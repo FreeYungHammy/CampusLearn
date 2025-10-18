@@ -157,6 +157,46 @@ class EmailService {
     });
   }
 
+  async sendAccountDeletionEmail(to: string, userName: string): Promise<boolean> {
+    const template = this.getAccountDeletionTemplate(userName);
+    return this.sendEmail({
+      to,
+      subject: template.subject,
+      text: template.text,
+      html: template.html,
+    });
+  }
+
+  async sendTutorApplicationReceivedEmail(to: string, applicantName: string): Promise<boolean> {
+    const template = this.getTutorApplicationReceivedTemplate(applicantName);
+    return this.sendEmail({
+      to,
+      subject: template.subject,
+      text: template.text,
+      html: template.html,
+    });
+  }
+
+  async sendEmailVerificationEmail(to: string, verificationLink: string, userName: string): Promise<boolean> {
+    const template = this.getEmailVerificationTemplate(verificationLink, userName);
+    return this.sendEmail({
+      to,
+      subject: template.subject,
+      text: template.text,
+      html: template.html,
+    });
+  }
+
+  async sendTutorApplicationRejectionEmail(to: string, applicantName: string): Promise<boolean> {
+    const template = this.getTutorApplicationRejectionTemplate(applicantName);
+    return this.sendEmail({
+      to,
+      subject: template.subject,
+      text: template.text,
+      html: template.html,
+    });
+  }
+
   // Email templates
   private getWelcomeTemplate(name: string): EmailTemplate {
     return {
@@ -294,6 +334,196 @@ class EmailService {
           </div>
           
           <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">Best regards,<br>The CampusLearn Team</p>
+        </div>
+      `,
+    };
+  }
+
+  private getAccountDeletionTemplate(userName: string): EmailTemplate {
+    return {
+      subject: 'Account Deleted - CampusLearn',
+      text: `Hello ${userName},\n\nYour CampusLearn account has been successfully deleted.\n\nAll your data, including:\n- Profile information\n- Forum posts and replies\n- Chat messages\n- Uploaded content\n- Bookings and subscriptions\n\n...has been permanently removed from our systems.\n\nIf you did not request this deletion, please contact our support team immediately.\n\nThank you for being part of the CampusLearn community.\n\nBest regards,\nThe CampusLearn Team`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #2563eb; margin: 0;">CampusLearn</h1>
+            <p style="color: #6b7280; margin: 5px 0 0 0;">Account Deletion Confirmation</p>
+          </div>
+          
+          <h2 style="color: #1f2937;">Account Successfully Deleted</h2>
+          <p style="color: #4b5563; line-height: 1.6;">Hello ${userName},</p>
+          <p style="color: #4b5563; line-height: 1.6;">Your CampusLearn account has been successfully deleted as requested.</p>
+          
+          <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 15px; margin: 20px 0;">
+            <h3 style="color: #dc2626; margin-top: 0;">Data Removed</h3>
+            <ul style="color: #4b5563; margin: 0; padding-left: 20px;">
+              <li>Profile information and settings</li>
+              <li>Forum posts and replies</li>
+              <li>Chat messages and history</li>
+              <li>Uploaded content and files</li>
+              <li>Bookings and subscriptions</li>
+              <li>All personal data and preferences</li>
+            </ul>
+          </div>
+          
+          <div style="background-color: #fef3c7; border: 1px solid #f59e0b; border-radius: 6px; padding: 12px; margin: 20px 0;">
+            <p style="color: #92400e; margin: 0; font-size: 14px;">
+              <strong>⚠️ Important:</strong> If you did not request this account deletion, please contact our support team immediately at support@campuslearn-api.run.place
+            </p>
+          </div>
+          
+          <p style="color: #4b5563; line-height: 1.6;">Thank you for being part of the CampusLearn community. We hope you found value in our platform.</p>
+          
+          <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">Best regards,<br>The CampusLearn Team</p>
+          
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+          <p style="color: #9ca3af; font-size: 12px; text-align: center;">
+            This email confirms the permanent deletion of your CampusLearn account.
+          </p>
+        </div>
+      `,
+    };
+  }
+
+  private getTutorApplicationReceivedTemplate(applicantName: string): EmailTemplate {
+    return {
+      subject: 'Tutor Application Received - CampusLearn',
+      text: `Hello ${applicantName},\n\nThank you for submitting your tutor application to CampusLearn!\n\nWe have received your application and will review it carefully. Our team will evaluate your qualifications and experience.\n\nWhat happens next:\n- Our admin team will review your application\n- We'll check your qualifications and experience\n- You'll receive an email notification once the review is complete\n\nPlease note that this process may take 3-5 business days.\n\nIf you have any questions about your application, please don't hesitate to contact us.\n\nThank you for your interest in joining our tutoring community!\n\nBest regards,\nThe CampusLearn Team`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #2563eb; margin: 0;">CampusLearn</h1>
+            <p style="color: #6b7280; margin: 5px 0 0 0;">Tutor Application</p>
+          </div>
+          
+          <h2 style="color: #1f2937;">Application Received! 📚</h2>
+          <p style="color: #4b5563; line-height: 1.6;">Hello ${applicantName},</p>
+          <p style="color: #4b5563; line-height: 1.6;">Thank you for submitting your tutor application to CampusLearn! We're excited about your interest in joining our teaching community.</p>
+          
+          <div style="background-color: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #1e40af; margin-top: 0;">What Happens Next?</h3>
+            <ol style="color: #4b5563; margin: 0; padding-left: 20px;">
+              <li><strong>Review Process:</strong> Our admin team will carefully review your application</li>
+              <li><strong>Qualification Check:</strong> We'll verify your qualifications and experience</li>
+              <li><strong>Decision Notification:</strong> You'll receive an email with our decision</li>
+            </ol>
+          </div>
+          
+          <div style="background-color: #fef3c7; border: 1px solid #f59e0b; border-radius: 6px; padding: 12px; margin: 20px 0;">
+            <p style="color: #92400e; margin: 0; font-size: 14px;">
+              <strong>⏰ Processing Time:</strong> Please allow 3-5 business days for the review process.
+            </p>
+          </div>
+          
+          <p style="color: #4b5563; line-height: 1.6;">If you have any questions about your application or need to provide additional information, please don't hesitate to contact our support team.</p>
+          
+          <p style="color: #4b5563; line-height: 1.6;">We appreciate your interest in helping students succeed through CampusLearn!</p>
+          
+          <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">Best regards,<br>The CampusLearn Team</p>
+          
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+          <p style="color: #9ca3af; font-size: 12px; text-align: center;">
+            Need help? Contact us at support@campuslearn-api.run.place
+          </p>
+        </div>
+      `,
+    };
+  }
+
+  private getEmailVerificationTemplate(verificationLink: string, userName: string): EmailTemplate {
+    return {
+      subject: 'Verify Your Email - CampusLearn',
+      text: `Hello ${userName},\n\nWelcome to CampusLearn! To complete your registration, please verify your email address.\n\nClick the link below to verify your email:\n${verificationLink}\n\nThis link will expire in 24 hours for security reasons.\n\nIf you did not create an account with CampusLearn, please ignore this email.\n\nBest regards,\nThe CampusLearn Team`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #2563eb; margin: 0;">CampusLearn</h1>
+            <p style="color: #6b7280; margin: 5px 0 0 0;">Email Verification</p>
+          </div>
+          
+          <h2 style="color: #1f2937;">Verify Your Email Address</h2>
+          <p style="color: #4b5563; line-height: 1.6;">Hello ${userName},</p>
+          <p style="color: #4b5563; line-height: 1.6;">Welcome to CampusLearn! To complete your registration and start using your account, please verify your email address.</p>
+          
+          <div style="background-color: #fef3c7; border: 1px solid #f59e0b; border-radius: 6px; padding: 12px; margin: 20px 0;">
+            <p style="color: #92400e; margin: 0; font-size: 14px;">
+              <strong>📧 Important:</strong> If you don't see this email in your inbox, please check your spam/junk folder and mark it as "Not Spam" to ensure you receive future emails from CampusLearn.
+            </p>
+          </div>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${verificationLink}" style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Verify Email Address</a>
+          </div>
+          
+          <p style="color: #6b7280; font-size: 14px;">This verification link will expire in 24 hours for security reasons.</p>
+          <p style="color: #6b7280; font-size: 14px;">If you didn't create an account with CampusLearn, please ignore this email.</p>
+          
+          <div style="background-color: #f0f9ff; padding: 15px; border-radius: 6px; margin: 20px 0;">
+            <h3 style="color: #1e40af; margin-top: 0;">After Verification</h3>
+            <p style="color: #4b5563; margin: 0; font-size: 14px;">Once verified, you'll be able to:</p>
+            <ul style="color: #4b5563; margin: 5px 0 0 0; padding-left: 20px; font-size: 14px;">
+              <li>Access all CampusLearn features</li>
+              <li>Connect with tutors and students</li>
+              <li>Join forum discussions</li>
+              <li>Schedule video calls</li>
+            </ul>
+          </div>
+          
+          <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">Best regards,<br>The CampusLearn Team</p>
+          
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+          <p style="color: #9ca3af; font-size: 12px; text-align: center;">
+            This email was sent from CampusLearn. If you have any questions, please contact support.
+          </p>
+        </div>
+      `,
+    };
+  }
+
+  private getTutorApplicationRejectionTemplate(applicantName: string): EmailTemplate {
+    return {
+      subject: 'Tutor Application Update - CampusLearn',
+      text: `Hello ${applicantName},\n\nThank you for your interest in becoming a tutor with CampusLearn.\n\nAfter careful review of your application, we regret to inform you that we are unable to approve your tutor application at this time.\n\nThis decision was based on various factors including qualifications, experience, and current platform needs.\n\nWe encourage you to:\n- Continue developing your skills and expertise\n- Consider reapplying in the future when you have additional qualifications\n- Explore other opportunities within our learning community\n\nThank you for your interest in CampusLearn, and we wish you the best in your educational journey.\n\nBest regards,\nThe CampusLearn Team`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #2563eb; margin: 0;">CampusLearn</h1>
+            <p style="color: #6b7280; margin: 5px 0 0 0;">Tutor Application Update</p>
+          </div>
+          
+          <h2 style="color: #1f2937;">Application Review Complete</h2>
+          <p style="color: #4b5563; line-height: 1.6;">Hello ${applicantName},</p>
+          <p style="color: #4b5563; line-height: 1.6;">Thank you for your interest in becoming a tutor with CampusLearn.</p>
+          
+          <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 15px; margin: 20px 0;">
+            <h3 style="color: #dc2626; margin-top: 0;">Application Status</h3>
+            <p style="color: #4b5563; margin: 0; font-size: 14px;">After careful review of your application, we regret to inform you that we are unable to approve your tutor application at this time.</p>
+          </div>
+          
+          <div style="background-color: #f0f9ff; padding: 15px; border-radius: 6px; margin: 20px 0;">
+            <h3 style="color: #1e40af; margin-top: 0;">Next Steps</h3>
+            <p style="color: #4b5563; margin: 0; font-size: 14px;">We encourage you to:</p>
+            <ul style="color: #4b5563; margin: 5px 0 0 0; padding-left: 20px; font-size: 14px;">
+              <li>Continue developing your skills and expertise</li>
+              <li>Consider reapplying in the future when you have additional qualifications</li>
+              <li>Explore other opportunities within our learning community</li>
+            </ul>
+          </div>
+          
+          <div style="background-color: #fef3c7; border: 1px solid #f59e0b; border-radius: 6px; padding: 12px; margin: 20px 0;">
+            <p style="color: #92400e; margin: 0; font-size: 14px;">
+              <strong>💡 Note:</strong> This decision was based on various factors including qualifications, experience, and current platform needs.
+            </p>
+          </div>
+          
+          <p style="color: #4b5563; line-height: 1.6;">Thank you for your interest in CampusLearn, and we wish you the best in your educational journey.</p>
+          
+          <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">Best regards,<br>The CampusLearn Team</p>
+          
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+          <p style="color: #9ca3af; font-size: 12px; text-align: center;">
+            Questions? Contact us at support@campuslearn-api.run.place
+          </p>
         </div>
       `,
     };

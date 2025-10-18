@@ -240,6 +240,108 @@ router.post('/booking-confirmation', requireAuth, async (req, res) => {
   }
 });
 
+// Send account deletion email
+router.post('/account-deletion', requireAuth, async (req, res) => {
+  try {
+    const { to, userName } = req.body;
+    
+    if (!to || !userName) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields: to, userName'
+      });
+    }
+
+    const success = await emailService.sendAccountDeletionEmail(to, userName);
+
+    if (success) {
+      res.json({ 
+        success: true, 
+        message: 'Account deletion email sent successfully' 
+      });
+    } else {
+      res.status(500).json({ 
+        success: false, 
+        message: 'Failed to send account deletion email' 
+      });
+    }
+  } catch (error) {
+    logger.error('Send account deletion email failed:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to send account deletion email' 
+    });
+  }
+});
+
+// Send tutor application received email
+router.post('/tutor-application-received', async (req, res) => {
+  try {
+    const { to, applicantName } = req.body;
+    
+    if (!to || !applicantName) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields: to, applicantName'
+      });
+    }
+
+    const success = await emailService.sendTutorApplicationReceivedEmail(to, applicantName);
+
+    if (success) {
+      res.json({ 
+        success: true, 
+        message: 'Tutor application received email sent successfully' 
+      });
+    } else {
+      res.status(500).json({ 
+        success: false, 
+        message: 'Failed to send tutor application received email' 
+      });
+    }
+  } catch (error) {
+    logger.error('Send tutor application received email failed:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to send tutor application received email' 
+    });
+  }
+});
+
+// Send email verification email
+router.post('/email-verification', async (req, res) => {
+  try {
+    const { to, verificationLink, userName } = req.body;
+    
+    if (!to || !verificationLink || !userName) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields: to, verificationLink, userName'
+      });
+    }
+
+    const success = await emailService.sendEmailVerificationEmail(to, verificationLink, userName);
+
+    if (success) {
+      res.json({ 
+        success: true, 
+        message: 'Email verification email sent successfully' 
+      });
+    } else {
+      res.status(500).json({ 
+        success: false, 
+        message: 'Failed to send email verification email' 
+      });
+    }
+  } catch (error) {
+    logger.error('Send email verification email failed:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to send email verification email' 
+    });
+  }
+});
+
 // Get rate limit status
 router.get('/rate-limit/:identifier', requireAuth, async (req, res) => {
   try {

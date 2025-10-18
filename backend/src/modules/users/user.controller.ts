@@ -351,4 +351,30 @@ export const UserController = {
       next(e);
     }
   },
+
+  verifyEmail: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { token } = req.params;
+      const result = await UserService.verifyEmail(token);
+      res.status(200).json(result);
+    } catch (e: any) {
+      if (e.message === "Email verification token is invalid or has expired.") {
+        return res.status(400).json({ message: e.message });
+      }
+      next(e);
+    }
+  },
+
+  resendEmailVerification: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { email } = req.body;
+      const result = await UserService.resendEmailVerification(email);
+      res.status(200).json(result);
+    } catch (e: any) {
+      if (e.message === "User not found" || e.message === "Email is already verified" || e.message === "Failed to send verification email") {
+        return res.status(400).json({ message: e.message });
+      }
+      next(e);
+    }
+  },
 };

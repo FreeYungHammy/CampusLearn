@@ -111,12 +111,24 @@ export const UserService = {
       throw err;
     }
 
-    // 3. Create User
+    // 3. Create User with email verification
     const passwordHash = await bcrypt.hash(input.password, 10);
+    
+    // Generate email verification token
+    const verificationToken = crypto.randomBytes(32).toString("hex");
+    const emailVerificationToken = crypto
+      .createHash("sha256")
+      .update(verificationToken)
+      .digest("hex");
+    const emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
     const user = await UserRepo.create({
       email: input.email,
       passwordHash,
       role: input.role,
+      emailVerified: false,
+      emailVerificationToken,
+      emailVerificationExpires,
     } as Partial<UserDoc>);
 
     // 4. Create Student or Tutor Profile
@@ -138,6 +150,27 @@ export const UserService = {
         subjects: input.subjects,
         pfp: defaultPfp,
       });
+    }
+
+    // 5. Send email verification
+    try {
+      const userName = `${input.firstName} ${input.lastName}`;
+      const verificationLink = `${process.env.FRONTEND_URL || 'https://campuslearn.onrender.com'}/verify-email/${verificationToken}`;
+      
+      const emailSent = await emailService.sendEmailVerificationEmail(
+        input.email, 
+        verificationLink, 
+        userName
+      );
+      
+      if (emailSent) {
+        logger.info(`Email verification sent to ${input.email}`);
+      } else {
+        logger.warn(`Failed to send email verification to ${input.email}`);
+      }
+    } catch (error) {
+      logger.error(`Error sending email verification to ${input.email}:`, error);
+      // Continue with registration even if email fails
     }
 
     const { passwordHash: _, ...safeUser } = user as any;
@@ -653,6 +686,19 @@ export const UserService = {
         tutorProfile = await TutorRepo.findOne({ userId: id });
       }
 
+      // Get user's name for email notification
+      let userName = "User";
+      if (user.role === "student" && studentProfile) {
+        userName = `${studentProfile.name} ${studentProfile.surname}`;
+      } else if (user.role === "tutor" && tutorProfile) {
+        userName = `${tutorProfile.name} ${tutorProfile.surname}`;
+      } else if (user.role === "admin") {
+        const adminProfile = await AdminModel.findOne({ userId: id }).lean();
+        if (adminProfile) {
+          userName = `${adminProfile.name} ${adminProfile.surname}`;
+        }
+      }
+
       // 1. Delete chat messages
       await ChatService.deleteAllMessagesForUser(id);
       logger.info(`Deleted chat messages for user ${id}`);
@@ -888,7 +934,20 @@ export const UserService = {
       }
       logger.info(`Cleared cache entries for user ${id}`);
 
-      // 10. Finally, delete the user account
+      // 10. Send account deletion confirmation email
+      try {
+        const emailSent = await emailService.sendAccountDeletionEmail(user.email, userName);
+        if (emailSent) {
+          logger.info(`Account deletion email sent to ${user.email}`);
+        } else {
+          logger.warn(`Failed to send account deletion email to ${user.email}`);
+        }
+      } catch (error) {
+        logger.error(`Error sending account deletion email to ${user.email}:`, error);
+        // Continue with deletion even if email fails
+      }
+
+      // 11. Finally, delete the user account
       const deletedUser = await UserRepo.deleteById(id);
 
       logger.info(
@@ -993,5 +1052,98 @@ export const UserService = {
       TutorModel.countDocuments(),
     ]);
     return { students: studentCount, tutors: tutorCount };
+  },
+
+  async verifyEmail(token: string) {
+    const emailVerificationToken = crypto
+      .createHash("sha256")
+      .update(token)
+      .digest("hex");
+
+    const user = await UserRepo.findOne({
+      emailVerificationToken,
+      emailVerificationExpires: { $gt: new Date() },
+    });
+
+    if (!user) {
+      throw new Error("Email verification token is invalid or has expired.");
+    }
+
+    await UserRepo.updateById(user._id, {
+      $set: {
+        emailVerified: true,
+        emailVerificationToken: undefined,
+        emailVerificationExpires: undefined,
+      },
+    });
+
+    return { message: "Email verified successfully" };
+  },
+
+  async resendEmailVerification(email: string) {
+    const user = await UserRepo.findByEmail(email);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    if (user.emailVerified) {
+      throw new Error("Email is already verified");
+    }
+
+    // Generate new verification token
+    const verificationToken = crypto.randomBytes(32).toString("hex");
+    const emailVerificationToken = crypto
+      .createHash("sha256")
+      .update(verificationToken)
+      .digest("hex");
+    const emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+    await UserRepo.updateById(user._id, {
+      $set: {
+        emailVerificationToken,
+        emailVerificationExpires,
+      },
+    });
+
+    // Send verification email
+    try {
+      // Get user's name from profile
+      let userName = "User";
+      if (user.role === "student") {
+        const studentProfile = await StudentRepo.findOne({ userId: user._id });
+        if (studentProfile) {
+          userName = `${studentProfile.name} ${studentProfile.surname}`;
+        }
+      } else if (user.role === "tutor") {
+        const tutorProfile = await TutorRepo.findOne({ userId: user._id });
+        if (tutorProfile) {
+          userName = `${tutorProfile.name} ${tutorProfile.surname}`;
+        }
+      } else if (user.role === "admin") {
+        const adminProfile = await AdminModel.findOne({ userId: user._id }).lean();
+        if (adminProfile) {
+          userName = `${adminProfile.name} ${adminProfile.surname}`;
+        }
+      }
+
+      const verificationLink = `${process.env.FRONTEND_URL || 'https://campuslearn.onrender.com'}/verify-email/${verificationToken}`;
+      
+      const emailSent = await emailService.sendEmailVerificationEmail(
+        email, 
+        verificationLink, 
+        userName
+      );
+      
+      if (emailSent) {
+        logger.info(`Email verification resent to ${email}`);
+      } else {
+        logger.warn(`Failed to resend email verification to ${email}`);
+      }
+    } catch (error) {
+      logger.error(`Error resending email verification to ${email}:`, error);
+      throw new Error("Failed to send verification email");
+    }
+
+    return { message: "Verification email sent successfully" };
   },
 };

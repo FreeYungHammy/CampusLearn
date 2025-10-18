@@ -30,22 +30,53 @@ export const FileService = {
     let compressedContent: Buffer | undefined;
     let externalUri: string | undefined;
 
+    // Create base fileData object
+    const fileData: any = {
+      tutorId: input.tutorId,
+      subject: input.subject,
+      subtopic: input.subtopic,
+      title: input.title,
+      description: input.description,
+      size: input.file.buffer.length,
+      contentType,
+      compressionStatus: "pending" as const, // Default status
+    };
+
     if (gcsService.isEnabled() && contentType.startsWith("video/")) {
       const safeName = `${Date.now()}-${(input.file.originalname || "upload").replace(/[^a-zA-Z0-9._-]/g, "_")}`;
       const destination = `uploads/videos/${safeName}`;
 
-      // Upload original video first
-      await gcsService.uploadBuffer(
-        input.file.buffer,
-        contentType,
-        destination,
-      );
-      externalUri = destination; // stored path in bucket
+      // Upload original video first - try both methods
+      try {
+        await gcsService.uploadBuffer(
+          input.file.buffer,
+          contentType,
+          destination,
+        );
+        externalUri = destination; // stored path in bucket
+      } catch (error) {
+        logger.warn(`GCS: Primary upload failed, trying alternative method:`, error);
+        try {
+          await gcsService.uploadBufferSimple(
+            input.file.buffer,
+            contentType,
+            destination,
+          );
+          externalUri = destination; // stored path in bucket
+        } catch (fallbackError) {
+          logger.error(`GCS: Both upload methods failed:`, fallbackError);
+          throw fallbackError;
+        }
+      }
 
       // Start compression process in background
       logger.info(`🎬 Starting automatic compression for: ${destination}`);
       logger.info(`🎬 Video file size: ${input.file.buffer.length} bytes`);
       logger.info(`🎬 Content type: ${contentType}`);
+
+      // Set compression status to "compressing" immediately
+      fileData.compressionStatus = "compressing";
+      fileData.externalUri = externalUri;
 
       try {
         const { VideoCompressionService } = await import(
@@ -99,19 +130,10 @@ export const FileService = {
       logger.info(`Original size: ${input.file.buffer.length} bytes`);
       compressedContent = await gzip(input.file.buffer);
       logger.info(`Compressed size: ${compressedContent.length} bytes`);
+      
+      // Update fileData for non-video files
+      fileData.content = compressedContent;
     }
-
-    const fileData = {
-      tutorId: input.tutorId,
-      subject: input.subject,
-      subtopic: input.subtopic,
-      title: input.title,
-      description: input.description,
-      size: input.file.buffer.length, // <-- Add the original file size
-      ...(compressedContent ? { content: compressedContent } : {}),
-      contentType,
-      ...(externalUri ? { externalUri } : {}),
-    };
 
     try {
       const result = await FileRepo.create(fileData);
