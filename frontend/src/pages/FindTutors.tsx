@@ -10,6 +10,7 @@ import { useAuthStore } from "../store/authStore";
 import SubscribeConfirmationModal from "../components/SubscribeConfirmationModal";
 import TutorBookingModal from "../components/TutorBookingModal";
 import AnimatedList from "../components/AnimatedList";
+import PageHeader from "../components/PageHeader";
 
 const PAGE_SIZE = 10;
 
@@ -370,11 +371,11 @@ const FindTutors = () => {
       id="tutors-view"
       key={`tutors-${user?.id || "anonymous"}`}
     >
-      <div className="section-header">
-        <h2 className="section-title">
-          <i className="fas fa-user-graduate"></i>Find Tutors
-        </h2>
-      </div>
+      <PageHeader
+        title="Find Tutors"
+        subtitle="Discover and connect with expert tutors in your subjects"
+        icon="fas fa-user-graduate"
+      />
 
       {/* MINIMALISTIC FILTER BAR - GRID LAYOUT */}
       <div className="minimal-filter-bar-grid">

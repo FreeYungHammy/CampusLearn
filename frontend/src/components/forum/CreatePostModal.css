@@ -30,6 +30,13 @@
   border: 1px solid var(--border);
 }
 
+/* Light mode modal - ensure white background */
+[data-theme="light"] .create-post-modal {
+  background: #ffffff !important;
+  color: #111827 !important;
+  border-color: #e5e7eb !important;
+}
+
 .create-post-modal-header {
   padding: 24px 28px 20px;
   border-bottom: 1px solid var(--border);
@@ -84,6 +91,11 @@
   flex: 1;
   overflow-y: auto;
   background: var(--surface);
+}
+
+/* Light mode modal body - ensure white background */
+[data-theme="light"] .create-post-modal-body {
+  background: #ffffff !important;
 }
 
 .create-post-form {

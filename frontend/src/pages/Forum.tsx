@@ -13,6 +13,7 @@ import { useForumSocket } from "../hooks/useForumSocket";
 import { useAuthStore } from "../store/authStore";
 import PostActions from "../components/forum/PostActions";
 import { isWithinEditWindow, getRemainingEditTime } from "../utils/editWindow";
+import PageHeader from "../components/PageHeader";
 
 const formatSubjectClass = (subject: string) => {
   const subjectMap: { [key: string]: string } = {
@@ -345,11 +346,11 @@ const Forum = () => {
 
   return (
     <div className="content-view" id="forum-view">
-      <div className="section-header">
-        <h2 className="section-title">
-          <i className="fas fa-comments"></i>Discussion Forum
-        </h2>
-      </div>
+      <PageHeader
+        title="Discussion Forum"
+        subtitle="Connect with peers, ask questions, and share knowledge"
+        icon="fas fa-comments"
+      />
 
       {/* MINIMALISTIC FILTER BAR - GRID LAYOUT */}
       <div className="minimal-filter-bar-grid">
@@ -548,8 +549,53 @@ const Forum = () => {
                   >
                     {thread.topic}
                   </span>
+                  <div className="topic-header-actions">
+                    {user &&
+                      thread.author &&
+                      user.id === thread.author.userId &&
+                      (() => {
+                        const canEdit = isWithinEditWindow(thread.createdAt);
+                        const remainingTime = getRemainingEditTime(thread.createdAt);
+
+                        return (
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              canEdit && handleEditClick(thread._id, thread.content);
+                            }}
+                            disabled={!canEdit}
+                            className={`edit-btn ${!canEdit ? "disabled" : ""}`}
+                            title={
+                              canEdit
+                                ? remainingTime > 0
+                                  ? `Edit available for ${remainingTime} more minute${remainingTime !== 1 ? "s" : ""}`
+                                  : "Edit my post"
+                                : "Edit window expired (10 minutes)"
+                            }
+                          >
+                            <i className="fas fa-pencil-alt"></i>
+                          </button>
+                        );
+                      })()}
+                    {((user && thread.author && user.id === thread.author.userId) ||
+                      (user && user.role === "admin")) && (
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleDeleteThread(thread._id);
+                        }}
+                        className="delete-btn"
+                      >
+                        <i className="fas fa-trash"></i>
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <p className="topic-excerpt">{thread.content}</p>
+                <div className="topic-excerpt-wrapper">
+                  <p className="topic-excerpt">{thread.content}</p>
+                </div>
               </Link>
               <div className="topic-meta">
                 <div className="meta-stats">
@@ -597,43 +643,6 @@ const Forum = () => {
                   </div>
                 </div>
               </div>
-            </div>
-            <div className="topic-actions">
-              {user &&
-                thread.author &&
-                user.id === thread.author.userId &&
-                (() => {
-                  const canEdit = isWithinEditWindow(thread.createdAt);
-                  const remainingTime = getRemainingEditTime(thread.createdAt);
-
-                  return (
-                    <button
-                      onClick={() =>
-                        canEdit && handleEditClick(thread._id, thread.content)
-                      }
-                      disabled={!canEdit}
-                      className={`edit-btn ${!canEdit ? "disabled" : ""}`}
-                      title={
-                        canEdit
-                          ? remainingTime > 0
-                            ? `Edit available for ${remainingTime} more minute${remainingTime !== 1 ? "s" : ""}`
-                            : "Edit my post"
-                          : "Edit window expired (10 minutes)"
-                      }
-                    >
-                      <i className="fas fa-pencil-alt"></i>
-                    </button>
-                  );
-                })()}
-              {((user && thread.author && user.id === thread.author.userId) ||
-                (user && user.role === "admin")) && (
-                <button
-                  onClick={() => handleDeleteThread(thread._id)}
-                  className="delete-btn"
-                >
-                  <i className="fas fa-trash"></i>
-                </button>
-              )}
             </div>
           </div>
         ))}

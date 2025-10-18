@@ -14,6 +14,7 @@ import {
   updateEnrolledCourses,
   deleteAccount,
 } from "../services/settingsApi";
+import PageHeader from "../components/PageHeader";
 
 const Settings = () => {
   const [notifications, setNotifications] = useState({
@@ -365,9 +366,11 @@ const Settings = () => {
         isSubmitting={isDeletingAccount}
       />
       <div className="settings-container">
-        <div className="settings-header">
-          <h1 className="settings-title">Account Settings</h1>
-        </div>
+        <PageHeader
+          title="Settings"
+          subtitle="Manage your account preferences and profile"
+          icon="fas fa-cog"
+        />
 
         {/* Profile Information Card */}
         <div className="settings-card">

@@ -18,6 +18,7 @@ import EnhancedBookingModal, {
 } from "@/components/EnhancedBookingModal";
 import DateSeparator from "@/components/DateSeparator";
 import BookingMessageCard from "@/components/chat/BookingMessageCard";
+import PageHeader from "@/components/PageHeader";
 import "./Messages.css";
 
 /* ---------- Default PFP (base64) ---------- */
@@ -797,12 +798,11 @@ const Messages: React.FC = () => {
 
   return (
     <main className="messages-root">
-      {/* Page Header */}
-      <div className="section-header">
-        <h2 className="section-title">
-          <i className="fas fa-comments"></i>Messages
-        </h2>
-      </div>
+      <PageHeader
+        title="Messages"
+        subtitle="Connect and communicate with your tutors and students"
+        icon="fas fa-comments"
+      />
       
       <div className="messages-shell">
         {/* Sidebar */}
