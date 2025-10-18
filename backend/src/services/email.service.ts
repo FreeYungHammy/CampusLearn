@@ -31,14 +31,14 @@ class EmailService {
     const config = {
       host: process.env.SMTP_HOST || 'smtp-relay.brevo.com',
       port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: process.env.SMTP_SECURE === 'true',
+      secure: false, // Use STARTTLS for port 587 (Brevo standard)
       auth: {
         user: process.env.SMTP_USER || '',
         pass: process.env.SMTP_PASS || '',
       },
       tls: {
-        rejectUnauthorized: true, // Use proper SSL verification
-        ciphers: 'SSLv3',
+        rejectUnauthorized: true,
+        // Remove the problematic ciphers setting
       },
       // Additional options for better deliverability
       pool: true,
