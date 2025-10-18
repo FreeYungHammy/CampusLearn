@@ -401,7 +401,7 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
                         Thank you for applying. Your application is under review.
                       </p>
                       <p className="success-redirect">
-                        You will be notified of the outcome via email. You may now close this window.
+                        You will be notified of the outcome via email. Please check your spam/junk folder if you don't see it in your inbox. You may now close this window.
                       </p>
                     </>
                   ) : (

@@ -11,6 +11,7 @@ import {
 import { StudentModel } from "../../schemas/students.schema";
 import { TutorModel } from "../../schemas/tutor.schema";
 import { AdminModel } from "../../schemas/admin.schema";
+import { UserModel } from "../../schemas/user.schema";
 import { io } from "../../config/socket";
 import type { User } from "../../types/User";
 import ToxicityService from "./toxicity.service";
@@ -18,6 +19,7 @@ import { HttpException } from "../../infra/http/HttpException";
 import { CacheService } from "../../services/cache.service";
 import { createLogger } from "../../config/logger";
 import { UserVoteModel } from "../../schemas/userVote.schema";
+import { emailService } from "../../services/email.service";
 import { UserService } from "../users/user.service";
 import mongoose from "mongoose";
 
@@ -603,6 +605,52 @@ export const ForumService = {
       threadId: threadId,
       replyCount: updatedReplyCount,
     });
+
+    // Send email notification to the original post author
+    try {
+      const originalPost = await ForumPostModel.findById(threadId).lean();
+      if (originalPost) {
+        // Get the original post author's profile
+        let originalAuthorProfile;
+        if (originalPost.authorRole === "student") {
+          originalAuthorProfile = await StudentModel.findById(originalPost.authorId).lean();
+        } else if (originalPost.authorRole === "tutor") {
+          originalAuthorProfile = await TutorModel.findById(originalPost.authorId).lean();
+        } else if (originalPost.authorRole === "admin") {
+          originalAuthorProfile = await AdminModel.findById(originalPost.authorId).lean();
+        }
+
+        if (originalAuthorProfile) {
+          // Get the original author's user account to get their email
+          const originalAuthorUser = await UserModel.findById(originalAuthorProfile.userId).lean();
+          
+          if (originalAuthorUser && originalAuthorUser.email !== user.email) {
+            // Only send email if the replier is not the same as the original author
+            const replyDetails = {
+              postTitle: originalPost.title,
+              replierName: `${authorProfile.name} ${authorProfile.surname}`,
+              replyContent: content,
+              time: new Date().toLocaleString(),
+              postUrl: `${process.env.FRONTEND_URL || 'https://campuslearn.onrender.com'}/forum/${threadId}`,
+            };
+
+            const emailSent = await emailService.sendForumReplyEmail(
+              originalAuthorUser.email,
+              replyDetails
+            );
+            
+            if (emailSent) {
+              logger.info(`Forum reply email sent to ${originalAuthorUser.email}`);
+            } else {
+              logger.warn(`Failed to send forum reply email to ${originalAuthorUser.email}`);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      logger.error("Error sending forum reply email:", error);
+      // Continue with reply creation even if email fails
+    }
 
     await CacheService.del(FORUM_THREAD_CACHE_KEY(threadId));
     return populatedReply;

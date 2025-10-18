@@ -262,7 +262,7 @@ export const UserController = {
           .json({ message: "Cannot delete your own account" });
       }
 
-      const deletedUser = await UserService.remove(userId);
+      const deletedUser = await UserService.remove(userId, true);
       if (!deletedUser) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -373,6 +373,33 @@ export const UserController = {
     } catch (e: any) {
       if (e.message === "User not found" || e.message === "Email is already verified" || e.message === "Failed to send verification email") {
         return res.status(400).json({ message: e.message });
+      }
+      next(e);
+    }
+  },
+
+  updateEmailPreferences: async (req: AuthedRequest, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user!;
+      const preferences = req.body;
+      const result = await UserService.updateEmailPreferences(user.id, preferences);
+      res.status(200).json(result);
+    } catch (e: any) {
+      if (e.message === "User not found") {
+        return res.status(404).json({ message: e.message });
+      }
+      next(e);
+    }
+  },
+
+  getEmailPreferences: async (req: AuthedRequest, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user!;
+      const result = await UserService.getEmailPreferences(user.id);
+      res.status(200).json(result);
+    } catch (e: any) {
+      if (e.message === "User not found") {
+        return res.status(404).json({ message: e.message });
       }
       next(e);
     }
