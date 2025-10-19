@@ -9,6 +9,7 @@ import type { Tutor } from "../types/Tutors";
 import UnsubscribeConfirmationModal from "../components/UnsubscribeConfirmationModal";
 import TutorBookingModal from "../components/TutorBookingModal";
 import AnimatedList from "../components/AnimatedList";
+import TutorRating from "../components/TutorRating";
 import PageHeader from "../components/PageHeader";
 
 const MyTutors = () => {
@@ -444,6 +445,28 @@ const MyTutors = () => {
                       </span>
                     </div>
                   </div>
+                  <div className="tutor-rating-inline">
+                    <TutorRating 
+                      tutorId={tutor.id} 
+                      size="small"
+                      onRatingChange={async (rating) => {
+                        // Fetch updated tutor data to get the correct rating after backend update
+                        try {
+                          const response = await getMySubscribedTutors(user!.id);
+                          const updatedTutor = response.data.find((t: Tutor) => t.id === tutor.id);
+                          if (updatedTutor) {
+                            setTutors(prevTutors => 
+                              prevTutors.map((t: Tutor) => 
+                                t.id === tutor.id ? updatedTutor : t
+                              )
+                            );
+                          }
+                        } catch (error) {
+                          console.error("Failed to refresh tutor data after rating:", error);
+                        }
+                      }}
+                    />
+                  </div>
                 </div>
 
                 <div className="tutor-stats">
@@ -469,6 +492,7 @@ const MyTutors = () => {
                     </span>
                   )}
                 </div>
+
 
                 <div className="tutor-actions">
                   <Link

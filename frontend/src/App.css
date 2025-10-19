@@ -664,6 +664,405 @@ body {
   box-shadow: 0 2px 8px rgba(251, 191, 36, 0.3);
 }
 
+/* Tutor Rating Component Styles */
+.tutor-rating {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.tutor-rating-loading {
+  color: #666;
+  font-size: 14px;
+  font-style: italic;
+}
+
+.rating-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #2c3e50;
+  margin-bottom: 4px;
+}
+
+.tutor-rating .star-rating {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.tutor-rating .star-btn {
+  width: 32px;
+  height: 32px;
+  padding: 6px;
+  background: rgba(251, 191, 36, 0.1);
+  border: 2px solid rgba(251, 191, 36, 0.3);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tutor-rating .star-btn:hover {
+  background: rgba(251, 191, 36, 0.2);
+  border-color: rgba(251, 191, 36, 0.5);
+  transform: scale(1.05);
+}
+
+.tutor-rating .star-btn.active {
+  background: rgba(251, 191, 36, 0.3);
+  border-color: rgba(251, 191, 36, 0.7);
+  box-shadow: 0 2px 6px rgba(251, 191, 36, 0.3);
+}
+
+.tutor-rating .star-btn.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.tutor-rating .star-btn.disabled:hover {
+  transform: none;
+  background: rgba(251, 191, 36, 0.1);
+  border-color: rgba(251, 191, 36, 0.3);
+}
+
+.rating-text {
+  font-size: 12px;
+  color: #666;
+  font-weight: 500;
+  margin-top: 4px;
+}
+
+/* Size variations */
+.rating-small .star-btn {
+  width: 24px;
+  height: 24px;
+  padding: 4px;
+}
+
+.rating-large .star-btn {
+  width: 40px;
+  height: 40px;
+  padding: 8px;
+}
+
+/* Modern Tutor Rating Styles */
+.tutor-rating-modern {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rate-tutor-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  color: white;
+  border: none;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(52, 152, 219, 0.3);
+  white-space: nowrap;
+}
+
+.rate-tutor-btn:hover {
+  background: linear-gradient(135deg, #2980b9, #1f5f8b);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.4);
+}
+
+.rate-tutor-btn i {
+  font-size: 12px;
+}
+
+.rating-display {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: rgba(52, 152, 219, 0.1);
+  border: 1px solid rgba(52, 152, 219, 0.2);
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.rating-stars-display {
+  display: flex;
+  gap: 2px;
+}
+
+.rating-stars-display i {
+  font-size: 12px;
+  color: #bdc3c7;
+  transition: color 0.2s ease;
+}
+
+.rating-stars-display i.filled {
+  color: #f39c12;
+}
+
+.rating-value {
+  font-size: 10px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.edit-rating-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: rgba(52, 152, 219, 0.1);
+  border: 1px solid rgba(52, 152, 219, 0.3);
+  border-radius: 50%;
+  color: #3498db;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.edit-rating-btn:hover {
+  background: rgba(52, 152, 219, 0.2);
+  transform: scale(1.1);
+}
+
+.edit-rating-btn i {
+  font-size: 8px;
+}
+
+/* Rating Modal */
+.rating-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100001 !important;
+  backdrop-filter: blur(4px);
+  pointer-events: auto;
+}
+
+/* Disable all interactions behind the modal */
+.rating-modal-overlay * {
+  pointer-events: none;
+}
+
+/* Re-enable interactions for the modal itself and all its content */
+.rating-modal-overlay .rating-modal,
+.rating-modal-overlay .rating-modal * {
+  pointer-events: auto;
+}
+
+/* Ensure the overlay itself captures all pointer events */
+.rating-modal-overlay {
+  pointer-events: auto;
+}
+
+/* Visually disable buttons behind the modal (but not inside the modal) */
+.rating-modal-overlay > *:not(.rating-modal) .btn,
+.rating-modal-overlay > *:not(.rating-modal) button,
+.rating-modal-overlay > *:not(.rating-modal) a {
+  opacity: 0.5;
+  filter: blur(1px);
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+}
+
+.rating-modal {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  max-width: 400px;
+  width: 90%;
+  overflow: hidden;
+  animation: modalSlideIn 0.3s ease;
+}
+
+/* Dark mode modal background */
+[data-theme="dark"] .rating-modal {
+  background: var(--white);
+  color: var(--dark);
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.rating-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #ecf0f1;
+}
+
+/* Dark mode modal header border */
+[data-theme="dark"] .rating-modal-header {
+  border-bottom: 1px solid var(--border);
+}
+
+.rating-modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+/* Dark mode modal header text */
+[data-theme="dark"] .rating-modal-header h3 {
+  color: var(--dark);
+}
+
+.close-modal-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: #f8f9fa;
+  border: none;
+  border-radius: 50%;
+  color: #6c757d;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* Dark mode close button */
+[data-theme="dark"] .close-modal-btn {
+  background: var(--surface-2);
+  color: var(--gray);
+}
+
+.close-modal-btn:hover {
+  background: #e9ecef;
+  color: #495057;
+}
+
+/* Dark mode close button hover */
+[data-theme="dark"] .close-modal-btn:hover {
+  background: var(--surface);
+  color: var(--dark);
+}
+
+.rating-modal-content {
+  padding: 24px;
+  text-align: center;
+}
+
+.star-rating-modal {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.star-btn-modal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: rgba(251, 191, 36, 0.1);
+  border: 2px solid rgba(251, 191, 36, 0.3);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.star-btn-modal:hover {
+  background: rgba(251, 191, 36, 0.2);
+  border-color: rgba(251, 191, 36, 0.5);
+  transform: scale(1.05);
+}
+
+.star-btn-modal.active {
+  background: rgba(251, 191, 36, 0.3);
+  border-color: rgba(251, 191, 36, 0.7);
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+}
+
+.star-btn-modal.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.star-btn-modal i {
+  font-size: 18px;
+  color: #fbbf24;
+}
+
+.rating-feedback {
+  margin-bottom: 16px;
+  min-height: 24px;
+}
+
+.rating-text-modal {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+/* Dark mode modal rating text */
+[data-theme="dark"] .rating-text-modal {
+  color: var(--dark);
+}
+
+.rating-submitting {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #6c757d;
+  font-size: 14px;
+}
+
+/* Dark mode submitting text */
+[data-theme="dark"] .rating-submitting {
+  color: var(--gray);
+}
+
+.rating-submitting i {
+  font-size: 16px;
+}
+
+/* Inline Tutor Rating in Header */
+.tutor-rating-inline {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  padding-left: 16px;
+}
+
+.tutor-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  position: relative;
+}
+
+.tutor-info {
+  flex: 1;
+  min-width: 0;
+}
+
 .filter-btn i:last-child {
   font-size: 10px;
   transition: transform 0.3s ease;
@@ -3065,10 +3464,11 @@ select {
   color: white;
   border: 1px solid var(--danger);
   box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+  padding: 16px 32px !important;
   font-size: 18px !important;
   font-weight: 700 !important;
-  min-width: 150px !important;
-  height: 45px !important;
+  min-width: 200px !important;
+  height: 60px !important;
   border-radius: 12px !important;
   transition: all 0.3s ease !important;
   letter-spacing: 0.5px !important;
@@ -3865,7 +4265,9 @@ select {
 
 /* Topic Actions */
 .topic-actions {
+  display: flex;
   gap: 8px;
+  align-items: center;
 }
 
 .edit-btn,
@@ -4240,23 +4642,6 @@ select {
     padding: 10px 12px;
   }
 
-  /* Extra small mobile - further reduce padding */
-  .reply-text-content {
-    padding-right: 10px; /* Minimal padding for very small screens */
-    padding-bottom: 30px; /* Reduced bottom padding */
-  }
-
-  /* Extra small mobile edit form adjustments */
-  .reply-text-content .edit-form {
-    padding-right: 0 !important;
-    padding-bottom: 0 !important;
-  }
-
-  .edit-form textarea {
-    font-size: 13px;
-    min-height: 70px;
-  }
-
   .forum-breadcrumb-nav {
     padding: 12px 16px;
     font-size: 13px;
@@ -4451,15 +4836,6 @@ select {
   flex-direction: column;
   gap: 12px;
   margin-top: 12px;
-  width: 100%;
-  max-width: 100%;
-}
-
-/* Edit form when active - remove padding constraints */
-.reply-text-content .edit-form {
-  padding-right: 0 !important; /* Remove right padding when editing */
-  padding-bottom: 0 !important; /* Remove bottom padding when editing */
-  margin-top: 0;
 }
 
 .edit-form textarea {
@@ -5873,7 +6249,7 @@ body.mobile-menu-open {
 }
 
 /* Admin account specific breakpoint - hamburger menu at 1312px */
-@media (max-width: 1390px) {
+@media (max-width: 1235px) {
   /* Only apply to admin accounts */
   .user-role-admin .cl-center.desktop-nav {
     display: none;
@@ -6032,65 +6408,19 @@ body.mobile-menu-open {
     position: relative !important;
   }
 
-  /* Header actions - edit/delete buttons - Force positioning */
-  .topic-card .topic-header-actions {
+  /* Header actions - edit/delete buttons */
+  .topic-header-actions {
     position: absolute !important;
-    top: 8px !important;
-    right: 8px !important;
-    left: auto !important;
-    bottom: auto !important;
+    top: 32px !important;
+    right: 0 !important;
     display: flex !important;
     gap: 8px !important;
     align-items: center !important;
     z-index: 10 !important;
-    width: auto !important;
-    height: auto !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    float: none !important;
-    clear: both !important;
   }
 
-  /* Additional override for any conflicting styles */
-  div.topic-card div.topic-header-actions {
-    position: absolute !important;
-    top: 8px !important;
-    right: 8px !important;
-    left: auto !important;
-    bottom: auto !important;
-    display: flex !important;
-    gap: 8px !important;
-    align-items: center !important;
-    z-index: 10 !important;
-    width: auto !important;
-    height: auto !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    float: none !important;
-    clear: both !important;
-  }
-
-  /* Maximum specificity override */
-  .topic-card > .topic-header-actions {
-    position: absolute !important;
-    top: 8px !important;
-    right: 8px !important;
-    left: auto !important;
-    bottom: auto !important;
-    display: flex !important;
-    gap: 8px !important;
-    align-items: center !important;
-    z-index: 10 !important;
-    width: auto !important;
-    height: auto !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    float: none !important;
-    clear: both !important;
-  }
-
-  .topic-card .topic-header-actions .edit-btn,
-  .topic-card .topic-header-actions .delete-btn {
+  .topic-header-actions .edit-btn,
+  .topic-header-actions .delete-btn {
     width: 28px !important;
     height: 28px !important;
     border-radius: 6px !important;
@@ -6107,25 +6437,25 @@ body.mobile-menu-open {
     padding: 0 !important;
   }
 
-  .topic-card .topic-header-actions .edit-btn:hover {
+  .topic-header-actions .edit-btn:hover {
     background: var(--primary) !important;
     color: white !important;
     border-color: var(--primary) !important;
   }
 
-  .topic-card .topic-header-actions .delete-btn:hover {
+  .topic-header-actions .delete-btn:hover {
     background: var(--danger) !important;
     color: white !important;
     border-color: var(--danger) !important;
   }
 
-  .topic-card .topic-header-actions .edit-btn.disabled {
+  .topic-header-actions .edit-btn.disabled {
     opacity: 0.5 !important;
     cursor: not-allowed !important;
   }
 
-  [data-theme="dark"] .topic-card .topic-header-actions .edit-btn,
-  [data-theme="dark"] .topic-card .topic-header-actions .delete-btn {
+  [data-theme="dark"] .topic-header-actions .edit-btn,
+  [data-theme="dark"] .topic-header-actions .delete-btn {
     background: var(--surface) !important;
     border-color: var(--border) !important;
     color: var(--text-secondary) !important;
@@ -6511,14 +6841,6 @@ body.mobile-menu-open {
     min-height: 80px;
   }
 
-  /* Reply Text Content - Responsive padding */
-  .reply-text-content {
-    padding-top: 20px;
-    padding-bottom: 60px;
-    padding-left: 10px;
-    padding-right: 200px; /* Desktop: space for profile details */
-  }
-
   .reply-content p {
     font-size: 15px;
     line-height: 1.6;
@@ -6619,7 +6941,6 @@ body.mobile-menu-open {
     display: flex;
     gap: 4px;
     z-index: 10;
-    margin-top: 10px;
   }
 
   .edit-btn,
@@ -6787,23 +7108,6 @@ body.mobile-menu-open {
       font-size: 13px;
       line-height: 1.4;
       margin: 0 0 6px 0;
-    }
-
-    /* Mobile responsive padding for reply text content */
-    .reply-text-content {
-      padding-right: 20px; /* Reduced padding for mobile */
-      padding-bottom: 40px; /* Reduced bottom padding for mobile */
-    }
-
-    /* Mobile edit form adjustments */
-    .reply-text-content .edit-form {
-      padding-right: 0 !important;
-      padding-bottom: 0 !important;
-    }
-
-    .edit-form textarea {
-      font-size: 14px;
-      min-height: 80px;
     }
 
     .reply-meta {
@@ -7227,6 +7531,7 @@ body.mobile-menu-open {
     letter-spacing: 0.5px !important;
     margin: 0 !important;
     white-space: nowrap !important;
+    align-self: center !important;
     order: 1 !important;
   }
 
@@ -7845,9 +8150,6 @@ body.mobile-menu-open {
   position: relative;
   margin-bottom: 16px;
   border: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  min-height: 400px; /* Set a minimum height for consistency */
 }
 
 .student-card:hover {
@@ -7858,7 +8160,7 @@ body.mobile-menu-open {
 
 .student-header {
   padding: 22px;
-  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+  background: linear-gradient(135deg, #5ee7df 0%, #b490ca 100%);
   position: relative;
   overflow: hidden;
 }
@@ -7872,23 +8174,10 @@ body.mobile-menu-open {
   bottom: 0;
   background: linear-gradient(
     135deg,
-    rgba(44, 62, 80, 0.1) 0%,
-    rgba(52, 73, 94, 0.1) 100%
+    rgba(94, 231, 223, 0.1) 0%,
+    rgba(180, 144, 202, 0.1) 100%
   );
   z-index: 1;
-}
-
-/* Light mode styling for student header */
-[data-theme="light"] .student-header {
-  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-}
-
-[data-theme="light"] .student-header::before {
-  background: linear-gradient(
-    135deg,
-    rgba(52, 152, 219, 0.1) 0%,
-    rgba(41, 128, 185, 0.1) 100%
-  );
 }
 
 .student-avatar {
@@ -7930,105 +8219,6 @@ body.mobile-menu-open {
 .student-details {
   padding: 20px;
   background: var(--card);
-  display: flex;
-  flex-direction: column;
-  flex: 1; /* Take up remaining space */
-  justify-content: space-between; /* Distribute space between subjects and button */
-}
-
-.student-subjects {
-  flex: 1; /* Take up available space */
-  display: flex;
-  flex-direction: column;
-  justify-content: center; /* Center subjects vertically in available space */
-}
-
-.subjects-label {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  margin-bottom: 12px;
-  text-align: center;
-}
-
-.subjects-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  justify-content: center;
-  align-items: center;
-  min-height: 60px; /* Ensure minimum height for subjects area */
-}
-
-.subject-tag {
-  background: var(--primary);
-  color: white;
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.no-subjects {
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-style: italic;
-  opacity: 0.7;
-}
-
-/* Responsive improvements for student cards */
-@media (max-width: 768px) {
-  .students-grid {
-    grid-template-columns: 1fr;
-    gap: 16px;
-    padding: 16px 0;
-  }
-
-  .student-card {
-    min-height: 350px;
-  }
-
-  .student-header {
-    padding: 18px;
-  }
-
-  .student-details {
-    padding: 16px;
-  }
-
-  .subjects-list {
-    min-height: 50px;
-  }
-
-  .subject-tag {
-    font-size: 11px;
-    padding: 3px 6px;
-  }
-}
-
-@media (max-width: 480px) {
-  .student-card {
-    min-height: 320px;
-  }
-
-  .student-header {
-    padding: 16px;
-  }
-
-  .student-details {
-    padding: 14px;
-  }
-
-  .subjects-label {
-    font-size: 13px;
-    margin-bottom: 10px;
-  }
-
-  .subjects-list {
-    min-height: 45px;
-    gap: 4px;
-  }
 }
 
 .student-stats {
@@ -9953,161 +10143,4 @@ body.mobile-menu-open {
   margin: 0;
   cursor: pointer;
   user-select: none;
-}
-
-/* Success Notification Styles */
-.success-notification-overlay {
-  position: fixed;
-  top: 80px; /* Position below header */
-  right: 20px;
-  z-index: 1000;
-  pointer-events: none;
-}
-
-.success-notification {
-  background: var(--secondary);
-  border-radius: var(--border-radius);
-  overflow: hidden;
-  min-width: 320px;
-  max-width: 400px;
-  pointer-events: auto;
-  animation: slideInRight 0.3s ease-out;
-  border: 2px solid var(--secondary);
-  box-shadow: 0 8px 32px rgba(46, 204, 113, 0.2);
-}
-
-.success-notification-content {
-  display: flex;
-  align-items: center;
-  padding: 16px 20px;
-  gap: 12px;
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  background-color: transparent !important;
-  background-image: none !important;
-}
-
-.success-message {
-  flex: 1;
-  background: transparent !important;
-  border: none !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  background-color: transparent !important;
-  background-image: none !important;
-}
-
-/* Ensure no inherited styles affect the notification content */
-.success-notification-content > * {
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-}
-
-.success-notification-content > .success-icon {
-  background: var(--white) !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
-}
-
-.success-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--white);
-  color: var(--secondary);
-  font-size: 20px;
-  flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.success-message h4 {
-  margin: 0 0 4px 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--white);
-}
-
-.success-message p {
-  margin: 0;
-  font-size: 14px;
-  color: var(--white);
-  opacity: 0.9;
-}
-
-.success-close-btn {
-  background: none;
-  border: none;
-  color: var(--white);
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  transition: background-color 0.2s ease;
-  margin-left: auto;
-  opacity: 0.8;
-}
-
-.success-close-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  opacity: 1;
-}
-
-.success-progress-bar {
-  height: 3px;
-  background: rgba(255, 255, 255, 0.3);
-  overflow: hidden;
-}
-
-.success-progress-fill {
-  height: 100%;
-  background: var(--white);
-  animation: progressBar 4s linear forwards;
-}
-
-@keyframes slideInRight {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-@keyframes progressBar {
-  from {
-    width: 100%;
-  }
-  to {
-    width: 0%;
-  }
-}
-
-/* Dark mode support */
-[data-theme="dark"] .success-notification {
-  background: var(--secondary);
-  border-color: var(--secondary);
-}
-
-[data-theme="dark"] .success-message h4 {
-  color: var(--white);
-}
-
-[data-theme="dark"] .success-message p {
-  color: var(--white);
-  opacity: 0.9;
-}
-
-[data-theme="dark"] .success-close-btn {
-  color: var(--white);
-  opacity: 0.8;
-}
-
-[data-theme="dark"] .success-close-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  opacity: 1;
 }
