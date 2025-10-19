@@ -433,7 +433,7 @@ const ForumTopic = () => {
                   <div className="anonymous-avatar">A</div>
                 ) : thread.author ? (
                   <img
-                    src={`${(import.meta.env.VITE_API_URL as string).replace(/\/$/, '')}/api/users/${thread.author.userId}/pfp?t=${pfpTimestamps[thread.author.userId] || 0}`}
+                    src={`${(import.meta.env.VITE_API_URL as string).replace(/\/$/, "")}/api/users/${thread.author.userId}/pfp?t=${pfpTimestamps[thread.author.userId] || 0}`}
                     alt="Profile"
                     className="pfp-avatar"
                   />
@@ -591,13 +591,13 @@ const ForumTopic = () => {
                 </div>
 
                 <div className="reply-content" style={{ position: "relative" }}>
-                  {/* Move topic-actions inside reply-content */}
+                  {/* Edit/Delete buttons positioned at top-right */}
                   <div
                     className="topic-actions"
                     style={{
                       position: "absolute",
-                      top: "1rem",
-                      right: "1rem",
+                      top: "0",
+                      right: "0",
                       zIndex: 20,
                       display: "flex",
                       gap: "8px",
@@ -645,59 +645,79 @@ const ForumTopic = () => {
                     )}
                   </div>
 
-                  {editingId === reply._id ? (
-                    <div className="edit-form">
-                      <textarea
-                        value={editingContent}
-                        onChange={(e) => setEditingContent(e.target.value)}
-                        rows={3}
-                      />
-                      <div className="edit-actions">
-                        <button
-                          onClick={handleCancelEdit}
-                          className="btn-ghost"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          onClick={handleUpdateSubmit}
-                          className="btn-primary"
-                        >
-                          Save
-                        </button>
+                  {/* Profile details positioned at bottom-right */}
+                  <div
+                    className="reply-meta"
+                    style={{
+                      position: "absolute",
+                      bottom: "0",
+                      right: "0",
+                      zIndex: 10,
+                    }}
+                  >
+                    <div className="reply-author">
+                      <div className="author-avatar small">
+                        {reply.isAnonymous ? (
+                          <div className="anonymous-avatar">A</div>
+                        ) : reply.author ? (
+                          <img
+                            src={`${(import.meta.env.VITE_API_URL as string).replace(/\/$/, "")}/api/users/${reply.author.userId}/pfp?t=${pfpTimestamps[reply.author.userId] || 0}`}
+                            alt="Profile"
+                            className="pfp-avatar"
+                          />
+                        ) : (
+                          <div className="anonymous-avatar">?</div>
+                        )}
+                      </div>
+                      <div className="author-details">
+                        <span className="author-name">
+                          {reply.isAnonymous
+                            ? "Anonymous"
+                            : reply.author
+                              ? reply.author.name
+                              : "Anonymous"}
+                        </span>
+                        <span className="post-time">
+                          {new Date(reply.createdAt).toLocaleString()}
+                        </span>
                       </div>
                     </div>
-                  ) : (
-                    <p>{reply.content}</p>
-                  )}
-                </div>
-                <div className="reply-meta">
-                  <div className="reply-author">
-                    <div className="author-avatar small">
-                      {reply.isAnonymous ? (
-                        <div className="anonymous-avatar">A</div>
-                      ) : reply.author ? (
-                        <img
-                          src={`${(import.meta.env.VITE_API_URL as string).replace(/\/$/, '')}/api/users/${reply.author.userId}/pfp?t=${pfpTimestamps[reply.author.userId] || 0}`}
-                          alt="Profile"
-                          className="pfp-avatar"
+                  </div>
+
+                  {/* Content with proper padding to avoid overlap */}
+                  <div
+                    style={{
+                      paddingTop: "20px",
+                      paddingBottom: "60px",
+                      paddingLeft: "10px",
+                      paddingRight: "200px",
+                    }}
+                  >
+                    {editingId === reply._id ? (
+                      <div className="edit-form">
+                        <textarea
+                          value={editingContent}
+                          onChange={(e) => setEditingContent(e.target.value)}
+                          rows={3}
                         />
-                      ) : (
-                        <div className="anonymous-avatar">?</div>
-                      )}
-                    </div>
-                    <div className="author-details">
-                      <span className="author-name">
-                        {reply.isAnonymous
-                          ? "Anonymous"
-                          : reply.author
-                            ? reply.author.name
-                            : "Anonymous"}
-                      </span>
-                      <span className="post-time">
-                        {new Date(reply.createdAt).toLocaleString()}
-                      </span>
-                    </div>
+                        <div className="edit-actions">
+                          <button
+                            onClick={handleCancelEdit}
+                            className="btn-ghost"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={handleUpdateSubmit}
+                            className="btn-primary"
+                          >
+                            Save
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p>{reply.content}</p>
+                    )}
                   </div>
                 </div>
               </div>

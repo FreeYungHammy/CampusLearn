@@ -99,7 +99,6 @@
   color: var(--gray, #95a5a6);
 }
 
-
 /* Loading Container */
 .loading-container {
   display: flex;
@@ -148,7 +147,7 @@
     flex-direction: column;
     gap: 12px;
   }
-  
+
   .fc-toolbar-chunk {
     display: flex;
     justify-content: center;
@@ -159,16 +158,16 @@
   .bookings-page {
     padding: 16px;
   }
-  
+
   .calendar-container,
   .booking-legend {
     padding: 16px;
   }
-  
+
   .fc-toolbar-title {
     font-size: 1.25rem;
   }
-  
+
   .fc-button {
     padding: 6px 12px;
     font-size: 0.875rem;
@@ -187,6 +186,12 @@
   color: var(--dark, #e5e7eb);
 }
 
+/* Dark mode day header background */
+[data-theme="dark"] .fc .fc-col-header-cell {
+  background: var(--surface, #1f2937);
+  color: var(--text, #e5e7eb);
+}
+
 [data-theme="dark"] .fc-timegrid-slot,
 [data-theme="dark"] .fc-timegrid-axis,
 [data-theme="dark"] .fc-timegrid-slot-label {
@@ -197,7 +202,6 @@
 [data-theme="dark"] .fc-day-today {
   background: rgba(52, 152, 219, 0.2);
 }
-
 
 [data-theme="dark"] .loading-container {
   color: var(--gray, #9ca3af);

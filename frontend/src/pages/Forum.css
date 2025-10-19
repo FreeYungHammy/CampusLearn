@@ -582,13 +582,14 @@
 /* Enhanced Reply Card Styling */
 .forum-container .reply-card {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  flex-direction: row;
+  gap: 16px;
   padding: 20px 24px;
   border-bottom: 1px solid var(--border-color);
   background: transparent;
   transition: all 0.2s ease;
   position: relative;
+  align-items: flex-start;
 }
 
 .forum-container .reply-card:last-child {
@@ -677,6 +678,11 @@
   flex: 1;
   position: relative;
   min-width: 0;
+  min-height: 80px;
+  padding-left: 10px;
+  padding-top: 20px;
+  padding-right: 50px;
+  padding-bottom: 50px;
 }
 
 .forum-container .reply-content p {
@@ -695,6 +701,10 @@
   justify-content: flex-end;
   align-items: center;
   gap: 12px;
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  z-index: 10;
 }
 
 .forum-container .reply-author {

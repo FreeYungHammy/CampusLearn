@@ -6,6 +6,7 @@ import type { TutorUpload } from "../../types/tutorUploads";
 import VideoPlayer from "../../components/VideoPlayer";
 import DocxViewer from "../../components/DocxViewer";
 import "../../components/VideoPlayer.css";
+import "./TutorContentView.css";
 import { getTutorById } from "../../services/tutorApi";
 import type { Tutor } from "../../types/Tutors";
 
