@@ -309,7 +309,8 @@ export class VideoCompressionService {
     // Extract base name by removing any existing quality suffix
     const baseName = videoObjectName
       .replace(/_\d+p\.mp4$/, ".mp4") // Remove existing quality suffix like _480p.mp4
-      .replace(/__\d+p__/, "__") // Remove double underscore pattern
+      .replace(/__\d+p__\.mp4$/, ".mp4") // Remove double underscore pattern with .mp4
+      .replace(/__\d+p__/, "__") // Remove double underscore pattern without .mp4
       .replace(".mp4", ""); // Remove .mp4 extension
     logger.info(`🔍 Base name: ${baseName}`);
 
@@ -346,6 +347,12 @@ export class VideoCompressionService {
         logger.info(`🔍 Checking: ${compressedObjectName}`);
         const [exists] = await bucket.file(compressedObjectName).exists();
         if (exists) {
+          // Check if this is actually the original file (not a compressed version)
+          if (compressedObjectName === videoObjectName) {
+            logger.info(`⚠️ Found original file, not compressed version: ${compressedObjectName}`);
+            continue; // Skip the original file
+          }
+          
           logger.info(
             `✅ Found existing compressed ${preferredQuality} version: ${compressedObjectName}`,
           );
@@ -425,7 +432,8 @@ export class VideoCompressionService {
     // Extract base name by removing any existing quality suffix
     const baseName = originalObjectName
       .replace(/_\d+p\.mp4$/, ".mp4") // Remove existing quality suffix like _480p.mp4
-      .replace(/__\d+p__/, "__") // Remove double underscore pattern
+      .replace(/__\d+p__\.mp4$/, ".mp4") // Remove double underscore pattern with .mp4
+      .replace(/__\d+p__/, "__") // Remove double underscore pattern without .mp4
       .replace(".mp4", ""); // Remove .mp4 extension
 
     logger.info(`🔍 Looking for compressed versions of: ${originalObjectName}`);

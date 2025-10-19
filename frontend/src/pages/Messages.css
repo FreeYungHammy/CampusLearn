@@ -810,6 +810,103 @@
   transform: scale(1.02);
 }
 
+/* Video Preview Styles */
+.video-preview {
+  margin: 8px 0;
+  border-radius: 12px;
+  overflow: visible; /* Allow video controls to be visible */
+  background: var(--bubble-theirs);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.video-preview.mine {
+  background: var(--bubble-mine);
+  border-color: var(--bubble-mine);
+}
+
+.message-video-player {
+  width: 100%;
+  max-width: 100%;
+  border-radius: 8px;
+  overflow: visible; /* Allow video controls to be visible */
+  /* Default height, will be adjusted dynamically */
+  height: 300px;
+  min-height: 200px;
+  display: block; /* Use block layout */
+}
+
+/* Responsive video sizing for different screen sizes */
+@media (max-width: 768px) {
+  .message-video-player {
+    height: 250px;
+    min-height: 180px;
+  }
+}
+
+@media (max-width: 480px) {
+  .message-video-player {
+    height: 200px;
+    min-height: 150px;
+  }
+}
+
+.video-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.05);
+  border-top: 1px solid var(--border);
+}
+
+.video-preview.mine .video-actions {
+  background: rgba(255, 255, 255, 0.1);
+  border-top-color: rgba(255, 255, 255, 0.2);
+}
+
+.video-actions .file-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  flex: 1;
+  margin-right: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.video-preview.mine .video-actions .file-name {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.video-actions .download-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.video-actions .download-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: var(--text);
+}
+
+.video-preview.mine .video-actions .download-btn {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.video-preview.mine .video-actions .download-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
 /* ---------- Image Modal Styles ---------- */
 .image-modal-overlay {
   position: fixed !important;

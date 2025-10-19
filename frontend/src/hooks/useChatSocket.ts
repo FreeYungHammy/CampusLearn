@@ -19,6 +19,7 @@ let currentRoomGlobal: string | null = null;
 // Fan-out registries so multiple hook instances can subscribe without
 // re-attaching network listeners.
 const onNewMessageSubs = new Set<(m: ChatMessage) => void>();
+const onMessageUpdatedSubs = new Set<(data: { messageId: string; content: string; isEdited: boolean; editedAt: string }) => void>();
 const onUserStatusSubs = new Set<(userId: string, status: "online" | "offline", lastSeen: Date) => void>();
 const onChatClearedSubs = new Set<(payload: { chatId: string }) => void>();
 const onConnectionChangeSubs = new Set<(connected: boolean) => void>();
@@ -58,6 +59,10 @@ function setupChatHandlers() {
         console.log("🔌 [ChatManager] Processing new message:", message._id);
         onNewMessageSubs.forEach((cb) => cb(message));
       },
+      onMessageUpdated: (data: { messageId: string; content: string; isEdited: boolean; editedAt: string }) => {
+        console.log("🔌 [ChatManager] Processing message update:", data.messageId);
+        onMessageUpdatedSubs.forEach((cb) => cb(data));
+      },
       onUserStatusChange: (userId: string, status: "online" | "offline", lastSeen: Date) => {
         console.log("🔌 [ChatManager] Received user_status_change:", { userId, status, lastSeen });
         onUserStatusSubs.forEach((cb) => cb(userId, status, lastSeen));
@@ -87,6 +92,7 @@ function setupChatHandlers() {
    ----------------------------------------------------------- */
 export const useChatSocket = (
   onNewMessage: (message: ChatMessage) => void,
+  onMessageUpdated?: (data: { messageId: string; content: string; isEdited: boolean; editedAt: string }) => void,
   onUserStatusChange?: (userId: string, status: "online" | "offline", lastSeen: Date) => void,
   onChatCleared?: (payload: { chatId: string }) => void
 ) => {
@@ -133,6 +139,10 @@ export const useChatSocket = (
 
     // Subscribe this hook's handlers to the shared registries
     onNewMessageSubs.add(onNewMessage);
+    
+    const messageUpdatedCb = onMessageUpdated || (() => {});
+    onMessageUpdatedSubs.add(messageUpdatedCb);
+    
     const statusCb =
       onUserStatusChange ||
       ((/* userId, status, lastSeen */) => {
@@ -152,6 +162,7 @@ export const useChatSocket = (
     return () => {
       // Unsubscribe this consumer
       onNewMessageSubs.delete(onNewMessage);
+      onMessageUpdatedSubs.delete(messageUpdatedCb);
       onUserStatusSubs.delete(statusCb);
       onChatClearedSubs.delete(chatClearedCb);
       onConnectionChangeSubs.delete(connectionCb);
@@ -173,7 +184,7 @@ export const useChatSocket = (
         handlersSetup = false;
       }
     };
-  }, [isTokenReady, token, onNewMessage, onUserStatusChange, onChatCleared]);
+  }, [isTokenReady, token, onNewMessage, onMessageUpdated, onUserStatusChange, onChatCleared]);
 
   /* ---------------------------
      Rooms

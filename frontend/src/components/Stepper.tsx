@@ -1,4 +1,4 @@
-import React, { useState, Children, useRef, useLayoutEffect } from 'react';
+import React, { useState, Children, useRef, useLayoutEffect, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './Stepper.css';
 
@@ -46,7 +46,17 @@ export default function Stepper({
 }: StepperProps) {
   const [internalCurrentStep, setInternalCurrentStep] = useState(initialStep);
   const currentStep = externalCurrentStep !== undefined ? externalCurrentStep : internalCurrentStep;
-  const [direction, setDirection] = useState(0);
+  const [internalDirection, setInternalDirection] = useState(0);
+  const previousStepRef = useRef(initialStep);
+  
+  // Calculate direction based on step change - use ref for synchronous access
+  const direction = currentStep > previousStepRef.current ? 1 : currentStep < previousStepRef.current ? -1 : internalDirection;
+  
+  // Update previous step ref when current step changes
+  if (currentStep !== previousStepRef.current) {
+    previousStepRef.current = currentStep;
+  }
+  
   const stepsArray = Children.toArray(children);
   const totalSteps = stepsArray.length;
   const isCompleted = currentStep > totalSteps;
@@ -73,20 +83,20 @@ export default function Stepper({
 
   const handleBack = () => {
     if (currentStep > 1) {
-      setDirection(-1);
+      setInternalDirection(-1);
       updateStep(currentStep - 1);
     }
   };
 
   const handleNext = () => {
     if (!isLastStep && canProceedToNext(currentStep)) {
-      setDirection(1);
+      setInternalDirection(1);
       updateStep(currentStep + 1);
     }
   };
 
   const handleComplete = () => {
-    setDirection(1);
+    setInternalDirection(1);
     updateStep(totalSteps + 1);
   };
 
@@ -104,7 +114,7 @@ export default function Stepper({
                     step: stepNumber,
                     currentStep,
                     onStepClick: clicked => {
-                      setDirection(clicked > currentStep ? 1 : -1);
+                      setInternalDirection(clicked > currentStep ? 1 : -1);
                       updateStep(clicked);
                     }
                   })
@@ -114,7 +124,7 @@ export default function Stepper({
                     disableStepIndicators={disableStepIndicators}
                     currentStep={currentStep}
                     onClickStep={clicked => {
-                      setDirection(clicked > currentStep ? 1 : -1);
+                      setInternalDirection(clicked > currentStep ? 1 : -1);
                       updateStep(clicked);
                     }}
                   />

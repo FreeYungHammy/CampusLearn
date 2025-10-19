@@ -60,7 +60,11 @@
   min-width: 140px;
   font-size: 16px;
   font-weight: 600;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--primary) 0%,
+    var(--primary-dark) 100%
+  );
   color: var(--white);
   border: none;
   border-radius: 12px;
@@ -74,7 +78,11 @@
 }
 
 .mobile-cancel-button:hover {
-  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--primary-dark) 0%,
+    var(--primary) 100%
+  );
   transform: translateY(-1px);
   box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
 }
@@ -93,7 +101,11 @@
   min-width: 140px;
   font-size: 16px;
   font-weight: 600;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--primary) 0%,
+    var(--primary-dark) 100%
+  );
   color: var(--white);
   border: none;
   border-radius: 12px;
@@ -107,7 +119,11 @@
 }
 
 .mobile-continue-button:hover:not(:disabled) {
-  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--primary-dark) 0%,
+    var(--primary) 100%
+  );
   transform: translateY(-1px);
   box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
 }
@@ -223,6 +239,7 @@
 .booking-stepper-footer {
   padding-left: 2rem;
   padding-right: 2rem;
+  padding-top: 2rem;
   padding-bottom: 2rem;
   position: relative;
   z-index: 100;
@@ -234,7 +251,11 @@
 
 /* Booking Stepper Button Styles - Override for Continue button */
 .booking-stepper-footer .btn-primary {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%) !important;
+  background: linear-gradient(
+    135deg,
+    var(--primary) 0%,
+    var(--primary-dark) 100%
+  ) !important;
   color: var(--white) !important;
   border: none !important;
   box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3) !important;
@@ -247,7 +268,11 @@
 }
 
 .booking-stepper-footer .btn-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%) !important;
+  background: linear-gradient(
+    135deg,
+    var(--primary-dark) 0%,
+    var(--primary) 100%
+  ) !important;
   transform: translateY(-1px) !important;
   box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4) !important;
 }
@@ -263,7 +288,11 @@
 }
 
 .booking-stepper-footer .btn-secondary {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%) !important;
+  background: linear-gradient(
+    135deg,
+    var(--primary) 0%,
+    var(--primary-dark) 100%
+  ) !important;
   color: var(--white) !important;
   border: none !important;
   box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3) !important;
@@ -276,7 +305,11 @@
 }
 
 .booking-stepper-footer .btn-secondary:hover:not(:disabled) {
-  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%) !important;
+  background: linear-gradient(
+    135deg,
+    var(--primary-dark) 0%,
+    var(--primary) 100%
+  ) !important;
   transform: translateY(-1px) !important;
   box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4) !important;
 }
@@ -412,8 +445,6 @@
   justify-content: flex-start;
   overflow-y: auto;
   padding: 0 1rem;
-  max-height: 500px;
-  min-height: 300px;
   position: relative;
   z-index: 1;
   /* Ensure scroll wheel works */
@@ -1137,7 +1168,7 @@ select.form-input option {
     flex-direction: column;
     gap: 0.5rem;
   }
-  
+
   .summary-item-compact {
     flex: none;
   }
@@ -1288,8 +1319,6 @@ select.form-input option {
   }
 
   .subjects-grid {
-    max-height: 400px;
-    min-height: 200px;
   }
 
   .tutors-grid {
@@ -1335,8 +1364,6 @@ select.form-input option {
   }
 
   .subjects-grid {
-    max-height: 70vh;
-    min-height: 100px;
     padding: 0 0.75rem;
   }
 
@@ -1431,8 +1458,6 @@ select.form-input option {
   }
 
   .subjects-grid {
-    max-height: 70vh;
-    min-height: 150px;
   }
 
   .tutors-grid {
@@ -1503,8 +1528,6 @@ select.form-input option {
   }
 
   .subjects-grid {
-    max-height: 70vh;
-    min-height: 120px;
   }
 
   .tutors-grid {
@@ -1565,8 +1588,6 @@ select.form-input option {
   }
 
   .subjects-grid {
-    max-height: 70vh;
-    min-height: 100px;
   }
 
   .tutors-grid {

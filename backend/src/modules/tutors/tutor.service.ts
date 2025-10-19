@@ -71,7 +71,17 @@ export const TutorService = {
     if (!input.subjects || input.subjects.length === 0)
       throw new Error("subjects required");
 
-    return TutorRepo.create(input);
+    // Ensure rating object is properly initialized
+    const tutorData = {
+      ...input,
+      rating: {
+        totalScore: 0,
+        count: 0,
+        ...input.rating, // Allow override if provided
+      },
+    };
+
+    return TutorRepo.create(tutorData);
   },
 
   async list(limit: number = 10, offset: number = 0, filters: any) {

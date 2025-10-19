@@ -664,6 +664,405 @@ body {
   box-shadow: 0 2px 8px rgba(251, 191, 36, 0.3);
 }
 
+/* Tutor Rating Component Styles */
+.tutor-rating {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.tutor-rating-loading {
+  color: #666;
+  font-size: 14px;
+  font-style: italic;
+}
+
+.rating-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #2c3e50;
+  margin-bottom: 4px;
+}
+
+.tutor-rating .star-rating {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.tutor-rating .star-btn {
+  width: 32px;
+  height: 32px;
+  padding: 6px;
+  background: rgba(251, 191, 36, 0.1);
+  border: 2px solid rgba(251, 191, 36, 0.3);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tutor-rating .star-btn:hover {
+  background: rgba(251, 191, 36, 0.2);
+  border-color: rgba(251, 191, 36, 0.5);
+  transform: scale(1.05);
+}
+
+.tutor-rating .star-btn.active {
+  background: rgba(251, 191, 36, 0.3);
+  border-color: rgba(251, 191, 36, 0.7);
+  box-shadow: 0 2px 6px rgba(251, 191, 36, 0.3);
+}
+
+.tutor-rating .star-btn.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.tutor-rating .star-btn.disabled:hover {
+  transform: none;
+  background: rgba(251, 191, 36, 0.1);
+  border-color: rgba(251, 191, 36, 0.3);
+}
+
+.rating-text {
+  font-size: 12px;
+  color: #666;
+  font-weight: 500;
+  margin-top: 4px;
+}
+
+/* Size variations */
+.rating-small .star-btn {
+  width: 24px;
+  height: 24px;
+  padding: 4px;
+}
+
+.rating-large .star-btn {
+  width: 40px;
+  height: 40px;
+  padding: 8px;
+}
+
+/* Modern Tutor Rating Styles */
+.tutor-rating-modern {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rate-tutor-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  color: white;
+  border: none;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(52, 152, 219, 0.3);
+  white-space: nowrap;
+}
+
+.rate-tutor-btn:hover {
+  background: linear-gradient(135deg, #2980b9, #1f5f8b);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.4);
+}
+
+.rate-tutor-btn i {
+  font-size: 12px;
+}
+
+.rating-display {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: rgba(52, 152, 219, 0.1);
+  border: 1px solid rgba(52, 152, 219, 0.2);
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.rating-stars-display {
+  display: flex;
+  gap: 2px;
+}
+
+.rating-stars-display i {
+  font-size: 12px;
+  color: #bdc3c7;
+  transition: color 0.2s ease;
+}
+
+.rating-stars-display i.filled {
+  color: #f39c12;
+}
+
+.rating-value {
+  font-size: 10px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.edit-rating-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: rgba(52, 152, 219, 0.1);
+  border: 1px solid rgba(52, 152, 219, 0.3);
+  border-radius: 50%;
+  color: #3498db;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.edit-rating-btn:hover {
+  background: rgba(52, 152, 219, 0.2);
+  transform: scale(1.1);
+}
+
+.edit-rating-btn i {
+  font-size: 8px;
+}
+
+/* Rating Modal */
+.rating-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100001 !important;
+  backdrop-filter: blur(4px);
+  pointer-events: auto;
+}
+
+/* Disable all interactions behind the modal */
+.rating-modal-overlay * {
+  pointer-events: none;
+}
+
+/* Re-enable interactions for the modal itself and all its content */
+.rating-modal-overlay .rating-modal,
+.rating-modal-overlay .rating-modal * {
+  pointer-events: auto;
+}
+
+/* Ensure the overlay itself captures all pointer events */
+.rating-modal-overlay {
+  pointer-events: auto;
+}
+
+/* Visually disable buttons behind the modal (but not inside the modal) */
+.rating-modal-overlay > *:not(.rating-modal) .btn,
+.rating-modal-overlay > *:not(.rating-modal) button,
+.rating-modal-overlay > *:not(.rating-modal) a {
+  opacity: 0.5;
+  filter: blur(1px);
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+}
+
+.rating-modal {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  max-width: 400px;
+  width: 90%;
+  overflow: hidden;
+  animation: modalSlideIn 0.3s ease;
+}
+
+/* Dark mode modal background */
+[data-theme="dark"] .rating-modal {
+  background: var(--white);
+  color: var(--dark);
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.rating-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #ecf0f1;
+}
+
+/* Dark mode modal header border */
+[data-theme="dark"] .rating-modal-header {
+  border-bottom: 1px solid var(--border);
+}
+
+.rating-modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+/* Dark mode modal header text */
+[data-theme="dark"] .rating-modal-header h3 {
+  color: var(--dark);
+}
+
+.close-modal-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: #f8f9fa;
+  border: none;
+  border-radius: 50%;
+  color: #6c757d;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* Dark mode close button */
+[data-theme="dark"] .close-modal-btn {
+  background: var(--surface-2);
+  color: var(--gray);
+}
+
+.close-modal-btn:hover {
+  background: #e9ecef;
+  color: #495057;
+}
+
+/* Dark mode close button hover */
+[data-theme="dark"] .close-modal-btn:hover {
+  background: var(--surface);
+  color: var(--dark);
+}
+
+.rating-modal-content {
+  padding: 24px;
+  text-align: center;
+}
+
+.star-rating-modal {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.star-btn-modal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: rgba(251, 191, 36, 0.1);
+  border: 2px solid rgba(251, 191, 36, 0.3);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.star-btn-modal:hover {
+  background: rgba(251, 191, 36, 0.2);
+  border-color: rgba(251, 191, 36, 0.5);
+  transform: scale(1.05);
+}
+
+.star-btn-modal.active {
+  background: rgba(251, 191, 36, 0.3);
+  border-color: rgba(251, 191, 36, 0.7);
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+}
+
+.star-btn-modal.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.star-btn-modal i {
+  font-size: 18px;
+  color: #fbbf24;
+}
+
+.rating-feedback {
+  margin-bottom: 16px;
+  min-height: 24px;
+}
+
+.rating-text-modal {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+/* Dark mode modal rating text */
+[data-theme="dark"] .rating-text-modal {
+  color: var(--dark);
+}
+
+.rating-submitting {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #6c757d;
+  font-size: 14px;
+}
+
+/* Dark mode submitting text */
+[data-theme="dark"] .rating-submitting {
+  color: var(--gray);
+}
+
+.rating-submitting i {
+  font-size: 16px;
+}
+
+/* Inline Tutor Rating in Header */
+.tutor-rating-inline {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  padding-left: 16px;
+}
+
+.tutor-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  position: relative;
+}
+
+.tutor-info {
+  flex: 1;
+  min-width: 0;
+}
+
 .filter-btn i:last-child {
   font-size: 10px;
   transition: transform 0.3s ease;
@@ -8753,10 +9152,15 @@ body.mobile-menu-open {
 }
 
 .content-viewer-modal {
-  max-width: 95vw;
-  max-height: 95vh;
+  max-width: 90vw; /* Leave more space on sides */
+  max-height: 85vh; /* Leave more space top/bottom */
   width: 70%;
-  height: 80%;
+  height: 75%; /* Reduce height to leave space for controls */
+  min-width: 200px;
+  min-height: 100px;
+  transition:
+    width 0.3s ease,
+    height 0.3s ease;
 }
 
 .modal-header {
@@ -8807,6 +9211,77 @@ body.mobile-menu-open {
 .modal-body {
   max-height: 70vh;
   overflow-y: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+}
+
+/* Special styling for content viewer modals - ensure controls are never cut off */
+.content-viewer-modal .modal-body {
+  max-height: none;
+  overflow: visible;
+  padding: 0; /* Remove padding to let video fill entire space */
+  height: calc(100% - 80px); /* Account for modal header */
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 80px; /* Add extra space for video controls */
+}
+
+.content-viewer-modal .modal-body img {
+  display: block;
+  margin: 0 auto;
+}
+
+/* Image modal specific styling - completely remove height restrictions */
+.image-modal {
+  height: auto !important;
+  min-height: 100px !important;
+  min-width: 400px !important; /* Ensure header buttons fit */
+}
+
+.image-modal .modal-body {
+  max-height: 80vh !important;
+  height: auto !important;
+  overflow: auto !important;
+  padding: 5px !important;
+}
+
+/* Ensure image modal header has proper spacing */
+.image-modal .modal-header {
+  padding: 16px 20px !important;
+  min-width: 0 !important;
+}
+
+.image-modal .modal-actions {
+  gap: 8px !important;
+  flex-shrink: 0 !important;
+}
+
+/* Delete Modal - Narrower width for confirmation dialogs */
+.delete-modal {
+  max-width: 500px !important;
+  width: 90% !important;
+  min-width: 300px !important;
+}
+
+/* PDF Modal - Use more height for better PDF viewing */
+.pdf-modal {
+  height: 90vh !important;
+  max-height: 90vh !important;
+}
+
+.pdf-modal .modal-body {
+  max-height: calc(90vh - 120px) !important;
+  height: calc(90vh - 120px) !important;
+  padding: 0 !important;
+  display: block !important;
+}
+
+.pdf-modal .modal-body iframe {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: calc(90vh - 120px) !important;
 }
 
 .modal-footer {

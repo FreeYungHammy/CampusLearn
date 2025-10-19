@@ -1,43 +1,80 @@
 .video-player-container {
   position: relative;
   width: 100%;
-  height: 100%;
+  height: 100%; /* Fill the entire available space */
+  min-height: 300px; /* Minimum height for placeholder */
   background: #000;
   border-radius: 8px;
-  overflow: visible;
+  overflow: visible; /* Allow video controls to be visible */
   /* Ensure all content stays within bounds */
   contain: layout style paint;
-  /* Add padding to prevent video controls from being cut off */
-  padding-bottom: 60px; /* Space for video controls */
+  /* Remove padding - let video controls overlay */
   box-sizing: border-box;
+  display: block; /* Use block layout instead of flex */
 }
 
-/* Ensure video element doesn't cut off controls */
+/* When inside a content viewer modal, adjust height to leave space for controls */
+.content-viewer-modal .modal-body .video-player-container {
+  flex: 1; /* Take up most available space */
+  height: calc(100% - 100px); /* Leave 100px for video controls */
+  min-height: 300px; /* Ensure minimum usable height */
+  margin-bottom: 100px; /* Add extra space for video controls */
+  padding-bottom: 20px; /* Additional padding for controls */
+}
+
+/* Ensure video element fills the container */
 .video-player-container video {
   object-fit: contain;
-  /* Account for the padding-bottom of the container */
-  height: calc(100% - 60px);
   width: 100%;
+  height: 100%; /* Fill the container height */
+  max-width: 100%;
+  max-height: 100%;
+  display: block;
+  margin: 0 auto;
 }
 
-/* Responsive padding for different screen sizes */
-@media (max-height: 600px) {
-  .video-player-container {
-    padding-bottom: 50px; /* Smaller padding for smaller screens */
-  }
+/* When inside a content viewer modal, adjust video height to leave space for controls */
+.content-viewer-modal .modal-body .video-player-container video {
+  height: calc(100% - 100px); /* Leave space for video controls */
+  max-height: calc(100% - 100px);
+}
 
-  .video-player-container video {
-    height: calc(100% - 50px);
+/* Responsive constraints for different screen sizes */
+@media (max-width: 768px) {
+  .video-player-container {
+    height: 100%;
+    min-height: 200px;
+  }
+  
+  /* When inside a content viewer modal on mobile */
+  .content-viewer-modal .modal-body .video-player-container {
+    height: calc(100% - 80px); /* Leave space for controls on mobile */
+    margin-bottom: 80px;
+    padding-bottom: 15px;
+  }
+  
+  .content-viewer-modal .modal-body .video-player-container video {
+    height: calc(100% - 80px);
+    max-height: calc(100% - 80px);
   }
 }
 
-@media (max-height: 500px) {
+@media (max-width: 480px) {
   .video-player-container {
-    padding-bottom: 40px; /* Even smaller padding for very small screens */
+    height: 100%;
+    min-height: 150px;
   }
-
-  .video-player-container video {
-    height: calc(100% - 40px);
+  
+  /* When inside a content viewer modal on small mobile */
+  .content-viewer-modal .modal-body .video-player-container {
+    height: calc(100% - 70px); /* Leave space for controls on small mobile */
+    margin-bottom: 70px;
+    padding-bottom: 10px;
+  }
+  
+  .content-viewer-modal .modal-body .video-player-container video {
+    height: calc(100% - 70px);
+    max-height: calc(100% - 70px);
   }
 }
 

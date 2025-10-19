@@ -11,7 +11,6 @@ import { useChatSocket } from "@/hooks/useChatSocket";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { useAuthStore } from "@/store/authStore";
 import { useBookingStore } from "@/store/bookingStore";
-import { useCallStore } from "@/store/callStore";
 import { SocketManager } from "../services/socketManager";
 import { chatApi, type Conversation } from "@/services/chatApi";
 import type { SendMessagePayload, ChatMessage } from "@/types/ChatMessage";
@@ -22,6 +21,7 @@ import EnhancedBookingModal, {
 } from "@/components/EnhancedBookingModal";
 import DateSeparator from "@/components/DateSeparator";
 import BookingMessageCard from "@/components/chat/BookingMessageCard";
+import VideoPlayer from "@/components/VideoPlayer";
 import PageHeader from "@/components/PageHeader";
 import "./Messages.css";
 
@@ -405,6 +405,12 @@ const FilePreview: React.FC<FilePreviewProps> = ({ message, mine, token }) => {
            contentType.startsWith("image/");
   };
 
+  const isVideo = () => {
+    const ext = filename.split(".").pop()?.toLowerCase();
+    return ["mp4", "avi", "mov", "webm", "mkv", "flv", "wmv"].includes(ext || "") ||
+           contentType.startsWith("video/");
+  };
+
   // Listen for settings changes
   React.useEffect(() => {
     const handleSettingsChange = (event: CustomEvent) => {
@@ -572,7 +578,49 @@ const FilePreview: React.FC<FilePreviewProps> = ({ message, mine, token }) => {
     );
   }
 
-  // Non-image files - use the original file preview
+  // Video files - use VideoPlayer component with compression status
+  if (isVideo()) {
+    const videoUrl = `${(import.meta.env.VITE_API_URL as string).replace(/\/$/, '')}/api/chat/messages/${message._id}/file`;
+    const fileId = (message as any).uploadFileId || message.upload?.fileId;
+    
+    return (
+      <div className={`file-preview video-preview ${mine ? "mine" : ""}`}>
+        <VideoPlayer
+          src={videoUrl}
+          title={filename}
+          fileId={fileId}
+          className="message-video-player"
+        />
+        <div className="video-actions">
+          <span className={`file-name ${mine ? "white" : ""}`}>
+            {filename}
+          </span>
+          <button
+            onClick={handleDownload}
+            className="download-btn"
+            title="Download video"
+          >
+            <svg
+              width="16"
+              height="16"
+              fill="none"
+              viewBox="0 0 16 16"
+            >
+              <path
+                d="M8 1v10m0 0l-3-3m3 3l3-3M2 13h12"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Non-image/video files - use the original file preview
   return (
     <div
       className={`file-preview ${mine ? "mine" : ""} downloadable`}
@@ -624,6 +672,9 @@ const Messages: React.FC = () => {
   const [threadLoading, setThreadLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [userOnlineStatus, setUserOnlineStatus] = useState<
+    Map<string, { isOnline: boolean; lastSeen?: Date }>
+  >(new Map());
   const [isClearModalOpen, setIsClearModalOpen] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -636,7 +687,6 @@ const Messages: React.FC = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { user, token, pfpTimestamps } = useAuthStore();
-  const { activeCallId, setActiveCallId } = useCallStore();
   const {
     showBookingModal,
     bookingTarget,
@@ -763,8 +813,12 @@ const Messages: React.FC = () => {
   const handleUserStatusChange = useCallback(
     (userId: string, status: "online" | "offline", lastSeen: Date) => {
       console.log(`🟢 Status update received: User ${userId} is ${status} (last seen: ${lastSeen})`);
-      // Online status is now managed globally by useOnlineStatus hook
-      // No need for local state management here
+      setUserOnlineStatus((prev) => {
+        const m = new Map(prev);
+        m.set(userId, { isOnline: status === "online", lastSeen });
+        console.log(`📊 Updated status map:`, Array.from(m.entries()));
+        return m;
+      });
     },
     [],
   );
@@ -1094,14 +1148,6 @@ const Messages: React.FC = () => {
       return;
     }
     
-    // Check if there's already an active call
-    if (activeCallId) {
-      console.log("[video-call] Call already in progress:", activeCallId);
-      // You could show a toast notification here
-      alert("Call in progress. Please end the current call before starting a new one.");
-      return;
-    }
-    
     const otherId = selectedConversation.otherUser._id;
     const callId = [user.id, otherId].sort().join(":");
     
@@ -1140,7 +1186,6 @@ const Messages: React.FC = () => {
     // Open the call popup with initiator information
     import("@/utils/openCallPopup").then(({ openCallPopup }) => {
       openCallPopup(callId, user.id); // Pass the initiator ID
-      setActiveCallId(callId); // Mark call as active
     });
   }, [selectedConversation, user?.id]);
 

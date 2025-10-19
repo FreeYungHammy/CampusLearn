@@ -18,6 +18,7 @@ interface SocketManagerConfig {
 interface NamespaceHandlers {
   chat: {
     onNewMessage?: (message: ChatMessage) => void;
+    onMessageUpdated?: (data: { messageId: string; content: string; isEdited: boolean; editedAt: string }) => void;
     onUserStatusChange?: (userId: string, status: "online" | "offline", lastSeen: Date) => void;
     onChatCleared?: (payload: { chatId: string }) => void;
     onConnectionChange?: (connected: boolean) => void;
@@ -183,6 +184,10 @@ class SocketManagerClass {
 
     chatSocket.on("new_message", (message: ChatMessage) => {
       this.handlers.chat.onNewMessage?.(message);
+    });
+
+    chatSocket.on("message_updated", (data: { messageId: string; content: string; isEdited: boolean; editedAt: string }) => {
+      this.handlers.chat.onMessageUpdated?.(data);
     });
 
     chatSocket.on("user_status_change", (data: { userId: string; status: "online" | "offline"; lastSeen: string | Date }) => {

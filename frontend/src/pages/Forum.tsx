@@ -48,10 +48,10 @@ const Forum = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]); // For filtering by subjects (multiple)
   const [availableSubjects, setAvailableSubjects] = useState<string[]>([]);
-  
+
   // Advanced Filter State
   const [subjectSearchQuery, setSubjectSearchQuery] = useState("");
-  
+
   // Dropdown State
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
@@ -114,7 +114,7 @@ const Forum = () => {
   useEffect(() => {
     const subjects = [
       "Programming",
-      "Mathematics", 
+      "Mathematics",
       "Linear Programming",
       "Database Development",
       "Web Programming",
@@ -495,12 +495,14 @@ const Forum = () => {
             >
               <i className="fas fa-plus"></i> New Topic
             </button>
-            {(selectedSubjects.length > 0 ||
-              sortBy !== "newest") && (
-              <button className="clear-filters-btn" onClick={() => {
-                setSelectedSubjects([]);
-                setSortBy("newest");
-              }}>
+            {(selectedSubjects.length > 0 || sortBy !== "newest") && (
+              <button
+                className="clear-filters-btn"
+                onClick={() => {
+                  setSelectedSubjects([]);
+                  setSortBy("newest");
+                }}
+              >
                 Clear Filters
               </button>
             )}
@@ -515,7 +517,11 @@ const Forum = () => {
                 <div key={subject} className="selected-subject-tag">
                   <span className="subject-name">{subject}</span>
                   <button
-                    onClick={() => setSelectedSubjects(prev => prev.filter(s => s !== subject))}
+                    onClick={() =>
+                      setSelectedSubjects((prev) =>
+                        prev.filter((s) => s !== subject),
+                      )
+                    }
                     className="remove-subject-btn"
                     title={`Remove ${subject} filter`}
                   >
@@ -580,24 +586,30 @@ const Forum = () => {
               </div>
 
               <div className="subjects-list">
-                {availableSubjects.filter(subject => 
-                  subject.toLowerCase().includes(subjectSearchQuery.toLowerCase())
-                ).map((subject) => (
-                  <button
-                    key={subject}
-                    className={`subject-option ${selectedSubjects.includes(subject) ? "selected" : ""}`}
-                    onClick={() => setSelectedSubjects(prev => 
-                      prev.includes(subject) 
-                        ? prev.filter(s => s !== subject)
-                        : [...prev, subject]
-                    )}
-                  >
-                    <span>{subject}</span>
-                    {selectedSubjects.includes(subject) && (
-                      <i className="fas fa-check"></i>
-                    )}
-                  </button>
-                ))}
+                {availableSubjects
+                  .filter((subject) =>
+                    subject
+                      .toLowerCase()
+                      .includes(subjectSearchQuery.toLowerCase()),
+                  )
+                  .map((subject) => (
+                    <button
+                      key={subject}
+                      className={`subject-option ${selectedSubjects.includes(subject) ? "selected" : ""}`}
+                      onClick={() =>
+                        setSelectedSubjects((prev) =>
+                          prev.includes(subject)
+                            ? prev.filter((s) => s !== subject)
+                            : [...prev, subject],
+                        )
+                      }
+                    >
+                      <span>{subject}</span>
+                      {selectedSubjects.includes(subject) && (
+                        <i className="fas fa-check"></i>
+                      )}
+                    </button>
+                  ))}
               </div>
             </div>
           </div>
@@ -644,49 +656,6 @@ const Forum = () => {
                   >
                     {thread.topic}
                   </span>
-                  <div className="topic-header-actions">
-                    {user &&
-                      thread.author &&
-                      user.id === thread.author.userId &&
-                      (() => {
-                        const canEdit = isWithinEditWindow(thread.createdAt);
-                        const remainingTime = getRemainingEditTime(thread.createdAt);
-
-                        return (
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              canEdit && handleEditClick(thread._id, thread.content);
-                            }}
-                            disabled={!canEdit}
-                            className={`edit-btn ${!canEdit ? "disabled" : ""}`}
-                            title={
-                              canEdit
-                                ? remainingTime > 0
-                                  ? `Edit available for ${remainingTime} more minute${remainingTime !== 1 ? "s" : ""}`
-                                  : "Edit my post"
-                                : "Edit window expired (10 minutes)"
-                            }
-                          >
-                            <i className="fas fa-pencil-alt"></i>
-                          </button>
-                        );
-                      })()}
-                    {((user && thread.author && user.id === thread.author.userId) ||
-                      (user && user.role === "admin")) && (
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleDeleteThread(thread._id);
-                        }}
-                        className="delete-btn"
-                      >
-                        <i className="fas fa-trash"></i>
-                      </button>
-                    )}
-                  </div>
                 </div>
                 <div className="topic-excerpt-wrapper">
                   <p className="topic-excerpt">{thread.content}</p>
@@ -706,18 +675,24 @@ const Forum = () => {
                     ) : thread.author ? (
                       <img
                         src={(() => {
-                          const url = `${(import.meta.env.VITE_API_URL as string).replace(/\/$/, '')}/api/users/${thread.author.userId}/pfp?t=${pfpTimestamps[thread.author.userId] || 0}`;
-                          console.log('🖼️ Forum Profile Picture URL:', url);
+                          const url = `${(import.meta.env.VITE_API_URL as string).replace(/\/$/, "")}/api/users/${thread.author.userId}/pfp?t=${pfpTimestamps[thread.author.userId] || 0}`;
+                          console.log("🖼️ Forum Profile Picture URL:", url);
                           return url;
                         })()}
                         alt="Profile"
                         className="pfp-avatar"
                         onError={(e) => {
-                          console.log('❌ Profile picture failed to load for user:', thread.author.userId);
-                          console.log('❌ Failed URL:', e.currentTarget.src);
+                          console.log(
+                            "❌ Profile picture failed to load for user:",
+                            thread.author.userId,
+                          );
+                          console.log("❌ Failed URL:", e.currentTarget.src);
                         }}
                         onLoad={() => {
-                          console.log('✅ Profile picture loaded for user:', thread.author.userId);
+                          console.log(
+                            "✅ Profile picture loaded for user:",
+                            thread.author.userId,
+                          );
                         }}
                       />
                     ) : (
@@ -738,6 +713,51 @@ const Forum = () => {
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Edit and Delete buttons positioned at top right of card */}
+            <div className="topic-header-actions">
+              {user &&
+                thread.author &&
+                user.id === thread.author.userId &&
+                (() => {
+                  const canEdit = isWithinEditWindow(thread.createdAt);
+                  const remainingTime = getRemainingEditTime(thread.createdAt);
+
+                  return (
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        canEdit && handleEditClick(thread._id, thread.content);
+                      }}
+                      disabled={!canEdit}
+                      className={`edit-btn ${!canEdit ? "disabled" : ""}`}
+                      title={
+                        canEdit
+                          ? remainingTime > 0
+                            ? `Edit available for ${remainingTime} more minute${remainingTime !== 1 ? "s" : ""}`
+                            : "Edit my post"
+                          : "Edit window expired (10 minutes)"
+                      }
+                    >
+                      <i className="fas fa-pencil-alt"></i>
+                    </button>
+                  );
+                })()}
+              {((user && thread.author && user.id === thread.author.userId) ||
+                (user && user.role === "admin")) && (
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleDeleteThread(thread._id);
+                  }}
+                  className="delete-btn"
+                >
+                  <i className="fas fa-trash"></i>
+                </button>
+              )}
             </div>
           </div>
         ))}
