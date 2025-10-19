@@ -590,7 +590,6 @@ const FilePreview: React.FC<FilePreviewProps> = ({ message, mine, token }) => {
           title={filename}
           fileId={fileId}
           className="message-video-player"
-          style={{ maxWidth: '300px', maxHeight: '200px' }}
         />
         <div className="video-actions">
           <span className={`file-name ${mine ? "white" : ""}`}>
@@ -673,6 +672,9 @@ const Messages: React.FC = () => {
   const [threadLoading, setThreadLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [userOnlineStatus, setUserOnlineStatus] = useState<
+    Map<string, { isOnline: boolean; lastSeen?: Date }>
+  >(new Map());
   const [isClearModalOpen, setIsClearModalOpen] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);

@@ -26,6 +26,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [isVisible, setIsVisible] = useState(false);
   const [optimizedSrc, setOptimizedSrc] = useState(src);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [videoDimensions, setVideoDimensions] = useState<{width: number, height: number} | null>(null);
   
   // Get compression status from the hook
   const token = useAuthStore((state) => state.token);
@@ -41,6 +42,29 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Calculate optimal video dimensions based on container and aspect ratio
+  const calculateOptimalDimensions = (videoWidth: number, videoHeight: number, containerWidth: number, containerHeight: number) => {
+    const aspectRatio = videoWidth / videoHeight;
+    
+    // Define maximum dimensions based on context
+    const maxWidth = containerWidth > 600 ? 500 : Math.min(containerWidth * 0.8, 400);
+    const maxHeight = containerHeight > 400 ? 300 : Math.min(containerHeight * 0.6, 250);
+    
+    let optimalWidth = maxWidth;
+    let optimalHeight = optimalWidth / aspectRatio;
+    
+    // If height exceeds max, scale down by height
+    if (optimalHeight > maxHeight) {
+      optimalHeight = maxHeight;
+      optimalWidth = optimalHeight * aspectRatio;
+    }
+    
+    return {
+      width: Math.round(optimalWidth),
+      height: Math.round(optimalHeight)
+    };
+  };
 
   // Detect connection speed and optimize video source
   useEffect(() => {
@@ -260,12 +284,28 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
               );
             }
           }}
-          onLoadedMetadata={() => {
+          onLoadedMetadata={(e) => {
+            const video = e.target as HTMLVideoElement;
             console.log(`📊 Video metadata loaded - ready to play`);
+            
+            // Calculate optimal dimensions when metadata is loaded
+            if (containerRef.current && video.videoWidth && video.videoHeight) {
+              const containerRect = containerRef.current.getBoundingClientRect();
+              const optimalDimensions = calculateOptimalDimensions(
+                video.videoWidth,
+                video.videoHeight,
+                containerRect.width,
+                containerRect.height
+              );
+              setVideoDimensions(optimalDimensions);
+              console.log(`📐 Calculated optimal dimensions: ${optimalDimensions.width}x${optimalDimensions.height}`);
+            }
           }}
           style={{
-            width: "100%",
-            height: "100%",
+            width: videoDimensions ? `${videoDimensions.width}px` : "100%",
+            height: videoDimensions ? `${videoDimensions.height}px` : "100%",
+            maxWidth: "100%",
+            maxHeight: "100%",
             opacity: loading ? 0 : 1,
             transition: "opacity 0.3s ease",
             objectFit: "contain", // Ensure video fits properly
