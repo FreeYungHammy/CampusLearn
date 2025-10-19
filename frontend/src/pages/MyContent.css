@@ -23,7 +23,6 @@
 .breadcrumb-nav {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   padding: 20px 24px;
   background: linear-gradient(
     135deg,

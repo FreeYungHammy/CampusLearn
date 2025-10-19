@@ -1,0 +1,725 @@
+/* Tutor Content View - Exact MyContent Replication */
+
+/* Main container styling - EXACT COPY */
+#tutor-content-view {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+  min-height: 85vh;
+}
+
+/* Content browser styling - EXACT COPY */
+#tutor-content-view .content-browser {
+  background: var(--surface);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  border: 1px solid var(--border-light);
+  margin-bottom: 10px;
+  min-height: 65vh;
+}
+
+/* Breadcrumb Navigation - EXACT COPY */
+#tutor-content-view .breadcrumb-nav {
+  display: flex;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+#tutor-content-view .breadcrumb-items {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#tutor-content-view .breadcrumb-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+#tutor-content-view .breadcrumb-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+#tutor-content-view .breadcrumb-item.active {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  font-weight: 600;
+}
+
+#tutor-content-view .breadcrumb-separator {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+}
+
+#tutor-content-view .back-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+#tutor-content-view .back-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+/* Content Display - EXACT COPY */
+#tutor-content-view #content-display {
+  padding: 20px;
+  min-height: 60vh;
+  max-height: 80vh;
+  overflow: visible;
+}
+
+/* Subjects Container - EXACT COPY */
+#tutor-content-view .subjects-container {
+  min-height: 50vh;
+  padding-bottom: 20px;
+  display: block !important;
+}
+
+/* Force 2-column layout for subjects grid - EXACT COPY */
+#tutor-content-view .subjects-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(250px, 1fr)) !important;
+  gap: 20px 20px !important;
+  row-gap: 12px !important;
+  justify-content: start !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Force fixed width on subject cards - EXACT COPY */
+#tutor-content-view .subject-card {
+  height: 150px !important;
+  width: 500px !important;
+  max-width: 100% !important;
+  flex-shrink: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  text-align: left !important;
+  padding: 20px;
+  background: var(--card);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+#tutor-content-view .subject-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  border-color: var(--primary);
+}
+
+#tutor-content-view .subject-card .subject-info {
+  text-align: left !important;
+  width: 100% !important;
+  margin-left: 16px;
+}
+
+#tutor-content-view .subject-card .subject-info h4 {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  margin-bottom: 8px !important;
+  color: var(--text-primary);
+}
+
+#tutor-content-view .subject-card .file-count {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  color: var(--text-secondary);
+  text-align: center !important;
+}
+
+/* Subject Icon - EXACT COPY */
+#tutor-content-view .subject-card .subject-icon {
+  width: 60px !important;
+  height: 60px !important;
+  font-size: 24px !important;
+  background: var(--primary);
+  color: white;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+#tutor-content-view .subject-card .subject-arrow {
+  font-size: 18px !important;
+  color: var(--text-secondary);
+  margin-left: auto;
+}
+
+/* Subtopic Cards - EXACT COPY */
+#tutor-content-view .subtopics-container {
+  margin-bottom: 20px;
+}
+
+#tutor-content-view .subtopics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+#tutor-content-view .subtopic-card {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  background: var(--card);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+#tutor-content-view .subtopic-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  border-color: var(--primary);
+}
+
+#tutor-content-view .subtopic-icon {
+  width: 48px;
+  height: 48px;
+  background: var(--secondary);
+  color: white;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  margin-right: 16px;
+}
+
+#tutor-content-view .subtopic-info h4 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: var(--text-primary);
+}
+
+#tutor-content-view .subtopic-info p {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+#tutor-content-view .subtopic-arrow {
+  margin-left: auto;
+  color: var(--text-secondary);
+  font-size: 16px;
+}
+
+/* Files Grid - EXACT COPY */
+#tutor-content-view .files-container {
+  margin-top: 20px;
+}
+
+#tutor-content-view .results-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+#tutor-content-view .content-section-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+#tutor-content-view .results-count {
+  font-size: 14px;
+  color: var(--text-secondary);
+  background: var(--surface);
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+
+#tutor-content-view .files-grid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(350px, 1fr));
+  gap: 16px;
+}
+
+#tutor-content-view .file-card {
+  display: flex;
+  align-items: center;
+  padding: 16px 20px;
+  background: var(--card);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  gap: 20px;
+  min-height: 120px;
+  overflow: visible;
+}
+
+#tutor-content-view .file-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  border-color: var(--primary);
+}
+
+#tutor-content-view .file-icon {
+  width: 48px;
+  height: 48px;
+  background: var(--primary);
+  color: white;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  margin-right: 16px;
+  flex-shrink: 0;
+  border: 2px solid var(--primary);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#tutor-content-view .file-badge {
+  background: #3498db;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(52, 152, 219, 0.3);
+  border: 2px solid #3498db;
+}
+
+#tutor-content-view .file-info {
+  flex: 1;
+  min-width: 0;
+}
+
+#tutor-content-view .file-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+  line-height: 1.3;
+}
+
+#tutor-content-view .file-description {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin: 0 0 8px 0;
+  line-height: 1.4;
+}
+
+#tutor-content-view .file-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  flex-wrap: wrap;
+}
+
+#tutor-content-view .meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+#tutor-content-view .meta-item i {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+#tutor-content-view .file-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+  align-items: stretch;
+  min-width: 120px;
+  padding: 2px 0;
+}
+
+#tutor-content-view .file-actions .btn {
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 5px;
+  min-height: 32px;
+  max-height: 32px;
+  justify-content: center;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Enhanced file action button styling - EXACT COPY */
+#tutor-content-view .file-actions .btn-primary {
+  background: #3498db !important;
+  border-color: #3498db !important;
+  color: white !important;
+}
+
+#tutor-content-view .file-actions .btn-primary:hover {
+  background: #2980b9 !important;
+  border-color: #2980b9 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+}
+
+#tutor-content-view .file-actions .btn-outline-download {
+  background: transparent !important;
+  color: #3498db !important;
+  border: 2px solid #3498db !important;
+}
+
+#tutor-content-view .file-actions .btn-outline-download:hover {
+  background: #3498db !important;
+  color: white !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+}
+
+/* Button Styling - EXACT COPY */
+#tutor-content-view .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+#tutor-content-view .btn-primary {
+  background: var(--primary);
+  color: white;
+  border: 2px solid var(--primary);
+}
+
+#tutor-content-view .btn-primary:hover {
+  background: var(--primary-dark);
+  border-color: var(--primary-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+}
+
+#tutor-content-view .btn-secondary {
+  background: var(--surface);
+  color: var(--text);
+  border: 2px solid var(--border);
+}
+
+#tutor-content-view .btn-secondary:hover {
+  background: var(--surface-2);
+  border-color: var(--border);
+  transform: translateY(-1px);
+}
+
+#tutor-content-view .btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+  gap: 4px;
+}
+
+/* Empty States - EXACT COPY */
+#tutor-content-view .empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-secondary);
+}
+
+#tutor-content-view .empty-state i {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+#tutor-content-view .empty-state p {
+  font-size: 16px;
+  margin-bottom: 20px;
+}
+
+/* Loading State - EXACT COPY */
+#tutor-content-view .loading-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-secondary);
+}
+
+#tutor-content-view .loading-state i {
+  font-size: 32px;
+  margin-bottom: 16px;
+  color: var(--primary);
+}
+
+/* Error State - EXACT COPY */
+#tutor-content-view .error-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--danger);
+}
+
+#tutor-content-view .error-state i {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+/* Dark Mode Support - EXACT COPY */
+[data-theme="dark"] #tutor-content-view .content-browser {
+  background: var(--surface);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] #tutor-content-view .subject-card,
+[data-theme="dark"] #tutor-content-view .subtopic-card,
+[data-theme="dark"] #tutor-content-view .file-card {
+  background: var(--surface);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] #tutor-content-view .subject-card:hover,
+[data-theme="dark"] #tutor-content-view .subtopic-card:hover,
+[data-theme="dark"] #tutor-content-view .file-card:hover {
+  background: rgba(52, 152, 219, 0.05);
+}
+
+[data-theme="dark"] #tutor-content-view .file-title {
+  color: var(--text);
+}
+
+[data-theme="dark"] #tutor-content-view .file-count,
+[data-theme="dark"] #tutor-content-view .file-description {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] #tutor-content-view .section-header {
+  background: var(--surface);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] #tutor-content-view .content-header {
+  background: var(--surface);
+  border-color: var(--border);
+}
+
+/* Mobile Responsive - EXACT COPY */
+@media (max-width: 768px) {
+  #tutor-content-view {
+    padding: 16px;
+  }
+
+  #tutor-content-view .subjects-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    justify-items: stretch;
+  }
+
+  #tutor-content-view .subject-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 120px !important;
+  }
+
+  #tutor-content-view .subtopics-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  #tutor-content-view .files-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  #tutor-content-view .subject-card {
+    padding: 16px;
+    min-height: 100px;
+  }
+
+  #tutor-content-view .file-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 16px;
+    min-height: auto;
+  }
+
+  #tutor-content-view .file-actions {
+    width: 100%;
+    flex-direction: row;
+    justify-content: flex-end;
+    gap: 6px;
+    min-width: auto;
+    max-width: none;
+    padding: 0;
+  }
+
+  #tutor-content-view .file-actions .btn {
+    flex: 1;
+    min-width: 70px;
+    min-height: 30px;
+    max-height: 30px;
+    padding: 4px 8px;
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  #tutor-content-view {
+    padding: 12px;
+    min-height: 95vh;
+  }
+
+  #tutor-content-view .content-browser {
+    min-height: 75vh;
+  }
+
+  #tutor-content-view #content-display {
+    padding: 12px;
+    min-height: 70vh;
+  }
+
+  #tutor-content-view .subject-card {
+    height: 100px !important;
+    padding: 12px;
+  }
+
+  #tutor-content-view .subject-card .subject-icon {
+    width: 48px !important;
+    height: 48px !important;
+    font-size: 20px !important;
+  }
+
+  #tutor-content-view .subject-card .subject-info h4 {
+    font-size: 18px !important;
+  }
+
+  #tutor-content-view .subject-card .file-count {
+    font-size: 14px !important;
+  }
+}
+
+/* Additional App.css overrides for exact MyContent replication */
+
+/* Force proper sizing for subject cards - EXACT COPY from App.css */
+#tutor-content-view .subject-card {
+  height: 100px !important;
+  width: 100% !important;
+  flex-shrink: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  text-align: left !important;
+}
+
+#tutor-content-view .subject-card .subject-info {
+  text-align: left !important;
+  width: 100% !important;
+}
+
+#tutor-content-view .subject-card .subject-info h4 {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  margin-bottom: 8px !important;
+  text-align: center !important;
+}
+
+#tutor-content-view .subject-card .file-count {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  text-align: center !important;
+}
+
+/* Subjects container alignment - EXACT COPY from App.css */
+#tutor-content-view .subjects-container {
+  width: 100%;
+  max-width: 100%;
+  overflow: visible;
+  margin: 0;
+  padding: 0;
+}
+
+/* Section Header Styling - EXACT COPY */
+#tutor-content-view .section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  padding: 16px 8px;
+  background: var(--light-gray);
+  flex-wrap: wrap;
+}
+
+#tutor-content-view .section-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--primary);
+  margin: 0;
+}
+
+#tutor-content-view .section-title i {
+  font-size: 28px;
+  color: var(--primary);
+}
+
+/* Content Header Styling - EXACT COPY */
+#tutor-content-view .content-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 8px;
+  background: var(--light-gray);
+  flex-wrap: wrap;
+}
+
+#tutor-content-view .content-header.justify-content-center {
+  justify-content: center;
+}
+
+/* Content Grid Styling - EXACT COPY */
+#tutor-content-view .content-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}

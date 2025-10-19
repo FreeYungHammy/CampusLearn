@@ -8,14 +8,10 @@ import React, {
 import { useLocation } from "react-router-dom";
 import { useChatSocket } from "@/hooks/useChatSocket";
 import { useAuthStore } from "@/store/authStore";
-import { useBookingStore } from "@/store/bookingStore";
 import { chatApi, type Conversation } from "@/services/chatApi";
 import type { SendMessagePayload, ChatMessage } from "@/types/ChatMessage";
 import { format, isSameDay } from "date-fns";
 import ClearChatConfirmationModal from "@/components/ClearChatConfirmationModal";
-import EnhancedBookingModal, {
-  BookingData,
-} from "@/components/EnhancedBookingModal";
 import DateSeparator from "@/components/DateSeparator";
 import BookingMessageCard from "@/components/chat/BookingMessageCard";
 import PageHeader from "@/components/PageHeader";
@@ -27,7 +23,7 @@ const defaultPfp =
 
 /* ---------- Helpers ---------- */
 const getProfilePictureUrl = (userId: string, bust?: number) => {
-  const baseUrl = (import.meta.env.VITE_API_URL as string).replace(/\/$/, '');
+  const baseUrl = (import.meta.env.VITE_API_URL as string).replace(/\/$/, "");
   const cacheBuster = bust ? `?t=${bust}` : "";
   const url = `${baseUrl}/api/users/${userId}/pfp${cacheBuster}`;
   return url;
@@ -236,83 +232,22 @@ const Messages: React.FC = () => {
   >(new Map());
   const [isClearModalOpen, setIsClearModalOpen] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState("");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const currentRoomRef = useRef<string | null>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { user, token, pfpTimestamps } = useAuthStore();
-  const {
-    showBookingModal,
-    bookingTarget,
-    openBookingModal,
-    closeBookingModal,
-    createBooking,
-  } = useBookingStore();
   const location = useLocation();
   const selectedConversationUserId = (location.state as any)
     ?.selectedConversationUserId;
-
-  const handleBookingCreation = async (bookingData: BookingData) => {
-    try {
-      const newBooking = await createBooking(bookingData);
-
-      // Send automatic message about the booking
-      if (bookingTarget && user) {
-        const isStudentBookingTutor =
-          user.role === "student" && bookingTarget.role === "tutor";
-        const recipientId = isStudentBookingTutor ? bookingTarget.id : user.id;
-
-        const messageContent = `📅 New booking request: ${bookingData.subject} session scheduled for ${new Date(bookingData.date).toLocaleDateString()} at ${bookingData.time} (${bookingData.duration} minutes)${bookingData.notes ? `\n\nNotes: ${bookingData.notes}` : ""}`;
-
-        try {
-          // Create a chatId for the booking message
-          const chatId = [user.id, recipientId].sort().join("-");
-          await sendMessage({
-            chatId: chatId,
-            content: messageContent,
-            senderId: user.id,
-            receiverId: recipientId,
-          });
-        } catch (messageError) {
-          console.warn("Failed to send booking message:", messageError);
-          // Don't fail the booking creation if message sending fails
-        }
-      }
-    } catch (error) {
-      console.error("Failed to create booking:", error);
-      throw error; // Re-throw so the modal can handle the error
-    }
-  };
 
   const chatId = useMemo(() => {
     if (!selectedConversation || !user?.id) return null;
     return [user.id, selectedConversation.otherUser._id].sort().join("-");
   }, [selectedConversation, user?.id]);
-
-  // Handle click outside dropdown
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsDropdownOpen(false);
-      }
-    };
-
-    if (isDropdownOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isDropdownOpen]);
 
   /* -------- Socket handlers -------- */
   const handleNewMessage = useCallback(
@@ -353,7 +288,9 @@ const Messages: React.FC = () => {
 
   const handleUserStatusChange = useCallback(
     (userId: string, status: "online" | "offline", lastSeen: Date) => {
-      console.log(`🟢 Status update received: User ${userId} is ${status} (last seen: ${lastSeen})`);
+      console.log(
+        `🟢 Status update received: User ${userId} is ${status} (last seen: ${lastSeen})`,
+      );
       setUserOnlineStatus((prev) => {
         const m = new Map(prev);
         m.set(userId, { isOnline: status === "online", lastSeen });
@@ -445,7 +382,6 @@ const Messages: React.FC = () => {
       setUserOnlineStatus(new Map());
       setIsClearModalOpen(false);
       setIsClearing(false);
-      setIsDropdownOpen(false);
 
       // Clear current room reference
       if (currentRoomRef.current) {
@@ -681,20 +617,31 @@ const Messages: React.FC = () => {
     if (!selectedConversation || !user?.id) return;
     const otherId = selectedConversation.otherUser._id;
     const callId = [user.id, otherId].sort().join(":");
-    
+
     // Send call notification to the other user first
     try {
-      console.log("[video-call] Initiating call notification", { callId, targetUserId: otherId });
+      console.log("[video-call] Initiating call notification", {
+        callId,
+        targetUserId: otherId,
+      });
       const { io } = await import("socket.io-client");
-      const SOCKET_BASE_URL = (import.meta.env.VITE_WS_URL as string).replace(/\/$/, '');
+      const SOCKET_BASE_URL = (import.meta.env.VITE_WS_URL as string).replace(
+        /\/$/,
+        "",
+      );
       const url = SOCKET_BASE_URL.replace(/^http/, "ws");
       const token = useAuthStore.getState().token;
-      
+
       if (token) {
         console.log("[video-call] Creating temporary socket connection");
-        const tempSocket = io(`${url}/video`, { auth: { token }, transports: ["websocket", "polling"] });
+        const tempSocket = io(`${url}/video`, {
+          auth: { token },
+          transports: ["websocket", "polling"],
+        });
         tempSocket.on("connect", () => {
-          console.log("[video-call] Temporary socket connected, sending initiate_call");
+          console.log(
+            "[video-call] Temporary socket connected, sending initiate_call",
+          );
           tempSocket.emit("initiate_call", { callId, targetUserId: otherId });
           setTimeout(() => {
             console.log("[video-call] Disconnecting temporary socket");
@@ -702,7 +649,10 @@ const Messages: React.FC = () => {
           }, 1000); // Clean up after sending
         });
         tempSocket.on("connect_error", (error) => {
-          console.error("[video-call] Temporary socket connection error:", error);
+          console.error(
+            "[video-call] Temporary socket connection error:",
+            error,
+          );
         });
       } else {
         console.warn("[video-call] No token available for call notification");
@@ -710,7 +660,7 @@ const Messages: React.FC = () => {
     } catch (error) {
       console.error("Failed to send call notification:", error);
     }
-    
+
     // Open the call popup
     import("@/utils/openCallPopup").then(({ openCallPopup }) => {
       openCallPopup(callId);
@@ -780,8 +730,9 @@ const Messages: React.FC = () => {
       const timestampGroup = timestampGroups.get(timestampKey);
 
       // Show profile picture only if this is the first message in its timestamp group
-      messageWithGrouping.showProfilePicture =
-        Boolean(timestampGroup && timestampGroup[0] === i);
+      messageWithGrouping.showProfilePicture = Boolean(
+        timestampGroup && timestampGroup[0] === i,
+      );
 
       // Show timestamp only for the last message in each timestamp group (both sides)
       if (timestampGroup && timestampGroup[timestampGroup.length - 1] === i) {
@@ -803,7 +754,7 @@ const Messages: React.FC = () => {
         subtitle="Connect and communicate with your tutors and students"
         icon="fas fa-comments"
       />
-      
+
       <div className="messages-shell">
         {/* Sidebar */}
         <aside className="sidebar">
@@ -942,7 +893,11 @@ const Messages: React.FC = () => {
                       />
                     </svg>
                   </button>
-                  <button className="action-button" aria-label="Video" onClick={handleStartVideoCall}>
+                  <button
+                    className="action-button"
+                    aria-label="Video"
+                    onClick={handleStartVideoCall}
+                  >
                     <svg width="16" height="16" fill="none" viewBox="0 0 16 16">
                       <path
                         d="M0 5a2 2 0 0 1 2-2h7.5a2 2 0 0 1 1.983 1.738l3.11-1.382A1 1 0 0 1 16 4.269v7.462a1 1 0 0 1-1.406.913l-3.111-1.382A2 2 0 0 1 9.5 13H2a2 2 0 0 1-2-2V5z"
@@ -950,67 +905,14 @@ const Messages: React.FC = () => {
                       />
                     </svg>
                   </button>
-                  <div className="relative" ref={dropdownRef}>
-                    <button
-                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                      className="action-button"
-                      aria-label="More options"
-                      aria-expanded={isDropdownOpen}
-                    >
-                      <i
-                        className={`fas fa-chevron-${isDropdownOpen ? "up" : "down"}`}
-                      />
-                    </button>
-                    {isDropdownOpen && (
-                      <div
-                        className="cl-menu"
-                        role="menu"
-                        style={{
-                          position: "fixed",
-                          top: "16vh",
-                          left: "135vh",
-                          zIndex: 99999,
-                        }}
-                      >
-                        {user?.role === "tutor" && selectedConversation && (
-                          <button
-                            className="cl-menu__item"
-                            onClick={() => {
-                              openBookingModal({
-                                id: selectedConversation.otherUser._id,
-                                name:
-                                  selectedConversation.otherUser.profile
-                                    ?.name || "Student",
-                                surname:
-                                  selectedConversation.otherUser.profile
-                                    ?.surname || "",
-                                role: "student" as const,
-                                subjects:
-                                  selectedConversation.otherUser.profile
-                                    ?.subjects || [],
-                              });
-                              setIsDropdownOpen(false);
-                            }}
-                          >
-                            <i className="fas fa-calendar-plus" />
-                            <span>Schedule Session</span>
-                          </button>
-                        )}
-                        {user?.role === "tutor" && (
-                          <button
-                            className="cl-menu__item"
-                            onClick={() => {
-                              setIsClearModalOpen(true);
-                              setIsDropdownOpen(false);
-                            }}
-                          >
-                            <i className="fas fa-trash" />
-                            <span>Clear Messages</span>
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                  <button
+                    onClick={() => setIsClearModalOpen(true)}
+                    className="action-button"
+                    aria-label="Clear messages"
+                    title="Clear all messages"
+                  >
+                    <i className="fas fa-trash" />
+                  </button>
                 </div>
               </div>
 
@@ -1154,7 +1056,10 @@ const Messages: React.FC = () => {
                                   <button
                                     className="message-edit-btn"
                                     onClick={() =>
-                                      handleEditMessage(msg._id || '', msg.content)
+                                      handleEditMessage(
+                                        msg._id || "",
+                                        msg.content,
+                                      )
                                     }
                                     title="Edit message"
                                   >
@@ -1180,7 +1085,7 @@ const Messages: React.FC = () => {
                                       try {
                                         const blob =
                                           await chatApi.downloadMessageFile(
-                                            msg._id || '',
+                                            msg._id || "",
                                             token,
                                           );
                                         const url =
@@ -1371,17 +1276,6 @@ const Messages: React.FC = () => {
               userName={`${selectedConversation.otherUser.profile?.name || "Unknown"} ${
                 selectedConversation.otherUser.profile?.surname || "User"
               }`}
-            />
-          )}
-
-          {/* Booking Modal */}
-          {showBookingModal && bookingTarget && user && (
-            <EnhancedBookingModal
-              isOpen={showBookingModal}
-              onClose={closeBookingModal}
-              onConfirm={handleBookingCreation}
-              targetUser={bookingTarget}
-              currentUser={user}
             />
           )}
         </section>
