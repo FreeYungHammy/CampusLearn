@@ -927,15 +927,9 @@ export const UserService = {
         `student:user:${id}`, // Student cache key
       ];
 
-      // Clear forum thread caches for posts made by this user
-      if (profileId) {
-        const userPosts = await ForumPostModel.find({
-          authorId: profileId,
-        }).lean();
-        for (const post of userPosts) {
-          cacheKeys.push(`forum:thread:${post._id}`);
-        }
-      }
+      // Note: Individual forum thread caching has been removed
+      // Only thread list cache invalidation is needed, which happens automatically
+      // when threads are deleted from the database
 
       for (const key of cacheKeys) {
         try {

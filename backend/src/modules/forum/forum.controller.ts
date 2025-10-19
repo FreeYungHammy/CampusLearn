@@ -80,6 +80,8 @@ export const ForumController = {
       const { threadId } = req.params;
       const { voteType } = req.body;
 
+      console.log(`[voteOnPost] Received vote request: user=${user.id}, thread=${threadId}, vote=${voteType}`);
+
       if (![1, -1].includes(voteType)) {
         throw new HttpException(400, "Invalid vote type.");
       }
@@ -90,8 +92,11 @@ export const ForumController = {
         "ForumPost",
         voteType,
       );
+      
+      console.log(`[voteOnPost] Returning updated post:`, updatedPost);
       res.status(200).json(updatedPost);
     } catch (error: any) {
+      console.error(`[voteOnPost] Error:`, error);
       if (error instanceof HttpException) {
         res.status(error.status).json({ message: error.message });
       } else {

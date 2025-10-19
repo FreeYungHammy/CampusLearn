@@ -37,7 +37,7 @@ interface NamespaceHandlers {
     onThreadDeleted?: (data: { threadId: string }) => void;
     onThreadUpdated?: (data: { updatedPost: any }) => void;
     onForumReplyCountUpdated?: (data: { threadId: string; replyCount: number }) => void;
-    onVoteUpdated?: (data: { targetId: string; newScore: number }) => void;
+    onVoteUpdated?: (data: { targetId: string; newScore: number; userVote?: number }) => void;
   };
 }
 
@@ -279,7 +279,7 @@ class SocketManagerClass {
       this.handlers.global.onForumReplyCountUpdated?.(data);
     });
 
-    globalSocket.on("vote_updated", (data: { targetId: string; newScore: number }) => {
+    globalSocket.on("vote_updated", (data: { targetId: string; newScore: number; userVote?: number }) => {
       console.log("[SocketManager] Vote updated:", data);
       this.handlers.global.onVoteUpdated?.(data);
     });
