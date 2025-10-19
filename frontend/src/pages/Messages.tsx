@@ -5,6 +5,7 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
+import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
 import { useChatSocket } from "@/hooks/useChatSocket";
 import { useAuthStore } from "@/store/authStore";
@@ -216,6 +217,395 @@ const fileIcon = (filename: string) => {
         </svg>
       );
   }
+};
+
+// Image Modal Component
+interface ImageModalProps {
+  isOpen: boolean;
+  imageUrl: string;
+  filename: string;
+  onClose: () => void;
+  onDownload: () => void;
+}
+
+const ImageModal: React.FC<ImageModalProps> = ({ isOpen, imageUrl, filename, onClose, onDownload }) => {
+  const [isZoomed, setIsZoomed] = React.useState(false);
+  const [mounted, setMounted] = React.useState(false);
+
+  // Ensure component is mounted before rendering
+  React.useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+
+  React.useEffect(() => {
+    if (isOpen) {
+      // Store original body styles
+      const originalStyle = {
+        overflow: document.body.style.overflow,
+        position: document.body.style.position,
+        width: document.body.style.width,
+        height: document.body.style.height,
+        top: document.body.style.top,
+      };
+
+      // Apply modal styles
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.height = '100%';
+      document.body.style.top = '0';
+
+      return () => {
+        // Restore original styles
+        document.body.style.overflow = originalStyle.overflow;
+        document.body.style.position = originalStyle.position;
+        document.body.style.width = originalStyle.width;
+        document.body.style.height = originalStyle.height;
+        document.body.style.top = originalStyle.top;
+      };
+    }
+  }, [isOpen]);
+
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
+
+  const handleOverlayClick = (e: React.MouseEvent) => {
+    // Only close if clicking the overlay itself, not its children
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
+  const handleImageClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsZoomed(!isZoomed);
+  };
+
+  const handleButtonClick = (e: React.MouseEvent, action: () => void) => {
+    e.stopPropagation();
+    action();
+  };
+
+  if (!isOpen || !mounted) return null;
+
+  const modalContent = (
+    <div 
+      className="image-modal-overlay" 
+      onClick={handleOverlayClick}
+    >
+      <div className="image-modal-content">
+        <div className="image-modal-header">
+          <span className="image-modal-filename">{filename}</span>
+          <div className="image-modal-actions">
+            <button 
+              className="image-modal-btn"
+              onClick={(e) => handleButtonClick(e, () => setIsZoomed(!isZoomed))}
+              title={isZoomed ? "Fit to screen" : "Zoom in"}
+            >
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+                <path
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d={isZoomed ? "M9 9V3H3v6h6zM21 21v-6h-6v6h6zM9 21v-6H3v6h6zM21 9V3h-6v6h6z" : "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7"}
+                />
+              </svg>
+            </button>
+            <button 
+              className="image-modal-btn"
+              onClick={(e) => handleButtonClick(e, onDownload)}
+              title="Download image"
+            >
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+                <path
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"
+                />
+              </svg>
+            </button>
+            <button 
+              className="image-modal-btn"
+              onClick={(e) => handleButtonClick(e, onClose)}
+              title="Close"
+            >
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+                <path
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div className="image-modal-body">
+          <img 
+            src={imageUrl} 
+            alt={filename}
+            className={`image-modal-image ${isZoomed ? 'zoomed' : ''}`}
+            onClick={handleImageClick}
+            draggable={false}
+          />
+        </div>
+      </div>
+    </div>
+  );
+
+  // Render modal outside the normal DOM hierarchy using portal
+  return createPortal(modalContent, document.body);
+};
+
+// File Preview Component
+interface FilePreviewProps {
+  message: any;
+  mine: boolean;
+  token: string | null;
+}
+
+const FilePreview: React.FC<FilePreviewProps> = ({ message, mine, token }) => {
+  const [imageUrl, setImageUrl] = React.useState<string | null>(null);
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [error, setError] = React.useState(false);
+  const [clickToLoadEnabled, setClickToLoadEnabled] = React.useState(() => {
+    const savedPreference = localStorage.getItem('chat-image-click-to-load');
+    return savedPreference === 'true';
+  });
+  const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [isModalTransitioning, setIsModalTransitioning] = React.useState(false);
+
+  const filename = (message as any).uploadFilename || message.upload?.filename || "";
+  const contentType = (message as any).uploadContentType || message.upload?.contentType || "";
+  
+  const isImage = () => {
+    const ext = filename.split(".").pop()?.toLowerCase();
+    return ["jpg", "jpeg", "png", "gif", "webp", "bmp", "svg"].includes(ext || "") ||
+           contentType.startsWith("image/");
+  };
+
+  // Listen for settings changes
+  React.useEffect(() => {
+    const handleSettingsChange = (event: CustomEvent) => {
+      setClickToLoadEnabled(event.detail.clickToLoad);
+    };
+
+    window.addEventListener('chat-image-settings-changed', handleSettingsChange as EventListener);
+    
+    return () => {
+      window.removeEventListener('chat-image-settings-changed', handleSettingsChange as EventListener);
+    };
+  }, []);
+
+  const loadImagePreview = async () => {
+    if (!token || !isImage() || imageUrl || isLoading) return;
+    
+    setIsLoading(true);
+    setError(false);
+    
+    try {
+      const blob = await chatApi.downloadMessageFile(message._id || '', token);
+      const url = window.URL.createObjectURL(blob);
+      setImageUrl(url);
+    } catch (err) {
+      console.error("Failed to load image preview:", err);
+      setError(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Auto-load images if click-to-load is disabled
+  React.useEffect(() => {
+    if (isImage() && !clickToLoadEnabled && !imageUrl && !isLoading && !error && token) {
+      loadImagePreview();
+    }
+  }, [clickToLoadEnabled, token, message._id]);
+
+  const handleDownload = async () => {
+    if (!token) return;
+    
+    try {
+      const blob = await chatApi.downloadMessageFile(message._id || '', token);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Failed to download file:", err);
+      alert("Failed to download file.");
+    }
+  };
+
+  const handleImageClick = () => {
+    if (imageUrl && isImage() && !isModalTransitioning) {
+      setIsModalTransitioning(true);
+      setIsModalOpen(true);
+      // Reset transition state after a short delay
+      setTimeout(() => setIsModalTransitioning(false), 300);
+    }
+  };
+
+  const handleModalClose = () => {
+    if (!isModalTransitioning) {
+      setIsModalTransitioning(true);
+      setIsModalOpen(false);
+      // Reset transition state after a short delay
+      setTimeout(() => setIsModalTransitioning(false), 300);
+    }
+  };
+
+  // Clean up object URL on unmount
+  React.useEffect(() => {
+    return () => {
+      if (imageUrl) {
+        window.URL.revokeObjectURL(imageUrl);
+      }
+    };
+  }, [imageUrl]);
+
+  if (isImage()) {
+    return (
+      <div className={`file-preview image-preview ${mine ? "mine" : ""}`}>
+        <div 
+          className="image-container"
+          onClick={clickToLoadEnabled ? loadImagePreview : undefined}
+          style={{ cursor: isLoading ? "wait" : (clickToLoadEnabled ? "pointer" : "default") }}
+        >
+          {isLoading ? (
+            <div className="image-loading">
+              <div className="spinner"></div>
+              <span>Loading image...</span>
+            </div>
+          ) : imageUrl ? (
+            <img 
+              src={imageUrl} 
+              alt={filename}
+              className="message-image clickable-image"
+              onError={() => setError(true)}
+              onClick={handleImageClick}
+            />
+          ) : error ? (
+            <div className="image-error">
+              <span>Failed to load image</span>
+              <button onClick={loadImagePreview} className="retry-btn">
+                Retry
+              </button>
+            </div>
+          ) : clickToLoadEnabled ? (
+            <div className="image-placeholder">
+              <span className="file-icon">
+                {fileIcon(filename)}
+              </span>
+              <span className="click-to-load">Click to load image</span>
+            </div>
+          ) : (
+            <div className="image-loading">
+              <div className="spinner"></div>
+              <span>Loading image...</span>
+            </div>
+          )}
+        </div>
+        
+        <div className="image-actions">
+          <span className={`file-name ${mine ? "white" : ""}`}>
+            {filename}
+          </span>
+          <button 
+            onClick={handleDownload}
+            className="download-btn"
+            title="Download image"
+          >
+            <svg
+              width="16"
+              height="16"
+              fill="none"
+              viewBox="0 0 16 16"
+            >
+              <path
+                d="M8 1v10m0 0l-3-3m3 3l3-3M2 13h12"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+        </div>
+        
+        {/* Image Modal */}
+        {imageUrl && (
+          <ImageModal
+            isOpen={isModalOpen}
+            imageUrl={imageUrl}
+            filename={filename}
+            onClose={handleModalClose}
+            onDownload={handleDownload}
+          />
+        )}
+      </div>
+    );
+  }
+
+  // Non-image files - use the original file preview
+  return (
+    <div
+      className={`file-preview ${mine ? "mine" : ""} downloadable`}
+      onClick={handleDownload}
+      style={{ cursor: "pointer" }}
+    >
+      <div className="file-line">
+        <span className="file-icon">
+          {fileIcon(filename)}
+        </span>
+        <span className={`file-name ${mine ? "white" : ""}`}>
+          {filename}
+        </span>
+        <svg
+          width="16"
+          height="16"
+          fill="none"
+          viewBox="0 0 16 16"
+          className="download-icon"
+        >
+          <path
+            d="M8 1v10m0 0l-3-3m3 3l3-3M2 13h12"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </div>
+      <div className={`file-meta ${mine ? "white-50" : "muted"}`}>
+        {contentType === "application/octet-stream"
+          ? filename?.split(".").pop()?.toUpperCase() || "FILE"
+          : contentType}
+      </div>
+    </div>
+  );
 };
 
 const Messages: React.FC = () => {
@@ -1173,87 +1563,11 @@ const Messages: React.FC = () => {
 
                                 {((msg as any).uploadFilename ||
                                   msg.upload?.filename) && (
-                                  <div
-                                    className={`file-preview ${mine ? "mine" : ""} downloadable`}
-                                    onClick={async () => {
-                                      if (!token) return;
-                                      try {
-                                        const blob =
-                                          await chatApi.downloadMessageFile(
-                                            msg._id || '',
-                                            token,
-                                          );
-                                        const url =
-                                          window.URL.createObjectURL(blob);
-                                        const link =
-                                          document.createElement("a");
-                                        link.href = url;
-                                        link.setAttribute(
-                                          "download",
-                                          (msg as any).uploadFilename ||
-                                            "download",
-                                        );
-                                        document.body.appendChild(link);
-                                        link.click();
-                                        document.body.removeChild(link);
-                                        window.URL.revokeObjectURL(url);
-                                      } catch (err) {
-                                        console.error(
-                                          "Failed to download file:",
-                                          err,
-                                        );
-                                        alert("Failed to download file.");
-                                      }
-                                    }}
-                                    style={{ cursor: "pointer" }}
-                                  >
-                                    <div className="file-line">
-                                      <span className="file-icon">
-                                        {fileIcon(
-                                          (msg as any).uploadFilename ||
-                                            msg.upload?.filename ||
-                                            "",
-                                        )}
-                                      </span>
-                                      <span
-                                        className={`file-name ${mine ? "white" : ""}`}
-                                      >
-                                        {(msg as any).uploadFilename ||
-                                          msg.upload?.filename}
-                                      </span>
-                                      <svg
-                                        width="16"
-                                        height="16"
-                                        fill="none"
-                                        viewBox="0 0 16 16"
-                                        className="download-icon"
-                                      >
-                                        <path
-                                          d="M8 1v10m0 0l-3-3m3 3l3-3M2 13h12"
-                                          stroke="currentColor"
-                                          strokeWidth="1.5"
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                        />
-                                      </svg>
-                                    </div>
-                                    <div
-                                      className={`file-meta ${mine ? "white-50" : "muted"}`}
-                                    >
-                                      {((msg as any).uploadContentType ||
-                                        msg.upload?.contentType) ===
-                                      "application/octet-stream"
-                                        ? (
-                                            (msg as any).uploadFilename ||
-                                            msg.upload?.filename
-                                          )
-                                            ?.split(".")
-                                            .pop()
-                                            ?.toUpperCase() || "FILE"
-                                        : (msg as any).uploadContentType ||
-                                          msg.upload?.contentType}
-                                    </div>
-                                  </div>
+                                  <FilePreview
+                                    message={msg}
+                                    mine={mine}
+                                    token={token}
+                                  />
                                 )}
                               </div>
                             )}
