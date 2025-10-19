@@ -20,6 +20,12 @@ import {
 import PageHeader from "../components/PageHeader";
 
 const Settings = () => {
+  const [notifications, setNotifications] = useState({
+    newMessages: true,
+    forumReplies: true,
+    tutorUpdates: false,
+  });
+
   const [emailPreferences, setEmailPreferences] = useState({
     bookingConfirmations: true,
     generalNotifications: true,
@@ -39,7 +45,7 @@ const Settings = () => {
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
-  // Subject management state (only for students)
+  // Subject management state
   const [enrolledSubjects, setEnrolledSubjects] = useState<string[]>([]);
   const [subjectsToEnroll, setSubjectsToEnroll] = useState<string[]>([]);
   const [availableSubjects] = useState([
@@ -68,9 +74,9 @@ const Settings = () => {
       refreshPfpForUser: state.refreshPfpForUser,
     }));
 
-  // Initialize enrolled subjects from user data (only for students)
+  // Initialize enrolled subjects from user data
   useEffect(() => {
-    if (user && user.role === "student" && (user as any).enrolledCourses) {
+    if (user && (user as any).enrolledCourses) {
       setEnrolledSubjects((user as any).enrolledCourses || []);
     }
   }, [user]);
@@ -79,7 +85,7 @@ const Settings = () => {
   useEffect(() => {
     const loadEmailPreferences = async () => {
       if (!token) return;
-
+      
       try {
         const response = await getEmailPreferences(token);
         setEmailPreferences(response.preferences);
@@ -128,10 +134,24 @@ const Settings = () => {
     initialValues: {
       firstName: user?.name || "",
       lastName: user?.surname || "",
+      email: user?.email || "",
     },
     validationSchema: Yup.object({
       firstName: Yup.string().required("Required"),
       lastName: Yup.string().required("Required"),
+      email: Yup.string()
+        .email("Invalid email address")
+        .required("Required")
+        .test(
+          "domain",
+          "Email must be a student.belgiumcampus.ac.za domain",
+          (value) => {
+            if (value) {
+              return value.endsWith("@student.belgiumcampus.ac.za");
+            }
+            return true;
+          },
+        ),
     }),
     onSubmit: async (values) => {
       setShowProfileModal(true);
@@ -204,38 +224,33 @@ const Settings = () => {
     setShowPasswordModal(false);
   };
 
+  const handleNotificationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNotifications({ ...notifications, [e.target.name]: e.target.checked });
+  };
+
   // Load chat image settings from localStorage
   useEffect(() => {
-    const savedPreference = localStorage.getItem("chat-image-click-to-load");
-    setChatImageClickToLoad(savedPreference === "true");
+    const savedPreference = localStorage.getItem('chat-image-click-to-load');
+    setChatImageClickToLoad(savedPreference === 'true');
   }, []);
 
   const handleChatImageSettingChange = (checked: boolean) => {
     setChatImageClickToLoad(checked);
-    localStorage.setItem("chat-image-click-to-load", checked.toString());
+    localStorage.setItem('chat-image-click-to-load', checked.toString());
     // Trigger a custom event to notify other components
-    window.dispatchEvent(
-      new CustomEvent("chat-image-settings-changed", {
-        detail: { clickToLoad: checked },
-      }),
-    );
+    window.dispatchEvent(new CustomEvent('chat-image-settings-changed', {
+      detail: { clickToLoad: checked }
+    }));
   };
 
-  const handleEmailPreferenceChange = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
+  const handleEmailPreferenceChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!token) return;
 
-    const newPreferences = {
-      ...emailPreferences,
-      [e.target.name]: e.target.checked,
-    };
+    const newPreferences = { ...emailPreferences, [e.target.name]: e.target.checked };
     setEmailPreferences(newPreferences);
 
     try {
-      await updateEmailPreferences(token, {
-        [e.target.name]: e.target.checked,
-      });
+      await updateEmailPreferences(token, { [e.target.name]: e.target.checked });
     } catch (error) {
       console.error("Failed to update email preferences:", error);
       // Revert the change on error
@@ -280,7 +295,7 @@ const Settings = () => {
   };
 
   const handleSaveSubjects = async () => {
-    if (!token || !user || user.role !== "student") return;
+    if (!token || !user) return;
 
     setIsSavingSubjects(true);
     setSubjectsSaveMessage(null);
@@ -347,11 +362,7 @@ const Settings = () => {
 
   const getStrengthText = () => {
     if (passwordFormik.values.new.length === 0) {
-      return (
-        <span style={{ color: "var(--text-secondary)", opacity: 0.7 }}>
-          Enter a password to see strength
-        </span>
-      );
+      return null;
     }
     if (passwordStrength <= 1) {
       return <span style={{ color: "var(--danger)" }}>Weak</span>;
@@ -382,7 +393,7 @@ const Settings = () => {
   };
 
   const pfpUrl = user
-    ? `${(import.meta.env.VITE_API_URL as string).replace(/\/$/, "")}/api/users/${user.id}/pfp?t=${pfpTimestamps[user.id] || 0}`
+    ? `${(import.meta.env.VITE_API_URL as string).replace(/\/$/, '')}/api/users/${user.id}/pfp?t=${pfpTimestamps[user.id] || 0}`
     : "";
 
   return (
@@ -495,6 +506,25 @@ const Settings = () => {
                 />
               </div>
             </div>
+            <div className="form-group">
+              <label className="form-label">Email Address</label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                className={`form-control ${
+                  profileFormik.touched.email && profileFormik.errors.email
+                    ? "is-invalid"
+                    : ""
+                }${
+                  profileFormik.touched.email && !profileFormik.errors.email
+                    ? "is-valid"
+                    : ""
+                }`}
+                onChange={profileFormik.handleChange}
+                value={profileFormik.values.email}
+              />
+            </div>
             <div className="card-footer">
               <button type="submit" className="btn btn-primary">
                 Save Profile
@@ -518,7 +548,7 @@ const Settings = () => {
                 onChange={passwordFormik.handleChange}
               />
             </div>
-            <div className="form-grid" style={{ marginTop: "20px" }}>
+            <div className="form-grid">
               <div className="form-group form-group-full">
                 <label className="form-label">New Password</label>
                 <PasswordInput
@@ -587,7 +617,7 @@ const Settings = () => {
           </form>
         </div>
 
-        {user?.role === "student" && (
+        {user?.role !== "admin" && (
           <div className="settings-card">
             <div className="card-header">
               <h2 className="card-title">My Subjects</h2>
@@ -723,6 +753,60 @@ const Settings = () => {
           </div>
         )}
 
+        {/* Notification Settings Card */}
+        <div className="settings-card">
+          <div className="card-header">
+            <h2 className="card-title">Notifications</h2>
+          </div>
+          <div className="notification-group">
+            <div>
+              <div className="notification-label">New Messages</div>
+              <p className="text-sm text-gray-500">
+                Notify me when I receive a new message.
+              </p>
+            </div>
+            <label className="switch">
+              <input
+                type="checkbox"
+                name="newMessages"
+                checked={notifications.newMessages}
+                onChange={handleNotificationChange}
+              />
+              <span className="slider"></span>
+            </label>
+          </div>
+          <div className="notification-group">
+            <div>
+              <div className="notification-label">Forum Replies</div>
+              <p>Notify me when someone replies to my forum posts.</p>
+            </div>
+            <label className="switch">
+              <input
+                type="checkbox"
+                name="forumReplies"
+                checked={notifications.forumReplies}
+                onChange={handleNotificationChange}
+              />
+              <span className="slider"></span>
+            </label>
+          </div>
+          <div className="notification-group">
+            <div>
+              <div className="notification-label">Tutor Updates</div>
+              <p>Notify me about updates from my tutors.</p>
+            </div>
+            <label className="switch">
+              <input
+                type="checkbox"
+                name="tutorUpdates"
+                checked={notifications.tutorUpdates}
+                onChange={handleNotificationChange}
+              />
+              <span className="slider"></span>
+            </label>
+          </div>
+        </div>
+
         {/* Chat Settings Section */}
         <div className="settings-card">
           <div className="card-header">
@@ -735,18 +819,13 @@ const Settings = () => {
             <div className="notification-group">
               <div>
                 <div className="notification-label">Click to Load Images</div>
-                <p>
-                  Enable this to save bandwidth by requiring clicks to load
-                  images in chat messages.
-                </p>
+                <p>Enable this to save bandwidth by requiring clicks to load images in chat messages.</p>
               </div>
               <label className="switch">
                 <input
                   type="checkbox"
                   checked={chatImageClickToLoad}
-                  onChange={(e) =>
-                    handleChatImageSettingChange(e.target.checked)
-                  }
+                  onChange={(e) => handleChatImageSettingChange(e.target.checked)}
                 />
                 <span className="slider"></span>
               </label>
@@ -761,24 +840,17 @@ const Settings = () => {
             <p className="card-description">
               Choose which emails you'd like to receive from CampusLearn.
             </p>
-          </div>
-          <div className="email-note-box">
-            <p className="email-note-text">
-              <i
-                className="fas fa-info-circle"
-                style={{ marginRight: "8px" }}
-              ></i>
-              <strong>Note:</strong> Security emails (like suspicious login
-              alerts) are always sent to protect your account.
-            </p>
+            <div style={{backgroundColor: '#f0f9ff', border: '1px solid #93c5fd', borderRadius: '6px', padding: '12px', marginTop: '10px'}}>
+              <p style={{color: '#1e40af', margin: '0', fontSize: '14px'}}>
+                <strong>Note:</strong> Security emails (like suspicious login alerts) are always sent to protect your account.
+              </p>
+            </div>
           </div>
           <div className="card-body">
             <div className="notification-group">
               <div>
                 <div className="notification-label">Booking Confirmations</div>
-                <p>
-                  Receive booking confirmations and session reminder emails.
-                </p>
+                <p>Receive booking confirmations and session reminder emails.</p>
               </div>
               <label className="switch">
                 <input
@@ -793,10 +865,7 @@ const Settings = () => {
             <div className="notification-group">
               <div>
                 <div className="notification-label">General Notifications</div>
-                <p>
-                  Receive forum reply notifications and important platform
-                  updates.
-                </p>
+                <p>Receive forum reply notifications and important platform updates.</p>
               </div>
               <label className="switch">
                 <input
