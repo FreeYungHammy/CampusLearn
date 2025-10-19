@@ -598,7 +598,7 @@ const MyContent = () => {
       {isModalOpen && selectedFile && (
         <div className="modal-overlay" onClick={closeModal}>
           <div
-            className={`modal-content ${VIEWABLE_MIME_TYPES.some((type) => selectedFile.contentType.startsWith(type)) ? "content-viewer-modal" : ""} ${selectedFile.contentType.startsWith("image/") ? "image-modal" : ""}`}
+            className={`modal-content ${VIEWABLE_MIME_TYPES.some((type) => selectedFile.contentType.startsWith(type)) ? "content-viewer-modal" : ""} ${selectedFile.contentType.startsWith("image/") ? "image-modal" : ""} ${selectedFile.contentType.startsWith("application/pdf") ? "pdf-modal" : ""}`}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="modal-header">
@@ -755,7 +755,7 @@ const MyContent = () => {
                     src={fileUrl}
                     width="100%"
                     height="100%"
-                    style={{ border: "none" }}
+                    style={{ border: "none", minHeight: "80vh" }}
                     title={selectedFile.title}
                     allowFullScreen={true}
                   ></iframe>

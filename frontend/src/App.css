@@ -9071,6 +9071,25 @@ body.mobile-menu-open {
   min-width: 300px !important;
 }
 
+/* PDF Modal - Use more height for better PDF viewing */
+.pdf-modal {
+  height: 90vh !important;
+  max-height: 90vh !important;
+}
+
+.pdf-modal .modal-body {
+  max-height: calc(90vh - 120px) !important;
+  height: calc(90vh - 120px) !important;
+  padding: 0 !important;
+  display: block !important;
+}
+
+.pdf-modal .modal-body iframe {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: calc(90vh - 120px) !important;
+}
+
 .modal-footer {
   display: flex;
   align-items: center;
