@@ -8150,6 +8150,9 @@ body.mobile-menu-open {
   position: relative;
   margin-bottom: 16px;
   border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  min-height: 400px;
 }
 
 .student-card:hover {
@@ -8219,6 +8222,51 @@ body.mobile-menu-open {
 .student-details {
   padding: 20px;
   background: var(--card);
+  display: flex;
+  flex-direction: column;
+  flex: 1; /* Take up remaining space */
+  justify-content: space-between; /* Distribute space between subjects and button */
+}
+
+.student-subjects {
+  flex: 1; /* Take up available space */
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* Center subjects vertically in available space */
+}
+
+.subjects-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.subjects-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  align-items: center;
+  min-height: 60px; /* Ensure minimum height for subjects area */
+}
+
+.subject-tag {
+  background: var(--primary);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.no-subjects {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-style: italic;
+  opacity: 0.7;
 }
 
 .student-stats {
@@ -8390,10 +8438,24 @@ body.mobile-menu-open {
 
   .student-card {
     margin-bottom: 12px;
+    min-height: 350px;
   }
 
   .student-header {
+    padding: 18px;
+  }
+
+  .student-details {
     padding: 16px;
+  }
+
+  .subjects-list {
+    min-height: 50px;
+  }
+
+  .subject-tag {
+    font-size: 11px;
+    padding: 3px 6px;
   }
 
   .student-avatar {
@@ -8425,6 +8487,30 @@ body.mobile-menu-open {
 
   .stat-label {
     font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  .student-card {
+    min-height: 320px;
+  }
+
+  .student-header {
+    padding: 16px;
+  }
+
+  .student-details {
+    padding: 14px;
+  }
+
+  .subjects-label {
+    font-size: 13px;
+    margin-bottom: 10px;
+  }
+
+  .subjects-list {
+    min-height: 45px;
+    gap: 4px;
   }
 }
 
@@ -10143,4 +10229,166 @@ body.mobile-menu-open {
   margin: 0;
   cursor: pointer;
   user-select: none;
+}
+
+/* Success Notification Styles */
+.success-notification-overlay {
+  position: fixed !important; /* Ensure it's fixed */
+  top: 80px; /* Position below header */
+  right: 20px;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.success-notification {
+  background: var(--secondary); /* Green background */
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  min-width: 320px;
+  max-width: 400px;
+  pointer-events: auto;
+  animation: slideInRight 0.3s ease-out;
+  border: 2px solid var(--secondary); /* Green border */
+  box-shadow: 0 8px 32px rgba(46, 204, 113, 0.2);
+}
+
+.success-notification-content {
+  display: flex;
+  align-items: center;
+  padding: 16px 20px;
+  gap: 12px;
+  background: transparent !important; /* Remove inner background */
+  border: none !important; /* Remove inner border */
+  box-shadow: none !important; /* Remove inner shadow */
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+.success-message {
+  flex: 1;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* Ensure no inherited styles affect the notification content */
+.success-notification-content > * {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.success-notification-content > .success-icon {
+  background: var(--white) !important; /* White background for icon */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+.success-icon {
+  width: 48px; /* Larger icon */
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--white); /* White background */
+  color: var(--secondary); /* Green checkmark */
+  font-size: 20px; /* Larger icon font size */
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.success-message h4 {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--white); /* White text */
+}
+
+.success-message p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--white); /* White text */
+  opacity: 0.9;
+}
+
+.success-close-btn {
+  background: none;
+  border: none;
+  color: var(--white); /* White close button */
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+  margin-left: auto;
+  opacity: 0.8;
+}
+
+.success-close-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  opacity: 1;
+}
+
+.success-progress-bar {
+  height: 3px;
+  background: rgba(
+    255,
+    255,
+    255,
+    0.3
+  ); /* Darker green progress bar background */
+  overflow: hidden;
+}
+
+.success-progress-fill {
+  height: 100%;
+  background: var(--white); /* White progress fill */
+  animation: progressBar 4s linear forwards;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes progressBar {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+/* Dark mode support */
+[data-theme="dark"] .success-notification {
+  background: var(--secondary);
+  border-color: var(--secondary);
+}
+
+[data-theme="dark"] .success-message h4 {
+  color: var(--white);
+}
+
+[data-theme="dark"] .success-message p {
+  color: var(--white);
+  opacity: 0.9;
+}
+
+[data-theme="dark"] .success-close-btn {
+  color: var(--white);
+  opacity: 0.8;
+}
+
+[data-theme="dark"] .success-close-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  opacity: 1;
 }
