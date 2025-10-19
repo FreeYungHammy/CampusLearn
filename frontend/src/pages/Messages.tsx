@@ -19,6 +19,7 @@ import EnhancedBookingModal, {
 } from "@/components/EnhancedBookingModal";
 import DateSeparator from "@/components/DateSeparator";
 import BookingMessageCard from "@/components/chat/BookingMessageCard";
+import VideoPlayer from "@/components/VideoPlayer";
 import PageHeader from "@/components/PageHeader";
 import "./Messages.css";
 
@@ -402,6 +403,12 @@ const FilePreview: React.FC<FilePreviewProps> = ({ message, mine, token }) => {
            contentType.startsWith("image/");
   };
 
+  const isVideo = () => {
+    const ext = filename.split(".").pop()?.toLowerCase();
+    return ["mp4", "avi", "mov", "webm", "mkv", "flv", "wmv"].includes(ext || "") ||
+           contentType.startsWith("video/");
+  };
+
   // Listen for settings changes
   React.useEffect(() => {
     const handleSettingsChange = (event: CustomEvent) => {
@@ -569,7 +576,50 @@ const FilePreview: React.FC<FilePreviewProps> = ({ message, mine, token }) => {
     );
   }
 
-  // Non-image files - use the original file preview
+  // Video files - use VideoPlayer component with compression status
+  if (isVideo()) {
+    const videoUrl = `${(import.meta.env.VITE_API_URL as string).replace(/\/$/, '')}/api/chat/messages/${message._id}/file`;
+    const fileId = (message as any).uploadFileId || message.upload?.fileId;
+    
+    return (
+      <div className={`file-preview video-preview ${mine ? "mine" : ""}`}>
+        <VideoPlayer
+          src={videoUrl}
+          title={filename}
+          fileId={fileId}
+          className="message-video-player"
+          style={{ maxWidth: '300px', maxHeight: '200px' }}
+        />
+        <div className="video-actions">
+          <span className={`file-name ${mine ? "white" : ""}`}>
+            {filename}
+          </span>
+          <button
+            onClick={handleDownload}
+            className="download-btn"
+            title="Download video"
+          >
+            <svg
+              width="16"
+              height="16"
+              fill="none"
+              viewBox="0 0 16 16"
+            >
+              <path
+                d="M8 1v10m0 0l-3-3m3 3l3-3M2 13h12"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Non-image/video files - use the original file preview
   return (
     <div
       className={`file-preview ${mine ? "mine" : ""} downloadable`}
