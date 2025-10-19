@@ -13,8 +13,12 @@ const MyStudents = () => {
   const [students, setStudents] = useState<SubscribedStudent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [conversationStatus, setConversationStatus] = useState<Map<string, boolean>>(new Map());
-  const [pfpTimestamps, setPfpTimestamps] = useState<{ [userId: string]: number }>({});
+  const [conversationStatus, setConversationStatus] = useState<
+    Map<string, boolean>
+  >(new Map());
+  const [pfpTimestamps, setPfpTimestamps] = useState<{
+    [userId: string]: number;
+  }>({});
 
   useEffect(() => {
     if (!user?.id || !token || user.role !== "tutor") {
@@ -27,15 +31,17 @@ const MyStudents = () => {
       try {
         setLoading(true);
         setError(null);
-        
+
         // First, get the tutor's MongoDB _id using their userId
         const tutor = await getTutorByUserId(user.id);
         if (!tutor || !tutor.id) {
           throw new Error("Tutor profile not found");
         }
-        
+
         // Now use the tutor's MongoDB _id to get subscribed students
-        const fetchedStudents = await studentApi.getSubscribedStudents(tutor.id);
+        const fetchedStudents = await studentApi.getSubscribedStudents(
+          tutor.id,
+        );
         setStudents(fetchedStudents);
 
         // Initialize pfp timestamps for cache busting
@@ -52,7 +58,11 @@ const MyStudents = () => {
 
         const statusMap = new Map<string, boolean>();
         for (const student of fetchedStudents) {
-          const { exists } = await chatApi.conversationExists(user.id, student.userId, token);
+          const { exists } = await chatApi.conversationExists(
+            user.id,
+            student.userId,
+            token,
+          );
           statusMap.set(student.userId, exists);
         }
         setConversationStatus(statusMap);
@@ -74,9 +84,15 @@ const MyStudents = () => {
     }
     try {
       // Create conversation on backend
-      const newConversation = await chatApi.createConversation(studentUserId, user.id, token);
+      const newConversation = await chatApi.createConversation(
+        studentUserId,
+        user.id,
+        token,
+      );
       // Navigate to messages page with the new conversation selected
-      navigate("/messages", { state: { selectedConversationUserId: studentUserId } });
+      navigate("/messages", {
+        state: { selectedConversationUserId: studentUserId },
+      });
     } catch (err) {
       console.error("Failed to start conversation:", err);
       setError("Failed to start conversation.");
@@ -122,8 +138,13 @@ const MyStudents = () => {
                 <div className="student-avatar">
                   <img
                     src={(() => {
-                      const url = `${(import.meta.env.VITE_API_URL as string).replace(/\/$/, '')}/api/users/${student.userId}/pfp?t=${pfpTimestamps[student.userId] || 0}`;
-                      console.log('🖼️ MyStudents Profile Picture URL:', url, 'for student:', student.name);
+                      const url = `${(import.meta.env.VITE_API_URL as string).replace(/\/$/, "")}/api/users/${student.userId}/pfp?t=${pfpTimestamps[student.userId] || 0}`;
+                      console.log(
+                        "🖼️ MyStudents Profile Picture URL:",
+                        url,
+                        "for student:",
+                        student.name,
+                      );
                       return url;
                     })()}
                     alt={`${student.name} ${student.surname}`}
@@ -133,7 +154,11 @@ const MyStudents = () => {
                         "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iNDAiIGN5PSI0MCIgcj0iNDAiIGZpbGw9IiMzNDk4REIiLz4KPHN2ZyB4PSIyMCIgeT0iMjAiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDQwIDQwIiBmaWxsPSJ3aGl0ZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIwIDBDMTMgMzcgMCA0MCAwIDQwSDQwQzQwIDQwIDI3IDM3IDIwIDBaIiBmaWxsPSJ3aGl0ZSIvPgo8Y2lyY2xlIGN4PSIyMCIgY3k9IjE1IiByPSIxMCIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cjwvc3ZnPg==";
                     }}
                     onLoad={() => {
-                      console.log('✅ Profile picture loaded for student:', student.userId, student.name);
+                      console.log(
+                        "✅ Profile picture loaded for student:",
+                        student.userId,
+                        student.name,
+                      );
                     }}
                   />
                 </div>
@@ -151,13 +176,17 @@ const MyStudents = () => {
                 {conversationStatus.get(student.userId) ? (
                   <button
                     className="btn btn-primary"
-                    onClick={() => navigate("/messages", { state: { selectedConversationUserId: student.userId } })}
+                    onClick={() =>
+                      navigate("/messages", {
+                        state: { selectedConversationUserId: student.userId },
+                      })
+                    }
                   >
                     View Chat
                   </button>
                 ) : (
                   <button
-                    className="btn btn-outline"
+                    className="btn btn-primary"
                     onClick={() => handleStartChat(student.userId)}
                   >
                     Start Chat
