@@ -113,7 +113,7 @@ function App() {
         </Routes>
       </Suspense>
 
-      <BotpressChat />
+      {!location.pathname.startsWith('/call/') && <BotpressChat />}
       {showLogoutModal && <LogoutConfirmationModal />}
 
       {/* Call Notifications */}

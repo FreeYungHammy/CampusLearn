@@ -7,7 +7,6 @@ type InitOptions = { audioDeviceId?: string; videoDeviceId?: string };
 
 export function usePeerConnection() {
   const pcRef = useRef<RTCPeerConnection | null>(null);
-  const [peerConnection, setPeerConnection] = useState<RTCPeerConnection | null>(null);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const videoSenderRef = useRef<RTCRtpSender | null>(null);
@@ -28,6 +27,20 @@ export function usePeerConnection() {
 
   const localStreamRef = useRef<MediaStream | null>(null);
   
+  // Load preferences from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedPreferences = localStorage.getItem('callPreferences');
+      if (savedPreferences) {
+        const { videoEnabled: savedVideo, audioEnabled: savedAudio } = JSON.parse(savedPreferences);
+        setVideoEnabled(savedVideo);
+        setAudioEnabled(savedAudio);
+      }
+    } catch (error) {
+      console.warn('Failed to load call preferences from localStorage:', error);
+    }
+  }, []);
+  
   // Update ref when localStream changes
   useEffect(() => {
     localStreamRef.current = localStream;
@@ -37,7 +50,6 @@ export function usePeerConnection() {
     return () => {
       pcRef.current?.close();
       pcRef.current = null;
-      setPeerConnection(null);
       localStreamRef.current?.getTracks().forEach((t) => t.stop());
     };
   }, []); // Empty dependency array - cleanup only on unmount
@@ -60,7 +72,6 @@ export function usePeerConnection() {
       
       pc = new RTCPeerConnection({ iceServers: cfg.iceServers });
       pcRef.current = pc;
-      setPeerConnection(pc);
       console.log('[webrtc] Peer connection created successfully');
       console.log('[webrtc] PC ref set to:', !!pcRef.current);
       console.log('[webrtc] PC ref current value:', pcRef.current);
@@ -92,25 +103,6 @@ export function usePeerConnection() {
     pc.oniceconnectionstatechange = () => {
       console.log('[webrtc] ICE connection state changed:', pc.iceConnectionState);
       setIceConnState(pc.iceConnectionState);
-    };
-
-    pc.onicegatheringstatechange = () => {
-      console.log('[webrtc] ICE gathering state changed:', pc.iceGatheringState);
-      setIceGatherState(pc.iceGatheringState);
-    };
-
-    pc.onconnectionstatechange = () => {
-      console.log('[webrtc] Connection state changed:', pc.connectionState);
-      setPcState(pc.connectionState);
-    };
-
-    pc.onsignalingstatechange = () => {
-      setPcState(pc.signalingState);
-      console.log("[webrtc] signalingState:", pc.signalingState);
-    };
-    pc.oniceconnectionstatechange = () => {
-      setIceConnState(pc.iceConnectionState);
-      console.log("[webrtc] iceConnectionState:", pc.iceConnectionState);
       
       // Update connection quality based on ICE connection state
       let quality: { score: number; status: 'excellent' | 'good' | 'fair' | 'poor' | 'unknown'; details: string } = { score: 0, status: 'unknown', details: 'Connecting...' };
@@ -138,11 +130,29 @@ export function usePeerConnection() {
       }
       setConnectionQuality(quality);
     };
+
     pc.onicegatheringstatechange = () => {
+      console.log('[webrtc] ICE gathering state changed:', pc.iceGatheringState);
       setIceGatherState(pc.iceGatheringState);
-      console.log("[webrtc] iceGatheringState:", pc.iceGatheringState);
     };
 
+    pc.onconnectionstatechange = () => {
+      console.log('[webrtc] Connection state changed:', pc.connectionState);
+      setPcState(pc.connectionState);
+    };
+
+    pc.onsignalingstatechange = () => {
+      setPcState(pc.signalingState);
+      console.log("[webrtc] signalingState:", pc.signalingState);
+    };
+
+    // Media will be added separately via addLocalStream function
+    // This allows the peer connection to be initialized without requesting media immediately
+  };
+
+  const addLocalStream = async (opts: InitOptions = {}) => {
+    if (!pcRef.current) throw new Error("PC not initialized");
+    
     const media = await navigator.mediaDevices.getUserMedia({
       audio: opts.audioDeviceId ? { deviceId: { exact: opts.audioDeviceId } } : true,
       video: {
@@ -152,14 +162,23 @@ export function usePeerConnection() {
         frameRate: 30,
       } as MediaTrackConstraints,
     });
-    media.getAudioTracks().forEach((t) => {
-      const s = pc.addTrack(t, media);
-      if (t.kind === "audio") audioSenderRef.current = s;
-    });
-    media.getVideoTracks().forEach((t) => {
-      const s = pc.addTrack(t, media);
-      if (t.kind === "video") videoSenderRef.current = s;
-    });
+    
+    // Apply saved preferences to tracks
+    const audioTrack = media.getAudioTracks()[0];
+    const videoTrack = media.getVideoTracks()[0];
+    
+    if (audioTrack) {
+      audioTrack.enabled = audioEnabled;
+      const s = pcRef.current!.addTrack(audioTrack, media);
+      audioSenderRef.current = s;
+    }
+    
+    if (videoTrack) {
+      videoTrack.enabled = videoEnabled;
+      const s = pcRef.current!.addTrack(videoTrack, media);
+      videoSenderRef.current = s;
+    }
+    
     setLocalStream(media);
   };
 
@@ -194,6 +213,15 @@ export function usePeerConnection() {
     const next = !track.enabled;
     track.enabled = next;
     setAudioEnabled(next);
+    
+    // Save to localStorage
+    try {
+      const preferences = { videoEnabled, audioEnabled: next };
+      localStorage.setItem('callPreferences', JSON.stringify(preferences));
+    } catch (error) {
+      console.warn('Failed to save audio preference to localStorage:', error);
+    }
+    
     return next;
   };
 
@@ -204,6 +232,15 @@ export function usePeerConnection() {
     const next = !track.enabled;
     track.enabled = next;
     setVideoEnabled(next);
+    
+    // Save to localStorage
+    try {
+      const preferences = { videoEnabled: next, audioEnabled };
+      localStorage.setItem('callPreferences', JSON.stringify(preferences));
+    } catch (error) {
+      console.warn('Failed to save video preference to localStorage:', error);
+    }
+    
     return next;
   };
 
@@ -296,7 +333,6 @@ export function usePeerConnection() {
 
   return {
     pcRef,
-    peerConnection, // Add the state variable
     localStream,
     remoteStream,
     pcState,
@@ -307,6 +343,7 @@ export function usePeerConnection() {
     isReconnecting,
     attemptReconnection,
     init,
+    addLocalStream, // Add the missing function
     createOffer,
     createAnswer,
     setRemoteDescription,
@@ -319,8 +356,6 @@ export function usePeerConnection() {
     videoEnabled,
     audioEnabled,
     isScreenSharing,
-    // Add getter for current peer connection
-    getPeerConnection: () => peerConnection,
   };
 }
 

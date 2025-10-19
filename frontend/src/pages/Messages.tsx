@@ -11,6 +11,7 @@ import { useChatSocket } from "@/hooks/useChatSocket";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { useAuthStore } from "@/store/authStore";
 import { useBookingStore } from "@/store/bookingStore";
+import { useCallStore } from "@/store/callStore";
 import { SocketManager } from "../services/socketManager";
 import { chatApi, type Conversation } from "@/services/chatApi";
 import type { SendMessagePayload, ChatMessage } from "@/types/ChatMessage";
@@ -687,6 +688,7 @@ const Messages: React.FC = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { user, token, pfpTimestamps } = useAuthStore();
+  const { activeCallId, setActiveCallId } = useCallStore();
   const {
     showBookingModal,
     bookingTarget,
@@ -813,12 +815,8 @@ const Messages: React.FC = () => {
   const handleUserStatusChange = useCallback(
     (userId: string, status: "online" | "offline", lastSeen: Date) => {
       console.log(`🟢 Status update received: User ${userId} is ${status} (last seen: ${lastSeen})`);
-      setUserOnlineStatus((prev) => {
-        const m = new Map(prev);
-        m.set(userId, { isOnline: status === "online", lastSeen });
-        console.log(`📊 Updated status map:`, Array.from(m.entries()));
-        return m;
-      });
+      // Online status is now managed globally by useOnlineStatus hook
+      // No need for local state management here
     },
     [],
   );
@@ -1148,6 +1146,14 @@ const Messages: React.FC = () => {
       return;
     }
     
+    // Check if there's already an active call
+    if (activeCallId) {
+      console.log("[video-call] Call already in progress:", activeCallId);
+      // You could show a toast notification here
+      alert("Call in progress. Please end the current call before starting a new one.");
+      return;
+    }
+    
     const otherId = selectedConversation.otherUser._id;
     const callId = [user.id, otherId].sort().join(":");
     
@@ -1186,6 +1192,7 @@ const Messages: React.FC = () => {
     // Open the call popup with initiator information
     import("@/utils/openCallPopup").then(({ openCallPopup }) => {
       openCallPopup(callId, user.id); // Pass the initiator ID
+      setActiveCallId(callId); // Mark call as active
     });
   }, [selectedConversation, user?.id]);
 
