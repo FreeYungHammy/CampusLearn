@@ -36,14 +36,32 @@ export const VideoCallPage: React.FC = () => {
         console.log("[webrtc] PC ref type:", typeof pc.pcRef.current);
 
         // outbound ICE
-        const peerConnection = pc.pcRef.current;
-        if (peerConnection) {
-          peerConnection.onicecandidate = (e) => {
-            if (e.candidate) {
-              console.log("[webrtc] local ice-candidate", e.candidate.type, e.candidate.protocol);
-              signaling.sendSignal({ type: "ice-candidate", candidate: e.candidate.toJSON() });
-            }
-          };
+            const peerConnection = pc.pcRef.current;
+            if (peerConnection) {
+              peerConnection.onicecandidate = (e) => {
+                if (e.candidate) {
+                  console.log("[webrtc] local ice-candidate", e.candidate.type, e.candidate.protocol);
+                  signaling.sendSignal({ type: "ice-candidate", candidate: e.candidate.toJSON() });
+                } else {
+                  console.log("[webrtc] ICE gathering complete");
+                }
+              };
+              
+              // Monitor ICE connection state changes
+              peerConnection.oniceconnectionstatechange = () => {
+                console.log("[webrtc] ICE connection state changed:", peerConnection.iceConnectionState);
+                if (peerConnection.iceConnectionState === "connected" || peerConnection.iceConnectionState === "completed") {
+                  console.log("[webrtc] ICE connection established successfully!");
+                } else if (peerConnection.iceConnectionState === "failed") {
+                  console.error("[webrtc] ICE connection failed");
+                  setError("Connection failed - please try again");
+                }
+              };
+              
+              // Monitor ICE gathering state
+              peerConnection.onicegatheringstatechange = () => {
+                console.log("[webrtc] ICE gathering state changed:", peerConnection.iceGatheringState);
+              };
           peerConnection.onconnectionstatechange = () => {
             console.log("[webrtc] connection state:", peerConnection.connectionState);
           };
@@ -145,6 +163,21 @@ export const VideoCallPage: React.FC = () => {
                   if (currentState === "have-local-offer") {
                     console.log("[webrtc] Already have local offer, skipping");
                     return;
+                  }
+                  
+                  // Wait for ICE gathering to complete before creating offer
+                  if (peerConnection.iceGatheringState === "gathering") {
+                    console.log("[webrtc] Waiting for ICE gathering to complete...");
+                    await new Promise((resolve) => {
+                      const checkGathering = () => {
+                        if (peerConnection.iceGatheringState === "complete") {
+                          resolve(void 0);
+                        } else {
+                          setTimeout(checkGathering, 100);
+                        }
+                      };
+                      checkGathering();
+                    });
                   }
                   
                   const offer = await peerConnection.createOffer();
