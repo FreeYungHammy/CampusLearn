@@ -121,7 +121,7 @@ router.post('/password-reset', async (req, res) => {
     if (success) {
       res.json({ 
         success: true, 
-        message: 'Password reset email sent successfully' 
+        message: 'Password reset email sent successfully. Please check your spam/junk folder if you don\'t see it in your inbox.' 
       });
     } else {
       res.status(500).json({ 
@@ -189,7 +189,7 @@ router.post('/tutor-application', requireAuth, async (req, res) => {
     if (success) {
       res.json({ 
         success: true, 
-        message: 'Tutor application email sent successfully' 
+        message: 'Tutor application email sent successfully. Please check your spam/junk folder if you don\'t see it in your inbox.' 
       });
     } else {
       res.status(500).json({ 
@@ -209,7 +209,7 @@ router.post('/tutor-application', requireAuth, async (req, res) => {
 // Send booking confirmation email
 router.post('/booking-confirmation', requireAuth, async (req, res) => {
   try {
-    const { to, bookingDetails } = req.body;
+    const { to, bookingDetails, recipientType = 'student' } = req.body;
     
     if (!to || !bookingDetails) {
       return res.status(400).json({
@@ -218,12 +218,12 @@ router.post('/booking-confirmation', requireAuth, async (req, res) => {
       });
     }
 
-    const success = await emailService.sendBookingConfirmationEmail(to, bookingDetails);
+    const success = await emailService.sendBookingConfirmationEmail(to, bookingDetails, recipientType);
 
     if (success) {
       res.json({ 
         success: true, 
-        message: 'Booking confirmation email sent successfully' 
+        message: 'Booking confirmation email sent successfully. Please check your spam/junk folder if you don\'t see it in your inbox.' 
       });
     } else {
       res.status(500).json({ 
@@ -291,7 +291,7 @@ router.post('/tutor-application-received', async (req, res) => {
     if (success) {
       res.json({ 
         success: true, 
-        message: 'Tutor application received email sent successfully' 
+        message: 'Tutor application received email sent successfully. Please check your spam/junk folder if you don\'t see it in your inbox.' 
       });
     } else {
       res.status(500).json({ 
@@ -325,7 +325,7 @@ router.post('/email-verification', async (req, res) => {
     if (success) {
       res.json({ 
         success: true, 
-        message: 'Email verification email sent successfully' 
+        message: 'Email verification email sent successfully. Please check your spam/junk folder if you don\'t see it in your inbox.' 
       });
     } else {
       res.status(500).json({ 
@@ -357,6 +357,108 @@ router.get('/rate-limit/:identifier', requireAuth, async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: 'Failed to get rate limit status' 
+    });
+  }
+});
+
+// Send session reminder email
+router.post('/session-reminder', requireAuth, async (req, res) => {
+  try {
+    const { to, sessionDetails, recipientType = 'student' } = req.body;
+    
+    if (!to || !sessionDetails) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields: to, sessionDetails'
+      });
+    }
+
+    const success = await emailService.sendSessionReminderEmail(to, sessionDetails, recipientType);
+
+    if (success) {
+      res.json({ 
+        success: true, 
+        message: 'Session reminder email sent successfully. Please check your spam/junk folder if you don\'t see it in your inbox.' 
+      });
+    } else {
+      res.status(500).json({ 
+        success: false, 
+        message: 'Failed to send session reminder email' 
+      });
+    }
+  } catch (error) {
+    logger.error('Send session reminder email failed:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to send session reminder email' 
+    });
+  }
+});
+
+// Send suspicious login email
+router.post('/suspicious-login', requireAuth, async (req, res) => {
+  try {
+    const { to, loginDetails } = req.body;
+    
+    if (!to || !loginDetails) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields: to, loginDetails'
+      });
+    }
+
+    const success = await emailService.sendSuspiciousLoginEmail(to, loginDetails);
+
+    if (success) {
+      res.json({ 
+        success: true, 
+        message: 'Suspicious login email sent successfully' 
+      });
+    } else {
+      res.status(500).json({ 
+        success: false, 
+        message: 'Failed to send suspicious login email' 
+      });
+    }
+  } catch (error) {
+    logger.error('Send suspicious login email failed:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to send suspicious login email' 
+    });
+  }
+});
+
+// Send forum reply email
+router.post('/forum-reply', requireAuth, async (req, res) => {
+  try {
+    const { to, replyDetails } = req.body;
+    
+    if (!to || !replyDetails) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields: to, replyDetails'
+      });
+    }
+
+    const success = await emailService.sendForumReplyEmail(to, replyDetails);
+
+    if (success) {
+      res.json({ 
+        success: true, 
+        message: 'Forum reply email sent successfully. Please check your spam/junk folder if you don\'t see it in your inbox.' 
+      });
+    } else {
+      res.status(500).json({ 
+        success: false, 
+        message: 'Failed to send forum reply email' 
+      });
+    }
+  } catch (error) {
+    logger.error('Send forum reply email failed:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to send forum reply email' 
     });
   }
 });

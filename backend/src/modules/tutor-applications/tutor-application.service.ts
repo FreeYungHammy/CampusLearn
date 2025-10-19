@@ -106,17 +106,17 @@ export const TutorApplicationService = {
     // Send approval email to applicant
     try {
       const applicantName = `${application.firstName} ${application.lastName}`;
-      const emailSent = await emailService.sendWelcomeEmail(
+      const emailSent = await emailService.sendTutorWelcomeEmail(
         application.email,
         applicantName
       );
       if (emailSent) {
-        console.log(`Tutor application approval email sent to ${application.email}`);
+        console.log(`Tutor welcome email sent to ${application.email}`);
       } else {
-        console.log(`Failed to send tutor application approval email to ${application.email}`);
+        console.log(`Failed to send tutor welcome email to ${application.email}`);
       }
     } catch (error) {
-      console.error(`Error sending tutor application approval email to ${application.email}:`, error);
+      console.error(`Error sending tutor welcome email to ${application.email}:`, error);
       // Continue with approval even if email fails
     }
 

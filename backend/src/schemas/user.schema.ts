@@ -16,6 +16,11 @@ const UserSchema = new Schema(
     emailVerified: { type: Boolean, default: false },
     emailVerificationToken: { type: String, select: false },
     emailVerificationExpires: { type: Date, select: false },
+    emailPreferences: {
+      bookingConfirmations: { type: Boolean, default: true },
+      generalNotifications: { type: Boolean, default: true },
+      marketingEmails: { type: Boolean, default: false },
+    },
   },
   { timestamps: true },
 );

@@ -29,6 +29,10 @@ r.delete("/admin/:userId", requireAuth, UserController.adminDeleteUser);
 r.get("/verify-email/:token", UserController.verifyEmail);
 r.post("/resend-verification", UserController.resendEmailVerification);
 
+// Email preferences routes
+r.get("/email-preferences", requireAuth, UserController.getEmailPreferences);
+r.patch("/email-preferences", requireAuth, UserController.updateEmailPreferences);
+
 // Admin dashboard routes
 r.get("/admin/stats", requireAuth, UserController.getAdminStats);
 r.get("/admin/activity", requireAuth, UserController.getRecentActivity);

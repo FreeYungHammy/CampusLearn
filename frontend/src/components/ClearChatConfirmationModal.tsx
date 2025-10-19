@@ -21,7 +21,8 @@ export default function ClearChatConfirmationModal({
         Confirm Clear Messages
       </h2>
       <p className="modal-body">
-        Are you sure you want to permanently delete your entire chat history with {userName}? This action cannot be undone.
+        Are you sure you want to permanently delete your entire chat history
+        with {userName}? This action cannot be undone.
       </p>
 
       <div className="modal-actions">
@@ -34,7 +35,7 @@ export default function ClearChatConfirmationModal({
         </button>
         <button
           type="button"
-          className="btn btn-danger-solid"
+          className="btn btn-danger-solid modal-clear-btn"
           disabled={isSubmitting}
           onClick={onConfirm}
         >

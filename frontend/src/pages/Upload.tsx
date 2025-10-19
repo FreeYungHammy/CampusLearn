@@ -124,7 +124,10 @@ const Upload = () => {
       />
       <div className="content-view" id="upload-view">
         <h2 className="section-title">
-          <i className="fas fa-upload"></i>Upload Learning Materials
+          <div className="title-row">
+            <i className="fas fa-upload"></i>
+            <span>Upload Learning Materials</span>
+          </div>
         </h2>
         <div className="card">
           <div className="card-header">
@@ -137,9 +140,16 @@ const Upload = () => {
               className={`upload-area ${errors.file ? "is-invalid" : ""}`}
               onDragOver={handleDragOver}
               onDrop={handleDrop}
+              onClick={handleBrowseClick}
             >
               <div className="upload-text">
-                <p><i className="fas fa-cloud-upload-alt"></i> Drag & drop files here or click to browse</p>
+                <p>
+                  <i className="fas fa-cloud-upload-alt"></i> Drag & drop files
+                  here or click to browse
+                </p>
+                <p className="upload-info">
+                  Supports any file type • Maximum 10MB
+                </p>
                 {file && <p>Selected file: {file.name}</p>}
               </div>
               <input
@@ -148,9 +158,6 @@ const Upload = () => {
                 onChange={handleFileChange}
                 style={{ display: "none" }}
               />
-              <button className="btn btn-outline" onClick={handleBrowseClick}>
-                <i className="fas fa-folder-open"></i> Select Files
-              </button>
             </div>
             {errors.file && (
               <div className="invalid-feedback d-block upload-error">

@@ -13,6 +13,8 @@ import {
   updateProfilePicture,
   updateEnrolledCourses,
   deleteAccount,
+  getEmailPreferences,
+  updateEmailPreferences,
 } from "../services/settingsApi";
 import PageHeader from "../components/PageHeader";
 
@@ -21,6 +23,12 @@ const Settings = () => {
     newMessages: true,
     forumReplies: true,
     tutorUpdates: false,
+  });
+
+  const [emailPreferences, setEmailPreferences] = useState({
+    bookingConfirmations: true,
+    generalNotifications: true,
+    marketingEmails: false,
   });
 
   const [profilePicture, setProfilePicture] = useState<File | null>(null);
@@ -69,6 +77,22 @@ const Settings = () => {
       setEnrolledSubjects((user as any).enrolledCourses || []);
     }
   }, [user]);
+
+  // Load email preferences
+  useEffect(() => {
+    const loadEmailPreferences = async () => {
+      if (!token) return;
+      
+      try {
+        const response = await getEmailPreferences(token);
+        setEmailPreferences(response.preferences);
+      } catch (error) {
+        console.error("Failed to load email preferences:", error);
+      }
+    };
+
+    loadEmailPreferences();
+  }, [token]);
 
   const handleConfirmDeleteAccount = async (password: string) => {
     if (!token) return;
@@ -199,6 +223,21 @@ const Settings = () => {
 
   const handleNotificationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setNotifications({ ...notifications, [e.target.name]: e.target.checked });
+  };
+
+  const handleEmailPreferenceChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!token) return;
+
+    const newPreferences = { ...emailPreferences, [e.target.name]: e.target.checked };
+    setEmailPreferences(newPreferences);
+
+    try {
+      await updateEmailPreferences(token, { [e.target.name]: e.target.checked });
+    } catch (error) {
+      console.error("Failed to update email preferences:", error);
+      // Revert the change on error
+      setEmailPreferences(emailPreferences);
+    }
   };
 
   const handleProfilePictureChange = (
@@ -751,6 +790,68 @@ const Settings = () => {
               />
               <span className="slider"></span>
             </label>
+          </div>
+        </div>
+
+        {/* Email Preferences Section */}
+        <div className="settings-card">
+          <div className="card-header">
+            <h2 className="card-title">Email Preferences</h2>
+            <p className="card-description">
+              Choose which emails you'd like to receive from CampusLearn.
+            </p>
+            <div style={{backgroundColor: '#f0f9ff', border: '1px solid #93c5fd', borderRadius: '6px', padding: '12px', marginTop: '10px'}}>
+              <p style={{color: '#1e40af', margin: '0', fontSize: '14px'}}>
+                <strong>Note:</strong> Security emails (like suspicious login alerts) are always sent to protect your account.
+              </p>
+            </div>
+          </div>
+          <div className="card-body">
+            <div className="notification-group">
+              <div>
+                <div className="notification-label">Booking Confirmations</div>
+                <p>Receive booking confirmations and session reminder emails.</p>
+              </div>
+              <label className="switch">
+                <input
+                  type="checkbox"
+                  name="bookingConfirmations"
+                  checked={emailPreferences.bookingConfirmations}
+                  onChange={handleEmailPreferenceChange}
+                />
+                <span className="slider"></span>
+              </label>
+            </div>
+            <div className="notification-group">
+              <div>
+                <div className="notification-label">General Notifications</div>
+                <p>Receive forum reply notifications and important platform updates.</p>
+              </div>
+              <label className="switch">
+                <input
+                  type="checkbox"
+                  name="generalNotifications"
+                  checked={emailPreferences.generalNotifications}
+                  onChange={handleEmailPreferenceChange}
+                />
+                <span className="slider"></span>
+              </label>
+            </div>
+            <div className="notification-group">
+              <div>
+                <div className="notification-label">Marketing Emails</div>
+                <p>Receive promotional content and platform updates.</p>
+              </div>
+              <label className="switch">
+                <input
+                  type="checkbox"
+                  name="marketingEmails"
+                  checked={emailPreferences.marketingEmails}
+                  onChange={handleEmailPreferenceChange}
+                />
+                <span className="slider"></span>
+              </label>
+            </div>
           </div>
         </div>
 

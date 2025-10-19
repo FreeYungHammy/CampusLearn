@@ -23,14 +23,14 @@ const Header = () => {
   // Prevent body scroll when mobile menu is open
   useEffect(() => {
     if (isMobileMenuOpen) {
-      document.body.classList.add('mobile-menu-open');
+      document.body.classList.add("mobile-menu-open");
     } else {
-      document.body.classList.remove('mobile-menu-open');
+      document.body.classList.remove("mobile-menu-open");
     }
-    
+
     // Cleanup on unmount
     return () => {
-      document.body.classList.remove('mobile-menu-open');
+      document.body.classList.remove("mobile-menu-open");
     };
   }, [isMobileMenuOpen]);
 
@@ -39,9 +39,10 @@ const Header = () => {
     const onClick = (e: MouseEvent) => {
       const t = e.target as Node | null;
       // Check if click is outside both the profile button area and the dropdown
-      const isOutsideProfile = menuRef.current && t && !menuRef.current.contains(t);
-      const isOutsideDropdown = t && !(t as Element).closest('.cl-menu-portal');
-      
+      const isOutsideProfile =
+        menuRef.current && t && !menuRef.current.contains(t);
+      const isOutsideDropdown = t && !(t as Element).closest(".cl-menu-portal");
+
       if (isOutsideProfile && isOutsideDropdown) {
         setMenuOpen(false);
       }
@@ -64,6 +65,38 @@ const Header = () => {
     }
   }, []);
 
+  // Set user role attribute for CSS targeting
+  useEffect(() => {
+    if (user?.role) {
+      document.body.setAttribute("data-user-role", user.role);
+      document.body.classList.add(`user-role-${user.role}`);
+      // Remove other role classes
+      document.body.classList.remove(
+        "user-role-student",
+        "user-role-tutor",
+        "user-role-admin",
+      );
+      document.body.classList.add(`user-role-${user.role}`);
+    } else {
+      document.body.removeAttribute("data-user-role");
+      document.body.classList.remove(
+        "user-role-student",
+        "user-role-tutor",
+        "user-role-admin",
+      );
+    }
+
+    // Cleanup on unmount
+    return () => {
+      document.body.removeAttribute("data-user-role");
+      document.body.classList.remove(
+        "user-role-student",
+        "user-role-tutor",
+        "user-role-admin",
+      );
+    };
+  }, [user?.role]);
+
   const toggleTheme = () => {
     const next: Theme = theme === "light" ? "dark" : "light";
     setTheme(next);
@@ -72,7 +105,7 @@ const Header = () => {
   };
 
   const pfpUrl = user
-    ? `${(import.meta.env.VITE_API_URL as string).replace(/\/$/, '')}/api/users/${user.id}/pfp?t=${pfpTimestamps[user.id] || 0}`
+    ? `${(import.meta.env.VITE_API_URL as string).replace(/\/$/, "")}/api/users/${user.id}/pfp?t=${pfpTimestamps[user.id] || 0}`
     : "";
 
   return (
@@ -100,10 +133,12 @@ const Header = () => {
               <i className="fas fa-calendar" />
               <span>Schedule</span>
             </NavLink>
-            <NavLink to="/bookings" className="cl-nav-item">
-              <i className="fas fa-calendar-alt" />
-              <span>Bookings</span>
-            </NavLink>
+            {!isAdmin && (
+              <NavLink to="/bookings" className="cl-nav-item">
+                <i className="fas fa-calendar-alt" />
+                <span>Bookings</span>
+              </NavLink>
+            )}
 
             {isAdmin && (
               <>
@@ -169,7 +204,7 @@ const Header = () => {
           {/* Right: Logout icon + Profile menu (theme toggle moved inside) */}
           <div className="cl-right" ref={menuRef}>
             {user && (
-              <div 
+              <div
                 className="cl-mobile-profile-pfp"
                 onClick={() => setMenuOpen((v) => !v)}
               >
@@ -229,13 +264,11 @@ const Header = () => {
                       className={`fas fa-chevron-${menuOpen ? "up" : "down"} cl-caret`}
                     />
                   </button>
-
                 </>
               )}
             </div>
           </div>
         </div>
-
       </header>
 
       {/* Desktop Profile Dropdown - MOVED OUTSIDE HEADER */}
@@ -247,7 +280,7 @@ const Header = () => {
             aria-checked={theme === "dark"}
             className="cl-menu__item"
             onClick={(e) => {
-              console.log('Theme toggle clicked!', e);
+              console.log("Theme toggle clicked!", e);
               e.stopPropagation(); // Prevent event bubbling
               toggleTheme();
               // keep menu open so user sees the state change
@@ -259,9 +292,7 @@ const Header = () => {
             ) : (
               <i className="fas fa-moon" aria-hidden="true" />
             )}
-            <span>
-              {theme === "dark" ? "Light mode" : "Dark mode"}
-            </span>
+            <span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>
           </button>
 
           <NavLink
@@ -269,7 +300,7 @@ const Header = () => {
             role="menuitem"
             className="cl-menu__item"
             onClick={(e) => {
-              console.log('Settings clicked!', e);
+              console.log("Settings clicked!", e);
               e.stopPropagation(); // Prevent event bubbling
               setMenuOpen(false);
             }}
@@ -282,7 +313,7 @@ const Header = () => {
             role="menuitem"
             className="cl-menu__item"
             onClick={(e) => {
-              console.log('Logout clicked!', e);
+              console.log("Logout clicked!", e);
               e.stopPropagation(); // Prevent event bubbling
               setMenuOpen(false);
               openLogoutModal();
@@ -294,9 +325,8 @@ const Header = () => {
         </div>
       )}
 
-
       {isMobileMenuOpen && (
-        <div 
+        <div
           className={`cl-mobile-menu ${isMobileMenuOpen ? "open" : ""}`}
           onClick={(e) => {
             // Close menu when clicking on backdrop
@@ -338,137 +368,139 @@ const Header = () => {
             </div>
 
             <nav className="cl-mobile-nav">
-            <NavLink
-              to="/schedule"
-              className="cl-nav-item"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              <i className="fas fa-calendar" />
-              <span>Schedule</span>
-            </NavLink>
-
-            <NavLink
-              to="/bookings"
-              className="cl-nav-item"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              <i className="fas fa-calendar-alt" />
-              <span>Bookings</span>
-            </NavLink>
-
-            {isAdmin && (
-              <>
-                <NavLink
-                  to="/users"
-                  className="cl-nav-item"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  <i className="fas fa-users-cog" />
-                  <span>Users</span>
-                </NavLink>
-                <NavLink
-                  to="/admin/tutor-applications"
-                  className="cl-nav-item"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  <i className="fas fa-tasks" />
-                  <span>Applications</span>
-                </NavLink>
-              </>
-            )}
-
-            {!isTutor && !isAdmin && (
-              <>
-                <NavLink
-                  to="/mytutors"
-                  className="cl-nav-item"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  <i className="fas fa-user-friends" />
-                  <span>My Tutors</span>
-                </NavLink>
-                <NavLink
-                  to="/tutors"
-                  className="cl-nav-item"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  <i className="fas fa-user-graduate" />
-                  <span>Find Tutors</span>
-                </NavLink>
-              </>
-            )}
-
-            {isTutor && (
-              <>
-                <NavLink
-                  to="/mystudents"
-                  className="cl-nav-item"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  <i className="fas fa-users" />
-                  <span>My Students</span>
-                </NavLink>
-                <NavLink
-                  to="/mycontent"
-                  className="cl-nav-item"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  <i className="fas fa-folder" />
-                  <span>My Content</span>
-                </NavLink>
-                <NavLink
-                  to="/upload"
-                  className="cl-nav-item"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  <i className="fas fa-upload" />
-                  <span>Upload Content</span>
-                </NavLink>
-              </>
-            )}
-
-            <NavLink
-              to="/forum"
-              className="cl-nav-item"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              <i className="fas fa-comments" />
-              <span>Forum</span>
-            </NavLink>
-
-            {user?.role !== "admin" && (
               <NavLink
-                to="/messages"
+                to="/schedule"
                 className="cl-nav-item"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                <i className="fas fa-envelope" />
-                <span>Messages</span>
+                <i className="fas fa-calendar" />
+                <span>Schedule</span>
               </NavLink>
-            )}
 
-            {user && (
-              <>
+              {!isAdmin && (
                 <NavLink
-                  to="/settings"
+                  to="/bookings"
                   className="cl-nav-item"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  <i className="fas fa-cog" />
-                  <span>Settings</span>
+                  <i className="fas fa-calendar-alt" />
+                  <span>Bookings</span>
                 </NavLink>
-                <button
+              )}
+
+              {isAdmin && (
+                <>
+                  <NavLink
+                    to="/users"
+                    className="cl-nav-item"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <i className="fas fa-users-cog" />
+                    <span>Users</span>
+                  </NavLink>
+                  <NavLink
+                    to="/admin/tutor-applications"
+                    className="cl-nav-item"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <i className="fas fa-tasks" />
+                    <span>Applications</span>
+                  </NavLink>
+                </>
+              )}
+
+              {!isTutor && !isAdmin && (
+                <>
+                  <NavLink
+                    to="/mytutors"
+                    className="cl-nav-item"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <i className="fas fa-user-friends" />
+                    <span>My Tutors</span>
+                  </NavLink>
+                  <NavLink
+                    to="/tutors"
+                    className="cl-nav-item"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <i className="fas fa-user-graduate" />
+                    <span>Find Tutors</span>
+                  </NavLink>
+                </>
+              )}
+
+              {isTutor && (
+                <>
+                  <NavLink
+                    to="/mystudents"
+                    className="cl-nav-item"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <i className="fas fa-users" />
+                    <span>My Students</span>
+                  </NavLink>
+                  <NavLink
+                    to="/mycontent"
+                    className="cl-nav-item"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <i className="fas fa-folder" />
+                    <span>My Content</span>
+                  </NavLink>
+                  <NavLink
+                    to="/upload"
+                    className="cl-nav-item"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <i className="fas fa-upload" />
+                    <span>Upload Content</span>
+                  </NavLink>
+                </>
+              )}
+
+              <NavLink
+                to="/forum"
+                className="cl-nav-item"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <i className="fas fa-comments" />
+                <span>Forum</span>
+              </NavLink>
+
+              {user?.role !== "admin" && (
+                <NavLink
+                  to="/messages"
                   className="cl-nav-item"
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    openLogoutModal();
-                  }}
+                  onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  <i className="fas fa-sign-out-alt" />
-                  <span>Logout</span>
-                </button>
-              </>
-            )}
+                  <i className="fas fa-envelope" />
+                  <span>Messages</span>
+                </NavLink>
+              )}
+
+              {user && (
+                <>
+                  <NavLink
+                    to="/settings"
+                    className="cl-nav-item"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <i className="fas fa-cog" />
+                    <span>Settings</span>
+                  </NavLink>
+                  <button
+                    className="cl-nav-item"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      openLogoutModal();
+                    }}
+                  >
+                    <i className="fas fa-sign-out-alt" />
+                    <span>Logout</span>
+                  </button>
+                </>
+              )}
             </nav>
           </div>
         </div>

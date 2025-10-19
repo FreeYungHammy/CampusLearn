@@ -4,6 +4,7 @@ import { StudentModel } from "../../schemas/students.schema";
 import { TutorModel } from "../../schemas/tutor.schema";
 import { UserModel } from "../../schemas/user.schema";
 import { ChatService } from "../chat/chat.service";
+import { emailService } from "../../services/email.service";
 import { HttpException } from "../../infra/http/HttpException";
 
 export interface CreateBookingRequest {
@@ -133,6 +134,45 @@ export const BookingService = {
       });
       
       console.log("✅ Booking message sent successfully");
+
+      // Send booking confirmation emails
+      try {
+        const bookingDetails = {
+          studentName: `${student.name} ${student.surname}`,
+          tutorName: `${tutor.name} ${tutor.surname}`,
+          subject: bookingData.subject,
+          date: bookingData.date,
+          time: bookingData.time,
+          duration: `${bookingData.duration} minutes`,
+        };
+
+        // Send email to student
+        const studentEmailSent = await emailService.sendBookingConfirmationEmail(
+          studentUser.email,
+          bookingDetails,
+          'student'
+        );
+        if (studentEmailSent) {
+          console.log(`Booking confirmation email sent to student: ${studentUser.email}`);
+        } else {
+          console.log(`Failed to send booking confirmation email to student: ${studentUser.email}`);
+        }
+
+        // Send email to tutor
+        const tutorEmailSent = await emailService.sendBookingConfirmationEmail(
+          tutorUser.email,
+          bookingDetails,
+          'tutor'
+        );
+        if (tutorEmailSent) {
+          console.log(`Booking confirmation email sent to tutor: ${tutorUser.email}`);
+        } else {
+          console.log(`Failed to send booking confirmation email to tutor: ${tutorUser.email}`);
+        }
+      } catch (error) {
+        console.error("Error sending booking confirmation emails:", error);
+        // Continue with booking creation even if emails fail
+      }
 
       // Return booking with populated details
       const bookingWithDetails = await this.getBookingWithDetails(savedBooking._id.toString());

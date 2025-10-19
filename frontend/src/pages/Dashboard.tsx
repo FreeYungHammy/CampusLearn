@@ -44,7 +44,6 @@ const motivationalQuotes = [
   "Wake up with determination. Go to bed with satisfaction.",
 ];
 
-
 // Quick Action Button Component
 const QuickAction: React.FC<{
   icon: string;
@@ -149,44 +148,49 @@ const Dashboard = () => {
     id: booking.id || (booking as any)._id,
     title: `${booking.student.name} ${booking.student.surname}`,
     start: new Date(`${booking.date}T${booking.time}`),
-    end: new Date(new Date(`${booking.date}T${booking.time}`).getTime() + booking.duration * 60000),
+    end: new Date(
+      new Date(`${booking.date}T${booking.time}`).getTime() +
+        booking.duration * 60000,
+    ),
     backgroundColor: getStatusColor(booking.status),
     borderColor: getStatusColor(booking.status),
-    textColor: '#ffffff',
+    textColor: "#ffffff",
     className: `fc-event-${booking.status}`, // Add status class for popover styling
-    extendedProps: booking
+    extendedProps: booking,
   }));
 
   // Get color based on booking status
   function getStatusColor(status: string): string {
     switch (status) {
-      case 'pending':
-        return '#facc15'; // Yellow
-      case 'confirmed':
-        return '#4ade80'; // Green
-      case 'completed':
-        return '#60a5fa'; // Blue
-      case 'cancelled':
-        return '#ef4444'; // Red
+      case "pending":
+        return "#facc15"; // Yellow
+      case "confirmed":
+        return "#4ade80"; // Green
+      case "completed":
+        return "#60a5fa"; // Blue
+      case "cancelled":
+        return "#ef4444"; // Red
       default:
-        return '#6b7280'; // Gray
+        return "#6b7280"; // Gray
     }
   }
 
   // Filter upcoming bookings (future bookings only, sorted by date/time)
   const upcomingBookings = bookings
-    .filter(booking => {
+    .filter((booking) => {
       const bookingDateTime = new Date(`${booking.date}T${booking.time}`);
       const now = new Date();
-      return bookingDateTime >= now && booking.status !== 'cancelled' && booking.status !== 'completed';
+      return (
+        bookingDateTime >= now &&
+        booking.status !== "cancelled" &&
+        booking.status !== "completed"
+      );
     })
     .sort((a, b) => {
       const dateA = new Date(`${a.date}T${a.time}`);
       const dateB = new Date(`${b.date}T${b.time}`);
       return dateA.getTime() - dateB.getTime();
     });
-
-
 
   return (
     <div className="content-view active dashboard-modern" id="dashboard-view">
@@ -197,12 +201,11 @@ const Dashboard = () => {
         transition={{ duration: 0.6 }}
         className="dashboard-header"
       >
-        <div className="welcome-section">
-          <h1 className="dashboard-title welcome-greeting">
-            <i className="fas fa-clock"></i>
-            {getGreeting()}, {user?.name} {user?.surname}!
+        <div className="header-content">
+          <h1 className="dashboard-title">
+            {getGreeting()}, {user?.name} {user?.surname}! 👋
           </h1>
-          <div className="time-info welcome-time-date">
+          <div className="time-info">
             <div className="current-time">
               {currentTime.toLocaleTimeString([], {
                 hour: "2-digit",
@@ -217,9 +220,13 @@ const Dashboard = () => {
               })}
             </div>
           </div>
-          <h2 className="welcome-message">
-            Welcome back to your learning journey!
-          </h2>
+        </div>
+        <div className="header-right">
+          <p className="dashboard-subtitle">
+            {user?.role === "student"
+              ? "Welcome back to your learning journey!"
+              : "Welcome back to your teaching dashboard!"}
+          </p>
           {todaysQuote && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -227,14 +234,13 @@ const Dashboard = () => {
               transition={{ duration: 0.6, delay: 0.3 }}
               className="motivational-quote"
             >
-              <span className="quote-mark opening">"</span>
-              <span className="quote-text">Your limitation—it's only your imagination.</span>
-              <span className="quote-mark closing">"</span>
+              <i className="fas fa-quote-left"></i>
+              <span className="quote-text">{todaysQuote}</span>
+              <i className="fas fa-quote-right"></i>
             </motion.div>
           )}
         </div>
       </motion.div>
-      
 
       {/* Quick Actions */}
       <motion.div
@@ -247,7 +253,9 @@ const Dashboard = () => {
           <i className="fas fa-bolt"></i>
           Quick Actions
         </h3>
-        <div className="actions-grid">
+        <div
+          className={`actions-grid ${user?.role === "student" ? "three-buttons" : "four-buttons"}`}
+        >
           {user?.role === "student" ? (
             <>
               <QuickAction
@@ -361,14 +369,14 @@ const Dashboard = () => {
             />
           )}
         </div>
-        
+
         {/* Mobile Upcoming Bookings */}
         <div className="upcoming-bookings-mobile">
           <h3 className="upcoming-bookings-title">
             <i className="fas fa-clock"></i>
             Upcoming Bookings
           </h3>
-          
+
           {isLoadingBookings ? (
             <div className="loading-container">
               <div className="loading-spinner">
@@ -384,22 +392,31 @@ const Dashboard = () => {
             </div>
           ) : (
             upcomingBookings.slice(0, 3).map((booking) => (
-              <div key={booking.id} className="booking-item" onClick={() => navigate(`/bookings#${booking.id}`)}>
+              <div
+                key={booking.id}
+                className="booking-item"
+                onClick={() => navigate(`/bookings#${booking.id}`)}
+              >
                 <div className="booking-time">
-                  <div className="booking-date">{new Date(booking.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                  <div className="booking-date">
+                    {new Date(booking.date).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </div>
                   <div className="booking-time-only">{booking.time}</div>
                 </div>
                 <div className="booking-details">
                   <div className="booking-title">{booking.subject}</div>
                   <div className="booking-subtitle">
-                    {user?.role === 'student' 
+                    {user?.role === "student"
                       ? `with ${booking.tutor.name} ${booking.tutor.surname}`
-                      : `with ${booking.student.name} ${booking.student.surname}`
-                    }
+                      : `with ${booking.student.name} ${booking.student.surname}`}
                   </div>
                 </div>
                 <div className={`booking-status ${booking.status}`}>
-                  {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                  {booking.status.charAt(0).toUpperCase() +
+                    booking.status.slice(1)}
                 </div>
               </div>
             ))
