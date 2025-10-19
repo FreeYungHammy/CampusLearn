@@ -228,7 +228,7 @@ export const UserService = {
       enrolledCourses: profile?.enrolledCourses,
     };
 
-    console.log("user.service.ts: userWithProfile:", userWithProfile);
+    // Removed verbose user profile logging
     return { token, user: userWithProfile };
   },
 

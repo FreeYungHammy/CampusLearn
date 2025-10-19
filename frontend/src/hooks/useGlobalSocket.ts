@@ -1,10 +1,9 @@
-import { useEffect } from "react";
-import { io, Socket } from "socket.io-client";
+import { useEffect, useState } from "react";
+import { Socket } from "socket.io-client";
 import { useAuthStore } from "../store/authStore";
+import { SocketManager } from "../services/socketManager";
 
 const SOCKET_URL = import.meta.env.VITE_WS_URL as string;
-
-let socket: Socket | null = null;
 
 export const useGlobalSocket = () => {
   const { token, refreshPfpForUser } = useAuthStore((s) => ({
@@ -12,50 +11,57 @@ export const useGlobalSocket = () => {
     refreshPfpForUser: s.refreshPfpForUser,
   }));
 
+  const [socket, setSocket] = useState<Socket | null>(null);
+  const [connected, setConnected] = useState(false);
+
   useEffect(() => {
     if (!token) {
-      if (socket) {
-        console.log("Disconnecting global socket");
-        socket.disconnect();
-        socket = null;
-      }
+      console.log("No token, disconnecting global socket");
+      SocketManager.disconnect();
+      setSocket(null);
+      setConnected(false);
       return;
     }
 
-    if (!socket) {
-      console.log("Connecting global socket...");
-      socket = io(SOCKET_URL, {
-        auth: { token },
-        transports: ["websocket"],
-      });
+    console.log("Initializing global socket with centralized manager");
+    
+    // Initialize socket manager
+    SocketManager.initialize({
+      url: SOCKET_URL,
+      token: token,
+    });
 
-      socket.on("connect", () => {
-        console.log("Global socket connected:", socket?.id);
-      });
-
-      socket.on("disconnect", (reason) => {
-        console.log("Global socket disconnected:", reason);
-      });
-
-      socket.on("connect_error", (err) => {
-        console.error("Global socket connection error:", err.message);
-      });
-
-      // --- Global Event Listeners ---
-      socket.on(
-        "pfp_updated",
-        (data: { userId: string; timestamp: number }) => {
+    // Register global event handlers
+    SocketManager.registerHandlers({
+      global: {
+        onPfpUpdated: (data: { userId: string; timestamp: number }) => {
           console.log(
-            `pfp_updated event received for user: ${data.userId} at ${data.timestamp}`,
+            `[useGlobalSocket] pfp_updated event received for user: ${data.userId} at ${data.timestamp}`,
           );
           refreshPfpForUser(data.userId, data.timestamp);
         },
-      );
-    }
+        onConnectionChange: (connected: boolean) => {
+          console.log(`[useGlobalSocket] Connection state changed: ${connected}`);
+          setConnected(connected);
+        },
+      },
+    });
 
-    // Return cleanup function
+    // Get socket instance
+    const globalSocket = SocketManager.getGlobalSocket();
+    setSocket(globalSocket);
+    setConnected(SocketManager.isSocketConnected());
+
+    // Add connection listener
+    const connectionListener = (connected: boolean) => {
+      setConnected(connected);
+    };
+    SocketManager.addConnectionListener(connectionListener);
+
+    // Cleanup
     return () => {
-      // Disconnection is handled when token is cleared
+      SocketManager.removeConnectionListener(connectionListener);
+      // Don't disconnect here - let the manager handle it globally
     };
   }, [token, refreshPfpForUser]);
 

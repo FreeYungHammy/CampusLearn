@@ -319,11 +319,11 @@ export const ChatService = {
       // 1. Try to get from cache first
       const cachedMessages = await CacheService.get<any[]>(cacheKey);
       if (cachedMessages) {
-        logger.info(`Cache hit for chat thread: ${chatId}`);
+        // Removed verbose cache hit logging
         return cachedMessages;
       }
 
-      logger.info(`Cache miss for chat thread: ${chatId}. Fetching from DB.`);
+      // Removed verbose cache miss logging
       // 2. If cache miss, fetch from DB
       const dbQueryStartTime = Date.now();
       const messages = await ChatModel.find({ chatId })
@@ -333,7 +333,7 @@ export const ChatService = {
         .sort({ createdAt: "asc" })
         .lean();
       const dbQueryDuration = Date.now() - dbQueryStartTime;
-      logger.info(`[DB QUERY] Chat thread ${chatId} took ${dbQueryDuration}ms`);
+      // Removed verbose DB query timing
 
       // Transform messages to match frontend expectations
       const transformedMessages = await Promise.all(

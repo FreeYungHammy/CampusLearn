@@ -11,6 +11,7 @@ import {
 } from "../services/forumApi";
 import { useForumSocket } from "../hooks/useForumSocket";
 import { useAuthStore } from "../store/authStore";
+import { SocketManager } from "../services/socketManager";
 import PostActions from "../components/forum/PostActions";
 import { isWithinEditWindow, getRemainingEditTime } from "../utils/editWindow";
 import PageHeader from "../components/PageHeader";
@@ -184,54 +185,45 @@ const Forum = () => {
   };
 
   useEffect(() => {
-    if (socket) {
-      socket.on("new_post", (newPost) => {
-        console.log("Received new_post event:", newPost);
-        // Re-fetch the first page to ensure list is up-to-date with filters
-        fetchAndSetThreads(1);
-      });
-
-      socket.on("thread_deleted", ({ threadId }) => {
-        console.log("Received thread_deleted event:", threadId);
-        // Re-fetch the first page to ensure list is up-to-date
-        fetchAndSetThreads(1);
-      });
-
-      socket.on("thread_updated", ({ updatedPost }) => {
-        setThreads((prevThreads) =>
-          prevThreads.map((thread) =>
-            thread._id === updatedPost._id ? updatedPost : thread,
-          ),
-        );
-      });
-
-      socket.on("forum_reply_count_updated", ({ threadId, replyCount }) => {
-        setThreads((prevThreads) =>
-          prevThreads.map((thread) =>
-            thread._id === threadId
-              ? { ...thread, replies: Array(replyCount).fill(null) }
-              : thread,
-          ),
-        );
-      });
-
-      socket.on("vote_updated", ({ targetId, newScore }) => {
-        setThreads((prevThreads) =>
-          prevThreads.map((thread) =>
-            thread._id === targetId ? { ...thread, upvotes: newScore } : thread,
-          ),
-        );
-      });
-
-      return () => {
-        socket.off("new_post");
-        socket.off("thread_deleted");
-        socket.off("thread_updated");
-        socket.off("forum_reply_count_updated");
-        socket.off("vote_updated");
-      };
-    }
-  }, [socket]);
+    // Register forum event handlers with the centralized socket manager
+    SocketManager.registerHandlers({
+      global: {
+        onNewPost: (newPost) => {
+          console.log("Received new_post event:", newPost);
+          // Re-fetch the first page to ensure list is up-to-date with filters
+          fetchAndSetThreads(1);
+        },
+        onThreadDeleted: ({ threadId }) => {
+          console.log("Received thread_deleted event:", threadId);
+          // Re-fetch the first page to ensure list is up-to-date
+          fetchAndSetThreads(1);
+        },
+        onThreadUpdated: ({ updatedPost }) => {
+          setThreads((prevThreads) =>
+            prevThreads.map((thread) =>
+              thread._id === updatedPost._id ? updatedPost : thread,
+            ),
+          );
+        },
+        onForumReplyCountUpdated: ({ threadId, replyCount }) => {
+          setThreads((prevThreads) =>
+            prevThreads.map((thread) =>
+              thread._id === threadId
+                ? { ...thread, replies: Array(replyCount).fill(null) }
+                : thread,
+            ),
+          );
+        },
+        onVoteUpdated: ({ targetId, newScore }) => {
+          setThreads((prevThreads) =>
+            prevThreads.map((thread) =>
+              thread._id === targetId ? { ...thread, upvotes: newScore } : thread,
+            ),
+          );
+        },
+      },
+    });
+  }, []);
 
   const handleUpvote = (threadId: string, e: React.MouseEvent) => {
     e.preventDefault();

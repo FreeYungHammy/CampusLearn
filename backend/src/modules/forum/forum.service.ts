@@ -143,16 +143,13 @@ export const ForumService = {
       const cacheKey = FORUM_THREADS_CACHE_KEY;
       const startTime = performance.now();
       
-      console.log(`[getThreads] Attempting to get cache for key: ${cacheKey}`);
+      // Removed verbose cache attempt logging
       const cachedThreads = await CacheService.get<{ threads: any[]; totalCount: number }>(cacheKey);
       if (cachedThreads) {
-        console.log(`[getThreads] Cache HIT for key: ${cacheKey}`);
-        logger.info(
-          `[getThreads] Redis retrieval took ${(performance.now() - startTime).toFixed(2)} ms (Cache Hit)`,
-        );
+        // Removed verbose cache hit logging
         return cachedThreads;
       } else {
-        console.log(`[getThreads] Cache MISS for key: ${cacheKey}`);
+        // Removed verbose cache miss logging
       }
     }
 
@@ -274,9 +271,7 @@ export const ForumService = {
     ]);
 
     const dbDuration = performance.now() - dbStartTime;
-    logger.info(
-      `[getThreads] Aggregation query took ${dbDuration.toFixed(2)} ms`,
-    );
+    // Removed verbose aggregation timing
 
     // Manually add pfpTimestamp
     const populatedThreads = threads.map((thread) => {
@@ -292,11 +287,11 @@ export const ForumService = {
 
     // Cache the result if it's the default query (no filters, first page)
     if (shouldCache && offset === 0) {
-      console.log(`[getThreads] Setting cache for key: ${FORUM_THREADS_CACHE_KEY} with TTL: 1800`);
+      // Removed verbose cache setting logging
       await CacheService.set(FORUM_THREADS_CACHE_KEY, result, 1800); // 30 minutes TTL
-      console.log(`[getThreads] Cache SET completed for key: ${FORUM_THREADS_CACHE_KEY}`);
+      // Removed verbose cache set logging
     } else {
-      console.log(`[getThreads] Not caching - shouldCache: ${shouldCache}, offset: ${offset}`);
+      // Removed verbose cache skip logging
     }
 
     return result;
@@ -529,9 +524,7 @@ export const ForumService = {
     }
 
     const dbDuration = performance.now() - dbStartTime;
-    logger.info(
-      `[getThreadById] Aggregation query took ${dbDuration.toFixed(2)} ms`,
-    );
+    // Removed verbose aggregation timing
 
     // 3. Store in cache
     if (thread) {

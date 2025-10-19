@@ -75,13 +75,12 @@ export const TutorService = {
   },
 
   async list(limit: number = 10, offset: number = 0, filters: any) {
-    console.time("Mongo retrieval time (All Tutors)");
+    // Removed verbose timing logs
     const { tutors, totalCount } = await TutorRepo.findAllWithStudentCount(
       limit,
       offset,
       filters,
     );
-    console.timeEnd("Mongo retrieval time (All Tutors)");
 
     return {
       tutors: tutors.map(formatTutorForList),
@@ -101,10 +100,8 @@ export const TutorService = {
       return TutorRepo.hydrate(cachedTutor);
     }
 
-    console.log(`Redis CACHE MISS for tutor ID: ${id}`);
-    console.time(`Mongo retrieval time (Tutor by ID: ${id})`);
+    // Removed verbose timing logs
     const tutorFromDb = await TutorRepo.findById(id);
-    console.timeEnd(`Mongo retrieval time (Tutor by ID: ${id})`);
 
     if (!tutorFromDb) return null;
 
@@ -126,10 +123,8 @@ export const TutorService = {
       return TutorRepo.hydrate(cachedTutor);
     }
 
-    console.log(`Redis CACHE MISS for tutor by user ID: ${userId}`);
-    console.time(`Mongo retrieval time (Tutor by User: ${userId})`);
+    // Removed verbose timing logs
     const tutorFromDb = await TutorRepo.findByUserId(userId);
-    console.timeEnd(`Mongo retrieval time (Tutor by User: ${userId})`);
 
     if (!tutorFromDb) return null;
 
