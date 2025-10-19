@@ -159,6 +159,36 @@
   /* Remove max-height and overflow properties to allow natural page scrolling */
 }
 
+.ethical-notice {
+  background: rgba(52, 152, 219, 0.1);
+  border: 1px solid rgba(52, 152, 219, 0.3);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.ethical-notice i {
+  color: #3498db;
+  font-size: 1.2rem;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.ethical-notice p {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.ethical-notice strong {
+  color: #3498db;
+  font-weight: 600;
+}
+
 .data-table table {
   width: 100%;
   min-width: 1000px; /* Increased minimum width to accommodate wider actions column */
