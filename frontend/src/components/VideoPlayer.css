@@ -1,15 +1,15 @@
 .video-player-container {
   position: relative;
   width: 100%;
-  height: 300px; /* Set a fixed height to ensure proper centering */
-  min-height: 200px; /* Minimum height for placeholder */
+  height: 400px; /* Increased height to prevent clipping */
+  min-height: 250px; /* Increased minimum height */
   background: #000;
   border-radius: 8px;
   overflow: hidden; /* Prevent overflow issues */
   /* Ensure all content stays within bounds */
   contain: layout style paint;
-  /* Add padding to prevent video controls from being cut off */
-  padding-bottom: 60px; /* Space for video controls */
+  /* Reduce padding to give more space to video */
+  padding-bottom: 40px; /* Reduced padding for video controls */
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -24,7 +24,7 @@
   width: 100%;
   height: auto;
   max-width: 100%;
-  max-height: calc(100% - 60px); /* Account for control padding */
+  max-height: calc(100% - 40px); /* Account for reduced control padding */
   display: block; /* Remove any inline spacing */
   margin: 0 auto; /* Center horizontally */
 }
@@ -32,34 +32,34 @@
 /* Responsive padding for different screen sizes */
 @media (max-height: 600px) {
   .video-player-container {
-    height: 250px;
-    padding-bottom: 50px; /* Smaller padding for smaller screens */
-    min-height: 150px;
+    height: 350px;
+    padding-bottom: 35px; /* Smaller padding for smaller screens */
+    min-height: 200px;
   }
 }
 
 @media (max-height: 500px) {
   .video-player-container {
-    height: 200px;
-    padding-bottom: 40px; /* Even smaller padding for very small screens */
-    min-height: 120px;
+    height: 300px;
+    padding-bottom: 30px; /* Even smaller padding for very small screens */
+    min-height: 180px;
   }
 }
 
 /* Responsive sizing for different screen widths */
 @media (max-width: 768px) {
   .video-player-container {
-    height: 250px;
-    min-height: 150px;
-    padding-bottom: 50px;
+    height: 350px;
+    min-height: 200px;
+    padding-bottom: 35px;
   }
 }
 
 @media (max-width: 480px) {
   .video-player-container {
-    height: 200px;
-    min-height: 120px;
-    padding-bottom: 40px;
+    height: 300px;
+    min-height: 180px;
+    padding-bottom: 30px;
   }
 }
 

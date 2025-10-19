@@ -831,8 +831,8 @@
   border-radius: 8px;
   overflow: hidden;
   /* Allow dynamic sizing based on content */
-  min-height: 200px;
-  max-height: 400px;
+  min-height: 250px;
+  max-height: 500px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -841,22 +841,22 @@
 /* Responsive video sizing for different screen sizes */
 @media (max-width: 768px) {
   .message-video-player {
-    max-height: 300px;
-    min-height: 150px;
+    max-height: 400px;
+    min-height: 200px;
   }
 }
 
 @media (max-width: 480px) {
   .message-video-player {
-    max-height: 250px;
-    min-height: 120px;
+    max-height: 350px;
+    min-height: 180px;
   }
 }
 
 @media (min-width: 1200px) {
   .message-video-player {
-    max-height: 500px;
-    min-height: 250px;
+    max-height: 600px;
+    min-height: 300px;
   }
 }
 
