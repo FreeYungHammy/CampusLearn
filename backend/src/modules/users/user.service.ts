@@ -178,11 +178,20 @@ export const UserService = {
   },
 
   async login(input: { email: string; password: string }) {
+    console.log("Login attempt for email:", input.email);
     const user = await UserRepo.findByEmailWithPassword(input.email);
-    if (!user) throw new Error("Invalid credentials");
+    if (!user) {
+      console.log("User not found for email:", input.email);
+      throw new Error("Invalid credentials");
+    }
+    console.log("User found:", { id: user._id, email: user.email, role: user.role, emailVerified: (user as any).emailVerified });
 
     const ok = await bcrypt.compare(input.password, (user as any).passwordHash);
-    if (!ok) throw new Error("Invalid credentials");
+    if (!ok) {
+      console.log("Password comparison failed for user:", user.email);
+      throw new Error("Invalid credentials");
+    }
+    console.log("Password comparison successful for user:", user.email);
 
     const token = signJwt({
       id: (user as any)._id.toString(),
@@ -193,10 +202,13 @@ export const UserService = {
     let profile: any;
     if (user.role === "student") {
       profile = await StudentRepo.findOne({ userId: (user as any)._id });
+      console.log("Student profile lookup:", { userId: (user as any)._id, profileFound: !!profile, profile: profile });
     } else if (user.role === "tutor") {
       profile = await TutorRepo.findOne({ userId: (user as any)._id });
+      console.log("Tutor profile lookup:", { userId: (user as any)._id, profileFound: !!profile, profile: profile });
     } else if (user.role === "admin") {
       profile = await AdminModel.findOne({ userId: (user as any)._id });
+      console.log("Admin profile lookup:", { userId: (user as any)._id, profileFound: !!profile, profile: profile });
     }
 
     const { passwordHash: _ph, ...publicUser } = user as any;
@@ -206,7 +218,7 @@ export const UserService = {
       id: user._id.toString(),
       name: profile?.name,
       surname: profile?.surname,
-      pfp: profile?.pfp
+      pfp: profile?.pfp?.data
         ? {
             contentType: profile.pfp.contentType,
             data: profile.pfp.data.toString("base64"),
