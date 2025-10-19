@@ -113,7 +113,13 @@ export function useVideoSignaling(callId: string | undefined, token: string | un
     socketRef.current.emit("initiate_call", { callId, targetUserId });
   }, [callId]);
 
-  return { connected, join, leave, sendSignal, initiateCall, onPeerJoined, onPeerLeft, onSignal };
+  const emitPeerLeft = useCallback(() => {
+    if (!socketRef.current || !callId) return;
+    console.log("[signal] emit peer_left", { callId });
+    socketRef.current.emit("peer_left", { callId });
+  }, [callId]);
+
+  return { connected, join, leave, sendSignal, initiateCall, emitPeerLeft, onPeerJoined, onPeerLeft, onSignal };
 }
 
 

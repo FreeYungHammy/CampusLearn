@@ -23,6 +23,8 @@ export const VideoCallPage: React.FC = () => {
   const [pendingInit, setPendingInit] = useState<{ audioDeviceId?: string; videoDeviceId?: string } | null>(null);
   const [remotePeerJoined, setRemotePeerJoined] = useState(false);
   const [showLeaveConfirmation, setShowLeaveConfirmation] = useState(false);
+  const [showSpeedTooltip, setShowSpeedTooltip] = useState(false);
+  const [showDisconnectMessage, setShowDisconnectMessage] = useState(false);
 
   useEffect(() => {
     document.title = `Call • ${callId ?? "Unknown"}`;
@@ -222,13 +224,144 @@ export const VideoCallPage: React.FC = () => {
   useEffect(() => {
     if (callId) {
       setActiveCallId(callId);
+      
+      // Start heartbeat to let main window know popup is alive
+      const heartbeatKey = `call-heartbeat-${callId}`;
+      const heartbeatInterval = setInterval(() => {
+        localStorage.setItem(heartbeatKey, Date.now().toString());
+      }, 1000); // Send heartbeat every second
+      
+      // Fallback: Clear call ID after 5 minutes to prevent stuck states
+      const fallbackTimeout = setTimeout(() => {
+        console.log("[video-call] Fallback timeout - clearing call ID");
+        clearActiveCallId();
+      }, 5 * 60 * 1000); // 5 minutes
+      
+      return () => {
+        clearInterval(heartbeatInterval);
+        clearTimeout(fallbackTimeout);
+        localStorage.removeItem(heartbeatKey);
+        console.log("[video-call] Component unmounting - clearing call ID");
+        clearActiveCallId();
+      };
     }
     
-    // Clear active call ID when component unmounts
     return () => {
+      console.log("[video-call] Component unmounting - clearing call ID");
       clearActiveCallId();
     };
   }, [callId, setActiveCallId, clearActiveCallId]);
+
+  // Handle peer left event
+  useEffect(() => {
+    signaling.onPeerLeft((payload) => {
+      console.log("[video-call] Peer left:", payload);
+      setRemotePeerJoined(false);
+      setShowDisconnectMessage(true);
+      
+      // Clear heartbeat and call ID when peer leaves
+      const heartbeatKey = `call-heartbeat-${callId}`;
+      localStorage.removeItem(heartbeatKey);
+      clearActiveCallId();
+      
+      // Auto-close after 2 seconds
+      setTimeout(() => {
+        window.close();
+      }, 2000);
+    });
+  }, [signaling, callId, clearActiveCallId]);
+
+  // Handle peer disconnect events
+  useEffect(() => {
+    const handlePeerDisconnected = (event: CustomEvent) => {
+      console.log("[video-call] Peer disconnected:", event.detail);
+      setShowDisconnectMessage(true);
+      
+      // Clear heartbeat and call ID when peer disconnects
+      const heartbeatKey = `call-heartbeat-${callId}`;
+      localStorage.removeItem(heartbeatKey);
+      clearActiveCallId();
+      
+      // Auto-close after 2 seconds
+      setTimeout(() => {
+        window.close();
+      }, 2000);
+    };
+
+    window.addEventListener('peer-disconnected', handlePeerDisconnected as EventListener);
+    
+    return () => {
+      window.removeEventListener('peer-disconnected', handlePeerDisconnected as EventListener);
+    };
+  }, [callId, clearActiveCallId]);
+
+  // Handle browser close - emit peer_left signal and clear call ID
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      console.log("[video-call] Browser closing - emitting peer_left and clearing call ID");
+      signaling.emitPeerLeft();
+      clearActiveCallId(); // Clear the call ID when window closes
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        console.log("[video-call] Window hidden - clearing call ID");
+        clearActiveCallId();
+      }
+    };
+
+    const handlePageHide = () => {
+      console.log("[video-call] Page hide - clearing call ID");
+      clearActiveCallId();
+    };
+
+    // Multiple event listeners to catch different ways the popup can be closed
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pagehide', handlePageHide);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pagehide', handlePageHide);
+    };
+  }, [signaling, clearActiveCallId]);
+
+  // Aggressive popup close detection - check if window is still focused
+  useEffect(() => {
+    let lastFocusTime = Date.now();
+    
+    const handleFocus = () => {
+      lastFocusTime = Date.now();
+    };
+    
+    const handleBlur = () => {
+      lastFocusTime = Date.now();
+    };
+    
+    const checkFocus = () => {
+      const now = Date.now();
+      const timeSinceLastFocus = now - lastFocusTime;
+      
+      // If window hasn't been focused for more than 3 seconds, assume it's closed
+      if (timeSinceLastFocus > 3000) {
+        console.log("[video-call] Window appears to be closed - clearing call ID");
+        clearActiveCallId();
+      }
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('blur', handleBlur);
+    
+    // Check every 2 seconds
+    const interval = setInterval(checkFocus, 2000);
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('blur', handleBlur);
+      clearInterval(interval);
+    };
+  }, [clearActiveCallId]);
 
   // Placeholder shell; hooks/components will be wired next
   return (
@@ -248,7 +381,18 @@ export const VideoCallPage: React.FC = () => {
             onConfirm={async (sel) => {
               console.log("[video-call] Join Call button clicked!");
               
-              // Proceed with joining the call firstyo
+              // Send call notification to the other user when joining
+              try {
+                const otherId = callId?.split(':').find(id => id !== user?.id);
+                if (otherId) {
+                  console.log("[video-call] Sending call notification to:", otherId);
+                  signaling.initiateCall(otherId);
+                }
+              } catch (error) {
+                console.error("[video-call] Failed to send call notification:", error);
+              }
+              
+              // Proceed with joining the call
               setPendingInit(sel);
               setPrejoinDone(true);
             }}
@@ -261,8 +405,22 @@ export const VideoCallPage: React.FC = () => {
               remotePeerJoined={remotePeerJoined}
               localVideoEnabled={pc.videoEnabled}
             />
-            {/* User-friendly connection status */}
-            <div style={{ position: "absolute", left: 16, bottom: 16, backdropFilter: "blur(6px)", background: "rgba(255,255,255,0.08)", padding: "8px 12px", borderRadius: 8, fontSize: 12 }}>
+            {/* User-friendly connection status with speed tooltip */}
+            <div 
+              style={{ 
+                position: "absolute", 
+                left: 16, 
+                bottom: 16, 
+                backdropFilter: "blur(6px)", 
+                background: "rgba(255,255,255,0.08)", 
+                padding: "8px 12px", 
+                borderRadius: 8, 
+                fontSize: 12,
+                cursor: "pointer"
+              }}
+              onMouseEnter={() => setShowSpeedTooltip(true)}
+              onMouseLeave={() => setShowSpeedTooltip(false)}
+            >
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <div style={{ 
                   width: 8, 
@@ -279,6 +437,26 @@ export const VideoCallPage: React.FC = () => {
                    pc.connectionQuality.status === 'fair' ? 'Fair' : 'Poor'} Connection
                 </span>
               </div>
+              
+              {/* Speed tooltip */}
+              {showSpeedTooltip && (
+                <div style={{
+                  position: "absolute",
+                  bottom: "100%",
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  background: "rgba(0, 0, 0, 0.9)",
+                  color: "white",
+                  padding: "6px 10px",
+                  borderRadius: "6px",
+                  fontSize: "11px",
+                  whiteSpace: "nowrap",
+                  marginBottom: "8px",
+                  zIndex: 1000
+                }}>
+                  ↓ {pc.speedMetrics.downloadMbps.toFixed(1)} Mbps / ↑ {pc.speedMetrics.uploadMbps.toFixed(1)} Mbps
+                </div>
+              )}
             </div>
             <CallControls
               onToggleMic={() => pc.toggleMic()}
@@ -307,6 +485,31 @@ export const VideoCallPage: React.FC = () => {
           window.close();
         }}
       />
+      
+      {/* Disconnect message overlay */}
+      {showDisconnectMessage && (
+        <div style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: "rgba(0, 0, 0, 0.8)",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "white",
+          zIndex: 1000
+        }}>
+          <div style={{ fontSize: "18px", fontWeight: "500", marginBottom: "8px" }}>
+            User has disconnected
+          </div>
+          <div style={{ fontSize: "14px", opacity: 0.7 }}>
+            Closing call window...
+          </div>
+        </div>
+      )}
     </div>
   );
 };

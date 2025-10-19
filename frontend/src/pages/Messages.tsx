@@ -636,7 +636,63 @@ const Messages: React.FC = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { user, token, pfpTimestamps } = useAuthStore();
-  const { activeCallId, setActiveCallId } = useCallStore();
+  const { activeCallId, setActiveCallId, clearActiveCallId } = useCallStore();
+  
+  // Monitor for active call state - check if user is actually in a call
+  useEffect(() => {
+    if (!activeCallId) return;
+    
+    const heartbeatKey = `call-heartbeat-${activeCallId}`;
+    let heartbeatInterval: NodeJS.Timeout;
+    
+    const checkCallStatus = () => {
+      const lastHeartbeat = localStorage.getItem(heartbeatKey);
+      if (lastHeartbeat) {
+        const timeSinceHeartbeat = Date.now() - parseInt(lastHeartbeat);
+        // If no heartbeat for more than 3 seconds, assume call is ended
+        if (timeSinceHeartbeat > 3000) {
+          console.log("[video-call] No heartbeat detected - call appears to be ended");
+          clearActiveCallId();
+          localStorage.removeItem(heartbeatKey);
+          clearInterval(heartbeatInterval);
+        }
+      } else {
+        // No heartbeat key means call was never properly started or was ended
+        console.log("[video-call] No heartbeat key found - clearing call ID");
+        clearActiveCallId();
+        clearInterval(heartbeatInterval);
+      }
+    };
+    
+    // Check every 2 seconds
+    heartbeatInterval = setInterval(checkCallStatus, 2000);
+    
+    return () => {
+      if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+      }
+    };
+  }, [activeCallId, clearActiveCallId]);
+
+  // Additional check: Listen for call state changes from the call store
+  useEffect(() => {
+    const handleCallStateChange = () => {
+      // If activeCallId is cleared externally, ensure button state updates
+      if (!activeCallId) {
+        console.log("[video-call] Call ID cleared externally - button should be enabled");
+      }
+    };
+
+    // Listen for changes to the call store
+    const unsubscribe = useCallStore.subscribe((state) => {
+      if (!state.activeCallId && activeCallId) {
+        console.log("[video-call] Call ended - button should be enabled");
+      }
+    });
+
+    return unsubscribe;
+  }, [activeCallId]);
+  
   const {
     showBookingModal,
     bookingTarget,
@@ -789,8 +845,29 @@ const Messages: React.FC = () => {
     [chatId, user?.id],
   );
 
+  const handleMessageUpdated = useCallback(
+    (data: { messageId: string; content: string; isEdited: boolean; editedAt: string }) => {
+      console.log("💬 [Messages] handleMessageUpdated called:", data.messageId);
+      
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg._id === data.messageId
+            ? { 
+                ...msg, 
+                content: data.content, 
+                isEdited: data.isEdited, 
+                editedAt: data.editedAt
+              }
+            : msg
+        )
+      );
+    },
+    []
+  );
+
   const { sendMessage, isConnected, joinRoom, leaveRoom } = useChatSocket(
     handleNewMessage,
+    handleMessageUpdated, // Handle message updates
     undefined, // No need for handleUserStatusChange since we use global online status
     handleChatCleared,
   );
@@ -1040,6 +1117,21 @@ const Messages: React.FC = () => {
   };
 
   /* -------- Message editing handlers -------- */
+  // Check if message can be edited (within 10 minutes and owned by current user)
+  const canEditMessage = (message: ChatMessage) => {
+    if (!message.createdAt || !user?.id) return false;
+    
+    // Only allow editing own messages
+    const messageSenderIdField = message.senderId || message.sender?._id;
+    if (messageSenderIdField !== user.id) return false;
+    
+    const messageTime = new Date(message.createdAt).getTime();
+    const now = Date.now();
+    const tenMinutes = 10 * 60 * 1000; // 10 minutes in milliseconds
+    
+    return (now - messageTime) <= tenMinutes;
+  };
+
   const handleEditMessage = (messageId: string, currentContent: string) => {
     setEditingMessageId(messageId);
     setEditingContent(currentContent);
@@ -1054,14 +1146,14 @@ const Messages: React.FC = () => {
     if (!editingMessageId || !token || !editingContent.trim()) return;
 
     try {
-      // TODO: Call backend API to update message
-      // await chatApi.updateMessage(editingMessageId, editingContent, token);
+      // Call backend API to update message
+      const updatedMessage = await chatApi.updateMessage(editingMessageId, editingContent.trim(), token);
 
-      // Update local state for now
+      // Update local state with the response from the server
       setMessages((prevMessages) =>
         prevMessages.map((msg) =>
           msg._id === editingMessageId
-            ? { ...msg, content: editingContent, isEdited: true }
+            ? { ...msg, content: updatedMessage.content, isEdited: true, editedAt: updatedMessage.editedAt || new Date().toISOString() }
             : msg,
         ),
       );
@@ -1070,6 +1162,7 @@ const Messages: React.FC = () => {
     } catch (error) {
       console.error("Failed to edit message:", error);
       // Handle error (show toast notification, etc.)
+      alert("Failed to edit message. Please try again.");
     }
   };
 
@@ -1105,34 +1198,7 @@ const Messages: React.FC = () => {
     const otherId = selectedConversation.otherUser._id;
     const callId = [user.id, otherId].sort().join(":");
     
-    // Send call notification to the other user first
-    try {
-      console.log("[video-call] Initiating call notification", { callId, targetUserId: otherId });
-      const { io } = await import("socket.io-client");
-      const SOCKET_BASE_URL = (import.meta.env.VITE_WS_URL as string).replace(/\/$/, '');
-      const url = SOCKET_BASE_URL.replace(/^http/, "ws");
-      const token = useAuthStore.getState().token;
-      
-      if (token) {
-        console.log("[video-call] Creating temporary socket connection");
-        const tempSocket = io(`${url}/video`, { auth: { token }, transports: ["websocket", "polling"] });
-        tempSocket.on("connect", () => {
-          console.log("[video-call] Temporary socket connected, sending initiate_call");
-          tempSocket.emit("initiate_call", { callId, targetUserId: otherId });
-          setTimeout(() => {
-            console.log("[video-call] Disconnecting temporary socket");
-            tempSocket.disconnect();
-          }, 1000); // Clean up after sending
-        });
-        tempSocket.on("connect_error", (error) => {
-          console.error("[video-call] Temporary socket connection error:", error);
-        });
-      } else {
-        console.warn("[video-call] No token available for call notification");
-      }
-    } catch (error) {
-      console.error("Failed to send call notification:", error);
-    }
+    // Note: Call notification will be sent when user clicks "Join Call" in the popup
     
     // Open the call popup
     console.log("[video-call] Call ID:", callId, "Target User:", otherId);
@@ -1358,90 +1424,47 @@ const Messages: React.FC = () => {
                 </div>
 
                 <div className="header-actions">
-                  <button className="action-button" aria-label="Call">
-                    <svg width="16" height="16" fill="none" viewBox="0 0 16 16">
-                      <path
-                        d="M3.654 1.328a.678.678 0 0 0-1.015-.063L1.605 2.3c-.483.484-.661 1.169-.45 1.77a17.568 17.568 0 0 0 4.168 6.608 17.569 17.569 0 0 0 6.608 4.168c.601.211 1.286.033 1.77-.45l1.034-1.034a.678.678 0 0 0-.063-1.015l-2.307-1.794a.678.678 0 0 0-.58-.122L9.804 10.5a.678.678 0 0 1-.55-.173L7.173 8.246a.678.678 0 0 1-.173-.55l.122-.58a.678.678 0 0 0-.122-.58L5.328 3.654z"
-                        fill="currentColor"
-                      />
-                    </svg>
-                  </button>
-                  <button
-                    className="action-button"
-                    aria-label="Video"
-                    onClick={() => {
-                      console.log("[video-call] Video call button clicked!");
-                      handleStartVideoCall();
-                    }}
+                  <div 
+                    className="relative group"
+                    title={activeCallId ? "Call already in progress" : "Start video call"}
                   >
-                    <svg width="16" height="16" fill="none" viewBox="0 0 16 16">
-                      <path
-                        d="M0 5a2 2 0 0 1 2-2h7.5a2 2 0 0 1 1.983 1.738l3.11-1.382A1 1 0 0 1 16 4.269v7.462a1 1 0 0 1-1.406.913l-3.111-1.382A2 2 0 0 1 9.5 13H2a2 2 0 0 1-2-2V5z"
-                        fill="currentColor"
-                      />
-                    </svg>
-                  </button>
-                  <div className="relative" ref={dropdownRef}>
                     <button
-                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                      className="action-button"
-                      aria-label="More options"
-                      aria-expanded={isDropdownOpen}
+                      className={`action-button ${activeCallId ? 'disabled' : ''}`}
+                      aria-label={activeCallId ? "Call in progress" : "Video Call"}
+                      disabled={!!activeCallId}
+                      onClick={() => {
+                        if (activeCallId) {
+                          console.log("[video-call] Call already in progress, ignoring click");
+                          return;
+                        }
+                        console.log("[video-call] Video call button clicked!");
+                        handleStartVideoCall();
+                      }}
+                      style={{
+                        opacity: activeCallId ? 0.5 : 1,
+                        cursor: activeCallId ? 'not-allowed' : 'pointer'
+                      }}
                     >
-                      <i
-                        className={`fas fa-chevron-${isDropdownOpen ? "up" : "down"}`}
-                      />
+                      <svg width="16" height="16" fill="none" viewBox="0 0 16 16">
+                        <path
+                          d="M0 5a2 2 0 0 1 2-2h7.5a2 2 0 0 1 1.983 1.738l3.11-1.382A1 1 0 0 1 16 4.269v7.462a1 1 0 0 1-1.406.913l-3.111-1.382A2 2 0 0 1 9.5 13H2a2 2 0 0 1-2-2V5z"
+                          fill="currentColor"
+                        />
+                      </svg>
                     </button>
-                    {isDropdownOpen && (
-                      <div
-                        className="cl-menu"
-                        role="menu"
-                        style={{
-                          position: "fixed",
-                          top: "16vh",
-                          left: "135vh",
-                          zIndex: 99999,
-                        }}
-                      >
-                        {user?.role === "tutor" && selectedConversation && (
-                          <button
-                            className="cl-menu__item"
-                            onClick={() => {
-                              openBookingModal({
-                                id: selectedConversation.otherUser._id,
-                                name:
-                                  selectedConversation.otherUser.profile
-                                    ?.name || "Student",
-                                surname:
-                                  selectedConversation.otherUser.profile
-                                    ?.surname || "",
-                                role: "student" as const,
-                                subjects:
-                                  selectedConversation.otherUser.profile
-                                    ?.subjects || [],
-                              });
-                              setIsDropdownOpen(false);
-                            }}
-                          >
-                            <i className="fas fa-calendar-plus" />
-                            <span>Schedule Session</span>
-                          </button>
-                        )}
-                        {user?.role === "tutor" && (
-                          <button
-                            className="cl-menu__item"
-                            onClick={() => {
-                              setIsClearModalOpen(true);
-                              setIsDropdownOpen(false);
-                            }}
-                          >
-                            <i className="fas fa-trash" />
-                            <span>Clear Messages</span>
-                          </button>
-                        )}
-                      </div>
-                    )}
+                    
                   </div>
+                  {user?.role === "tutor" && (
+                    <button
+                      className="action-button"
+                      aria-label="Delete Messages"
+                      onClick={() => {
+                        setIsClearModalOpen(true);
+                      }}
+                    >
+                      <i className="fas fa-trash" />
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -1581,7 +1604,7 @@ const Messages: React.FC = () => {
                                 className={`chat-bubble ${mine ? "mine" : "theirs"} ${mine ? "editable" : ""}`}
                                 title={new Date(msg.createdAt).toLocaleString()}
                               >
-                                {mine && (
+                                {mine && canEditMessage(msg) && (
                                   <button
                                     className="message-edit-btn"
                                     onClick={() =>

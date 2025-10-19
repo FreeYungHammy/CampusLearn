@@ -214,4 +214,30 @@ export const ChatController = {
       next(e);
     }
   },
+
+  updateMessage: async (req: AuthedRequest, res: Response, next: NextFunction) => {
+    try {
+      const { messageId } = req.params;
+      const { content } = req.body;
+      const userId = req.user?.id;
+
+      if (!content || !content.trim()) {
+        return res.status(400).json({ message: "Content is required." });
+      }
+
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required." });
+      }
+
+      const updatedMessage = await ChatService.updateMessage(messageId, content.trim(), userId);
+      
+      if (!updatedMessage) {
+        return res.status(404).json({ message: "Message not found or you don't have permission to edit it." });
+      }
+
+      res.json(updatedMessage);
+    } catch (e) {
+      next(e);
+    }
+  },
 };

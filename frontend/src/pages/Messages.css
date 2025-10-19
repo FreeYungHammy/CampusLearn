@@ -331,6 +331,17 @@
   background-color: #374151;
 }
 
+.action-button.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.action-button.disabled:hover {
+  transform: none !important;
+  background-color: transparent !important;
+}
+
 /* ---------- Scroll area ---------- */
 .chat-scroll {
   background: #f9fafb;
@@ -569,9 +580,11 @@
 
 .edited-indicator {
   font-size: 11px;
-  opacity: 0.7;
+  opacity: 0.8;
   font-style: italic;
   margin-left: 4px;
+  color: #6b7280;
+  font-weight: 400;
 }
 
 /* Dark theme adjustments for message editing */
@@ -585,6 +598,28 @@
 
 [data-theme="dark"] .message-edit-btn:hover {
   color: rgba(255, 255, 255, 0.9);
+}
+
+/* Edited indicator dark theme */
+[data-theme="dark"] .edited-indicator {
+  color: #9ca3af;
+  opacity: 0.9;
+}
+
+/* Edited indicator for different message types */
+.chat-bubble.mine .edited-indicator {
+  color: rgba(255, 255, 255, 0.7);
+  opacity: 0.8;
+}
+
+.chat-bubble.theirs .edited-indicator {
+  color: #6b7280;
+  opacity: 0.8;
+}
+
+[data-theme="dark"] .chat-bubble.theirs .edited-indicator {
+  color: #9ca3af;
+  opacity: 0.9;
 }
 .file-preview:hover {
   transform: translateY(-1px);
@@ -1360,6 +1395,134 @@
 
 [data-theme="dark"] .messages-root .custom-dropdown-item:hover {
   background: var(--muted);
+}
+
+/* ---------- Edit Message Styles ---------- */
+.message-edit-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin: 4px 0;
+}
+
+.message-edit-textarea {
+  width: 100%;
+  min-height: 60px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--card);
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.message-edit-textarea:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.message-edit-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.edit-cancel-btn,
+.edit-save-btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.edit-cancel-btn {
+  background: var(--muted);
+  color: var(--text);
+}
+
+.edit-cancel-btn:hover {
+  background: #9ca3af;
+}
+
+.edit-save-btn {
+  background: var(--blue);
+  color: white;
+}
+
+.edit-save-btn:hover:not(:disabled) {
+  background: var(--blue-600);
+}
+
+.edit-save-btn:disabled {
+  background: var(--muted);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.message-edit-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: rgba(0, 0, 0, 0.1);
+  color: var(--text);
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  opacity: 0;
+  transition: all 0.2s ease;
+}
+
+.chat-bubble.editable:hover .message-edit-btn {
+  opacity: 1;
+}
+
+.message-edit-btn:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.edited-indicator {
+  font-size: 11px;
+  color: var(--muted);
+  font-style: italic;
+  margin-left: 4px;
+}
+
+/* Dark theme adjustments */
+[data-theme="dark"] .message-edit-container {
+  background: var(--card);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .message-edit-textarea {
+  background: var(--card);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .message-edit-btn {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text);
+}
+
+[data-theme="dark"] .message-edit-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 /* ---------- Utility ---------- */
