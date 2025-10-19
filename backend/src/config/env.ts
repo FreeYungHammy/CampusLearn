@@ -46,6 +46,14 @@ export const env = {
   cdnBaseUrl: process.env.CDN_BASE_URL ?? "",
   cdnCacheTtl: Number(process.env.CDN_CACHE_TTL ?? 86400), // 24 hours
   cdnProvider: process.env.CDN_PROVIDER ?? "google-cloud",
+  
+  // Metered.ca Video Call Configuration
+  meteredAppName: process.env.METERED_APP_NAME,
+  meteredApiKey: process.env.METERED_API_KEY,
+  meteredTurnUsername: process.env.METERED_TURN_USERNAME,
+  meteredTurnPassword: process.env.METERED_TURN_PASSWORD,
+  meteredTurnExpirySeconds: Number(process.env.METERED_TURN_EXPIRY_SECONDS || 3600),
+  stunUrls: process.env.STUN_URLS || "stun:stun.l.google.com:19302",
   // Botpress
   botpressClientId: process.env.BOTPRESS_CLIENT_ID,
   botpressBotId: process.env.BOTPRESS_BOT_ID,

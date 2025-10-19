@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuthStore } from "@/store/authStore";
-import { io, Socket } from "socket.io-client";
+import { Socket } from "socket.io-client";
+import { SocketManager } from "../services/socketManager";
 
 interface IncomingCall {
   callId: string;
@@ -17,49 +18,54 @@ export function useCallNotifications() {
   useEffect(() => {
     if (!token || !user) return;
 
-    // Hardcode the URL to avoid environment variable issues
     const SOCKET_BASE_URL = (import.meta.env.VITE_WS_URL as string).replace(/\/$/, "");
-    const url = SOCKET_BASE_URL.replace(/^http/, "ws");
-    
-    const newSocket = io(`${url}/video`, { 
-      auth: { token }, 
-      transports: ["websocket", "polling"] 
-    });
-    
-    setSocket(newSocket);
+    console.log("[call-notifications] Initializing with centralized manager");
 
-    // Listen for incoming call notifications
-    newSocket.on("incoming_call", (data: { 
-      callId: string; 
-      fromUserId: string; 
-      fromUserName: string; 
-    }) => {
-      console.log("[call-notifications] Incoming call:", data);
-      setIncomingCall({
-        callId: data.callId,
-        fromUserId: data.fromUserId,
-        fromUserName: data.fromUserName,
-        timestamp: new Date(),
+    // Initialize socket manager if not already done
+    if (!SocketManager.isSocketConnected()) {
+      SocketManager.initialize({
+        url: SOCKET_BASE_URL,
+        token: token,
       });
-    });
+    }
 
-    newSocket.on("connect", () => {
-      console.log("[call-notifications] Connected to video namespace");
-    });
+    // Get video socket from manager
+    const videoSocket = SocketManager.getVideoSocket();
+    if (!videoSocket) {
+      console.error("[call-notifications] Failed to get video socket from manager");
+      setSocket(null);
+      return;
+    }
 
-    newSocket.on("disconnect", () => {
-      console.log("[call-notifications] Disconnected from video namespace");
-    });
+    setSocket(videoSocket);
 
-    newSocket.on("call_cancelled", (data: { callId: string }) => {
-      console.log("[call-notifications] Call cancelled:", data);
-      if (incomingCall?.callId === data.callId) {
-        setIncomingCall(null);
-      }
+    // Register call notification handlers with the centralized socket manager
+    SocketManager.registerHandlers({
+      video: {
+        onIncomingCall: (data: { 
+          callId: string; 
+          fromUserId: string; 
+          fromUserName: string; 
+        }) => {
+          console.log("[call-notifications] Incoming call:", data);
+          setIncomingCall({
+            callId: data.callId,
+            fromUserId: data.fromUserId,
+            fromUserName: data.fromUserName,
+            timestamp: new Date(),
+          });
+        },
+        onCallCancelled: (data: { callId: string }) => {
+          console.log("[call-notifications] Call cancelled:", data);
+          if (incomingCall?.callId === data.callId) {
+            setIncomingCall(null);
+          }
+        },
+      },
     });
 
     return () => {
-      newSocket.disconnect();
+      // Don't disconnect the socket - let the manager handle it
       setSocket(null);
     };
   }, [token, user]);

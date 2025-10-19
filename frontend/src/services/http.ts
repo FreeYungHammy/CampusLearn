@@ -2,10 +2,11 @@ import axios from "axios";
 import { useAuthStore } from "../store/authStore";
 import { redirect } from "react-router-dom";
 
-const baseURL = (import.meta.env.VITE_API_URL as string).replace(/\/$/, "") + "/api";
+import { getApiUrl } from "../config/env";
+
+const baseURL = getApiUrl("/api");
 
 console.log('🔧 HTTP Service - BaseURL:', baseURL);
-console.log('🔧 HTTP Service - VITE_API_URL env:', import.meta.env.VITE_API_URL);
 
 const http = axios.create({
   baseURL, // ← actually use it

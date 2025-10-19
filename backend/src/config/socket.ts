@@ -53,10 +53,7 @@ export function createSocketServer(httpServer: HttpServer) {
 
   // Keep default-namespace demo handlers if you actually use them elsewhere.
   io.on("connection", (socket) => {
-    console.log(
-      "Backend: New client connected to main namespace. Socket ID:",
-      socket.id,
-    );
+    // Removed verbose connection logging
     socket.on("messages:get", ({ peerId }) => {
       io.to(socket.id).emit("messages:history", []);
     });
@@ -109,12 +106,7 @@ export function createSocketServer(httpServer: HttpServer) {
 
   chat.on("connection", (socket) => {
     const userId = socket.data.user?.id;
-    console.log(
-      "Backend: New client connected to /chat namespace. Socket ID:",
-      socket.id,
-      "User:",
-      userId,
-    );
+    // Removed verbose chat connection logging
 
     // Track connected user
     if (userId) {
@@ -134,7 +126,7 @@ export function createSocketServer(httpServer: HttpServer) {
 
     socket.on("join_room", async (chatId: string) => {
       socket.join(chatId);
-      console.log(`joined room: ${chatId}`);
+      // Removed verbose room join logging
       
       // Emit current user's online status to all users in this room
       if (userId) {
@@ -154,15 +146,14 @@ export function createSocketServer(httpServer: HttpServer) {
         .map(s => s.data.user?.id)
         .filter(Boolean);
       
-      console.log(`Room ${chatId} has ${roomUserIds.length} users:`, roomUserIds);
-      console.log(`Joining user ${userId} will receive status for:`, roomUserIds.filter(id => id !== userId));
+      // Removed verbose room status logging
       
       // Send status of all users currently in this room
       for (const roomUserId of roomUserIds) {
         if (roomUserId !== userId) { // Don't send own status
           const status = connectedUsers.get(roomUserId);
           if (status) {
-            console.log(`Sending online status for ${roomUserId} to ${userId}`);
+            // Removed verbose status sending logging
             socket.emit("user_status_change", {
               userId: roomUserId,
               status: "online",
@@ -177,7 +168,7 @@ export function createSocketServer(httpServer: HttpServer) {
 
     socket.on("leave_room", (chatId: string) => {
       socket.leave(chatId);
-      console.log(`left room: ${chatId}`);
+      // Removed verbose room leave logging
     });
 
     socket.on("send_message", async (data: SendMessagePayload, ack) => {
@@ -209,7 +200,7 @@ export function createSocketServer(httpServer: HttpServer) {
 
     socket.on("disconnect", () => {
       const userId = socket.data.user?.id;
-      console.log("user disconnected from /chat", socket.id, "User:", userId);
+      // Removed verbose disconnect logging
 
       // Remove user from connected users and emit offline status
       if (userId) {
@@ -271,7 +262,9 @@ export function createSocketServer(httpServer: HttpServer) {
     // join_call: client joins a signaling room for a given callId
     // payload: { callId: string }
     socket.on("join_call", async ({ callId, role }: { callId: string; role?: "tutor"|"student"|"guest" }) => {
-      console.log("[/video] join_call", { socket: socket.id, userId, callId, role });
+      if (process.env.NODE_ENV !== 'production') {
+        console.log("[/video] join_call", { socket: socket.id, userId, callId, role });
+      }
       if (!callId) return;
       if (!rateLimit || !rateLimit.allowEvent(socket.id, "video:join")) return;
       socket.join(callId);
@@ -290,7 +283,9 @@ export function createSocketServer(httpServer: HttpServer) {
 
     // initiate_call: start a call and notify the other participant
     socket.on("initiate_call", async ({ callId, targetUserId }: { callId: string; targetUserId: string }) => {
-      console.log("[/video] initiate_call", { socket: socket.id, userId, callId, targetUserId });
+      if (process.env.NODE_ENV !== 'production') {
+        console.log("[/video] initiate_call", { socket: socket.id, userId, callId, targetUserId });
+      }
       if (!callId || !targetUserId) return;
       if (!rateLimit || !rateLimit.allowEvent(socket.id, "video:initiate")) return;
       
@@ -327,7 +322,9 @@ export function createSocketServer(httpServer: HttpServer) {
 
     // decline_call: handle call decline
     socket.on("decline_call", ({ callId, fromUserId }: { callId: string; fromUserId: string }) => {
-      console.log("[/video] decline_call", { socket: socket.id, userId, callId, fromUserId });
+      if (process.env.NODE_ENV !== 'production') {
+        console.log("[/video] decline_call", { socket: socket.id, userId, callId, fromUserId });
+      }
       if (!callId || !fromUserId) return;
       
       // Notify the caller that the call was declined
@@ -342,14 +339,18 @@ export function createSocketServer(httpServer: HttpServer) {
     socket.on("signal", ({ callId, data }: { callId: string; data: unknown }) => {
       if (!callId) return;
       if (!rateLimit || !rateLimit.allowEvent(socket.id, "video:signal")) return;
-      console.log("[/video] signal", { socket: socket.id, type: (data as any)?.type, callId });
+      if (process.env.NODE_ENV !== 'production') {
+        console.log("[/video] signal", { socket: socket.id, type: (data as any)?.type, callId });
+      }
       socket.to(callId).emit("signal", { fromUserId: userId, data });
     });
 
     // leave_call: remove from room and notify others
     // payload: { callId: string }
     socket.on("leave_call", async ({ callId }: { callId: string }) => {
-      console.log("[/video] leave_call", { socket: socket.id, userId, callId });
+      if (process.env.NODE_ENV !== 'production') {
+        console.log("[/video] leave_call", { socket: socket.id, userId, callId });
+      }
       if (!callId) return;
       if (!rateLimit || !rateLimit.allowEvent(socket.id, "video:leave")) return;
       socket.leave(callId);

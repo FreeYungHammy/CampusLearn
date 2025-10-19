@@ -10,12 +10,14 @@ export const CacheService = {
       const data = await redis.get(key);
       const duration = Date.now() - startTime;
       if (data) {
-        if (logLevel === 'debug') {
+        // Only log cache hits in development
+        if (process.env.NODE_ENV !== 'production' && logLevel === 'debug') {
           logger.debug(`[CACHE HIT] Key: ${key}, Time: ${duration}ms`);
         }
         return JSON.parse(data) as T;
       }
-      if (logLevel === 'info') {
+      // Only log cache misses in development
+      if (process.env.NODE_ENV !== 'production' && logLevel === 'info') {
         logger.info(`[CACHE MISS] Key: ${key}, Time: ${duration}ms`);
       }
       return null;
@@ -34,7 +36,10 @@ export const CacheService = {
     try {
       await redis.setex(key, ttlSeconds, JSON.stringify(value));
       const duration = Date.now() - startTime;
-      logger.info(`[CACHE SET] Key: ${key}, TTL: ${ttlSeconds}s, Time: ${duration}ms`);
+      // Only log cache sets in development
+      if (process.env.NODE_ENV !== 'production') {
+        logger.info(`[CACHE SET] Key: ${key}, TTL: ${ttlSeconds}s, Time: ${duration}ms`);
+      }
     } catch (error) {
       logger.error(`Error setting cache for key ${key}:`, error);
       // Fail gracefully
