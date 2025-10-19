@@ -302,13 +302,15 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
             }
           }}
           style={{
-            width: videoDimensions ? `${videoDimensions.width}px` : "100%",
-            height: videoDimensions ? `${videoDimensions.height}px` : "100%",
+            width: "100%",
+            height: "auto",
             maxWidth: "100%",
             maxHeight: "100%",
             opacity: loading ? 0 : 1,
             transition: "opacity 0.3s ease",
             objectFit: "contain", // Ensure video fits properly
+            display: "block",
+            margin: "0 auto",
           }}
           title={title}
         >
