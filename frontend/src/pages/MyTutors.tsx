@@ -10,6 +10,7 @@ import UnsubscribeConfirmationModal from "../components/UnsubscribeConfirmationM
 import TutorBookingModal from "../components/TutorBookingModal";
 import AnimatedList from "../components/AnimatedList";
 import PageHeader from "../components/PageHeader";
+import TutorRating from "../components/TutorRating";
 
 const MyTutors = () => {
   const [tutors, setTutors] = useState<Tutor[]>([]);
@@ -443,6 +444,12 @@ const MyTutors = () => {
                         ({tutor.rating.count})
                       </span>
                     </div>
+                  </div>
+                  <div className="tutor-rating-inline">
+                    <TutorRating 
+                      tutorId={tutor.id} 
+                      size="small"
+                    />
                   </div>
                 </div>
 

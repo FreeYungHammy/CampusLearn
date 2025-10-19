@@ -33,6 +33,26 @@ export interface HealthScore {
   message: string;
 }
 
+export interface TutorBill {
+  tutorId: string;
+  tutorName: string;
+  tutorEmail: string;
+  totalHours: number;
+  hourlyRate: number;
+  totalAmount: number;
+  completedBookings: number;
+  month: string;
+  year: number;
+}
+
+export interface BillsData {
+  tutors: TutorBill[];
+  totalHours: number;
+  totalAmount: number;
+  month: string;
+  year: number;
+}
+
 export const adminApi = {
   async getAdminStats(token: string): Promise<AdminStats> {
     const response = await api.get("/users/admin/stats", {
@@ -130,5 +150,24 @@ export const adminApi = {
         Authorization: `Bearer ${token}`,
       },
     });
+  },
+
+  // Billing API methods
+  async getAvailableBillingMonths(token: string): Promise<{ month: string; year: number }[]> {
+    const response = await api.get("/admin/billing/months", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  },
+
+  async getTutorBills(token: string, month: string, year: number): Promise<BillsData> {
+    const response = await api.get(`/admin/billing/tutors?month=${encodeURIComponent(month)}&year=${year}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
   },
 };

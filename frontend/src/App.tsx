@@ -14,6 +14,7 @@ import Upload from "./pages/Upload";
 import TutorContentView from "./pages/Tutors/TutorContentView";
 import Settings from "./pages/Settings";
 import AdminUsers from "./pages/AdminUsers";
+import AdminBills from "./pages/AdminBills";
 import AdminTutorApplications from "./pages/AdminTutorApplications";
 import DatabaseTools from "./pages/DatabaseTools";
 import Bookings from "./pages/Bookings";
@@ -89,6 +90,7 @@ function App() {
                 path="/admin/tutor-applications"
                 element={<AdminTutorApplications />}
               />
+              <Route path="/admin/bills" element={<AdminBills />} />
               <Route path="/database-tools" element={<DatabaseTools />} />
             </Route>
           </Route>
