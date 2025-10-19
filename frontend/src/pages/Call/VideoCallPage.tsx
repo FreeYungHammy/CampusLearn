@@ -3,21 +3,26 @@ import { useParams, useSearchParams } from "react-router-dom";
 import { VideoCallPanel } from "../../components/video-call/VideoCallPanel";
 import { CallControls } from "../../components/video-call/CallControls";
 import { PreJoinPanel } from "../../components/video-call/PreJoinPanel";
+import { LeaveConfirmationModal } from "../../components/video-call/LeaveConfirmationModal";
 import "../../components/video-call/call.css";
 import { usePeerConnection } from "../../hooks/webrtc/usePeerConnection";
 import { useVideoSignaling } from "../../hooks/webrtc/useVideoSignaling";
 import { useAuthStore } from "../../store/authStore";
+import { useCallStore } from "../../store/callStore";
 import { SocketManager } from "../../services/socketManager";
 
 export const VideoCallPage: React.FC = () => {
   const { callId } = useParams();
   const [searchParams] = useSearchParams();
   const { token, user } = useAuthStore();
+  const { setActiveCallId, clearActiveCallId } = useCallStore();
   const pc = usePeerConnection();
   const signaling = useVideoSignaling(callId, token || undefined);
   const [error, setError] = useState<string | null>(null);
   const [prejoinDone, setPrejoinDone] = useState(false);
   const [pendingInit, setPendingInit] = useState<{ audioDeviceId?: string; videoDeviceId?: string } | null>(null);
+  const [remotePeerJoined, setRemotePeerJoined] = useState(false);
+  const [showLeaveConfirmation, setShowLeaveConfirmation] = useState(false);
 
   useEffect(() => {
     document.title = `Call • ${callId ?? "Unknown"}`;
@@ -206,12 +211,35 @@ export const VideoCallPage: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [callId, token, prejoinDone, pendingInit]);
 
+  // Monitor remote stream to update remotePeerJoined state
+  useEffect(() => {
+    if (pc.remoteStream) {
+      setRemotePeerJoined(true);
+    }
+  }, [pc.remoteStream]);
+
+  // Set active call ID when component mounts
+  useEffect(() => {
+    if (callId) {
+      setActiveCallId(callId);
+    }
+    
+    // Clear active call ID when component unmounts
+    return () => {
+      clearActiveCallId();
+    };
+  }, [callId, setActiveCallId, clearActiveCallId]);
+
   // Placeholder shell; hooks/components will be wired next
   return (
     <div className="cl-call-root">
       <header className="cl-call-header">
-        <div>CampusLearn • Call</div>
-        <div style={{ opacity: 0.7 }}>{callId}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/>
+          </svg>
+          <span>CampusLearn</span>
+        </div>
       </header>
       <main className="cl-stage">
         {!prejoinDone ? (
@@ -227,9 +255,15 @@ export const VideoCallPage: React.FC = () => {
           />
         ) : (
           <>
-            <VideoCallPanel localStream={pc.localStream} remoteStream={pc.remoteStream} />
-            <div style={{ position: "absolute", left: 16, bottom: 16, backdropFilter: "blur(6px)", background: "rgba(255,255,255,0.08)", padding: "8px 10px", borderRadius: 8, fontSize: 12 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+            <VideoCallPanel 
+              localStream={pc.localStream} 
+              remoteStream={pc.remoteStream} 
+              remotePeerJoined={remotePeerJoined}
+              localVideoEnabled={pc.videoEnabled}
+            />
+            {/* User-friendly connection status */}
+            <div style={{ position: "absolute", left: 16, bottom: 16, backdropFilter: "blur(6px)", background: "rgba(255,255,255,0.08)", padding: "8px 12px", borderRadius: 8, fontSize: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <div style={{ 
                   width: 8, 
                   height: 8, 
@@ -238,23 +272,19 @@ export const VideoCallPage: React.FC = () => {
                                  pc.connectionQuality.status === 'good' ? '#3b82f6' :
                                  pc.connectionQuality.status === 'fair' ? '#f59e0b' : '#ef4444'
                 }} />
-                <span style={{ fontWeight: 500 }}>{pc.connectionQuality.details}</span>
-                {pc.isReconnecting && (
-                  <span style={{ color: '#f59e0b', fontSize: 10 }}>🔄 Reconnecting...</span>
-                )}
+                <span style={{ fontWeight: 500, color: 'white' }}>
+                  {pc.isReconnecting ? 'Reconnecting...' : 
+                   pc.connectionQuality.status === 'excellent' ? 'Excellent' :
+                   pc.connectionQuality.status === 'good' ? 'Good' :
+                   pc.connectionQuality.status === 'fair' ? 'Fair' : 'Poor'} Connection
+                </span>
               </div>
-              <div>Signaling: {pc.pcState}</div>
-              <div>ICE Conn: {pc.iceConnState}</div>
-              <div>ICE Gather: {pc.iceGatherState}</div>
-              {pc.reconnectAttempts > 0 && (
-                <div style={{ color: '#f59e0b' }}>Reconnect attempts: {pc.reconnectAttempts}/3</div>
-              )}
             </div>
             <CallControls
               onToggleMic={() => pc.toggleMic()}
               onToggleCam={() => pc.toggleCam()}
               onToggleScreenshare={() => pc.toggleScreenShare()}
-              onLeave={() => window.close()}
+              onLeave={() => setShowLeaveConfirmation(true)}
               onReconnect={() => pc.attemptReconnection()}
               micOn={pc.audioEnabled}
               camOn={pc.videoEnabled}
@@ -267,6 +297,16 @@ export const VideoCallPage: React.FC = () => {
       {error && (
         <div style={{ position: "absolute", top: 20, left: "50%", transform: "translateX(-50%)", background: "#e74c3c", color: "#fff", padding: "8px 12px", borderRadius: 6 }}>{error}</div>
       )}
+      
+      <LeaveConfirmationModal
+        isOpen={showLeaveConfirmation}
+        onClose={() => setShowLeaveConfirmation(false)}
+        onConfirm={() => {
+          setShowLeaveConfirmation(false);
+          clearActiveCallId();
+          window.close();
+        }}
+      />
     </div>
   );
 };
