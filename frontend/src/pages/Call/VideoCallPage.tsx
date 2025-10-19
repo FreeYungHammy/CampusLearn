@@ -27,17 +27,23 @@ export const VideoCallPage: React.FC = () => {
   useEffect(() => {
     (async () => {
       if (!prejoinDone || !pendingInit) return;
-      try {
-        console.log("[webrtc] Starting peer connection initialization...");
-        await pc.init(pendingInit);
-        console.log("[webrtc] Peer connection initialization completed");
-        console.log("[webrtc] PC ref after init:", !!pc.pcRef.current);
-        console.log("[webrtc] PC ref current value:", pc.pcRef.current);
-        console.log("[webrtc] PC ref type:", typeof pc.pcRef.current);
+        try {
+          console.log("[webrtc] Starting peer connection initialization...");
+          await pc.init(); // Initialize peer connection without media
+          console.log("[webrtc] Peer connection initialization completed");
+          
+          // Add local stream with selected devices
+          console.log("[webrtc] Adding local stream with devices:", pendingInit);
+          await pc.addLocalStream(pendingInit);
+          console.log("[webrtc] Local stream added successfully");
+          
+          console.log("[webrtc] PC ref after init:", !!pc.pcRef.current);
+          console.log("[webrtc] PC ref current value:", pc.pcRef.current);
+          console.log("[webrtc] PC ref type:", typeof pc.pcRef.current);
 
         // outbound ICE
-            const peerConnection = pc.pcRef.current;
-            if (peerConnection) {
+        const peerConnection = pc.pcRef.current;
+        if (peerConnection) {
               peerConnection.onicecandidate = (e) => {
                 if (e.candidate) {
                   console.log("[webrtc] local ice-candidate", e.candidate.type, e.candidate.protocol);

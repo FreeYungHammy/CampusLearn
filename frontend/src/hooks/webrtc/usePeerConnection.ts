@@ -7,7 +7,6 @@ type InitOptions = { audioDeviceId?: string; videoDeviceId?: string };
 
 export function usePeerConnection() {
   const pcRef = useRef<RTCPeerConnection | null>(null);
-  const [peerConnection, setPeerConnection] = useState<RTCPeerConnection | null>(null);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const videoSenderRef = useRef<RTCRtpSender | null>(null);
@@ -37,7 +36,6 @@ export function usePeerConnection() {
     return () => {
       pcRef.current?.close();
       pcRef.current = null;
-      setPeerConnection(null);
       localStreamRef.current?.getTracks().forEach((t) => t.stop());
     };
   }, []); // Empty dependency array - cleanup only on unmount
@@ -60,7 +58,6 @@ export function usePeerConnection() {
       
       pc = new RTCPeerConnection({ iceServers: cfg.iceServers });
       pcRef.current = pc;
-      setPeerConnection(pc);
       console.log('[webrtc] Peer connection created successfully');
       console.log('[webrtc] PC ref set to:', !!pcRef.current);
       console.log('[webrtc] PC ref current value:', pcRef.current);
@@ -143,6 +140,13 @@ export function usePeerConnection() {
       console.log("[webrtc] iceGatheringState:", pc.iceGatheringState);
     };
 
+    // Media will be added separately via addLocalStream function
+    // This allows the peer connection to be initialized without requesting media immediately
+  };
+
+  const addLocalStream = async (opts: InitOptions = {}) => {
+    if (!pcRef.current) throw new Error("PC not initialized");
+    
     const media = await navigator.mediaDevices.getUserMedia({
       audio: opts.audioDeviceId ? { deviceId: { exact: opts.audioDeviceId } } : true,
       video: {
@@ -152,12 +156,13 @@ export function usePeerConnection() {
         frameRate: 30,
       } as MediaTrackConstraints,
     });
+    
     media.getAudioTracks().forEach((t) => {
-      const s = pc.addTrack(t, media);
+      const s = pcRef.current!.addTrack(t, media);
       if (t.kind === "audio") audioSenderRef.current = s;
     });
     media.getVideoTracks().forEach((t) => {
-      const s = pc.addTrack(t, media);
+      const s = pcRef.current!.addTrack(t, media);
       if (t.kind === "video") videoSenderRef.current = s;
     });
     setLocalStream(media);
@@ -296,7 +301,6 @@ export function usePeerConnection() {
 
   return {
     pcRef,
-    peerConnection, // Add the state variable
     localStream,
     remoteStream,
     pcState,
@@ -307,6 +311,7 @@ export function usePeerConnection() {
     isReconnecting,
     attemptReconnection,
     init,
+    addLocalStream, // Add the missing function
     createOffer,
     createAnswer,
     setRemoteDescription,
@@ -319,8 +324,6 @@ export function usePeerConnection() {
     videoEnabled,
     audioEnabled,
     isScreenSharing,
-    // Add getter for current peer connection
-    getPeerConnection: () => peerConnection,
   };
 }
 
