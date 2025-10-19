@@ -628,7 +628,7 @@ const TutorContentView = () => {
                       src={fileUrl}
                       title={selectedFile.title}
                       fileId={fileId}
-                      style={{ width: "100%", height: "100%" }}
+                      style={{ width: "auto", height: "auto" }}
                     />
                   );
                 }

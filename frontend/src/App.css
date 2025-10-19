@@ -8962,10 +8962,10 @@ body.mobile-menu-open {
 }
 
 .content-viewer-modal {
-  max-width: 95vw;
-  max-height: 95vh;
+  max-width: 90vw; /* Leave more space on sides */
+  max-height: 85vh; /* Leave more space top/bottom */
   width: 70%;
-  height: 80%;
+  height: 75%; /* Reduce height to leave space for controls */
   min-width: 200px;
   min-height: 100px;
   transition:
@@ -9027,11 +9027,15 @@ body.mobile-menu-open {
   padding: 10px;
 }
 
-/* Special styling for image content in modal - remove height constraints */
+/* Special styling for content viewer modals - ensure controls are never cut off */
 .content-viewer-modal .modal-body {
   max-height: none;
   overflow: visible;
-  padding: 5px;
+  padding: 0; /* Remove padding to let video fill entire space */
+  height: calc(100% - 80px); /* Account for modal header */
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 80px; /* Add extra space for video controls */
 }
 
 .content-viewer-modal .modal-body img {

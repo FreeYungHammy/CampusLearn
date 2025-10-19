@@ -288,29 +288,18 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
             const video = e.target as HTMLVideoElement;
             console.log(`📊 Video metadata loaded - ready to play`);
             
-            // Calculate optimal dimensions when metadata is loaded
-            if (containerRef.current && video.videoWidth && video.videoHeight) {
-              const containerRect = containerRef.current.getBoundingClientRect();
-              const optimalDimensions = calculateOptimalDimensions(
-                video.videoWidth,
-                video.videoHeight,
-                containerRect.width,
-                containerRect.height
-              );
-              setVideoDimensions(optimalDimensions);
-              console.log(`📐 Calculated optimal dimensions: ${optimalDimensions.width}x${optimalDimensions.height}`);
-              
-              // Set container height to accommodate video + controls (add ~60px for controls)
-              const containerHeight = optimalDimensions.height + 60;
-              if (containerRef.current) {
-                containerRef.current.style.height = `${containerHeight}px`;
-                console.log(`📏 Set container height to: ${containerHeight}px`);
-              }
+            // Store video dimensions for reference
+            if (video.videoWidth && video.videoHeight) {
+              setVideoDimensions({
+                width: video.videoWidth,
+                height: video.videoHeight
+              });
+              console.log(`📐 Video dimensions: ${video.videoWidth}x${video.videoHeight}`);
             }
           }}
           style={{
             width: "100%",
-            height: "auto",
+            height: "100%", /* Fill the container height */
             maxWidth: "100%",
             maxHeight: "100%",
             opacity: loading ? 0 : 1,
