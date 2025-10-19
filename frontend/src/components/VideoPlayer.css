@@ -1,65 +1,38 @@
 .video-player-container {
   position: relative;
   width: 100%;
-  height: 400px; /* Increased height to prevent clipping */
-  min-height: 250px; /* Increased minimum height */
+  height: auto; /* Let video determine height */
+  min-height: 200px; /* Minimum height for placeholder */
   background: #000;
   border-radius: 8px;
   overflow: hidden; /* Prevent overflow issues */
   /* Ensure all content stays within bounds */
   contain: layout style paint;
-  /* Reduce padding to give more space to video */
-  padding-bottom: 40px; /* Reduced padding for video controls */
+  /* Remove padding - let video controls overlay */
   box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  align-items: center; /* Center the video horizontally */
-  justify-content: center; /* Center the video vertically */
+  display: block; /* Use block layout instead of flex */
 }
 
 /* Ensure video element doesn't cut off controls */
 .video-player-container video {
   object-fit: contain;
-  /* Remove fixed height calculation, let dynamic sizing handle it */
   width: 100%;
-  height: auto;
+  height: auto; /* Let video determine its own height based on aspect ratio */
   max-width: 100%;
-  max-height: calc(100% - 40px); /* Account for reduced control padding */
   display: block; /* Remove any inline spacing */
   margin: 0 auto; /* Center horizontally */
 }
 
-/* Responsive padding for different screen sizes */
-@media (max-height: 600px) {
-  .video-player-container {
-    height: 350px;
-    padding-bottom: 35px; /* Smaller padding for smaller screens */
-    min-height: 200px;
-  }
-}
-
-@media (max-height: 500px) {
-  .video-player-container {
-    height: 300px;
-    padding-bottom: 30px; /* Even smaller padding for very small screens */
-    min-height: 180px;
-  }
-}
-
-/* Responsive sizing for different screen widths */
+/* Responsive constraints for different screen sizes */
 @media (max-width: 768px) {
   .video-player-container {
-    height: 350px;
-    min-height: 200px;
-    padding-bottom: 35px;
+    min-height: 150px;
   }
 }
 
 @media (max-width: 480px) {
   .video-player-container {
-    height: 300px;
-    min-height: 180px;
-    padding-bottom: 30px;
+    min-height: 120px;
   }
 }
 
