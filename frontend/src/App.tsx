@@ -16,6 +16,7 @@ import Settings from "./pages/Settings";
 import AdminUsers from "./pages/AdminUsers";
 import AdminTutorApplications from "./pages/AdminTutorApplications";
 import DatabaseTools from "./pages/DatabaseTools";
+import Bookings from "./pages/Bookings";
 import Login from "./pages/Auth/Login";
 import Register from "./pages/Auth/Register";
 import ForgotPassword from "./pages/Auth/ForgotPassword";
@@ -80,6 +81,7 @@ function App() {
               <Route path="/forum" element={<Forum />} />
               <Route path="/forum/:threadId" element={<ForumTopic />} />
               <Route path="/messages" element={<Messages />} />
+              <Route path="/bookings" element={<Bookings />} />
               <Route path="/upload" element={<Upload />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/users" element={<AdminUsers />} />
