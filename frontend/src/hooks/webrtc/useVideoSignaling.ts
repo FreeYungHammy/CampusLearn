@@ -1,65 +1,117 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { io, Socket } from "socket.io-client";
-
-type SignalData = { type: string; sdp?: string; candidate?: RTCIceCandidateInit };
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { Socket } from "socket.io-client";
+import { SocketManager, type SignalData } from "../../services/socketManager";
 
 export function useVideoSignaling(callId: string | undefined, token: string | undefined) {
   const [connected, setConnected] = useState(false);
   const socketRef = useRef<Socket | null>(null);
+  const handlersRef = useRef<{
+    onPeerJoined?: (payload: { userId?: string }) => void;
+    onPeerLeft?: (payload: { userId?: string }) => void;
+    onSignal?: (payload: { fromUserId?: string; data: SignalData }) => void;
+  }>({});
 
   useEffect(() => {
     if (!token) {
       console.warn("[signal] no token available for /video namespace");
       return;
     }
-    const url = (import.meta.env.VITE_WS_URL as string).replace(/\/$/, "");
-    console.log("[signal] connecting", { url: `${url}/video`, hasToken: !!token });
-    const socket = io(`${url}/video`, { auth: { token }, transports: ["websocket", "polling"] });
-    socketRef.current = socket;
 
-    socket.on("connect", () => setConnected(true));
-    socket.on("disconnect", () => setConnected(false));
-    socket.on("connect_error", (e: any) => {
-      console.warn("[signal] connect_error", e?.message || e);
+    const url = (import.meta.env.VITE_WS_URL as string).replace(/\/$/, "");
+    console.log("[signal] initializing with centralized manager", { url, hasToken: !!token });
+
+    // Initialize socket manager if not already done
+    if (!SocketManager.isSocketConnected()) {
+      SocketManager.initialize({
+        url: url,
+        token: token,
+      });
+    }
+
+    // Get video socket from manager
+    const videoSocket = SocketManager.getVideoSocket();
+    if (!videoSocket) {
+      console.error("[signal] Failed to get video socket from manager");
+      setConnected(false);
+      return;
+    }
+
+    socketRef.current = videoSocket;
+
+    // Register video event handlers
+    SocketManager.registerHandlers({
+      video: {
+        onConnectionChange: (connected: boolean) => {
+          console.log(`[signal] Connection state changed: ${connected}`);
+          setConnected(connected);
+        },
+        onSignal: (payload: { fromUserId?: string; data: SignalData }) => {
+          console.log("[signal] Received signal:", payload.data?.type, payload);
+          if (payload.data?.type === 'ice-candidate') {
+            console.log("[signal] Remote ICE candidate received");
+          } else if (payload.data?.type === 'offer') {
+            console.log("[signal] Remote offer received");
+          } else if (payload.data?.type === 'answer') {
+            console.log("[signal] Remote answer received");
+          }
+          // Call registered handler if any
+          handlersRef.current.onSignal?.(payload);
+        },
+        onPeerJoined: (payload: { userId?: string }) => {
+          console.log("[signal] Peer joined:", payload);
+          handlersRef.current.onPeerJoined?.(payload);
+        },
+        onPeerLeft: (payload: { userId?: string }) => {
+          console.log("[signal] Peer left:", payload);
+          handlersRef.current.onPeerLeft?.(payload);
+        },
+      },
     });
 
+    setConnected(videoSocket.connected);
+
     return () => {
-      socket.disconnect();
+      // Don't disconnect the socket - let the manager handle it
+      // Just clear our reference
       socketRef.current = null;
     };
   }, [token]);
 
-  const join = (role?: "tutor" | "student" | "guest") => {
+  const join = useCallback((role?: "tutor" | "student" | "guest") => {
     if (!socketRef.current || !callId) return;
     console.log("[signal] emit join_call", { callId, role });
     socketRef.current.emit("join_call", { callId, role });
-  };
-  const leave = () => {
+  }, [callId]);
+
+  const leave = useCallback(() => {
     if (!socketRef.current || !callId) return;
     console.log("[signal] emit leave_call", { callId });
     socketRef.current.emit("leave_call", { callId });
-  };
-  const sendSignal = (data: SignalData) => {
+  }, [callId]);
+
+  const sendSignal = useCallback((data: SignalData) => {
     if (!socketRef.current || !callId) return;
-    console.log("[signal] emit", data?.type);
+    console.log("[signal] emit", data?.type, data);
     socketRef.current.emit("signal", { callId, data });
-  };
+  }, [callId]);
 
-  const onPeerJoined = (handler: (payload: { userId?: string }) => void) => {
-    socketRef.current?.on("peer_joined", (p) => { console.log("[signal] peer_joined", p); handler(p); });
-  };
-  const onPeerLeft = (handler: (payload: { userId?: string }) => void) => {
-    socketRef.current?.on("peer_left", (p) => { console.log("[signal] peer_left", p); handler(p); });
-  };
-  const onSignal = (handler: (payload: { fromUserId?: string; data: SignalData }) => void) => {
-    socketRef.current?.on("signal", (p) => { console.log("[signal] inbound", p?.data?.type); handler(p); });
-  };
+  const onPeerJoined = useCallback((handler: (payload: { userId?: string }) => void) => {
+    handlersRef.current.onPeerJoined = handler;
+  }, []);
 
-  const initiateCall = (targetUserId: string) => {
+  const onPeerLeft = useCallback((handler: (payload: { userId?: string }) => void) => {
+    handlersRef.current.onPeerLeft = handler;
+  }, []);
+
+  const onSignal = useCallback((handler: (payload: { fromUserId?: string; data: SignalData }) => void) => {
+    handlersRef.current.onSignal = handler;
+  }, []);
+
+  const initiateCall = useCallback((targetUserId: string) => {
     if (!socketRef.current || !callId) return;
     console.log("[signal] initiate_call", { callId, targetUserId });
     socketRef.current.emit("initiate_call", { callId, targetUserId });
-  };
+  }, [callId]);
 
   return { connected, join, leave, sendSignal, initiateCall, onPeerJoined, onPeerLeft, onSignal };
 }

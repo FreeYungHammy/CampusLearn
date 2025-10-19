@@ -122,7 +122,7 @@ export const UserController = {
   },
 
   getPfp: async (req: Request, res: Response, next: NextFunction) => {
-    console.log("UserController.getPfp called for userId:", req.params.userId);
+    // Removed verbose pfp logging
     try {
       const pfp = await UserService.getPfp(req.params.userId);
       if (!pfp || !pfp.data) {

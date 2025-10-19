@@ -1,6 +1,8 @@
-export function openCallPopup(callId: string) {
+export function openCallPopup(callId: string, initiatorId?: string) {
   const origin = window.location.origin;
-  const url = `${origin}/call/${encodeURIComponent(callId)}`;
+  const url = initiatorId 
+    ? `${origin}/call/${encodeURIComponent(callId)}?initiator=${encodeURIComponent(initiatorId)}`
+    : `${origin}/call/${encodeURIComponent(callId)}`;
   const features = [
     "noopener",
     "noreferrer",
