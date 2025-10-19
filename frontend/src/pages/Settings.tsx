@@ -181,6 +181,7 @@ const Settings = () => {
       current: "",
       new: "",
       confirm: "",
+      email: user?.email || "",
     },
     validationSchema: Yup.object({
       current: Yup.string().required("Required"),
@@ -188,6 +189,13 @@ const Settings = () => {
         .required("Required")
         .test("password-strength", "Password is too weak", (value) => {
           return checkPasswordStrength(value || "") >= 4;
+        })
+        .test("email-password", "Password cannot be the same as your email address", function(value) {
+          const { email } = this.parent;
+          if (value && email && value.toLowerCase() === email.toLowerCase()) {
+            return false;
+          }
+          return true;
         }),
       confirm: Yup.string()
         .oneOf([Yup.ref("new")], "Passwords must match")

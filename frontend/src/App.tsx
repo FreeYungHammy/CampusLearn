@@ -86,11 +86,11 @@ function App() {
               <Route path="/upload" element={<Upload />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/users" element={<AdminUsers />} />
+              <Route path="/admin/bills" element={<AdminBills />} />
               <Route
                 path="/admin/tutor-applications"
                 element={<AdminTutorApplications />}
               />
-              <Route path="/admin/bills" element={<AdminBills />} />
               <Route path="/database-tools" element={<DatabaseTools />} />
             </Route>
           </Route>

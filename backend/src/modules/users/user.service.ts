@@ -103,7 +103,14 @@ export const UserService = {
       throw err;
     }
 
-    // 2. Check for duplicate email
+    // 2. Check if password is the same as email
+    if (input.password.toLowerCase() === input.email.toLowerCase()) {
+      const err = new Error("Password cannot be the same as your email address");
+      err.name = "BadRequest";
+      throw err;
+    }
+
+    // 3. Check for duplicate email
     const existing = await UserRepo.findByEmail(input.email);
     if (existing) {
       const err = new Error("User with this email already exists");
@@ -111,7 +118,7 @@ export const UserService = {
       throw err;
     }
 
-    // 3. Create User with email verification
+    // 4. Create User with email verification
     const passwordHash = await bcrypt.hash(input.password, 10);
     
     // Generate email verification token
@@ -131,7 +138,7 @@ export const UserService = {
       emailVerificationExpires,
     } as Partial<UserDoc>);
 
-    // 4. Create Student or Tutor Profile
+    // 5. Create Student or Tutor Profile
     if (input.role === "student") {
       await StudentRepo.create({
         userId: user._id,
@@ -152,7 +159,7 @@ export const UserService = {
       });
     }
 
-    // 5. Send email verification
+    // 6. Send email verification
     try {
       const userName = `${input.firstName} ${input.lastName}`;
       const verificationLink = `${process.env.FRONTEND_URL || 'https://campuslearn.onrender.com'}/verify-email/${verificationToken}`;
@@ -386,6 +393,13 @@ export const UserService = {
 
     const ok = await bcrypt.compare(current, (user as any).passwordHash);
     if (!ok) throw new Error("Invalid credentials");
+
+    // Check if new password is the same as email
+    if (newPass.toLowerCase() === user.email.toLowerCase()) {
+      const err = new Error("Password cannot be the same as your email address");
+      err.name = "BadRequest";
+      throw err;
+    }
 
     const passwordHash = await bcrypt.hash(newPass, 10);
     await UserRepo.updateById(userId, { $set: { passwordHash } });

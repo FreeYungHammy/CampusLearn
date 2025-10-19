@@ -1,25 +1,68 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useAuthStore } from "../store/authStore";
-import { adminApi, type TutorBill, type BillsData } from "../services/adminApi";
+import { adminApi } from "../services/adminApi";
 import "./AdminBills.css";
 
+interface TutorBill {
+  tutorId: string;
+  tutorName: string;
+  tutorEmail: string;
+  totalHours: number;
+  hourlyRate: number;
+  totalAmount: number;
+  completedBookings: number;
+  month: string;
+  year: number;
+}
+
+interface BillsData {
+  tutors: TutorBill[];
+  totalHours: number;
+  totalAmount: number;
+  month: string;
+  year: number;
+}
+
 const AdminBills = () => {
-  const { token } = useAuthStore();
+  const [billsData, setBillsData] = useState<BillsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [availableMonths, setAvailableMonths] = useState<{ month: string; year: number }[]>([]);
   const [selectedMonth, setSelectedMonth] = useState<string>("");
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
-  const [billsData, setBillsData] = useState<BillsData | null>(null);
+  const [availableMonths, setAvailableMonths] = useState<{ month: string; year: number }[]>([]);
+  const { token } = useAuthStore();
 
   useEffect(() => {
     fetchAvailableMonths();
   }, [token]);
 
   useEffect(() => {
+    if (availableMonths.length > 0 && !selectedMonth) {
+      // Set to current month by default
+      const currentDate = new Date();
+      const currentMonth = currentDate.toLocaleString('default', { month: 'long' });
+      const currentYear = currentDate.getFullYear();
+      
+      const currentMonthData = availableMonths.find(
+        m => m.month === currentMonth && m.year === currentYear
+      );
+      
+      if (currentMonthData) {
+        setSelectedMonth(currentMonth);
+        setSelectedYear(currentYear);
+      } else {
+        // If current month not available, use the most recent month
+        const mostRecent = availableMonths[availableMonths.length - 1];
+        setSelectedMonth(mostRecent.month);
+        setSelectedYear(mostRecent.year);
+      }
+    }
+  }, [availableMonths, selectedMonth]);
+
+  useEffect(() => {
     if (selectedMonth && selectedYear) {
-      fetchBillsData();
+      fetchBillsData(selectedMonth, selectedYear);
     }
   }, [selectedMonth, selectedYear, token]);
 
@@ -27,51 +70,21 @@ const AdminBills = () => {
     if (!token) return;
 
     try {
-      setLoading(true);
-      setError(null);
       const months = await adminApi.getAvailableBillingMonths(token);
       setAvailableMonths(months);
-      
-      // Set default to current month if available, otherwise first available month
-      if (months.length > 0) {
-        const currentMonth = new Date().toLocaleString('default', { month: 'long' });
-        const currentYear = new Date().getFullYear();
-        
-        const currentMonthData = months.find(m => m.month === currentMonth && m.year === currentYear);
-        if (currentMonthData) {
-          setSelectedMonth(currentMonth);
-          setSelectedYear(currentYear);
-        } else {
-          setSelectedMonth(months[0].month);
-          setSelectedYear(months[0].year);
-        }
-      } else {
-        // If no months available, set current month as default
-        const currentMonth = new Date().toLocaleString('default', { month: 'long' });
-        const currentYear = new Date().getFullYear();
-        setSelectedMonth(currentMonth);
-        setSelectedYear(currentYear);
-      }
     } catch (error) {
       console.error("Failed to fetch available months:", error);
       setError("Failed to load available months");
-      // Set current month as fallback
-      const currentMonth = new Date().toLocaleString('default', { month: 'long' });
-      const currentYear = new Date().getFullYear();
-      setSelectedMonth(currentMonth);
-      setSelectedYear(currentYear);
-    } finally {
-      setLoading(false);
     }
   };
 
-  const fetchBillsData = async () => {
-    if (!token || !selectedMonth || !selectedYear) return;
+  const fetchBillsData = async (month: string, year: number) => {
+    if (!token) return;
 
     try {
       setLoading(true);
       setError(null);
-      const data = await adminApi.getTutorBills(token, selectedMonth, selectedYear);
+      const data = await adminApi.getTutorBills(token, month, year);
       setBillsData(data);
     } catch (error) {
       console.error("Failed to fetch bills data:", error);
@@ -86,15 +99,6 @@ const AdminBills = () => {
     setSelectedYear(year);
   };
 
-  const getMonthOptions = () => {
-    const options = availableMonths.map((monthData, index) => (
-      <option key={`${monthData.month}-${monthData.year}-${index}`} value={`${monthData.year}-${monthData.month}`}>
-        {monthData.month} {monthData.year}
-      </option>
-    ));
-    return options;
-  };
-
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-ZA', {
       style: 'currency',
@@ -105,14 +109,27 @@ const AdminBills = () => {
   const formatHours = (hours: number) => {
     const wholeHours = Math.floor(hours);
     const minutes = Math.round((hours - wholeHours) * 60);
+    return `${wholeHours}h ${minutes}m`;
+  };
+
+  const getMonthOptions = () => {
+    const currentYear = new Date().getFullYear();
+    const years = Array.from({ length: 3 }, (_, i) => currentYear - i);
     
-    if (wholeHours === 0) {
-      return `${minutes}m`;
-    } else if (minutes === 0) {
-      return `${wholeHours}h`;
-    } else {
-      return `${wholeHours}h ${minutes}m`;
-    }
+    return years.map(year => {
+      const monthsInYear = availableMonths.filter(m => m.year === year);
+      if (monthsInYear.length === 0) return null;
+      
+      return (
+        <optgroup key={year} label={year.toString()}>
+          {monthsInYear.map(({ month }) => (
+            <option key={`${year}-${month}`} value={`${year}-${month}`}>
+              {month} {year}
+            </option>
+          ))}
+        </optgroup>
+      );
+    }).filter(Boolean);
   };
 
   if (loading && !billsData) {
@@ -132,7 +149,7 @@ const AdminBills = () => {
         <div className="admin-error">
           <i className="fas fa-exclamation-triangle"></i>
           <span>{error}</span>
-          <button onClick={fetchAvailableMonths}>
+          <button onClick={() => fetchBillsData(selectedMonth, selectedYear)}>
             Try Again
           </button>
         </div>
@@ -171,7 +188,7 @@ const AdminBills = () => {
                 }}
                 className="admin-select"
                 style={{ 
-                  fontSize: window.innerWidth <= 768 ? '16px' : '14px',
+                  fontSize: window.innerWidth <= 768 ? '16px' : '14px', // Prevents zoom on iOS
                   padding: window.innerWidth <= 768 ? '12px' : '8px'
                 }}
               >
@@ -199,7 +216,7 @@ const AdminBills = () => {
               <div className="admin-summary-label">Active Tutors</div>
             </div>
           </div>
-
+          
           <div className="admin-summary-card">
             <div className="admin-summary-icon">
               <i className="fas fa-clock"></i>
@@ -209,10 +226,10 @@ const AdminBills = () => {
               <div className="admin-summary-label">Total Hours</div>
             </div>
           </div>
-
+          
           <div className="admin-summary-card">
             <div className="admin-summary-icon">
-              <i className="fas fa-dollar-sign"></i>
+              <i className="fas fa-money-bill-wave"></i>
             </div>
             <div className="admin-summary-content">
               <div className="admin-summary-value">{formatCurrency(billsData.totalAmount)}</div>
@@ -222,7 +239,7 @@ const AdminBills = () => {
         </motion.div>
       )}
 
-      {/* Bills Data */}
+      {/* Bills Table */}
       {billsData && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -252,24 +269,24 @@ const AdminBills = () => {
                   <div className="admin-bill-tutor-email">{tutor.tutorEmail}</div>
                 </div>
                 
-                <div className="admin-bill-stats">
-                  <div className="admin-bill-stat-item">
-                    <div className="admin-bill-stat-label">Sessions</div>
-                    <div className="admin-bill-stat-value sessions">{tutor.completedBookings}</div>
-                  </div>
-                  <div className="admin-bill-stat-item">
-                    <div className="admin-bill-stat-label">Hours</div>
-                    <div className="admin-bill-stat-value hours">{formatHours(tutor.totalHours)}</div>
-                  </div>
-                  <div className="admin-bill-stat-item">
-                    <div className="admin-bill-stat-label">Rate</div>
-                    <div className="admin-bill-stat-value rate">{formatCurrency(tutor.hourlyRate)}</div>
-                  </div>
-                  <div className="admin-bill-stat-item">
-                    <div className="admin-bill-stat-label">Total</div>
-                    <div className="admin-bill-stat-value total">{formatCurrency(tutor.totalAmount)}</div>
-                  </div>
-                </div>
+                 <div className="admin-bill-stats">
+                   <div className="admin-bill-stat-item">
+                     <div className="admin-bill-stat-label">Sessions</div>
+                     <div className="admin-bill-stat-value sessions">{tutor.completedBookings}</div>
+                   </div>
+                   <div className="admin-bill-stat-item">
+                     <div className="admin-bill-stat-label">Hours</div>
+                     <div className="admin-bill-stat-value hours">{formatHours(tutor.totalHours)}</div>
+                   </div>
+                   <div className="admin-bill-stat-item">
+                     <div className="admin-bill-stat-label">Rate</div>
+                     <div className="admin-bill-stat-value rate">{formatCurrency(tutor.hourlyRate)}</div>
+                   </div>
+                   <div className="admin-bill-stat-item">
+                     <div className="admin-bill-stat-label">Total</div>
+                     <div className="admin-bill-stat-value total">{formatCurrency(tutor.totalAmount)}</div>
+                   </div>
+                 </div>
               </motion.div>
             ))}
           </div>

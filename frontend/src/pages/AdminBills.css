@@ -199,6 +199,14 @@
   font-weight: 700;
 }
 
+.admin-bill-amount {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--admin-success);
+  text-align: right;
+  min-width: 120px;
+}
+
 /* Mobile responsive */
 @media (max-width: 768px) {
   .admin-bills-table-mobile {
@@ -224,6 +232,12 @@
     gap: 1rem;
     width: 100%;
     justify-content: unset;
+  }
+
+  .admin-bill-amount {
+    text-align: left;
+    min-width: unset;
+    font-size: 1.1rem;
   }
 
   .admin-summary-cards {

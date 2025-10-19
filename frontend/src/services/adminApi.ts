@@ -53,6 +53,7 @@ export interface BillsData {
   year: number;
 }
 
+
 export const adminApi = {
   async getAdminStats(token: string): Promise<AdminStats> {
     const response = await api.get("/users/admin/stats", {
@@ -170,4 +171,5 @@ export const adminApi = {
     });
     return response.data;
   },
+
 };
