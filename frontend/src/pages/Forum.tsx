@@ -157,9 +157,13 @@ const Forum = () => {
         userVote: thread.userVote || 0,
       }));
 
+      console.log("Fetched threads with votes:", threadsWithVotes.map(t => ({ id: t._id, upvotes: t.upvotes, userVote: t.userVote })));
+      console.log("Vote counts breakdown:", threadsWithVotes.map(t => ({ id: t._id, upvotes: t.upvotes, title: t.title?.substring(0, 20) })));
+
       if (append) {
         setThreads((prevThreads) => [...prevThreads, ...threadsWithVotes]);
       } else {
+        console.log("Setting threads state:", threadsWithVotes.map(t => ({ id: t._id, upvotes: t.upvotes, userVote: t.userVote })));
         setThreads(threadsWithVotes);
       }
       setTotalPosts(totalCount);
@@ -214,13 +218,20 @@ const Forum = () => {
             ),
           );
         },
-        onVoteUpdated: ({ targetId, newScore }) => {
+        onVoteUpdated: ({ targetId, newScore, userVote }) => {
+          console.log("Received vote update:", { targetId, newScore, userVote });
           setThreads((prevThreads) =>
-            prevThreads.map((thread) =>
-              thread._id === targetId
-                ? { ...thread, upvotes: newScore }
-                : thread,
-            ),
+            prevThreads.map((thread) => {
+              if (thread._id === targetId) {
+                // Update both the vote count and user's vote state from the server
+                return { 
+                  ...thread, 
+                  upvotes: newScore,
+                  userVote: userVote || 0
+                };
+              }
+              return thread;
+            }),
           );
         },
       },
@@ -262,9 +273,54 @@ const Forum = () => {
       }),
     );
 
-    voteOnPost(threadId, 1, token).catch((err) => {
-      console.error("Failed to upvote post", err);
-    });
+    voteOnPost(threadId, 1, token)
+      .then((response) => {
+        console.log("Upvote successful:", response);
+        // Update the UI with the server response immediately
+        setThreads((prevThreads) =>
+          prevThreads.map((thread) => {
+            if (thread._id === threadId) {
+              return {
+                ...thread,
+                upvotes: response.upvotes,
+                userVote: response.userVote || 0,
+              };
+            }
+            return thread;
+          }),
+        );
+      })
+      .catch((err) => {
+        console.error("Failed to upvote post", err);
+        // Revert the optimistic update on error
+        setThreads((prevThreads) =>
+          prevThreads.map((thread) => {
+            if (thread._id === threadId) {
+              const currentVote = thread.userVote;
+              let voteChange = 0;
+              let newUserVote = 0;
+
+              if (currentVote === 1) {
+                voteChange = 1;
+                newUserVote = 0;
+              } else if (currentVote === -1) {
+                voteChange = -2;
+                newUserVote = -1;
+              } else {
+                voteChange = -1;
+                newUserVote = 0;
+              }
+
+              return {
+                ...thread,
+                upvotes: thread.upvotes + voteChange,
+                userVote: newUserVote,
+              };
+            }
+            return thread;
+          }),
+        );
+      });
 
     setTimeout(() => {
       setIsVoting((prev) => ({ ...prev, [threadId]: false }));
@@ -306,9 +362,54 @@ const Forum = () => {
       }),
     );
 
-    voteOnPost(threadId, -1, token).catch((err) => {
-      console.error("Failed to downvote post", err);
-    });
+    voteOnPost(threadId, -1, token)
+      .then((response) => {
+        console.log("Downvote successful:", response);
+        // Update the UI with the server response immediately
+        setThreads((prevThreads) =>
+          prevThreads.map((thread) => {
+            if (thread._id === threadId) {
+              return {
+                ...thread,
+                upvotes: response.upvotes,
+                userVote: response.userVote || 0,
+              };
+            }
+            return thread;
+          }),
+        );
+      })
+      .catch((err) => {
+        console.error("Failed to downvote post", err);
+        // Revert the optimistic update on error
+        setThreads((prevThreads) =>
+          prevThreads.map((thread) => {
+            if (thread._id === threadId) {
+              const currentVote = thread.userVote;
+              let voteChange = 0;
+              let newUserVote = 0;
+
+              if (currentVote === -1) {
+                voteChange = -1;
+                newUserVote = 0;
+              } else if (currentVote === 1) {
+                voteChange = 2;
+                newUserVote = 1;
+              } else {
+                voteChange = 1;
+                newUserVote = 0;
+              }
+
+              return {
+                ...thread,
+                upvotes: thread.upvotes + voteChange,
+                userVote: newUserVote,
+              };
+            }
+            return thread;
+          }),
+        );
+      });
 
     setTimeout(() => {
       setIsVoting((prev) => ({ ...prev, [threadId]: false }));
