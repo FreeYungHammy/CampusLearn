@@ -17,13 +17,13 @@
   border: 1px solid var(--border-light);
   margin-bottom: 10px;
   min-height: 65vh;
+  position: relative;
 }
 
 /* Breadcrumb Navigation */
 .breadcrumb-nav {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   padding: 20px 24px;
   background: linear-gradient(
     135deg,
@@ -86,6 +86,31 @@
 }
 
 .back-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+/* Back Button - Top Right Position */
+.back-button-top-right {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.back-button-top-right:hover {
   background: rgba(255, 255, 255, 0.2);
   transform: translateY(-1px);
 }

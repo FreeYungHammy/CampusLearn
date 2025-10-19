@@ -482,7 +482,7 @@ const TutorContentView = () => {
       {isModalOpen && selectedFile && (
         <div className="modal-overlay" onClick={closeModal}>
           <div
-            className={`modal-content ${VIEWABLE_MIME_TYPES.some((type) => selectedFile.contentType.startsWith(type)) ? "content-viewer-modal" : ""}`}
+            className={`modal-content ${VIEWABLE_MIME_TYPES.some((type) => selectedFile.contentType.startsWith(type)) ? "content-viewer-modal" : ""} ${selectedFile.contentType.startsWith("image/") ? "image-modal" : ""}`}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="modal-header">
@@ -535,6 +535,92 @@ const TutorContentView = () => {
                   );
                 }
 
+                // Handle images specially - display in true size
+                if (selectedFile.contentType.startsWith("image/")) {
+                  return (
+                    <img
+                      src={fileUrl}
+                      alt={selectedFile.title}
+                      style={{
+                        maxWidth: "100%",
+                        maxHeight: "100%",
+                        width: "auto",
+                        height: "auto",
+                        objectFit: "contain",
+                      }}
+                      onLoad={(e) => {
+                        // Get the natural dimensions of the image
+                        const img = e.target as HTMLImageElement;
+                        const naturalWidth = img.naturalWidth;
+                        const naturalHeight = img.naturalHeight;
+
+                        // Update modal size based on image dimensions
+                        const modalContent = document.querySelector(
+                          ".content-viewer-modal",
+                        ) as HTMLElement;
+                        if (modalContent) {
+                          // Calculate appropriate size while respecting viewport limits
+                          const maxWidth = window.innerWidth * 0.95;
+                          const maxHeight = window.innerHeight * 0.95;
+
+                          let newWidth = naturalWidth;
+                          let newHeight = naturalHeight;
+
+                          // Scale down if image is too large
+                          if (
+                            naturalWidth > maxWidth ||
+                            naturalHeight > maxHeight
+                          ) {
+                            const scaleX = maxWidth / naturalWidth;
+                            const scaleY = maxHeight / naturalHeight;
+                            const scale = Math.min(scaleX, scaleY);
+
+                            newWidth = naturalWidth * scale;
+                            newHeight = naturalHeight * scale;
+                          }
+
+                          // Calculate header height dynamically
+                          const headerHeight = 60; // Approximate header height
+                          const padding = 20; // Total padding (5px top + 5px bottom + 10px margin)
+                          const minHeaderWidth = 400; // Minimum width to accommodate header buttons
+                          const maxModalHeight = window.innerHeight * 0.8; // 80% of viewport height
+
+                          // Determine if image is small enough to fit without scrolling
+                          const imageFitsInViewport =
+                            newHeight <= maxModalHeight;
+
+                          let modalWidth, modalHeight;
+
+                          if (imageFitsInViewport) {
+                            // Small image: modal fits exactly to image size
+                            modalWidth = Math.max(
+                              newWidth + 20,
+                              minHeaderWidth,
+                            );
+                            modalHeight = newHeight + headerHeight + padding;
+                          } else {
+                            // Large image: modal constrained to viewport with scrolling
+                            modalWidth = Math.max(
+                              newWidth + 20,
+                              minHeaderWidth,
+                            );
+                            modalHeight =
+                              maxModalHeight + headerHeight + padding;
+                          }
+
+                          // Set modal dimensions with precise calculations
+                          modalContent.style.width = `${modalWidth}px`;
+                          modalContent.style.height = `${modalHeight}px`;
+                          modalContent.style.maxWidth = "95vw";
+                          modalContent.style.maxHeight = "95vh";
+                          modalContent.style.minWidth = `${minHeaderWidth}px`;
+                          modalContent.style.minHeight = "100px";
+                        }
+                      }}
+                    />
+                  );
+                }
+
                 // Fallback for videos
                 if (selectedFile.contentType.startsWith("video/")) {
                   return (
@@ -547,7 +633,7 @@ const TutorContentView = () => {
                   );
                 }
 
-                // Fallback for PDFs, images, and other viewable types
+                // Fallback for PDFs and other viewable types
                 return (
                   <iframe
                     src={fileUrl}

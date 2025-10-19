@@ -31,7 +31,7 @@ const defaultPfp =
 
 /* ---------- Helpers ---------- */
 const getProfilePictureUrl = (userId: string, bust?: number) => {
-  const baseUrl = (import.meta.env.VITE_API_URL as string).replace(/\/$/, '');
+  const baseUrl = (import.meta.env.VITE_API_URL as string).replace(/\/$/, "");
   const cacheBuster = bust ? `?t=${bust}` : "";
   const url = `${baseUrl}/api/users/${userId}/pfp${cacheBuster}`;
   return url;
@@ -231,7 +231,13 @@ interface ImageModalProps {
   onDownload: () => void;
 }
 
-const ImageModal: React.FC<ImageModalProps> = ({ isOpen, imageUrl, filename, onClose, onDownload }) => {
+const ImageModal: React.FC<ImageModalProps> = ({
+  isOpen,
+  imageUrl,
+  filename,
+  onClose,
+  onDownload,
+}) => {
   const [isZoomed, setIsZoomed] = React.useState(false);
   const [mounted, setMounted] = React.useState(false);
 
@@ -253,11 +259,11 @@ const ImageModal: React.FC<ImageModalProps> = ({ isOpen, imageUrl, filename, onC
       };
 
       // Apply modal styles
-      document.body.style.overflow = 'hidden';
-      document.body.style.position = 'fixed';
-      document.body.style.width = '100%';
-      document.body.style.height = '100%';
-      document.body.style.top = '0';
+      document.body.style.overflow = "hidden";
+      document.body.style.position = "fixed";
+      document.body.style.width = "100%";
+      document.body.style.height = "100%";
+      document.body.style.top = "0";
 
       return () => {
         // Restore original styles
@@ -272,17 +278,17 @@ const ImageModal: React.FC<ImageModalProps> = ({ isOpen, imageUrl, filename, onC
 
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         onClose();
       }
     };
 
     if (isOpen) {
-      document.addEventListener('keydown', handleKeyDown);
+      document.addEventListener("keydown", handleKeyDown);
     }
 
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen, onClose]);
 
@@ -306,17 +312,16 @@ const ImageModal: React.FC<ImageModalProps> = ({ isOpen, imageUrl, filename, onC
   if (!isOpen || !mounted) return null;
 
   const modalContent = (
-    <div 
-      className="image-modal-overlay" 
-      onClick={handleOverlayClick}
-    >
+    <div className="image-modal-overlay" onClick={handleOverlayClick}>
       <div className="image-modal-content">
         <div className="image-modal-header">
           <span className="image-modal-filename">{filename}</span>
           <div className="image-modal-actions">
-            <button 
+            <button
               className="image-modal-btn"
-              onClick={(e) => handleButtonClick(e, () => setIsZoomed(!isZoomed))}
+              onClick={(e) =>
+                handleButtonClick(e, () => setIsZoomed(!isZoomed))
+              }
               title={isZoomed ? "Fit to screen" : "Zoom in"}
             >
               <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
@@ -325,11 +330,15 @@ const ImageModal: React.FC<ImageModalProps> = ({ isOpen, imageUrl, filename, onC
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  d={isZoomed ? "M9 9V3H3v6h6zM21 21v-6h-6v6h6zM9 21v-6H3v6h6zM21 9V3h-6v6h6z" : "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7"}
+                  d={
+                    isZoomed
+                      ? "M9 9V3H3v6h6zM21 21v-6h-6v6h6zM9 21v-6H3v6h6zM21 9V3h-6v6h6z"
+                      : "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7"
+                  }
                 />
               </svg>
             </button>
-            <button 
+            <button
               className="image-modal-btn"
               onClick={(e) => handleButtonClick(e, onDownload)}
               title="Download image"
@@ -344,7 +353,7 @@ const ImageModal: React.FC<ImageModalProps> = ({ isOpen, imageUrl, filename, onC
                 />
               </svg>
             </button>
-            <button 
+            <button
               className="image-modal-btn"
               onClick={(e) => handleButtonClick(e, onClose)}
               title="Close"
@@ -362,10 +371,10 @@ const ImageModal: React.FC<ImageModalProps> = ({ isOpen, imageUrl, filename, onC
           </div>
         </div>
         <div className="image-modal-body">
-          <img 
-            src={imageUrl} 
+          <img
+            src={imageUrl}
             alt={filename}
-            className={`image-modal-image ${isZoomed ? 'zoomed' : ''}`}
+            className={`image-modal-image ${isZoomed ? "zoomed" : ""}`}
             onClick={handleImageClick}
             draggable={false}
           />
@@ -390,19 +399,23 @@ const FilePreview: React.FC<FilePreviewProps> = ({ message, mine, token }) => {
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState(false);
   const [clickToLoadEnabled, setClickToLoadEnabled] = React.useState(() => {
-    const savedPreference = localStorage.getItem('chat-image-click-to-load');
-    return savedPreference === 'true';
+    const savedPreference = localStorage.getItem("chat-image-click-to-load");
+    return savedPreference === "true";
   });
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [isModalTransitioning, setIsModalTransitioning] = React.useState(false);
 
-  const filename = (message as any).uploadFilename || message.upload?.filename || "";
-  const contentType = (message as any).uploadContentType || message.upload?.contentType || "";
-  
+  const filename =
+    (message as any).uploadFilename || message.upload?.filename || "";
+  const contentType =
+    (message as any).uploadContentType || message.upload?.contentType || "";
+
   const isImage = () => {
     const ext = filename.split(".").pop()?.toLowerCase();
-    return ["jpg", "jpeg", "png", "gif", "webp", "bmp", "svg"].includes(ext || "") ||
-           contentType.startsWith("image/");
+    return (
+      ["jpg", "jpeg", "png", "gif", "webp", "bmp", "svg"].includes(ext || "") ||
+      contentType.startsWith("image/")
+    );
   };
 
   // Listen for settings changes
@@ -411,21 +424,27 @@ const FilePreview: React.FC<FilePreviewProps> = ({ message, mine, token }) => {
       setClickToLoadEnabled(event.detail.clickToLoad);
     };
 
-    window.addEventListener('chat-image-settings-changed', handleSettingsChange as EventListener);
-    
+    window.addEventListener(
+      "chat-image-settings-changed",
+      handleSettingsChange as EventListener,
+    );
+
     return () => {
-      window.removeEventListener('chat-image-settings-changed', handleSettingsChange as EventListener);
+      window.removeEventListener(
+        "chat-image-settings-changed",
+        handleSettingsChange as EventListener,
+      );
     };
   }, []);
 
   const loadImagePreview = async () => {
     if (!token || !isImage() || imageUrl || isLoading) return;
-    
+
     setIsLoading(true);
     setError(false);
-    
+
     try {
-      const blob = await chatApi.downloadMessageFile(message._id || '', token);
+      const blob = await chatApi.downloadMessageFile(message._id || "", token);
       const url = window.URL.createObjectURL(blob);
       setImageUrl(url);
     } catch (err) {
@@ -438,16 +457,23 @@ const FilePreview: React.FC<FilePreviewProps> = ({ message, mine, token }) => {
 
   // Auto-load images if click-to-load is disabled
   React.useEffect(() => {
-    if (isImage() && !clickToLoadEnabled && !imageUrl && !isLoading && !error && token) {
+    if (
+      isImage() &&
+      !clickToLoadEnabled &&
+      !imageUrl &&
+      !isLoading &&
+      !error &&
+      token
+    ) {
       loadImagePreview();
     }
   }, [clickToLoadEnabled, token, message._id]);
 
   const handleDownload = async () => {
     if (!token) return;
-    
+
     try {
-      const blob = await chatApi.downloadMessageFile(message._id || '', token);
+      const blob = await chatApi.downloadMessageFile(message._id || "", token);
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -492,10 +518,16 @@ const FilePreview: React.FC<FilePreviewProps> = ({ message, mine, token }) => {
   if (isImage()) {
     return (
       <div className={`file-preview image-preview ${mine ? "mine" : ""}`}>
-        <div 
+        <div
           className="image-container"
           onClick={clickToLoadEnabled ? loadImagePreview : undefined}
-          style={{ cursor: isLoading ? "wait" : (clickToLoadEnabled ? "pointer" : "default") }}
+          style={{
+            cursor: isLoading
+              ? "wait"
+              : clickToLoadEnabled
+                ? "pointer"
+                : "default",
+          }}
         >
           {isLoading ? (
             <div className="image-loading">
@@ -503,8 +535,8 @@ const FilePreview: React.FC<FilePreviewProps> = ({ message, mine, token }) => {
               <span>Loading image...</span>
             </div>
           ) : imageUrl ? (
-            <img 
-              src={imageUrl} 
+            <img
+              src={imageUrl}
               alt={filename}
               className="message-image clickable-image"
               onError={() => setError(true)}
@@ -519,9 +551,7 @@ const FilePreview: React.FC<FilePreviewProps> = ({ message, mine, token }) => {
             </div>
           ) : clickToLoadEnabled ? (
             <div className="image-placeholder">
-              <span className="file-icon">
-                {fileIcon(filename)}
-              </span>
+              <span className="file-icon">{fileIcon(filename)}</span>
               <span className="click-to-load">Click to load image</span>
             </div>
           ) : (
@@ -531,22 +561,15 @@ const FilePreview: React.FC<FilePreviewProps> = ({ message, mine, token }) => {
             </div>
           )}
         </div>
-        
+
         <div className="image-actions">
-          <span className={`file-name ${mine ? "white" : ""}`}>
-            {filename}
-          </span>
-          <button 
+          <span className={`file-name ${mine ? "white" : ""}`}>{filename}</span>
+          <button
             onClick={handleDownload}
             className="download-btn"
             title="Download image"
           >
-            <svg
-              width="16"
-              height="16"
-              fill="none"
-              viewBox="0 0 16 16"
-            >
+            <svg width="16" height="16" fill="none" viewBox="0 0 16 16">
               <path
                 d="M8 1v10m0 0l-3-3m3 3l3-3M2 13h12"
                 stroke="currentColor"
@@ -557,7 +580,7 @@ const FilePreview: React.FC<FilePreviewProps> = ({ message, mine, token }) => {
             </svg>
           </button>
         </div>
-        
+
         {/* Image Modal */}
         {imageUrl && (
           <ImageModal
@@ -580,12 +603,8 @@ const FilePreview: React.FC<FilePreviewProps> = ({ message, mine, token }) => {
       style={{ cursor: "pointer" }}
     >
       <div className="file-line">
-        <span className="file-icon">
-          {fileIcon(filename)}
-        </span>
-        <span className={`file-name ${mine ? "white" : ""}`}>
-          {filename}
-        </span>
+        <span className="file-icon">{fileIcon(filename)}</span>
+        <span className={`file-name ${mine ? "white" : ""}`}>{filename}</span>
         <svg
           width="16"
           height="16"
@@ -626,32 +645,57 @@ const Messages: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isClearModalOpen, setIsClearModalOpen] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [showMobileChat, setShowMobileChat] = useState(false); // New state for mobile chat view
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState("");
+
+  const handleConversationSelect = (conv: Conversation) => {
+    setSelectedConversation(conv);
+    // On mobile, show chat panel and hide sidebar
+    if (window.innerWidth < 850) {
+      setShowMobileChat(true);
+    }
+  };
+
+  const handleBackToConversations = () => {
+    setShowMobileChat(false);
+  };
+
+  // Handle window resize to reset mobile state when screen becomes larger
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 850) {
+        setShowMobileChat(false);
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const currentRoomRef = useRef<string | null>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { user, token, pfpTimestamps } = useAuthStore();
   const { activeCallId, setActiveCallId, clearActiveCallId } = useCallStore();
-  
+
   // Monitor for active call state - check if user is actually in a call
   useEffect(() => {
     if (!activeCallId) return;
-    
+
     const heartbeatKey = `call-heartbeat-${activeCallId}`;
     let heartbeatInterval: NodeJS.Timeout;
-    
+
     const checkCallStatus = () => {
       const lastHeartbeat = localStorage.getItem(heartbeatKey);
       if (lastHeartbeat) {
         const timeSinceHeartbeat = Date.now() - parseInt(lastHeartbeat);
         // If no heartbeat for more than 3 seconds, assume call is ended
         if (timeSinceHeartbeat > 3000) {
-          console.log("[video-call] No heartbeat detected - call appears to be ended");
+          console.log(
+            "[video-call] No heartbeat detected - call appears to be ended",
+          );
           clearActiveCallId();
           localStorage.removeItem(heartbeatKey);
           clearInterval(heartbeatInterval);
@@ -663,10 +707,10 @@ const Messages: React.FC = () => {
         clearInterval(heartbeatInterval);
       }
     };
-    
+
     // Check every 2 seconds
     heartbeatInterval = setInterval(checkCallStatus, 2000);
-    
+
     return () => {
       if (heartbeatInterval) {
         clearInterval(heartbeatInterval);
@@ -679,7 +723,9 @@ const Messages: React.FC = () => {
     const handleCallStateChange = () => {
       // If activeCallId is cleared externally, ensure button state updates
       if (!activeCallId) {
-        console.log("[video-call] Call ID cleared externally - button should be enabled");
+        console.log(
+          "[video-call] Call ID cleared externally - button should be enabled",
+        );
       }
     };
 
@@ -692,7 +738,7 @@ const Messages: React.FC = () => {
 
     return unsubscribe;
   }, [activeCallId]);
-  
+
   const {
     showBookingModal,
     bookingTarget,
@@ -742,43 +788,32 @@ const Messages: React.FC = () => {
     return [user.id, selectedConversation.otherUser._id].sort().join("-");
   }, [selectedConversation, user?.id]);
 
-  // Handle click outside dropdown
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsDropdownOpen(false);
-      }
-    };
-
-    if (isDropdownOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isDropdownOpen]);
+  // Dropdown functionality removed - now using direct trash can button
 
   /* -------- Socket handlers -------- */
   const handleNewMessage = useCallback(
     (newMessage: ChatMessage) => {
-      console.log("💬 [Messages] handleNewMessage called:", newMessage._id, "for chatId:", newMessage.chatId);
-      
+      console.log(
+        "💬 [Messages] handleNewMessage called:",
+        newMessage._id,
+        "for chatId:",
+        newMessage.chatId,
+      );
+
       // Use refs to get current values to avoid stale closures
       const currentChatId = chatId;
       const currentUser = user;
       const currentSelectedConversation = selectedConversation;
-      
+
       if (currentChatId && newMessage.chatId === currentChatId) {
         console.log("💬 [Messages] Adding message to current chat");
         setMessages((prev) => {
           // Check if message already exists to prevent duplicates
-          const exists = prev.some(msg => msg._id === newMessage._id);
+          const exists = prev.some((msg) => msg._id === newMessage._id);
           if (exists) {
-            console.log("💬 [Messages] Message already exists, skipping duplicate");
+            console.log(
+              "💬 [Messages] Message already exists, skipping duplicate",
+            );
             return prev;
           }
           console.log("💬 [Messages] Adding new message to state");
@@ -794,7 +829,8 @@ const Messages: React.FC = () => {
           if (cChatId !== newMessage.chatId) return c;
 
           const isActive =
-            currentSelectedConversation && currentSelectedConversation._id === c._id;
+            currentSelectedConversation &&
+            currentSelectedConversation._id === c._id;
           return {
             ...c,
             lastMessage: {
@@ -818,7 +854,9 @@ const Messages: React.FC = () => {
 
   const handleUserStatusChange = useCallback(
     (userId: string, status: "online" | "offline", lastSeen: Date) => {
-      console.log(`🟢 Status update received: User ${userId} is ${status} (last seen: ${lastSeen})`);
+      console.log(
+        `🟢 Status update received: User ${userId} is ${status} (last seen: ${lastSeen})`,
+      );
       // Online status is now managed globally by useOnlineStatus hook
       // No need for local state management here
     },
@@ -846,23 +884,28 @@ const Messages: React.FC = () => {
   );
 
   const handleMessageUpdated = useCallback(
-    (data: { messageId: string; content: string; isEdited: boolean; editedAt: string }) => {
+    (data: {
+      messageId: string;
+      content: string;
+      isEdited: boolean;
+      editedAt: string;
+    }) => {
       console.log("💬 [Messages] handleMessageUpdated called:", data.messageId);
-      
+
       setMessages((prev) =>
         prev.map((msg) =>
           msg._id === data.messageId
-            ? { 
-                ...msg, 
-                content: data.content, 
-                isEdited: data.isEdited, 
-                editedAt: data.editedAt
+            ? {
+                ...msg,
+                content: data.content,
+                isEdited: data.isEdited,
+                editedAt: data.editedAt,
               }
-            : msg
-        )
+            : msg,
+        ),
       );
     },
-    []
+    [],
   );
 
   const { sendMessage, isConnected, joinRoom, leaveRoom } = useChatSocket(
@@ -929,7 +972,6 @@ const Messages: React.FC = () => {
       // Don't clear userOnlineStatus - keep it for persistence across navigation
       setIsClearModalOpen(false);
       setIsClearing(false);
-      setIsDropdownOpen(false);
 
       // Clear current room reference
       if (currentRoomRef.current) {
@@ -1120,16 +1162,16 @@ const Messages: React.FC = () => {
   // Check if message can be edited (within 10 minutes and owned by current user)
   const canEditMessage = (message: ChatMessage) => {
     if (!message.createdAt || !user?.id) return false;
-    
+
     // Only allow editing own messages
     const messageSenderIdField = message.senderId || message.sender?._id;
     if (messageSenderIdField !== user.id) return false;
-    
+
     const messageTime = new Date(message.createdAt).getTime();
     const now = Date.now();
     const tenMinutes = 10 * 60 * 1000; // 10 minutes in milliseconds
-    
-    return (now - messageTime) <= tenMinutes;
+
+    return now - messageTime <= tenMinutes;
   };
 
   const handleEditMessage = (messageId: string, currentContent: string) => {
@@ -1147,13 +1189,22 @@ const Messages: React.FC = () => {
 
     try {
       // Call backend API to update message
-      const updatedMessage = await chatApi.updateMessage(editingMessageId, editingContent.trim(), token);
+      const updatedMessage = await chatApi.updateMessage(
+        editingMessageId,
+        editingContent.trim(),
+        token,
+      );
 
       // Update local state with the response from the server
       setMessages((prevMessages) =>
         prevMessages.map((msg) =>
           msg._id === editingMessageId
-            ? { ...msg, content: updatedMessage.content, isEdited: true, editedAt: updatedMessage.editedAt || new Date().toISOString() }
+            ? {
+                ...msg,
+                content: updatedMessage.content,
+                isEdited: true,
+                editedAt: updatedMessage.editedAt || new Date().toISOString(),
+              }
             : msg,
         ),
       );
@@ -1181,25 +1232,29 @@ const Messages: React.FC = () => {
     console.log("[video-call] handleStartVideoCall called!");
     console.log("[video-call] selectedConversation:", !!selectedConversation);
     console.log("[video-call] user:", !!user);
-    
+
     if (!selectedConversation || !user?.id) {
-      console.log("[video-call] Missing selectedConversation or user, returning");
+      console.log(
+        "[video-call] Missing selectedConversation or user, returning",
+      );
       return;
     }
-    
+
     // Check if there's already an active call
     if (activeCallId) {
       console.log("[video-call] Call already in progress:", activeCallId);
       // You could show a toast notification here
-      alert("Call in progress. Please end the current call before starting a new one.");
+      alert(
+        "Call in progress. Please end the current call before starting a new one.",
+      );
       return;
     }
-    
+
     const otherId = selectedConversation.otherUser._id;
     const callId = [user.id, otherId].sort().join(":");
-    
+
     // Note: Call notification will be sent when user clicks "Join Call" in the popup
-    
+
     // Open the call popup
     console.log("[video-call] Call ID:", callId, "Target User:", otherId);
 
@@ -1273,8 +1328,9 @@ const Messages: React.FC = () => {
       const timestampGroup = timestampGroups.get(timestampKey);
 
       // Show profile picture only if this is the first message in its timestamp group
-      messageWithGrouping.showProfilePicture =
-        Boolean(timestampGroup && timestampGroup[0] === i);
+      messageWithGrouping.showProfilePicture = Boolean(
+        timestampGroup && timestampGroup[0] === i,
+      );
 
       // Show timestamp only for the last message in each timestamp group (both sides)
       if (timestampGroup && timestampGroup[timestampGroup.length - 1] === i) {
@@ -1296,10 +1352,10 @@ const Messages: React.FC = () => {
         subtitle="Connect and communicate with your tutors and students"
         icon="fas fa-comments"
       />
-      
+
       <div className="messages-shell">
-        {/* Sidebar */}
-        <aside className="sidebar">
+        {/* Sidebar - hidden on mobile when chat is open */}
+        <aside className={`sidebar ${showMobileChat ? "mobile-hidden" : ""}`}>
           <div className="sidebar-header">
             <h2 className="title">Messages</h2>
             <div className="search-wrap">
@@ -1325,7 +1381,7 @@ const Messages: React.FC = () => {
                 <div
                   key={conv._id}
                   className={`message-thread${isActive ? " active" : ""}`}
-                  onClick={() => setSelectedConversation(conv)}
+                  onClick={() => handleConversationSelect(conv)}
                   role="button"
                   aria-label={`Open conversation with ${conv.otherUser.profile?.name || "User"}`}
                 >
@@ -1382,11 +1438,30 @@ const Messages: React.FC = () => {
         </aside>
 
         {/* Chat panel */}
-        <section className="chat-panel">
+        <section
+          className={`chat-panel ${showMobileChat ? "mobile-visible" : ""}`}
+        >
           {selectedConversation ? (
             <>
               {/* Header */}
               <div className="chat-header">
+                {/* Mobile back button */}
+                <button
+                  className="mobile-back-btn"
+                  onClick={handleBackToConversations}
+                  aria-label="Back to conversations"
+                >
+                  <svg width="20" height="20" fill="none" viewBox="0 0 20 20">
+                    <path
+                      d="M12.5 15L7.5 10L12.5 5"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+
                 <div className="header-left">
                   <div className="pfp-wrap small">
                     <img
@@ -1400,7 +1475,9 @@ const Messages: React.FC = () => {
                           `data:image/png;base64,${defaultPfp}`;
                       }}
                     />
-                    {isOnline(selectedConversation.otherUser._id) && <span className="status online small" />}
+                    {isOnline(selectedConversation.otherUser._id) && (
+                      <span className="status online small" />
+                    )}
                   </div>
                   <div>
                     <div className="header-name">
@@ -1408,7 +1485,9 @@ const Messages: React.FC = () => {
                     </div>
                     <div className="header-sub">
                       {(() => {
-                        const status = getStatus(selectedConversation.otherUser._id);
+                        const status = getStatus(
+                          selectedConversation.otherUser._id,
+                        );
                         if (status?.isOnline)
                           return <span className="online-text">Online</span>;
                         if (status?.lastSeen)
@@ -1424,17 +1503,25 @@ const Messages: React.FC = () => {
                 </div>
 
                 <div className="header-actions">
-                  <div 
+                  <div
                     className="relative group"
-                    title={activeCallId ? "Call already in progress" : "Start video call"}
+                    title={
+                      activeCallId
+                        ? "Call already in progress"
+                        : "Start video call"
+                    }
                   >
                     <button
-                      className={`action-button ${activeCallId ? 'disabled' : ''}`}
-                      aria-label={activeCallId ? "Call in progress" : "Video Call"}
+                      className={`action-button ${activeCallId ? "disabled" : ""}`}
+                      aria-label={
+                        activeCallId ? "Call in progress" : "Video Call"
+                      }
                       disabled={!!activeCallId}
                       onClick={() => {
                         if (activeCallId) {
-                          console.log("[video-call] Call already in progress, ignoring click");
+                          console.log(
+                            "[video-call] Call already in progress, ignoring click",
+                          );
                           return;
                         }
                         console.log("[video-call] Video call button clicked!");
@@ -1442,17 +1529,21 @@ const Messages: React.FC = () => {
                       }}
                       style={{
                         opacity: activeCallId ? 0.5 : 1,
-                        cursor: activeCallId ? 'not-allowed' : 'pointer'
+                        cursor: activeCallId ? "not-allowed" : "pointer",
                       }}
                     >
-                      <svg width="16" height="16" fill="none" viewBox="0 0 16 16">
+                      <svg
+                        width="16"
+                        height="16"
+                        fill="none"
+                        viewBox="0 0 16 16"
+                      >
                         <path
                           d="M0 5a2 2 0 0 1 2-2h7.5a2 2 0 0 1 1.983 1.738l3.11-1.382A1 1 0 0 1 16 4.269v7.462a1 1 0 0 1-1.406.913l-3.111-1.382A2 2 0 0 1 9.5 13H2a2 2 0 0 1-2-2V5z"
                           fill="currentColor"
                         />
                       </svg>
                     </button>
-                    
                   </div>
                   {user?.role === "tutor" && (
                     <button
@@ -1608,7 +1699,10 @@ const Messages: React.FC = () => {
                                   <button
                                     className="message-edit-btn"
                                     onClick={() =>
-                                      handleEditMessage(msg._id || '', msg.content)
+                                      handleEditMessage(
+                                        msg._id || "",
+                                        msg.content,
+                                      )
                                     }
                                     title="Edit message"
                                   >

@@ -3,6 +3,7 @@ import { useAuthStore } from "@/store/authStore";
 import { studentApi, type SubscribedStudent } from "@/services/studentApi";
 import { chatApi } from "@/services/chatApi";
 import { getTutorByUserId } from "@/services/tutorApi";
+import { getStudentByUserId } from "@/services/bookingApi";
 import { useNavigate } from "react-router-dom";
 import PageHeader from "../components/PageHeader";
 
@@ -18,6 +19,9 @@ const MyStudents = () => {
   >(new Map());
   const [pfpTimestamps, setPfpTimestamps] = useState<{
     [userId: string]: number;
+  }>({});
+  const [studentSubjects, setStudentSubjects] = useState<{
+    [userId: string]: string[];
   }>({});
 
   useEffect(() => {
@@ -57,6 +61,8 @@ const MyStudents = () => {
         setPfpTimestamps(timestamps);
 
         const statusMap = new Map<string, boolean>();
+        const subjectsMap: { [userId: string]: string[] } = {};
+
         for (const student of fetchedStudents) {
           const { exists } = await chatApi.conversationExists(
             user.id,
@@ -64,8 +70,22 @@ const MyStudents = () => {
             token,
           );
           statusMap.set(student.userId, exists);
+
+          // Fetch student subjects
+          try {
+            const studentData = await getStudentByUserId(student.userId);
+            subjectsMap[student.userId] = studentData.enrolledCourses || [];
+          } catch (error) {
+            console.warn(
+              `Failed to fetch subjects for student ${student.userId}:`,
+              error,
+            );
+            subjectsMap[student.userId] = [];
+          }
         }
+
         setConversationStatus(statusMap);
+        setStudentSubjects(subjectsMap);
       } catch (err) {
         console.error("Failed to fetch students or conversation status:", err);
         setError("Failed to load students or conversation status.");
@@ -166,11 +186,19 @@ const MyStudents = () => {
                 <div className="student-course">{student.email}</div>
               </div>
               <div className="student-details">
-                <div className="student-stats">
-                  {/* You can add real stats here if available */}
-                  <div className="stat">
-                    <div className="stat-value">N/A</div>
-                    <div className="stat-label">Sessions</div>
+                <div className="student-subjects">
+                  <div className="subjects-label">Subjects</div>
+                  <div className="subjects-list">
+                    {studentSubjects[student.userId] &&
+                    studentSubjects[student.userId].length > 0 ? (
+                      studentSubjects[student.userId].map((subject, index) => (
+                        <span key={index} className="subject-tag">
+                          {subject}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="no-subjects">No subjects enrolled</span>
+                    )}
                   </div>
                 </div>
                 {conversationStatus.get(student.userId) ? (

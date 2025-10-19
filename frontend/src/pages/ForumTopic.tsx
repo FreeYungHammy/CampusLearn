@@ -591,108 +591,105 @@ const ForumTopic = () => {
                 </div>
 
                 <div className="reply-content" style={{ position: "relative" }}>
-                  {/* Edit/Delete buttons positioned at top-right */}
-                  <div
-                    className="topic-actions"
-                    style={{
-                      position: "absolute",
-                      top: "0",
-                      right: "0",
-                      zIndex: 20,
-                      display: "flex",
-                      gap: "8px",
-                    }}
-                  >
-                    {user &&
-                      reply.author &&
-                      user.id === reply.author.userId &&
-                      (() => {
-                        const canEdit = isWithinEditWindow(reply.createdAt);
-                        const remainingTime = getRemainingEditTime(
-                          reply.createdAt,
-                        );
+                  {/* Edit/Delete buttons positioned at top-right - hide when editing */}
+                  {editingId !== reply._id && (
+                    <div
+                      className="topic-actions"
+                      style={{
+                        position: "absolute",
+                        top: "0",
+                        right: "0",
+                        zIndex: 20,
+                        display: "flex",
+                        gap: "8px",
+                      }}
+                    >
+                      {user &&
+                        reply.author &&
+                        user.id === reply.author.userId &&
+                        (() => {
+                          const canEdit = isWithinEditWindow(reply.createdAt);
+                          const remainingTime = getRemainingEditTime(
+                            reply.createdAt,
+                          );
 
-                        return (
-                          <button
-                            onClick={() =>
-                              canEdit &&
-                              handleEditClick(reply._id, reply.content)
-                            }
-                            disabled={!canEdit}
-                            className={`edit-btn ${!canEdit ? "disabled" : ""}`}
-                            title={
-                              canEdit
-                                ? remainingTime > 0
-                                  ? `Edit available for ${remainingTime} more minute${remainingTime !== 1 ? "s" : ""}`
-                                  : "Edit my reply"
-                                : "Edit window expired (10 minutes)"
-                            }
-                          >
-                            <i className="fas fa-pencil-alt"></i>
-                          </button>
-                        );
-                      })()}
-                    {((user &&
-                      reply.author &&
-                      user.id === reply.author.userId) ||
-                      (user && user.role === "admin")) && (
-                      <button
-                        onClick={() => handleDeleteReply(reply._id)}
-                        className="delete-btn"
-                      >
-                        <i className="fas fa-trash"></i>
-                      </button>
-                    )}
-                  </div>
+                          return (
+                            <button
+                              onClick={() =>
+                                canEdit &&
+                                handleEditClick(reply._id, reply.content)
+                              }
+                              disabled={!canEdit}
+                              className={`edit-btn ${!canEdit ? "disabled" : ""}`}
+                              title={
+                                canEdit
+                                  ? remainingTime > 0
+                                    ? `Edit available for ${remainingTime} more minute${remainingTime !== 1 ? "s" : ""}`
+                                    : "Edit my reply"
+                                  : "Edit window expired (10 minutes)"
+                              }
+                            >
+                              <i className="fas fa-pencil-alt"></i>
+                            </button>
+                          );
+                        })()}
+                      {((user &&
+                        reply.author &&
+                        user.id === reply.author.userId) ||
+                        (user && user.role === "admin")) && (
+                        <button
+                          onClick={() => handleDeleteReply(reply._id)}
+                          className="delete-btn"
+                        >
+                          <i className="fas fa-trash"></i>
+                        </button>
+                      )}
+                    </div>
+                  )}
 
-                  {/* Profile details positioned at bottom-right */}
-                  <div
-                    className="reply-meta"
-                    style={{
-                      position: "absolute",
-                      bottom: "0",
-                      right: "0",
-                      zIndex: 10,
-                    }}
-                  >
-                    <div className="reply-author">
-                      <div className="author-avatar small">
-                        {reply.isAnonymous ? (
-                          <div className="anonymous-avatar">A</div>
-                        ) : reply.author ? (
-                          <img
-                            src={`${(import.meta.env.VITE_API_URL as string).replace(/\/$/, "")}/api/users/${reply.author.userId}/pfp?t=${pfpTimestamps[reply.author.userId] || 0}`}
-                            alt="Profile"
-                            className="pfp-avatar"
-                          />
-                        ) : (
-                          <div className="anonymous-avatar">?</div>
-                        )}
-                      </div>
-                      <div className="author-details">
-                        <span className="author-name">
-                          {reply.isAnonymous
-                            ? "Anonymous"
-                            : reply.author
-                              ? reply.author.name
-                              : "Anonymous"}
-                        </span>
-                        <span className="post-time">
-                          {new Date(reply.createdAt).toLocaleString()}
-                        </span>
+                  {/* Profile details positioned at bottom-right - hide when editing */}
+                  {editingId !== reply._id && (
+                    <div
+                      className="reply-meta"
+                      style={{
+                        position: "absolute",
+                        bottom: "0",
+                        right: "0",
+                        zIndex: 10,
+                      }}
+                    >
+                      <div className="reply-author">
+                        <div className="author-avatar small">
+                          {reply.isAnonymous ? (
+                            <div className="anonymous-avatar">A</div>
+                          ) : reply.author ? (
+                            <img
+                              src={`${(import.meta.env.VITE_API_URL as string).replace(/\/$/, "")}/api/users/${reply.author.userId}/pfp?t=${pfpTimestamps[reply.author.userId] || 0}`}
+                              alt="Profile"
+                              className="pfp-avatar"
+                            />
+                          ) : (
+                            <div className="anonymous-avatar">?</div>
+                          )}
+                        </div>
+                        <div className="author-details">
+                          <span className="author-name">
+                            {reply.isAnonymous
+                              ? "Anonymous"
+                              : reply.author
+                                ? reply.author.name
+                                : "Anonymous"}
+                          </span>
+                          <span className="post-time">
+                            {new Date(reply.createdAt).toLocaleString()}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Content with proper padding to avoid overlap */}
-                  <div
-                    style={{
-                      paddingTop: "20px",
-                      paddingBottom: "60px",
-                      paddingLeft: "10px",
-                      paddingRight: "200px",
-                    }}
-                  >
+                  <div className="reply-text-content">
                     {editingId === reply._id ? (
                       <div className="edit-form">
                         <textarea

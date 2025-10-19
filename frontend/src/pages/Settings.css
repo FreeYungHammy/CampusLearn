@@ -53,6 +53,25 @@
   color: var(--dark);
 }
 
+.card-description {
+  font-size: 16px;
+  color: var(--gray);
+  line-height: 1.5;
+}
+
+.email-note-box {
+  border: 1px solid #93c5fd;
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.email-note-text {
+  color: #ffffff;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
 .card-body {
   padding-top: 10px;
 }
@@ -161,6 +180,7 @@
   display: inline-block;
   width: 50px;
   height: 28px;
+  flex-shrink: 0;
 }
 
 .switch input {
@@ -179,6 +199,8 @@
   background-color: var(--border);
   transition: 0.4s;
   border-radius: 28px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .slider:before {
@@ -199,6 +221,139 @@ input:checked + .slider {
 
 input:checked + .slider:before {
   transform: translateX(22px);
+}
+
+/* Responsive Toggle Switches */
+@media (max-width: 768px) {
+  .notification-group {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 20px 0;
+  }
+
+  .switch {
+    width: 60px;
+    height: 34px;
+    align-self: flex-end;
+  }
+
+  .slider {
+    border-radius: 34px;
+  }
+
+  .slider:before {
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+  }
+
+  input:checked + .slider:before {
+    transform: translateX(26px);
+  }
+
+  /* Email Preferences Tablet Styles */
+  .card-title {
+    font-size: 19px;
+  }
+
+  .card-description {
+    font-size: 15px;
+  }
+
+  .email-note-box {
+    padding: 11px;
+  }
+
+  .email-note-text {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .notification-group {
+    padding: 16px 0;
+    gap: 10px;
+  }
+
+  .switch {
+    width: 55px;
+    height: 32px;
+  }
+
+  .slider {
+    border-radius: 32px;
+  }
+
+  .slider:before {
+    height: 24px;
+    width: 24px;
+    left: 4px;
+    bottom: 4px;
+  }
+
+  input:checked + .slider:before {
+    transform: translateX(23px);
+  }
+
+  .notification-label {
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  .notification-group p {
+    font-size: 14px;
+    margin: 4px 0 0 0;
+  }
+
+  .slider {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .slider:active {
+    transform: scale(0.95);
+  }
+
+  /* Email Preferences Mobile Styles */
+  .card-header {
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+  }
+
+  .card-title {
+    font-size: 18px;
+    line-height: 1.3;
+  }
+
+  .card-description {
+    font-size: 14px;
+    margin: 6px 0 0 0;
+    margin-left: 10px;
+    text-align: center;
+  }
+
+  .email-note-box {
+    padding: 10px;
+    margin-top: 8px;
+  }
+
+  .email-note-text {
+    font-size: 13px;
+    line-height: 1.3;
+  }
+
+  /* Settings Container Mobile */
+  .settings-container {
+    margin: 20px auto;
+    padding: 16px;
+  }
+
+  .settings-card {
+    padding: 20px;
+    margin-bottom: 20px;
+  }
 }
 
 /* Profile Picture Section */
@@ -230,21 +385,25 @@ input:checked + .slider:before {
 
 /* Password Strength Meter */
 .password-strength-meter {
-  height: 10px;
+  height: 12px;
   background-color: var(--light-gray);
-  border-radius: 5px;
+  border-radius: 6px;
   margin-top: 10px;
   overflow: hidden;
+  border: 1px solid var(--border);
+  opacity: 0.8;
 }
 
 .strength-bar {
   height: 100%;
   transition: var(--transition);
+  min-width: 2px; /* Ensure there's always a small visible bar */
 }
 
 .strength-bar[data-strength="0"] {
-  width: 0%;
-  background-color: var(--danger);
+  width: 2%;
+  background-color: var(--border);
+  opacity: 0.6;
 }
 
 .strength-bar[data-strength="1"] {
@@ -284,6 +443,7 @@ input:checked + .slider:before {
   font-size: 14px;
   margin-top: 5px;
   margin-bottom: 0;
+  margin-left: 10px;
 }
 
 .subjects-section {
@@ -315,7 +475,6 @@ input:checked + .slider:before {
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 12px;
   margin-bottom: 10px;
-  max-height: 400px;
   overflow-y: auto;
 }
 
@@ -477,7 +636,6 @@ input:checked + .slider:before {
 @media (max-width: 768px) {
   .subjects-grid {
     grid-template-columns: 1fr;
-    max-height: 300px;
   }
 
   .subject-chip {
