@@ -30,6 +30,9 @@ const Messages = React.lazy(() => import("./pages/Messages"));
 import { useInactivityLogout } from "./hooks/useInactivityLogout";
 import { useBackendHealth } from "./hooks/useBackendHealth";
 import { useGlobalSocket } from "./hooks/useGlobalSocket";
+import { useCallNotifications } from "./hooks/useCallNotifications";
+import { SocketManager } from "./services/socketManager";
+import { getWsUrl } from "./config/env";
 
 import { useAuthStore } from "./store/authStore";
 import LogoutConfirmationModal from "./components/LogoutConfirmationModal";
@@ -42,11 +45,23 @@ import { CallNotification } from "./components/CallNotification";
 
 function App() {
   const location = useLocation();
+  const { showLogoutModal, user, token } = useAuthStore();
+  
   useInactivityLogout();
   useBackendHealth();
   useGlobalSocket();
+  useCallNotifications();
 
-  const { showLogoutModal, user } = useAuthStore();
+  // Initialize SocketManager when user is authenticated
+  React.useEffect(() => {
+    if (token && user) {
+      console.log("[App] Initializing SocketManager with token and user");
+      SocketManager.initialize({
+        url: getWsUrl(),
+        token: token,
+      });
+    }
+  }, [token, user]);
   const isCallPopup = location.pathname.startsWith("/call/");
 
   return (

@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef, useCallback } from "react";
-import { io, Socket } from "socket.io-client";
+import { Socket } from "socket.io-client";
 import { type ChatMessage, type SendMessagePayload } from "@/types/ChatMessage";
 import { useAuthStore } from "@/store/authStore";
+import { SocketManager } from "../services/socketManager";
 
 // Hardcode the URL to avoid any environment variable issues
 const SOCKET_BASE_URL = (import.meta.env.VITE_WS_URL as string).replace(/\/$/, "");
@@ -9,11 +10,10 @@ const SOCKET_BASE_URL = (import.meta.env.VITE_WS_URL as string).replace(/\/$/, "
 /* -----------------------------------------------------------
    Module-level SINGLETON + listener registry
    ----------------------------------------------------------- */
-let socketSingleton: Socket | null = null;
-let listenersAttached = false;
 let consumerCount = 0;
+let handlersSetup = false; // Track if handlers have been set up
 
-// Global “current room” so we can auto-rejoin after reconnects
+// Global "current room" so we can auto-rejoin after reconnects
 let currentRoomGlobal: string | null = null;
 
 // Fan-out registries so multiple hook instances can subscribe without
@@ -27,87 +27,59 @@ const onConnectionChangeSubs = new Set<(connected: boolean) => void>();
 let lastTypingEmitAt = 0;
 
 /* -----------------------------------------------------------
-   (Re)create the singleton socket when needed
+   Ensure socket manager is initialized and return chat socket
    ----------------------------------------------------------- */
-function ensureSocket(token: string): Socket {
-  if (socketSingleton && socketSingleton.connected) return socketSingleton;
-
-  // If a socket exists but auth changed, disconnect it so we can reconnect with new auth
-  if (socketSingleton) {
-    try { socketSingleton.disconnect(); } catch {}
-    socketSingleton = null;
-    listenersAttached = false;
+function ensureSocket(token: string): Socket | null {
+  // Initialize socket manager if not already done
+  if (!SocketManager.isSocketConnected()) {
+    console.log("🔌 Initializing Socket Manager for chat");
+    SocketManager.initialize({
+      url: SOCKET_BASE_URL,
+      token: token,
+    });
   }
 
-  const socketUrl = `${SOCKET_BASE_URL}/chat`;
-  console.log("🔌 Creating Socket.IO connection to:", socketUrl);
-  console.log("🔑 Using token:", token ? "Present" : "Missing");
-  console.log("🌐 Base URL:", SOCKET_BASE_URL);
-  
-  socketSingleton = io(socketUrl, {
-    withCredentials: true,
-    transports: ["polling", "websocket"],
-    auth: { token },
-    extraHeaders: { Authorization: `Bearer ${token}` },
-    reconnection: true,
-    reconnectionAttempts: Infinity,
-    reconnectionDelayMax: 5000,
-  });
-
-  if (!listenersAttached) {
-    attachCoreListeners(socketSingleton);
-    listenersAttached = true;
-  }
-
-  return socketSingleton!;
+  return SocketManager.getChatSocket();
 }
 
 /* -----------------------------------------------------------
-   Attach network listeners ONCE per singleton
+   Setup chat handlers for socket manager (only once)
    ----------------------------------------------------------- */
-function attachCoreListeners(s: Socket) {
-  s.on("connect", () => {
-    console.log("✅ Chat socket connected successfully!");
-    onConnectionChangeSubs.forEach((cb) => cb(true));
-    // Re-join the last active room on reconnect
-    if (currentRoomGlobal) {
-      s.emit("join_room", currentRoomGlobal);
-    }
-  });
+function setupChatHandlers() {
+  if (handlersSetup) {
+    console.log("🔌 [ChatManager] Handlers already setup, skipping");
+    return;
+  }
 
-  s.on("connect_error", (err) => {
-    // Still considered disconnected until 'connect'
-    onConnectionChangeSubs.forEach((cb) => cb(false));
-    console.error("Chat socket connection error:", err?.message || err);
-    console.error("Full error object:", err);
+  console.log("🔌 [ChatManager] Setting up chat handlers");
+  SocketManager.registerHandlers({
+    chat: {
+      onNewMessage: (message: ChatMessage) => {
+        console.log("🔌 [ChatManager] Processing new message:", message._id);
+        onNewMessageSubs.forEach((cb) => cb(message));
+      },
+      onUserStatusChange: (userId: string, status: "online" | "offline", lastSeen: Date) => {
+        console.log("🔌 [ChatManager] Received user_status_change:", { userId, status, lastSeen });
+        onUserStatusSubs.forEach((cb) => cb(userId, status, lastSeen));
+      },
+      onChatCleared: (payload: { chatId: string }) => {
+        onChatClearedSubs.forEach((cb) => cb(payload));
+      },
+      onConnectionChange: (connected: boolean) => {
+        console.log(`🔌 [ChatManager] Connection state changed: ${connected}`);
+        onConnectionChangeSubs.forEach((cb) => cb(connected));
+        // Re-join the last active room on reconnect
+        if (connected && currentRoomGlobal) {
+          const chatSocket = SocketManager.getChatSocket();
+          if (chatSocket) {
+            chatSocket.emit("join_room", currentRoomGlobal);
+          }
+        }
+      },
+    },
   });
-
-  s.on("disconnect", (reason) => {
-    onConnectionChangeSubs.forEach((cb) => cb(false));
-    // Do not clear currentRoomGlobal so we can re-join on next connect
-    console.log("Chat socket disconnected:", reason);
-  });
-
-  s.on("new_message", (message: ChatMessage) => {
-    onNewMessageSubs.forEach((cb) => cb(message));
-  });
-
-  s.on("user_status_change", (data: { userId: string; status: "online" | "offline"; lastSeen: string | Date }) => {
-    console.log("🔌 Socket received user_status_change:", data);
-    const lastSeenDate = new Date(data.lastSeen);
-    onUserStatusSubs.forEach((cb) => cb(data.userId, data.status, lastSeenDate));
-  });
-
-  s.on("chat_cleared", (payload: { chatId: string }) => {
-    onChatClearedSubs.forEach((cb) => cb(payload));
-  });
-
-  // Optional: if your backend supports typing updates, keep these.
-  s.on("typing_update", (data: { roomId: string; users: string[] }) => {
-    // Exposed via room UI typically—hook consumer can add a handler if needed.
-    // We keep this listener harmlessly to avoid errors if server emits it.
-    // (Intentionally no-op here; add a shared registry if you later need it.)
-  });
+  
+  handlersSetup = true;
 }
 
 /* -----------------------------------------------------------
@@ -142,17 +114,24 @@ export const useChatSocket = (
         console.warn("No authentication token available for socket connection - skipping connection");
       }
       setIsConnected(false);
-      // Don't aggressively cleanup - other components might still need the socket
       return;
     }
 
     consumerCount += 1;
     console.log(`Chat socket consumer added. Total consumers: ${consumerCount}`);
 
-    // Create or reuse singleton socket
+    // Ensure socket manager is initialized
     const s = ensureSocket(token);
+    if (!s) {
+      console.error("Failed to get chat socket from manager");
+      setIsConnected(false);
+      return;
+    }
 
-    // Subscribe this hook’s handlers to the shared registries
+    // Setup handlers once
+    setupChatHandlers();
+
+    // Subscribe this hook's handlers to the shared registries
     onNewMessageSubs.add(onNewMessage);
     const statusCb =
       onUserStatusChange ||
@@ -180,30 +159,18 @@ export const useChatSocket = (
       consumerCount -= 1;
       console.log(`Chat socket consumer removed. Total consumers: ${consumerCount}`);
 
-      // If no more consumers, tear down the socket with a small delay
-      if (consumerCount <= 0 && socketSingleton) {
-        console.log("No more consumers, scheduling socket cleanup...");
-        setTimeout(() => {
-          // Double-check that we still have no consumers (prevent race conditions)
-          if (consumerCount <= 0 && socketSingleton) {
-            try {
-              // Leave any active room before disconnecting
-              if (currentRoomGlobal) {
-                socketSingleton.emit("leave_room", currentRoomGlobal);
-              }
-              socketSingleton.disconnect();
-            } catch {}
-            socketSingleton = null;
-            listenersAttached = false;
-            currentRoomGlobal = null;
-            // Clear all subscription registries to prevent stale references
-            onNewMessageSubs.clear();
-            onUserStatusSubs.clear();
-            onChatClearedSubs.clear();
-            onConnectionChangeSubs.clear();
-            console.log("Chat socket completely torn down - all registries cleared");
+      // If no more consumers, leave room and reset handlers
+      if (consumerCount <= 0) {
+        console.log("No more chat consumers, leaving current room and resetting handlers");
+        if (currentRoomGlobal) {
+          const chatSocket = SocketManager.getChatSocket();
+          if (chatSocket) {
+            chatSocket.emit("leave_room", currentRoomGlobal);
           }
-        }, 1000); // 1 second delay to prevent rapid connect/disconnect cycles
+          currentRoomGlobal = null;
+        }
+        // Reset handlers setup flag so they can be re-registered if needed
+        handlersSetup = false;
       }
     };
   }, [isTokenReady, token, onNewMessage, onUserStatusChange, onChatCleared]);
@@ -214,6 +181,7 @@ export const useChatSocket = (
   const joinRoom = useCallback((chatId: string) => {
     if (!token) return console.error("No token; cannot join room.");
     const s = ensureSocket(token);
+    if (!s) return console.error("No socket available; cannot join room.");
 
     // Leave the previously joined room (for this hook instance)
     if (currentRoomRef.current) {
@@ -229,6 +197,7 @@ export const useChatSocket = (
   const leaveRoom = useCallback((chatId: string) => {
     if (!token) return;
     const s = ensureSocket(token);
+    if (!s) return;
     s.emit("leave_room", chatId);
     if (currentRoomRef.current === chatId) {
       currentRoomRef.current = null;
@@ -251,7 +220,7 @@ export const useChatSocket = (
           return reject(new Error("Not authenticated"));
         }
         const s = ensureSocket(token);
-        if (!s.connected) {
+        if (!s || !s.connected) {
           console.error("Socket not connected. Cannot send message.");
           return reject(new Error("Socket not connected"));
         }
@@ -279,7 +248,7 @@ export const useChatSocket = (
     (isTyping: boolean) => {
       if (!token) return;
       const s = ensureSocket(token);
-      if (!s.connected || !currentRoomRef.current) return;
+      if (!s || !s.connected || !currentRoomRef.current) return;
       const now = Date.now();
       if (now - lastTypingEmitAt < 400 && isTyping) return; // debounce for 'typing: true'
       lastTypingEmitAt = now;

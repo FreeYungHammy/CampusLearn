@@ -10,9 +10,8 @@ export const StudentService = {
    */
   async byUser(userId: string): Promise<StudentDoc | null> {
     const cacheKey = STUDENT_BY_USER_CACHE_KEY(userId);
-    console.time(`Redis retrieval time (Student by User: ${userId})`);
+    // Removed verbose timing logs
     const cachedStudent = await CacheService.get<StudentDoc>(cacheKey);
-    console.timeEnd(`Redis retrieval time (Student by User: ${userId})`);
 
     if (cachedStudent) {
       // Re-hydrate the plain object from cache into a full Mongoose document
@@ -20,9 +19,8 @@ export const StudentService = {
       return StudentRepo.hydrate(cachedStudent);
     }
 
-    console.time(`Mongo retrieval time (Student by User: ${userId})`);
+    // Removed verbose timing logs
     const student = await StudentRepo.findOne({ userId });
-    console.timeEnd(`Mongo retrieval time (Student by User: ${userId})`);
 
     if (student) {
       // Convert to a plain object before caching to ensure clean serialization.

@@ -60,24 +60,33 @@ export async function connectMongo(): Promise<void> {
     logger.info("MongoDB reconnected"),
   );
   
-  // Add connection monitoring
-  mongoose.connection.on("connected", () => {
-    logger.info(`MongoDB connected - ReadyState: ${mongoose.connection.readyState}`);
-  });
+  // Production-optimized connection monitoring
+  const isProduction = process.env.NODE_ENV === 'production';
   
-  // Log when connections are created/destroyed
-  let connectionCount = 0;
-  mongoose.connection.on("connectionCreated", (event) => {
-    connectionCount++;
-    logger.info(`MongoDB connection #${connectionCount} created: ${event.connectionId}`);
-  });
-  
-  mongoose.connection.on("connectionClosed", (event) => {
-    logger.info(`MongoDB connection closed: ${event.connectionId}`);
-  });
-  
-  // Log connection status periodically
-  setInterval(() => {
-    logger.info(`MongoDB Connection Status: ReadyState=${mongoose.connection.readyState}, Host=${mongoose.connection.host}, Port=${mongoose.connection.port}`);
-  }, 30000); // Log every 30 seconds
+  if (!isProduction) {
+    // Development: Verbose logging
+    mongoose.connection.on("connected", () => {
+      logger.info(`MongoDB connected - ReadyState: ${mongoose.connection.readyState}`);
+    });
+    
+    let connectionCount = 0;
+    mongoose.connection.on("connectionCreated", (event) => {
+      connectionCount++;
+      logger.info(`MongoDB connection #${connectionCount} created: ${event.connectionId}`);
+    });
+    
+    mongoose.connection.on("connectionClosed", (event) => {
+      logger.info(`MongoDB connection closed: ${event.connectionId}`);
+    });
+    
+    // Log connection status periodically in development (reduced frequency)
+    setInterval(() => {
+      logger.info(`MongoDB Connection Status: ReadyState=${mongoose.connection.readyState}, Host=${mongoose.connection.host}, Port=${mongoose.connection.port}`);
+    }, 300000); // 5 minutes instead of 30 seconds
+  } else {
+    // Production: Minimal logging
+    mongoose.connection.on("connected", () => {
+      logger.info("MongoDB connected");
+    });
+  }
 }

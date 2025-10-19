@@ -7,7 +7,9 @@ import React, {
 } from "react";
 import { useLocation } from "react-router-dom";
 import { useChatSocket } from "@/hooks/useChatSocket";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { useAuthStore } from "@/store/authStore";
+import { SocketManager } from "../services/socketManager";
 import { chatApi, type Conversation } from "@/services/chatApi";
 import type { SendMessagePayload, ChatMessage } from "@/types/ChatMessage";
 import { format, isSameDay } from "date-fns";
@@ -227,9 +229,6 @@ const Messages: React.FC = () => {
   const [threadLoading, setThreadLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [userOnlineStatus, setUserOnlineStatus] = useState<
-    Map<string, { isOnline: boolean; lastSeen?: Date }>
-  >(new Map());
   const [isClearModalOpen, setIsClearModalOpen] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
@@ -240,6 +239,7 @@ const Messages: React.FC = () => {
   const currentRoomRef = useRef<string | null>(null);
 
   const { user, token, pfpTimestamps } = useAuthStore();
+  const { getStatus, isOnline, getLastSeen } = useOnlineStatus();
   const location = useLocation();
   const selectedConversationUserId = (location.state as any)
     ?.selectedConversationUserId;
@@ -252,19 +252,36 @@ const Messages: React.FC = () => {
   /* -------- Socket handlers -------- */
   const handleNewMessage = useCallback(
     (newMessage: ChatMessage) => {
-      if (chatId && newMessage.chatId === chatId) {
-        setMessages((prev) => [...prev, newMessage]);
+      console.log("💬 [Messages] handleNewMessage called:", newMessage._id, "for chatId:", newMessage.chatId);
+      
+      // Use refs to get current values to avoid stale closures
+      const currentChatId = chatId;
+      const currentUser = user;
+      const currentSelectedConversation = selectedConversation;
+      
+      if (currentChatId && newMessage.chatId === currentChatId) {
+        console.log("💬 [Messages] Adding message to current chat");
+        setMessages((prev) => {
+          // Check if message already exists to prevent duplicates
+          const exists = prev.some(msg => msg._id === newMessage._id);
+          if (exists) {
+            console.log("💬 [Messages] Message already exists, skipping duplicate");
+            return prev;
+          }
+          console.log("💬 [Messages] Adding new message to state");
+          return [...prev, newMessage];
+        });
       }
 
       setConversations((prev) => {
         const updated = prev.map((c) => {
-          const cChatId = user?.id
-            ? [user.id, c.otherUser._id].sort().join("-")
+          const cChatId = currentUser?.id
+            ? [currentUser.id, c.otherUser._id].sort().join("-")
             : "";
           if (cChatId !== newMessage.chatId) return c;
 
           const isActive =
-            selectedConversation && selectedConversation._id === c._id;
+            currentSelectedConversation && currentSelectedConversation._id === c._id;
           return {
             ...c,
             lastMessage: {
@@ -286,20 +303,7 @@ const Messages: React.FC = () => {
     [chatId, selectedConversation, user?.id],
   );
 
-  const handleUserStatusChange = useCallback(
-    (userId: string, status: "online" | "offline", lastSeen: Date) => {
-      console.log(
-        `🟢 Status update received: User ${userId} is ${status} (last seen: ${lastSeen})`,
-      );
-      setUserOnlineStatus((prev) => {
-        const m = new Map(prev);
-        m.set(userId, { isOnline: status === "online", lastSeen });
-        console.log(`📊 Updated status map:`, Array.from(m.entries()));
-        return m;
-      });
-    },
-    [],
-  );
+  // Online status is now managed globally by useOnlineStatus hook
 
   const handleChatCleared = useCallback(
     (payload: { chatId: string }) => {
@@ -322,7 +326,7 @@ const Messages: React.FC = () => {
 
   const { sendMessage, isConnected, joinRoom, leaveRoom } = useChatSocket(
     handleNewMessage,
-    handleUserStatusChange,
+    undefined, // No need for handleUserStatusChange since we use global online status
     handleChatCleared,
   );
 
@@ -370,6 +374,7 @@ const Messages: React.FC = () => {
   useEffect(() => {
     return () => {
       // Clear all Messages state when component unmounts to prevent interference
+      // BUT keep userOnlineStatus to maintain online status across page navigation
       setConversations([]);
       setSelectedConversation(null);
       setMessages([]);
@@ -379,7 +384,7 @@ const Messages: React.FC = () => {
       setThreadLoading(false);
       setError(null);
       setSelectedFile(null);
-      setUserOnlineStatus(new Map());
+      // Don't clear userOnlineStatus - keep it for persistence across navigation
       setIsClearModalOpen(false);
       setIsClearing(false);
 
@@ -614,56 +619,22 @@ const Messages: React.FC = () => {
   }, [conversations, searchQuery]);
 
   const handleStartVideoCall = useCallback(async () => {
-    if (!selectedConversation || !user?.id) return;
+    console.log("[video-call] handleStartVideoCall called!");
+    console.log("[video-call] selectedConversation:", !!selectedConversation);
+    console.log("[video-call] user:", !!user);
+    
+    if (!selectedConversation || !user?.id) {
+      console.log("[video-call] Missing selectedConversation or user, returning");
+      return;
+    }
+    
     const otherId = selectedConversation.otherUser._id;
     const callId = [user.id, otherId].sort().join(":");
+    console.log("[video-call] Call ID:", callId, "Target User:", otherId);
 
-    // Send call notification to the other user first
-    try {
-      console.log("[video-call] Initiating call notification", {
-        callId,
-        targetUserId: otherId,
-      });
-      const { io } = await import("socket.io-client");
-      const SOCKET_BASE_URL = (import.meta.env.VITE_WS_URL as string).replace(
-        /\/$/,
-        "",
-      );
-      const url = SOCKET_BASE_URL.replace(/^http/, "ws");
-      const token = useAuthStore.getState().token;
-
-      if (token) {
-        console.log("[video-call] Creating temporary socket connection");
-        const tempSocket = io(`${url}/video`, {
-          auth: { token },
-          transports: ["websocket", "polling"],
-        });
-        tempSocket.on("connect", () => {
-          console.log(
-            "[video-call] Temporary socket connected, sending initiate_call",
-          );
-          tempSocket.emit("initiate_call", { callId, targetUserId: otherId });
-          setTimeout(() => {
-            console.log("[video-call] Disconnecting temporary socket");
-            tempSocket.disconnect();
-          }, 1000); // Clean up after sending
-        });
-        tempSocket.on("connect_error", (error) => {
-          console.error(
-            "[video-call] Temporary socket connection error:",
-            error,
-          );
-        });
-      } else {
-        console.warn("[video-call] No token available for call notification");
-      }
-    } catch (error) {
-      console.error("Failed to send call notification:", error);
-    }
-
-    // Open the call popup
+    // Open the call popup with initiator information
     import("@/utils/openCallPopup").then(({ openCallPopup }) => {
-      openCallPopup(callId);
+      openCallPopup(callId, user.id); // Pass the initiator ID
     });
   }, [selectedConversation, user?.id]);
 
@@ -776,7 +747,7 @@ const Messages: React.FC = () => {
           <div className="thread-list">
             {filteredConversations.map((conv) => {
               const isActive = selectedConversation?._id === conv._id;
-              const status = userOnlineStatus.get(conv.otherUser._id);
+              const status = getStatus(conv.otherUser._id);
               const pfpBust = pfpTimestamps?.[conv.otherUser._id];
 
               return (
@@ -858,8 +829,7 @@ const Messages: React.FC = () => {
                           `data:image/png;base64,${defaultPfp}`;
                       }}
                     />
-                    {userOnlineStatus.get(selectedConversation.otherUser._id)
-                      ?.isOnline && <span className="status online small" />}
+                    {isOnline(selectedConversation.otherUser._id) && <span className="status online small" />}
                   </div>
                   <div>
                     <div className="header-name">
@@ -867,9 +837,7 @@ const Messages: React.FC = () => {
                     </div>
                     <div className="header-sub">
                       {(() => {
-                        const status = userOnlineStatus.get(
-                          selectedConversation.otherUser._id,
-                        );
+                        const status = getStatus(selectedConversation.otherUser._id);
                         if (status?.isOnline)
                           return <span className="online-text">Online</span>;
                         if (status?.lastSeen)
@@ -896,7 +864,10 @@ const Messages: React.FC = () => {
                   <button
                     className="action-button"
                     aria-label="Video"
-                    onClick={handleStartVideoCall}
+                    onClick={() => {
+                      console.log("[video-call] Video call button clicked!");
+                      handleStartVideoCall();
+                    }}
                   >
                     <svg width="16" height="16" fill="none" viewBox="0 0 16 16">
                       <path

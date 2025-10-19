@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import http from "../../services/http";
+import { getApiUrl } from "../../config/env";
 
 type IceConfigResponse = { iceServers: RTCIceServer[] };
 type InitOptions = { audioDeviceId?: string; videoDeviceId?: string };
 
 export function usePeerConnection() {
   const pcRef = useRef<RTCPeerConnection | null>(null);
+  const [peerConnection, setPeerConnection] = useState<RTCPeerConnection | null>(null);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const videoSenderRef = useRef<RTCRtpSender | null>(null);
@@ -24,28 +26,82 @@ export function usePeerConnection() {
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const [isReconnecting, setIsReconnecting] = useState(false);
 
+  const localStreamRef = useRef<MediaStream | null>(null);
+  
+  // Update ref when localStream changes
+  useEffect(() => {
+    localStreamRef.current = localStream;
+  }, [localStream]);
+
   useEffect(() => {
     return () => {
       pcRef.current?.close();
       pcRef.current = null;
-      localStream?.getTracks().forEach((t) => t.stop());
+      setPeerConnection(null);
+      localStreamRef.current?.getTracks().forEach((t) => t.stop());
     };
-  }, [localStream]);
+  }, []); // Empty dependency array - cleanup only on unmount
 
   const init = async (opts: InitOptions = {}) => {
-    const baseURL = (import.meta.env.VITE_API_URL as string).replace(/\/$/, "") + "/api";
-    const { data: cfg } = await http.get<IceConfigResponse>(`${baseURL}/videos/ice-config`);
-    const pc = new RTCPeerConnection({ iceServers: cfg.iceServers });
-    pcRef.current = pc;
+    // Prevent multiple initializations
+    if (pcRef.current && pcRef.current.signalingState !== 'closed') {
+      console.log('[webrtc] Peer connection already initialized, skipping');
+      return;
+    }
+
+    console.log('[webrtc] Initializing peer connection...');
+    const iceConfigUrl = getApiUrl("/api/videos/ice-config");
+    console.log('[webrtc] Fetching ICE config from:', iceConfigUrl);
+    
+    let pc: RTCPeerConnection;
+    try {
+      const { data: cfg } = await http.get<IceConfigResponse>(iceConfigUrl);
+      console.log('[webrtc] ICE config received:', cfg);
+      
+      pc = new RTCPeerConnection({ iceServers: cfg.iceServers });
+      pcRef.current = pc;
+      setPeerConnection(pc);
+      console.log('[webrtc] Peer connection created successfully');
+      console.log('[webrtc] PC ref set to:', !!pcRef.current);
+      console.log('[webrtc] PC ref current value:', pcRef.current);
+      console.log('[webrtc] PC signaling state:', pc.signalingState);
+    } catch (error) {
+      console.error('[webrtc] Failed to initialize peer connection:', error);
+      throw error;
+    }
 
     pc.ontrack = (e) => {
+      console.log('[webrtc] Remote track received:', e.track.kind);
       const stream = remoteStream || new MediaStream();
       e.streams[0]?.getTracks().forEach((t) => stream.addTrack(t));
       setRemoteStream(stream);
     };
 
     pc.onicecandidate = (e) => {
+      if (e.candidate) {
+        console.log('[webrtc] Local ICE candidate:', {
+          type: e.candidate.type,
+          protocol: e.candidate.protocol,
+          address: e.candidate.address,
+          port: e.candidate.port
+        });
+      }
       // handled by caller via signaling hook
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      console.log('[webrtc] ICE connection state changed:', pc.iceConnectionState);
+      setIceConnState(pc.iceConnectionState);
+    };
+
+    pc.onicegatheringstatechange = () => {
+      console.log('[webrtc] ICE gathering state changed:', pc.iceGatheringState);
+      setIceGatherState(pc.iceGatheringState);
+    };
+
+    pc.onconnectionstatechange = () => {
+      console.log('[webrtc] Connection state changed:', pc.connectionState);
+      setPcState(pc.connectionState);
     };
 
     pc.onsignalingstatechange = () => {
@@ -240,6 +296,7 @@ export function usePeerConnection() {
 
   return {
     pcRef,
+    peerConnection, // Add the state variable
     localStream,
     remoteStream,
     pcState,
@@ -262,6 +319,8 @@ export function usePeerConnection() {
     videoEnabled,
     audioEnabled,
     isScreenSharing,
+    // Add getter for current peer connection
+    getPeerConnection: () => peerConnection,
   };
 }
 
