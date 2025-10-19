@@ -4,6 +4,7 @@ import * as Yup from "yup";
 import "./Login.css";
 import { useState } from "react";
 import { resetPassword } from "../../services/authApi";
+import PasswordInput from "../../components/PasswordInput";
 
 const PasswordStrengthIndicator = ({ password }: { password: string }) => {
   const getStrength = () => {
@@ -105,30 +106,23 @@ const ResetPassword = () => {
                 <i className="fas fa-lock"></i>
                 <span>New Password</span>
               </label>
-              <div className="password-wrapper">
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  className={`form-control ${
-                    formik.touched.password && formik.errors.password
-                      ? "is-invalid"
-                      : ""
-                  }${
-                    formik.touched.password && !formik.errors.password
-                      ? "is-valid"
-                      : ""
-                  }`}
-                  placeholder="Enter your new password"
-                  onChange={formik.handleChange}
-                  onBlur={formik.handleBlur}
-                  value={formik.values.password}
-                />
-                <i
-                  className={`fas ${showPassword ? "fa-eye-slash" : "fa-eye"} password-toggle-icon`}
-                  onClick={() => setShowPassword(!showPassword)}
-                ></i>
-              </div>
+              <PasswordInput
+                id="password"
+                name="password"
+                value={formik.values.password}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                placeholder="Enter your new password"
+                className={`${
+                  formik.touched.password && formik.errors.password
+                    ? "is-invalid"
+                    : ""
+                }${
+                  formik.touched.password && !formik.errors.password
+                    ? "is-valid"
+                    : ""
+                }`}
+              />
               <PasswordStrengthIndicator password={formik.values.password} />
               {formik.touched.password && formik.errors.password ? (
                 <div className="error-message">{formik.errors.password}</div>
@@ -140,26 +134,25 @@ const ResetPassword = () => {
                 <i className="fas fa-lock"></i>
                 <span>Confirm New Password</span>
               </label>
-              <input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                className={`form-control ${
-                  formik.touched.confirmPassword &&
-                  formik.errors.confirmPassword
-                    ? "is-invalid"
-                    : ""
-                }${
-                  formik.touched.confirmPassword &&
-                  !formik.errors.confirmPassword
-                    ? "is-valid"
-                    : ""
-                }`}
-                placeholder="Confirm your new password"
-                onChange={formik.handleChange}
-                onBlur={formik.handleBlur}
-                value={formik.values.confirmPassword}
-              />
+                <PasswordInput
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  value={formik.values.confirmPassword}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  placeholder="Confirm your new password"
+                  className={`${
+                    formik.touched.confirmPassword &&
+                    formik.errors.confirmPassword
+                      ? "is-invalid"
+                      : ""
+                  }${
+                    formik.touched.confirmPassword &&
+                    !formik.errors.confirmPassword
+                      ? "is-valid"
+                      : ""
+                  }`}
+                />
               {formik.touched.confirmPassword &&
               formik.errors.confirmPassword ? (
                 <div className="error-message">

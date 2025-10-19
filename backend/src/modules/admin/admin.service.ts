@@ -1,3 +1,4 @@
+import bcrypt from "bcrypt";
 import { AdminModel } from "../../schemas/admin.schema";
 import { StudentModel } from "../../schemas/students.schema";
 import { TutorModel } from "../../schemas/tutor.schema";
@@ -130,28 +131,40 @@ export class AdminService {
   static async createEntity(entityType: string, data: any) {
     // Handle special cases for different entity types
     if (entityType === "admins") {
+      // Hash the password properly
+      const passwordHash = await bcrypt.hash(data.password || "temp123", 10);
+      
       // Create user first, then admin profile
       const user = new UserModel({
         email: data.email,
-        password: data.password || "temp123", // Should be hashed
+        passwordHash: passwordHash,
         role: "admin",
+        emailVerified: true, // Admins created through database tools are pre-verified
       });
       await user.save();
+      console.log("Admin user created:", { id: user._id, email: user.email, role: user.role });
 
       const admin = new AdminModel({
         userId: user._id,
         name: data.name,
         surname: data.surname,
       });
-      return await admin.save();
+      const savedAdmin = await admin.save();
+      console.log("Admin profile created:", { id: savedAdmin._id, userId: savedAdmin.userId, name: savedAdmin.name });
+      return savedAdmin;
     } else if (entityType === "students") {
+      // Hash the password properly
+      const passwordHash = await bcrypt.hash(data.password || "temp123", 10);
+      
       // Create user first, then student profile
       const user = new UserModel({
         email: data.email,
-        password: data.password || "temp123", // Should be hashed
+        passwordHash: passwordHash,
         role: "student",
+        emailVerified: true, // Students created through database tools are pre-verified
       });
       await user.save();
+      console.log("Student user created:", { id: user._id, email: user.email, role: user.role });
 
       const student = new StudentModel({
         userId: user._id,
@@ -161,15 +174,22 @@ export class AdminService {
           ? data.enrolledCourses.split(",").map((c: string) => c.trim())
           : [],
       });
-      return await student.save();
+      const savedStudent = await student.save();
+      console.log("Student profile created:", { id: savedStudent._id, userId: savedStudent.userId, name: savedStudent.name });
+      return savedStudent;
     } else if (entityType === "tutors") {
+      // Hash the password properly
+      const passwordHash = await bcrypt.hash(data.password || "temp123", 10);
+      
       // Create user first, then tutor profile
       const user = new UserModel({
         email: data.email,
-        password: data.password || "temp123", // Should be hashed
+        passwordHash: passwordHash,
         role: "tutor",
+        emailVerified: true, // Tutors created through database tools are pre-verified
       });
       await user.save();
+      console.log("Tutor user created:", { id: user._id, email: user.email, role: user.role });
 
       const tutor = new TutorModel({
         userId: user._id,
@@ -180,7 +200,9 @@ export class AdminService {
           : [],
         rating: { totalScore: 0, count: 0 },
       });
-      return await tutor.save();
+      const savedTutor = await tutor.save();
+      console.log("Tutor profile created:", { id: savedTutor._id, userId: savedTutor.userId, name: savedTutor.name });
+      return savedTutor;
     } else if (entityType === "files") {
       // For files, we need to find the tutor by userId
       const tutor = await TutorModel.findOne({ userId: data.tutorId });
@@ -197,25 +219,6 @@ export class AdminService {
         contentType: data.contentType || "application/octet-stream",
       });
       return await file.save();
-    } else if (entityType === "forum-posts") {
-      const post = new ForumPostModel({
-        title: data.title,
-        content: data.content,
-        topic: data.topic,
-        authorId: data.authorId,
-        authorRole: data.authorRole,
-        isAnonymous: false, // Admins cannot change this
-      });
-      return await post.save();
-    } else if (entityType === "forum-replies") {
-      const reply = new ForumReplyModel({
-        postId: data.postId,
-        content: data.content,
-        authorId: data.authorId,
-        authorRole: data.authorRole,
-        isAnonymous: false, // Admins cannot change this
-      });
-      return await reply.save();
     }
 
     // Default case - use the generic model
@@ -232,6 +235,54 @@ export class AdminService {
     const Model = this.getModel(entityType);
     if (!Model) {
       throw new Error(`Invalid entity type: ${entityType}`);
+    }
+
+    // Prevent editing of forum content for ethical reasons
+    // Admins should not be able to edit user-generated content as it puts words in users' mouths
+    // Only deletion is allowed for content moderation purposes
+    if (["forum-posts", "forum-replies"].includes(entityType)) {
+      throw new Error("Forum content cannot be edited by admins. Only deletion is allowed for content moderation.");
+    }
+
+    // Handle special cases for user-related entities
+    if (["admins", "students", "tutors"].includes(entityType)) {
+      const entity = await Model.findById(id);
+      if (!entity) {
+        throw new Error(`${entityType.slice(0, -1)} not found`);
+      }
+
+      // Handle user account updates (email and password)
+      const userUpdates: any = {};
+      
+      if (data.email) {
+        userUpdates.email = data.email.toLowerCase();
+        // Remove email from data to avoid saving it in the profile
+        delete data.email;
+      }
+      
+      if (data.password && data.password.trim() !== "") {
+        userUpdates.passwordHash = await bcrypt.hash(data.password, 10);
+        // Remove password from data to avoid saving it in the profile
+        delete data.password;
+      }
+      
+      // Update the user account if there are any changes
+      if (Object.keys(userUpdates).length > 0) {
+        await UserModel.findByIdAndUpdate(entity.userId, userUpdates);
+      }
+
+      // Handle array fields
+      if (entityType === "students" && data.enrolledCourses) {
+        data.enrolledCourses = data.enrolledCourses
+          .split(",")
+          .map((c: string) => c.trim());
+      }
+      if (entityType === "tutors" && data.subjects) {
+        data.subjects = data.subjects.split(",").map((s: string) => s.trim());
+      }
+
+      const updatedEntity = await Model.findByIdAndUpdate(id, data, { new: true });
+      return updatedEntity;
     }
 
     // Handle special cases for array fields
@@ -336,6 +387,10 @@ export class AdminService {
           }
 
           if (profileId) {
+            // Import forum models dynamically to avoid circular dependencies
+            const { ForumPostModel } = await import("../../schemas/forumPost.schema");
+            const { ForumReplyModel } = await import("../../schemas/forumReply.schema");
+
             // First, get all posts by this user to clean up their replies arrays
             const userPosts = await ForumPostModel.find({
               authorId: profileId,
@@ -505,6 +560,7 @@ export class AdminService {
 
           // Clear forum thread caches for posts made by this user
           if (profileId) {
+            const { ForumPostModel } = await import("../../schemas/forumPost.schema");
             const userPosts = await ForumPostModel.find({
               authorId: profileId,
             }).lean();
@@ -589,6 +645,16 @@ export class AdminService {
             : "Unknown",
         };
       });
+    } else if (["admins", "students", "tutors"].includes(entityType)) {
+      // Populate user email for user-related entities
+      const userIds = entities.map((e) => e.userId).filter(Boolean);
+      const users = await UserModel.find({ _id: { $in: userIds } }).lean();
+      const userMap = new Map(users.map((u) => [u._id.toString(), u]));
+
+      return entities.map((entity) => ({
+        ...entity,
+        email: entity.userId ? userMap.get(entity.userId.toString())?.email || "Unknown" : "Unknown",
+      }));
     }
 
     return entities;

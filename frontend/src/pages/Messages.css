@@ -644,6 +644,414 @@
   opacity: 1;
 }
 
+/* ---------- Image Preview Styles ---------- */
+.image-preview {
+  padding: 0;
+  background: transparent;
+}
+
+.image-container {
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+  background: #f3f4f6;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+[data-theme="dark"] .image-container {
+  background: #374151;
+}
+
+.image-preview.mine .image-container {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.message-image {
+  max-width: 100%;
+  max-height: 300px;
+  width: auto;
+  height: auto;
+  border-radius: 8px;
+  object-fit: contain;
+  display: block;
+}
+
+.image-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 20px;
+  color: var(--muted);
+}
+
+.image-placeholder .file-icon {
+  font-size: 24px;
+  opacity: 0.6;
+}
+
+.click-to-load {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.image-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 20px;
+  color: var(--muted);
+}
+
+.image-loading .spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border);
+  border-top: 2px solid var(--blue);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.image-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 20px;
+  color: #ef4444;
+}
+
+.retry-btn {
+  background: var(--blue);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.retry-btn:hover {
+  background: var(--blue-600);
+}
+
+.image-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 0 0 10px 10px;
+}
+
+[data-theme="dark"] .image-actions {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.image-preview.mine .image-actions {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.image-actions .file-name {
+  font-size: 12px;
+  font-weight: 500;
+  flex: 1;
+  margin: 0;
+}
+
+.download-btn {
+  background: none;
+  border: none;
+  padding: 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--muted);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.download-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: var(--text);
+}
+
+[data-theme="dark"] .download-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.image-preview.mine .download-btn {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.image-preview.mine .download-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+/* Clickable image cursor */
+.clickable-image {
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.clickable-image:hover {
+  transform: scale(1.02);
+}
+
+/* ---------- Image Modal Styles ---------- */
+.image-modal-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: rgba(0, 0, 0, 0.9) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 99999 !important;
+  padding: 20px !important;
+  margin: 0 !important;
+  transform: none !important;
+  overflow: hidden !important;
+  isolation: isolate !important;
+  contain: layout style paint !important;
+}
+
+.image-modal-content {
+  background: #1f2937 !important;
+  border-radius: 12px !important;
+  max-width: 95vw !important;
+  max-height: 95vh !important;
+  width: auto !important;
+  height: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+  position: relative !important;
+  margin: auto !important;
+  isolation: isolate !important;
+  contain: layout style paint !important;
+  transform: none !important;
+}
+
+.image-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: #374151;
+  border-bottom: 1px solid #4b5563;
+}
+
+.image-modal-filename {
+  color: #f9fafb;
+  font-weight: 600;
+  font-size: 16px;
+  flex: 1;
+  margin-right: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.image-modal-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.image-modal-btn {
+  background: transparent;
+  border: 1px solid #6b7280;
+  border-radius: 8px;
+  padding: 8px;
+  color: #d1d5db;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.image-modal-btn:hover {
+  background: #4b5563;
+  border-color: #9ca3af;
+  color: #f9fafb;
+}
+
+.image-modal-btn:active {
+  transform: scale(0.95);
+}
+
+.image-modal-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: #111827;
+  overflow: hidden;
+  position: relative;
+  min-height: 200px;
+  max-height: calc(95vh - 80px);
+}
+
+.image-modal-image {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+  user-select: none;
+}
+
+.image-modal-image.zoomed {
+  transform: scale(1.5);
+  cursor: zoom-out;
+}
+
+.image-modal-image:not(.zoomed) {
+  cursor: zoom-in;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .image-modal-overlay {
+    padding: 10px;
+  }
+  
+  .image-modal-content {
+    max-width: 100vw;
+    max-height: 100vh;
+  }
+  
+  .image-modal-header {
+    padding: 12px 16px;
+  }
+  
+  .image-modal-filename {
+    font-size: 14px;
+  }
+  
+  .image-modal-btn {
+    padding: 6px;
+  }
+  
+  .image-modal-body {
+    padding: 10px;
+  }
+}
+
+/* Dark theme adjustments */
+[data-theme="dark"] .image-modal-content {
+  background: #0f172a;
+}
+
+[data-theme="dark"] .image-modal-header {
+  background: #1e293b;
+  border-bottom-color: #334155;
+}
+
+[data-theme="dark"] .image-modal-body {
+  background: #020617;
+}
+
+/* Prevent any potential conflicts with other modals or overlays */
+.image-modal-overlay * {
+  box-sizing: border-box;
+}
+
+.image-modal-overlay {
+  pointer-events: auto !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Ensure modal content doesn't interfere with positioning */
+.image-modal-content {
+  pointer-events: auto;
+  position: relative;
+  z-index: 1;
+}
+
+/* Prevent any transform or animation conflicts */
+.image-modal-overlay,
+.image-modal-content,
+.image-modal-image {
+  will-change: auto !important;
+  backface-visibility: hidden !important;
+  -webkit-backface-visibility: hidden !important;
+}
+
+/* Ensure modal is completely isolated from parent containers */
+.image-modal-overlay {
+  all: initial !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: rgba(0, 0, 0, 0.9) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 99999 !important;
+  padding: 20px !important;
+  margin: 0 !important;
+  transform: none !important;
+  overflow: hidden !important;
+  isolation: isolate !important;
+  contain: layout style paint !important;
+  font-family: inherit !important;
+  box-sizing: border-box !important;
+}
+
+/* Reset any inherited styles that might cause issues */
+.image-modal-overlay * {
+  box-sizing: border-box !important;
+}
+
+/* Ensure the modal content doesn't inherit problematic styles */
+.image-modal-content {
+  all: initial !important;
+  background: #1f2937 !important;
+  border-radius: 12px !important;
+  max-width: 95vw !important;
+  max-height: 95vh !important;
+  width: auto !important;
+  height: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+  position: relative !important;
+  margin: auto !important;
+  isolation: isolate !important;
+  contain: layout style paint !important;
+  transform: none !important;
+  font-family: inherit !important;
+  box-sizing: border-box !important;
+}
+
 /* ---------- Composer ---------- */
 .composer {
   border-top: 1px solid var(--border);

@@ -5,15 +5,20 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
+import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
 import { useChatSocket } from "@/hooks/useChatSocket";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { useAuthStore } from "@/store/authStore";
+import { useBookingStore } from "@/store/bookingStore";
 import { SocketManager } from "../services/socketManager";
 import { chatApi, type Conversation } from "@/services/chatApi";
 import type { SendMessagePayload, ChatMessage } from "@/types/ChatMessage";
 import { format, isSameDay } from "date-fns";
 import ClearChatConfirmationModal from "@/components/ClearChatConfirmationModal";
+import EnhancedBookingModal, {
+  BookingData,
+} from "@/components/EnhancedBookingModal";
 import DateSeparator from "@/components/DateSeparator";
 import BookingMessageCard from "@/components/chat/BookingMessageCard";
 import PageHeader from "@/components/PageHeader";
@@ -25,7 +30,7 @@ const defaultPfp =
 
 /* ---------- Helpers ---------- */
 const getProfilePictureUrl = (userId: string, bust?: number) => {
-  const baseUrl = (import.meta.env.VITE_API_URL as string).replace(/\/$/, "");
+  const baseUrl = (import.meta.env.VITE_API_URL as string).replace(/\/$/, '');
   const cacheBuster = bust ? `?t=${bust}` : "";
   const url = `${baseUrl}/api/users/${userId}/pfp${cacheBuster}`;
   return url;
@@ -216,6 +221,395 @@ const fileIcon = (filename: string) => {
   }
 };
 
+// Image Modal Component
+interface ImageModalProps {
+  isOpen: boolean;
+  imageUrl: string;
+  filename: string;
+  onClose: () => void;
+  onDownload: () => void;
+}
+
+const ImageModal: React.FC<ImageModalProps> = ({ isOpen, imageUrl, filename, onClose, onDownload }) => {
+  const [isZoomed, setIsZoomed] = React.useState(false);
+  const [mounted, setMounted] = React.useState(false);
+
+  // Ensure component is mounted before rendering
+  React.useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+
+  React.useEffect(() => {
+    if (isOpen) {
+      // Store original body styles
+      const originalStyle = {
+        overflow: document.body.style.overflow,
+        position: document.body.style.position,
+        width: document.body.style.width,
+        height: document.body.style.height,
+        top: document.body.style.top,
+      };
+
+      // Apply modal styles
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.height = '100%';
+      document.body.style.top = '0';
+
+      return () => {
+        // Restore original styles
+        document.body.style.overflow = originalStyle.overflow;
+        document.body.style.position = originalStyle.position;
+        document.body.style.width = originalStyle.width;
+        document.body.style.height = originalStyle.height;
+        document.body.style.top = originalStyle.top;
+      };
+    }
+  }, [isOpen]);
+
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
+
+  const handleOverlayClick = (e: React.MouseEvent) => {
+    // Only close if clicking the overlay itself, not its children
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
+  const handleImageClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsZoomed(!isZoomed);
+  };
+
+  const handleButtonClick = (e: React.MouseEvent, action: () => void) => {
+    e.stopPropagation();
+    action();
+  };
+
+  if (!isOpen || !mounted) return null;
+
+  const modalContent = (
+    <div 
+      className="image-modal-overlay" 
+      onClick={handleOverlayClick}
+    >
+      <div className="image-modal-content">
+        <div className="image-modal-header">
+          <span className="image-modal-filename">{filename}</span>
+          <div className="image-modal-actions">
+            <button 
+              className="image-modal-btn"
+              onClick={(e) => handleButtonClick(e, () => setIsZoomed(!isZoomed))}
+              title={isZoomed ? "Fit to screen" : "Zoom in"}
+            >
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+                <path
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d={isZoomed ? "M9 9V3H3v6h6zM21 21v-6h-6v6h6zM9 21v-6H3v6h6zM21 9V3h-6v6h6z" : "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7"}
+                />
+              </svg>
+            </button>
+            <button 
+              className="image-modal-btn"
+              onClick={(e) => handleButtonClick(e, onDownload)}
+              title="Download image"
+            >
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+                <path
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"
+                />
+              </svg>
+            </button>
+            <button 
+              className="image-modal-btn"
+              onClick={(e) => handleButtonClick(e, onClose)}
+              title="Close"
+            >
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+                <path
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div className="image-modal-body">
+          <img 
+            src={imageUrl} 
+            alt={filename}
+            className={`image-modal-image ${isZoomed ? 'zoomed' : ''}`}
+            onClick={handleImageClick}
+            draggable={false}
+          />
+        </div>
+      </div>
+    </div>
+  );
+
+  // Render modal outside the normal DOM hierarchy using portal
+  return createPortal(modalContent, document.body);
+};
+
+// File Preview Component
+interface FilePreviewProps {
+  message: any;
+  mine: boolean;
+  token: string | null;
+}
+
+const FilePreview: React.FC<FilePreviewProps> = ({ message, mine, token }) => {
+  const [imageUrl, setImageUrl] = React.useState<string | null>(null);
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [error, setError] = React.useState(false);
+  const [clickToLoadEnabled, setClickToLoadEnabled] = React.useState(() => {
+    const savedPreference = localStorage.getItem('chat-image-click-to-load');
+    return savedPreference === 'true';
+  });
+  const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [isModalTransitioning, setIsModalTransitioning] = React.useState(false);
+
+  const filename = (message as any).uploadFilename || message.upload?.filename || "";
+  const contentType = (message as any).uploadContentType || message.upload?.contentType || "";
+  
+  const isImage = () => {
+    const ext = filename.split(".").pop()?.toLowerCase();
+    return ["jpg", "jpeg", "png", "gif", "webp", "bmp", "svg"].includes(ext || "") ||
+           contentType.startsWith("image/");
+  };
+
+  // Listen for settings changes
+  React.useEffect(() => {
+    const handleSettingsChange = (event: CustomEvent) => {
+      setClickToLoadEnabled(event.detail.clickToLoad);
+    };
+
+    window.addEventListener('chat-image-settings-changed', handleSettingsChange as EventListener);
+    
+    return () => {
+      window.removeEventListener('chat-image-settings-changed', handleSettingsChange as EventListener);
+    };
+  }, []);
+
+  const loadImagePreview = async () => {
+    if (!token || !isImage() || imageUrl || isLoading) return;
+    
+    setIsLoading(true);
+    setError(false);
+    
+    try {
+      const blob = await chatApi.downloadMessageFile(message._id || '', token);
+      const url = window.URL.createObjectURL(blob);
+      setImageUrl(url);
+    } catch (err) {
+      console.error("Failed to load image preview:", err);
+      setError(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Auto-load images if click-to-load is disabled
+  React.useEffect(() => {
+    if (isImage() && !clickToLoadEnabled && !imageUrl && !isLoading && !error && token) {
+      loadImagePreview();
+    }
+  }, [clickToLoadEnabled, token, message._id]);
+
+  const handleDownload = async () => {
+    if (!token) return;
+    
+    try {
+      const blob = await chatApi.downloadMessageFile(message._id || '', token);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Failed to download file:", err);
+      alert("Failed to download file.");
+    }
+  };
+
+  const handleImageClick = () => {
+    if (imageUrl && isImage() && !isModalTransitioning) {
+      setIsModalTransitioning(true);
+      setIsModalOpen(true);
+      // Reset transition state after a short delay
+      setTimeout(() => setIsModalTransitioning(false), 300);
+    }
+  };
+
+  const handleModalClose = () => {
+    if (!isModalTransitioning) {
+      setIsModalTransitioning(true);
+      setIsModalOpen(false);
+      // Reset transition state after a short delay
+      setTimeout(() => setIsModalTransitioning(false), 300);
+    }
+  };
+
+  // Clean up object URL on unmount
+  React.useEffect(() => {
+    return () => {
+      if (imageUrl) {
+        window.URL.revokeObjectURL(imageUrl);
+      }
+    };
+  }, [imageUrl]);
+
+  if (isImage()) {
+    return (
+      <div className={`file-preview image-preview ${mine ? "mine" : ""}`}>
+        <div 
+          className="image-container"
+          onClick={clickToLoadEnabled ? loadImagePreview : undefined}
+          style={{ cursor: isLoading ? "wait" : (clickToLoadEnabled ? "pointer" : "default") }}
+        >
+          {isLoading ? (
+            <div className="image-loading">
+              <div className="spinner"></div>
+              <span>Loading image...</span>
+            </div>
+          ) : imageUrl ? (
+            <img 
+              src={imageUrl} 
+              alt={filename}
+              className="message-image clickable-image"
+              onError={() => setError(true)}
+              onClick={handleImageClick}
+            />
+          ) : error ? (
+            <div className="image-error">
+              <span>Failed to load image</span>
+              <button onClick={loadImagePreview} className="retry-btn">
+                Retry
+              </button>
+            </div>
+          ) : clickToLoadEnabled ? (
+            <div className="image-placeholder">
+              <span className="file-icon">
+                {fileIcon(filename)}
+              </span>
+              <span className="click-to-load">Click to load image</span>
+            </div>
+          ) : (
+            <div className="image-loading">
+              <div className="spinner"></div>
+              <span>Loading image...</span>
+            </div>
+          )}
+        </div>
+        
+        <div className="image-actions">
+          <span className={`file-name ${mine ? "white" : ""}`}>
+            {filename}
+          </span>
+          <button 
+            onClick={handleDownload}
+            className="download-btn"
+            title="Download image"
+          >
+            <svg
+              width="16"
+              height="16"
+              fill="none"
+              viewBox="0 0 16 16"
+            >
+              <path
+                d="M8 1v10m0 0l-3-3m3 3l3-3M2 13h12"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+        </div>
+        
+        {/* Image Modal */}
+        {imageUrl && (
+          <ImageModal
+            isOpen={isModalOpen}
+            imageUrl={imageUrl}
+            filename={filename}
+            onClose={handleModalClose}
+            onDownload={handleDownload}
+          />
+        )}
+      </div>
+    );
+  }
+
+  // Non-image files - use the original file preview
+  return (
+    <div
+      className={`file-preview ${mine ? "mine" : ""} downloadable`}
+      onClick={handleDownload}
+      style={{ cursor: "pointer" }}
+    >
+      <div className="file-line">
+        <span className="file-icon">
+          {fileIcon(filename)}
+        </span>
+        <span className={`file-name ${mine ? "white" : ""}`}>
+          {filename}
+        </span>
+        <svg
+          width="16"
+          height="16"
+          fill="none"
+          viewBox="0 0 16 16"
+          className="download-icon"
+        >
+          <path
+            d="M8 1v10m0 0l-3-3m3 3l3-3M2 13h12"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </div>
+      <div className={`file-meta ${mine ? "white-50" : "muted"}`}>
+        {contentType === "application/octet-stream"
+          ? filename?.split(".").pop()?.toUpperCase() || "FILE"
+          : contentType}
+      </div>
+    </div>
+  );
+};
+
 const Messages: React.FC = () => {
   console.log("💬 Messages component rendering/re-rendering");
 
@@ -231,23 +625,84 @@ const Messages: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isClearModalOpen, setIsClearModalOpen] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState("");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const currentRoomRef = useRef<string | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { user, token, pfpTimestamps } = useAuthStore();
+  const {
+    showBookingModal,
+    bookingTarget,
+    openBookingModal,
+    closeBookingModal,
+    createBooking,
+  } = useBookingStore();
   const { getStatus, isOnline, getLastSeen } = useOnlineStatus();
   const location = useLocation();
   const selectedConversationUserId = (location.state as any)
     ?.selectedConversationUserId;
 
+  const handleBookingCreation = async (bookingData: BookingData) => {
+    try {
+      const newBooking = await createBooking(bookingData);
+
+      // Send automatic message about the booking
+      if (bookingTarget && user) {
+        const isStudentBookingTutor =
+          user.role === "student" && bookingTarget.role === "tutor";
+        const recipientId = isStudentBookingTutor ? bookingTarget.id : user.id;
+
+        const messageContent = `📅 New booking request: ${bookingData.subject} session scheduled for ${new Date(bookingData.date).toLocaleDateString()} at ${bookingData.time} (${bookingData.duration} minutes)${bookingData.notes ? `\n\nNotes: ${bookingData.notes}` : ""}`;
+
+        try {
+          // Create a chatId for the booking message
+          const chatId = [user.id, recipientId].sort().join("-");
+          await sendMessage({
+            chatId: chatId,
+            content: messageContent,
+            senderId: user.id,
+            receiverId: recipientId,
+          });
+        } catch (messageError) {
+          console.warn("Failed to send booking message:", messageError);
+          // Don't fail the booking creation if message sending fails
+        }
+      }
+    } catch (error) {
+      console.error("Failed to create booking:", error);
+      throw error; // Re-throw so the modal can handle the error
+    }
+  };
+
   const chatId = useMemo(() => {
     if (!selectedConversation || !user?.id) return null;
     return [user.id, selectedConversation.otherUser._id].sort().join("-");
   }, [selectedConversation, user?.id]);
+
+  // Handle click outside dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    if (isDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isDropdownOpen]);
 
   /* -------- Socket handlers -------- */
   const handleNewMessage = useCallback(
@@ -303,6 +758,18 @@ const Messages: React.FC = () => {
     [chatId, selectedConversation, user?.id],
   );
 
+  const handleUserStatusChange = useCallback(
+    (userId: string, status: "online" | "offline", lastSeen: Date) => {
+      console.log(`🟢 Status update received: User ${userId} is ${status} (last seen: ${lastSeen})`);
+      setUserOnlineStatus((prev) => {
+        const m = new Map(prev);
+        m.set(userId, { isOnline: status === "online", lastSeen });
+        console.log(`📊 Updated status map:`, Array.from(m.entries()));
+        return m;
+      });
+    },
+    [],
+  );
   // Online status is now managed globally by useOnlineStatus hook
 
   const handleChatCleared = useCallback(
@@ -387,6 +854,7 @@ const Messages: React.FC = () => {
       // Don't clear userOnlineStatus - keep it for persistence across navigation
       setIsClearModalOpen(false);
       setIsClearing(false);
+      setIsDropdownOpen(false);
 
       // Clear current room reference
       if (currentRoomRef.current) {
@@ -630,6 +1098,37 @@ const Messages: React.FC = () => {
     
     const otherId = selectedConversation.otherUser._id;
     const callId = [user.id, otherId].sort().join(":");
+    
+    // Send call notification to the other user first
+    try {
+      console.log("[video-call] Initiating call notification", { callId, targetUserId: otherId });
+      const { io } = await import("socket.io-client");
+      const SOCKET_BASE_URL = (import.meta.env.VITE_WS_URL as string).replace(/\/$/, '');
+      const url = SOCKET_BASE_URL.replace(/^http/, "ws");
+      const token = useAuthStore.getState().token;
+      
+      if (token) {
+        console.log("[video-call] Creating temporary socket connection");
+        const tempSocket = io(`${url}/video`, { auth: { token }, transports: ["websocket", "polling"] });
+        tempSocket.on("connect", () => {
+          console.log("[video-call] Temporary socket connected, sending initiate_call");
+          tempSocket.emit("initiate_call", { callId, targetUserId: otherId });
+          setTimeout(() => {
+            console.log("[video-call] Disconnecting temporary socket");
+            tempSocket.disconnect();
+          }, 1000); // Clean up after sending
+        });
+        tempSocket.on("connect_error", (error) => {
+          console.error("[video-call] Temporary socket connection error:", error);
+        });
+      } else {
+        console.warn("[video-call] No token available for call notification");
+      }
+    } catch (error) {
+      console.error("Failed to send call notification:", error);
+    }
+    
+    // Open the call popup
     console.log("[video-call] Call ID:", callId, "Target User:", otherId);
 
     // Open the call popup with initiator information
@@ -701,9 +1200,8 @@ const Messages: React.FC = () => {
       const timestampGroup = timestampGroups.get(timestampKey);
 
       // Show profile picture only if this is the first message in its timestamp group
-      messageWithGrouping.showProfilePicture = Boolean(
-        timestampGroup && timestampGroup[0] === i,
-      );
+      messageWithGrouping.showProfilePicture =
+        Boolean(timestampGroup && timestampGroup[0] === i);
 
       // Show timestamp only for the last message in each timestamp group (both sides)
       if (timestampGroup && timestampGroup[timestampGroup.length - 1] === i) {
@@ -725,7 +1223,7 @@ const Messages: React.FC = () => {
         subtitle="Connect and communicate with your tutors and students"
         icon="fas fa-comments"
       />
-
+      
       <div className="messages-shell">
         {/* Sidebar */}
         <aside className="sidebar">
@@ -876,14 +1374,67 @@ const Messages: React.FC = () => {
                       />
                     </svg>
                   </button>
-                  <button
-                    onClick={() => setIsClearModalOpen(true)}
-                    className="action-button"
-                    aria-label="Clear messages"
-                    title="Clear all messages"
-                  >
-                    <i className="fas fa-trash" />
-                  </button>
+                  <div className="relative" ref={dropdownRef}>
+                    <button
+                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                      className="action-button"
+                      aria-label="More options"
+                      aria-expanded={isDropdownOpen}
+                    >
+                      <i
+                        className={`fas fa-chevron-${isDropdownOpen ? "up" : "down"}`}
+                      />
+                    </button>
+                    {isDropdownOpen && (
+                      <div
+                        className="cl-menu"
+                        role="menu"
+                        style={{
+                          position: "fixed",
+                          top: "16vh",
+                          left: "135vh",
+                          zIndex: 99999,
+                        }}
+                      >
+                        {user?.role === "tutor" && selectedConversation && (
+                          <button
+                            className="cl-menu__item"
+                            onClick={() => {
+                              openBookingModal({
+                                id: selectedConversation.otherUser._id,
+                                name:
+                                  selectedConversation.otherUser.profile
+                                    ?.name || "Student",
+                                surname:
+                                  selectedConversation.otherUser.profile
+                                    ?.surname || "",
+                                role: "student" as const,
+                                subjects:
+                                  selectedConversation.otherUser.profile
+                                    ?.subjects || [],
+                              });
+                              setIsDropdownOpen(false);
+                            }}
+                          >
+                            <i className="fas fa-calendar-plus" />
+                            <span>Schedule Session</span>
+                          </button>
+                        )}
+                        {user?.role === "tutor" && (
+                          <button
+                            className="cl-menu__item"
+                            onClick={() => {
+                              setIsClearModalOpen(true);
+                              setIsDropdownOpen(false);
+                            }}
+                          >
+                            <i className="fas fa-trash" />
+                            <span>Clear Messages</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -1027,10 +1578,7 @@ const Messages: React.FC = () => {
                                   <button
                                     className="message-edit-btn"
                                     onClick={() =>
-                                      handleEditMessage(
-                                        msg._id || "",
-                                        msg.content,
-                                      )
+                                      handleEditMessage(msg._id || '', msg.content)
                                     }
                                     title="Edit message"
                                   >
@@ -1049,87 +1597,11 @@ const Messages: React.FC = () => {
 
                                 {((msg as any).uploadFilename ||
                                   msg.upload?.filename) && (
-                                  <div
-                                    className={`file-preview ${mine ? "mine" : ""} downloadable`}
-                                    onClick={async () => {
-                                      if (!token) return;
-                                      try {
-                                        const blob =
-                                          await chatApi.downloadMessageFile(
-                                            msg._id || "",
-                                            token,
-                                          );
-                                        const url =
-                                          window.URL.createObjectURL(blob);
-                                        const link =
-                                          document.createElement("a");
-                                        link.href = url;
-                                        link.setAttribute(
-                                          "download",
-                                          (msg as any).uploadFilename ||
-                                            "download",
-                                        );
-                                        document.body.appendChild(link);
-                                        link.click();
-                                        document.body.removeChild(link);
-                                        window.URL.revokeObjectURL(url);
-                                      } catch (err) {
-                                        console.error(
-                                          "Failed to download file:",
-                                          err,
-                                        );
-                                        alert("Failed to download file.");
-                                      }
-                                    }}
-                                    style={{ cursor: "pointer" }}
-                                  >
-                                    <div className="file-line">
-                                      <span className="file-icon">
-                                        {fileIcon(
-                                          (msg as any).uploadFilename ||
-                                            msg.upload?.filename ||
-                                            "",
-                                        )}
-                                      </span>
-                                      <span
-                                        className={`file-name ${mine ? "white" : ""}`}
-                                      >
-                                        {(msg as any).uploadFilename ||
-                                          msg.upload?.filename}
-                                      </span>
-                                      <svg
-                                        width="16"
-                                        height="16"
-                                        fill="none"
-                                        viewBox="0 0 16 16"
-                                        className="download-icon"
-                                      >
-                                        <path
-                                          d="M8 1v10m0 0l-3-3m3 3l3-3M2 13h12"
-                                          stroke="currentColor"
-                                          strokeWidth="1.5"
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                        />
-                                      </svg>
-                                    </div>
-                                    <div
-                                      className={`file-meta ${mine ? "white-50" : "muted"}`}
-                                    >
-                                      {((msg as any).uploadContentType ||
-                                        msg.upload?.contentType) ===
-                                      "application/octet-stream"
-                                        ? (
-                                            (msg as any).uploadFilename ||
-                                            msg.upload?.filename
-                                          )
-                                            ?.split(".")
-                                            .pop()
-                                            ?.toUpperCase() || "FILE"
-                                        : (msg as any).uploadContentType ||
-                                          msg.upload?.contentType}
-                                    </div>
-                                  </div>
+                                  <FilePreview
+                                    message={msg}
+                                    mine={mine}
+                                    token={token}
+                                  />
                                 )}
                               </div>
                             )}
@@ -1247,6 +1719,17 @@ const Messages: React.FC = () => {
               userName={`${selectedConversation.otherUser.profile?.name || "Unknown"} ${
                 selectedConversation.otherUser.profile?.surname || "User"
               }`}
+            />
+          )}
+
+          {/* Booking Modal */}
+          {showBookingModal && bookingTarget && user && (
+            <EnhancedBookingModal
+              isOpen={showBookingModal}
+              onClose={closeBookingModal}
+              onConfirm={handleBookingCreation}
+              targetUser={bookingTarget}
+              currentUser={user}
             />
           )}
         </section>

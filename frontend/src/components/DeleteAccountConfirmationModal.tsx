@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import Dialog from "./ui/Dialog";
+import PasswordInput from "./PasswordInput";
 
 interface DeleteAccountConfirmationModalProps {
   show: boolean;
@@ -59,15 +60,14 @@ export default function DeleteAccountConfirmationModal({
             <label htmlFor="delete-password" className="form-label">
               Enter your password to confirm:
             </label>
-            <input
+            <PasswordInput
               id="delete-password"
-              type="password"
-              className={`form-control ${error ? "is-invalid" : ""}`}
+              name="delete-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Your current password"
               disabled={isSubmitting}
-              autoFocus
+              className={error ? "is-invalid" : ""}
             />
             {error && (
               <div

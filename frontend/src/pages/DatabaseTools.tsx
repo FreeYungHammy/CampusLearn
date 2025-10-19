@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useAuthStore } from "../store/authStore";
 import { adminApi } from "../services/adminApi";
 import PageHeader from "../components/PageHeader";
+import PasswordInput from "../components/PasswordInput";
 import "./DatabaseTools.css";
 import "./Admin.css";
 
@@ -57,6 +58,7 @@ interface ForumReply extends EntityData {
   createdAt: string;
   updatedAt: string;
 }
+
 
 interface Student extends EntityData {
   userId: string;
@@ -252,8 +254,8 @@ const DatabaseTools: React.FC = () => {
         "upvotes",
         "createdAt",
       ],
-      students: ["name", "surname", "enrolledCourses", "createdAt"],
-      tutors: ["name", "surname", "subjects", "rating", "createdAt"],
+      students: ["email", "name", "surname", "enrolledCourses", "createdAt"],
+      tutors: ["email", "name", "surname", "subjects", "rating", "createdAt"],
     };
     return fields[entityType] || [];
   };
@@ -344,12 +346,15 @@ const DatabaseTools: React.FC = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <button
-            className="create-btn"
-            onClick={() => setShowCreateModal(true)}
-          >
-            + Add {getEntityDisplayName(activeTab).slice(0)}
-          </button>
+          {/* Hide create button for forum content - users create content in the forum */}
+          {!["forum-posts", "forum-replies"].includes(activeTab) && (
+            <button
+              className="create-btn"
+              onClick={() => setShowCreateModal(true)}
+            >
+              + Add {getEntityDisplayName(activeTab).slice(0)}
+            </button>
+          )}
         </div>
 
         {loading && (
@@ -368,6 +373,16 @@ const DatabaseTools: React.FC = () => {
 
         {!loading && !error && (
           <div className="data-table">
+            {/* Ethical notice for forum content */}
+            {["forum-posts", "forum-replies"].includes(activeTab) && (
+              <div className="ethical-notice">
+                <i className="fas fa-info-circle"></i>
+                <p>
+                  <strong>Content Moderation:</strong> Forum content can be viewed and deleted for moderation purposes. 
+                  Users create content through the forum interface.
+                </p>
+              </div>
+            )}
             <table>
               <thead>
                 <tr>
@@ -410,16 +425,19 @@ const DatabaseTools: React.FC = () => {
                         >
                           View
                         </button>
-                        <button
-                          className="edit-btn"
-                          onClick={() => {
-                            console.log("Edit clicked for item:", item);
-                            setEditingItem(item);
-                          }}
-                          title="Edit Record"
-                        >
-                          Edit
-                        </button>
+                        {/* Hide edit button for forum content - only deletion allowed for moderation */}
+                        {!["forum-posts", "forum-replies"].includes(activeTab) && (
+                          <button
+                            className="edit-btn"
+                            onClick={() => {
+                              console.log("Edit clicked for item:", item);
+                              setEditingItem(item);
+                            }}
+                            title="Edit Record"
+                          >
+                            Edit
+                          </button>
+                        )}
                         <button
                           className="delete-btn"
                           onClick={() => {
@@ -552,6 +570,7 @@ const CreateModal: React.FC<CreateModalProps> = ({
     const fields: any = {
       admins: [
         { name: "email", type: "email", required: true },
+        { name: "password", type: "password", required: true },
         { name: "name", type: "text", required: true },
         { name: "surname", type: "text", required: true },
       ],
@@ -585,31 +604,9 @@ const CreateModal: React.FC<CreateModalProps> = ({
           placeholder: "Tutor User ID",
         },
       ],
-      "forum-posts": [
-        { name: "title", type: "text", required: true },
-        { name: "content", type: "textarea", required: true },
-        { name: "topic", type: "text", required: true },
-        { name: "authorId", type: "text", required: true },
-        {
-          name: "authorRole",
-          type: "select",
-          required: true,
-          options: ["student", "tutor", "admin"],
-        },
-      ],
-      "forum-replies": [
-        { name: "postId", type: "text", required: true },
-        { name: "content", type: "textarea", required: true },
-        { name: "authorId", type: "text", required: true },
-        {
-          name: "authorRole",
-          type: "select",
-          required: true,
-          options: ["student", "tutor", "admin"],
-        },
-      ],
       students: [
-        { name: "userId", type: "text", required: true },
+        { name: "email", type: "email", required: true },
+        { name: "password", type: "password", required: true },
         { name: "name", type: "text", required: true },
         { name: "surname", type: "text", required: true },
         {
@@ -620,7 +617,8 @@ const CreateModal: React.FC<CreateModalProps> = ({
         },
       ],
       tutors: [
-        { name: "userId", type: "text", required: true },
+        { name: "email", type: "email", required: true },
+        { name: "password", type: "password", required: true },
         { name: "name", type: "text", required: true },
         { name: "surname", type: "text", required: true },
         {
@@ -707,6 +705,14 @@ const CreateModal: React.FC<CreateModalProps> = ({
                       </option>
                     ))}
                   </select>
+                ) : field.type === "password" ? (
+                  <PasswordInput
+                    name={field.name}
+                    value={formData[field.name] || ""}
+                    onChange={(e) => handleChange(field.name, e.target.value)}
+                    placeholder={field.placeholder}
+                    required={field.required}
+                  />
                 ) : field.type === "checkbox" ? (
                   <input
                     type="checkbox"
@@ -758,6 +764,7 @@ const EditModal: React.FC<EditModalProps> = ({
     const fields: any = {
       admins: [
         { name: "email", type: "email", required: true },
+        { name: "password", type: "password", required: false, placeholder: "Leave blank to keep current password" },
         { name: "name", type: "text", required: true },
         { name: "surname", type: "text", required: true },
       ],
@@ -785,13 +792,9 @@ const EditModal: React.FC<EditModalProps> = ({
           ],
         },
       ],
-      "forum-posts": [
-        { name: "title", type: "text", required: true },
-        { name: "content", type: "textarea", required: true },
-        { name: "topic", type: "text", required: true },
-      ],
-      "forum-replies": [{ name: "content", type: "textarea", required: true }],
       students: [
+        { name: "email", type: "email", required: true },
+        { name: "password", type: "password", required: false, placeholder: "Leave blank to keep current password" },
         { name: "name", type: "text", required: true },
         { name: "surname", type: "text", required: true },
         {
@@ -802,6 +805,8 @@ const EditModal: React.FC<EditModalProps> = ({
         },
       ],
       tutors: [
+        { name: "email", type: "email", required: true },
+        { name: "password", type: "password", required: false, placeholder: "Leave blank to keep current password" },
         { name: "name", type: "text", required: true },
         { name: "surname", type: "text", required: true },
         {
@@ -846,6 +851,14 @@ const EditModal: React.FC<EditModalProps> = ({
                 </label>
                 {field.type === "textarea" ? (
                   <textarea
+                    value={formData[field.name] || ""}
+                    onChange={(e) => handleChange(field.name, e.target.value)}
+                    placeholder={field.placeholder}
+                    required={field.required}
+                  />
+                ) : field.type === "password" ? (
+                  <PasswordInput
+                    name={field.name}
                     value={formData[field.name] || ""}
                     onChange={(e) => handleChange(field.name, e.target.value)}
                     placeholder={field.placeholder}
