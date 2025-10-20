@@ -30,6 +30,9 @@ const connectedUsers = new Map<
   }
 >();
 
+// Signal buffer for rooms with no other participants
+const signalBuffer = new Map<string, Array<{ fromUserId: string; data: any; timestamp: Date }>>();
+
 // Track active calls to prevent conflicts
 const activeCalls = new Set<string>();
 
@@ -326,6 +329,19 @@ export function createSocketServer(httpServer: HttpServer) {
       if (otherParticipants.length > 0) {
         console.log(`[video] User ${userId} joining existing call ${callId} with ${otherParticipants.length} other participants`);
         
+        // Flush buffered signals to the joining user
+        if (signalBuffer.has(callId)) {
+          const bufferedSignals = signalBuffer.get(callId)!;
+          console.log(`[video] 📤 Flushing ${bufferedSignals.length} buffered signals to joining user ${userId}`);
+          
+          for (const bufferedSignal of bufferedSignals) {
+            socket.emit("signal", { fromUserId: bufferedSignal.fromUserId, data: bufferedSignal.data });
+          }
+          
+          // Clear the buffer for this call
+          signalBuffer.delete(callId);
+        }
+        
         // Notify existing participants that someone joined
         socket.to(callId).emit("peer_joined", { userId });
         
@@ -360,10 +376,16 @@ export function createSocketServer(httpServer: HttpServer) {
       if (!callId || !targetUserId) return;
       if (!rateLimit || !rateLimit.allowEvent(socket.id, "video:initiate")) return;
       
-      // Validate that the caller is the initiator (lexicographically smaller ID)
-      const [id1, id2] = [userId, targetUserId].sort();
-      if (userId !== id1) {
-        console.log(`[video] User ${userId} is not the initiator for call ${callId}, ignoring initiate_call`);
+      // Validate that the caller is the initiator (based on callId structure)
+      const callIdParts = callId.split(":");
+      if (callIdParts.length !== 2) {
+        console.log(`[video] Invalid callId format: ${callId}`);
+        return;
+      }
+      
+      // Check if the caller is one of the participants in the call
+      if (!userId || !callIdParts.includes(userId)) {
+        console.log(`[video] User ${userId} is not a participant in call ${callId}, ignoring initiate_call`);
         return;
       }
       
@@ -402,6 +424,12 @@ export function createSocketServer(httpServer: HttpServer) {
         }
         
         // Send notification to target user
+        console.log(`[video] Attempting to send notification to user ${targetUserId}`);
+        console.log(`[video] Target user socket info:`, { 
+          videoSocketId: targetUser.videoSocketId, 
+          chatSocketId: targetUser.chatSocketId 
+        });
+        
         // Send to video namespace socket specifically
         if (targetUser.videoSocketId) {
           // Verify the socket is still connected before sending
@@ -412,9 +440,9 @@ export function createSocketServer(httpServer: HttpServer) {
               fromUserId: userId,
               fromUserName: callerName,
             });
-            console.log(`[video] Sent incoming_call to ${targetUserId} on socket ${targetUser.videoSocketId}`);
+            console.log(`[video] ✅ Sent incoming_call to ${targetUserId} on socket ${targetUser.videoSocketId}`);
           } else {
-            console.warn(`[video] Socket ${targetUser.videoSocketId} is not connected, trying chat namespace fallback`);
+            console.warn(`[video] ⚠️ Socket ${targetUser.videoSocketId} is not connected, trying chat namespace fallback`);
             // Fallback to chat namespace if video socket is disconnected
             if (targetUser.chatSocketId) {
               chat.to(targetUser.chatSocketId).emit("incoming_call", {
@@ -422,11 +450,11 @@ export function createSocketServer(httpServer: HttpServer) {
                 fromUserId: userId,
                 fromUserName: callerName,
               });
-              console.log(`[video] Sent incoming_call to ${targetUserId} via chat namespace fallback`);
+              console.log(`[video] ✅ Sent incoming_call to ${targetUserId} via chat namespace fallback`);
             }
           }
         } else {
-          console.warn(`[video] Cannot send incoming_call - user ${targetUserId} not connected to video namespace`);
+          console.warn(`[video] ❌ Cannot send incoming_call - user ${targetUserId} not connected to video namespace`);
         }
       }
     });
@@ -454,10 +482,36 @@ export function createSocketServer(httpServer: HttpServer) {
     socket.on("signal", ({ callId, data }: { callId: string; data: unknown }) => {
       if (!callId) return;
       if (!rateLimit || !rateLimit.allowEvent(socket.id, "video:signal")) return;
-      if (process.env.NODE_ENV !== 'production') {
-        console.log("[/video] signal", { socket: socket.id, type: (data as any)?.type, callId });
-      }
-      socket.to(callId).emit("signal", { fromUserId: userId, data });
+      
+      const signalType = (data as any)?.type;
+      console.log(`[video] 📡 Signal received: ${signalType} from ${userId} in call ${callId}`);
+      console.log(`[video] Signal data:`, data);
+      
+      // Check if there are other participants in the room
+      video.in(callId).fetchSockets().then(roomSockets => {
+        const otherSockets = roomSockets.filter(s => s.id !== socket.id);
+        console.log(`[video] Room ${callId} has ${otherSockets.length} other participants`);
+        
+        if (otherSockets.length > 0) {
+          socket.to(callId).emit("signal", { fromUserId: userId, data });
+          console.log(`[video] ✅ Signal forwarded to ${otherSockets.length} participants`);
+        } else {
+          // Buffer the signal for when other participants join
+          console.log(`[video] 🔍 DEBUG: No other participants, attempting to buffer signal...`);
+          if (!userId) {
+            console.warn(`[video] Cannot buffer signal - userId is undefined`);
+            return;
+          }
+          if (!signalBuffer.has(callId)) {
+            signalBuffer.set(callId, []);
+            console.log(`[video] 🔍 DEBUG: Created new signal buffer for room ${callId}`);
+          }
+          signalBuffer.get(callId)!.push({ fromUserId: userId, data, timestamp: new Date() });
+          console.log(`[video] 📦 Signal buffered for room ${callId} (${signalBuffer.get(callId)!.length} signals buffered)`);
+        }
+      }).catch(error => {
+        console.error(`[video] Error checking room participants:`, error);
+      });
     });
 
     // leave_call: remove from room and notify others
@@ -478,7 +532,9 @@ export function createSocketServer(httpServer: HttpServer) {
         const roomSockets = await video.in(callId).fetchSockets();
         if (roomSockets.length === 0) {
           activeCalls.delete(callId);
-          console.log(`[video] Call ${callId} cleaned up - no participants`);
+          // Clean up signal buffer for this call
+          signalBuffer.delete(callId);
+          console.log(`[video] Call ${callId} cleaned up - no participants, signal buffer cleared`);
         }
       }, 1000);
       
@@ -489,6 +545,32 @@ export function createSocketServer(httpServer: HttpServer) {
         }
       } catch {}
       socket.to(callId).emit("peer_left", { userId });
+    });
+
+    // Handle explicit peer_left event (when user clicks "Leave Call" button)
+    socket.on("peer_left", async ({ callId }: { callId: string }) => {
+      console.log(`[video] 🔴 User ${userId} explicitly left call ${callId} via peer_left event`);
+      console.log(`[video] 🔴 Active calls before cleanup:`, Array.from(activeCalls));
+      
+      // Notify other participants that the call has ended
+      console.log(`[video] 🔴 Emitting call_ended to room ${callId}`);
+      socket.to(callId).emit("call_ended", { 
+        userId, 
+        reason: "User ended the call",
+        endedBy: userId 
+      });
+      
+      // Also emit to the video namespace to ensure all participants get the event
+      video.to(callId).emit("call_ended", { 
+        userId, 
+        reason: "User ended the call",
+        endedBy: userId 
+      });
+      
+      // Clean up the call immediately since it's been explicitly ended
+      activeCalls.delete(callId);
+      console.log(`[video] 🔴 Call ${callId} ended by user ${userId} - call cleaned up`);
+      console.log(`[video] 🔴 Active calls after cleanup:`, Array.from(activeCalls));
     });
 
     socket.on("disconnect", async () => {
@@ -519,15 +601,50 @@ export function createSocketServer(httpServer: HttpServer) {
         logConnectedUsers("video namespace disconnection");
         
         // Clean up any active calls this user was part of
-        for (const callId of activeCalls) {
+        console.log(`[video] User ${userId} disconnecting - active calls:`, Array.from(activeCalls));
+        
+        // Only check calls that this user was actually in
+        const userCallIds = Array.from(activeCalls).filter(callId => 
+          callId.includes(userId)
+        );
+        
+        console.log(`[video] User ${userId} disconnecting - checking calls:`, userCallIds);
+        
+        for (const callId of userCallIds) {
           try {
             const roomSockets = await video.in(callId).fetchSockets();
+            console.log(`[video] Checking call ${callId} - found ${roomSockets.length} remaining participants`);
+            
             if (roomSockets.length === 0) {
               activeCalls.delete(callId);
-              console.log(`[video] Call ${callId} cleaned up after user disconnect`);
+              console.log(`[video] Call ${callId} cleaned up after user disconnect - no remaining participants`);
+            } else {
+              // Notify remaining participants that this user has disconnected
+              console.log(`[video] Notifying remaining participants in call ${callId} that user ${userId} disconnected`);
+              socket.to(callId).emit("peer_left", { userId });
             }
           } catch (error) {
             console.error(`[video] Error cleaning up call ${callId}:`, error);
+          }
+        }
+        
+        // Also check if this user was in any rooms and notify those rooms directly
+        const rooms = Array.from(socket.rooms);
+        console.log(`[video] User ${userId} was in rooms:`, rooms);
+        
+        for (const room of rooms) {
+          if (room !== socket.id && room.includes(':')) { // This looks like a call ID
+            try {
+              const roomSockets = await video.in(room).fetchSockets();
+              console.log(`[video] Room ${room} has ${roomSockets.length} participants after user ${userId} disconnect`);
+              
+              if (roomSockets.length > 0) {
+                console.log(`[video] Notifying room ${room} that user ${userId} disconnected`);
+                socket.to(room).emit("peer_left", { userId });
+              }
+            } catch (error) {
+              console.error(`[video] Error checking room ${room}:`, error);
+            }
           }
         }
       }

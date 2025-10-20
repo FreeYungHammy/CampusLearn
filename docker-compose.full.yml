@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  # Redis for caching and session management
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  # MongoDB for database
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports: ["27017:27017"]
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  # Backend API
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: campuslearn-api:latest
+    restart: unless-stopped
+    environment:
+      NODE_ENV: "production"
+      PORT: "5000"
+      PUBLIC_URL: "http://localhost:5001"
+      CORS_ORIGIN: "http://localhost:5173,http://localhost:5174,http://localhost:8080"
+      
+      # Database & Cache (Docker network)
+      MONGO_URL: "mongodb://admin:password@mongo:27017/campuslearn?authSource=admin"
+      REDIS_URL: "redis://redis:6379"
+      
+      # WebSocket URL for video calls
+      WS_URL: "http://localhost:5001"
+      
+      # JWT_SECRET and other secrets from backend/.env file
+    ports:
+      - "5001:5000"
+    depends_on:
+      redis:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+    volumes:
+      - ./backend/.env:/app/.env:ro
+
+  # Frontend (Development server for testing)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.frontend
+    image: campuslearn-frontend:latest
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_URL: "http://localhost:5001"
+      VITE_WS_URL: "http://localhost:5001"
+      VITE_ENABLE_VIDEO_CALL_NOTIFICATIONS: "true"
+    depends_on:
+      - api
+
+volumes:
+  mongo_data:
+

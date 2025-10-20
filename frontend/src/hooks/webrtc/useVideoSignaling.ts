@@ -9,6 +9,7 @@ export function useVideoSignaling(callId: string | undefined, token: string | un
     onPeerJoined?: (payload: { userId?: string }) => void;
     onPeerLeft?: (payload: { userId?: string }) => void;
     onSignal?: (payload: { fromUserId?: string; data: SignalData }) => void;
+    onCallEnded?: (payload: { userId?: string; reason?: string; endedBy?: string }) => void;
   }>({});
 
   useEffect(() => {
@@ -70,6 +71,11 @@ export function useVideoSignaling(callId: string | undefined, token: string | un
           console.log("[signal] Peer left:", payload);
           handlersRef.current.onPeerLeft?.(payload);
         },
+        onCallEnded: (payload: { userId?: string; reason?: string; endedBy?: string }) => {
+          console.log("[signal] 🔴 Call ended event received in signaling:", payload);
+          console.log("[signal] 🔴 onCallEnded handler exists:", !!handlersRef.current.onCallEnded);
+          handlersRef.current.onCallEnded?.(payload);
+        },
       },
     });
 
@@ -90,13 +96,22 @@ export function useVideoSignaling(callId: string | undefined, token: string | un
 
   const leave = useCallback(() => {
     if (!socketRef.current || !callId) return;
+    
+    // Check if socket is connected
+    if (!socketRef.current.connected) {
+      console.log("[signal] Socket not connected for leave_call, skipping");
+      return;
+    }
+    
     console.log("[signal] emit leave_call", { callId });
     socketRef.current.emit("leave_call", { callId });
   }, [callId]);
 
   const sendSignal = useCallback((data: SignalData) => {
     if (!socketRef.current || !callId) return;
-    console.log("[signal] emit", data?.type, data);
+    console.log("[signal] 📤 Sending signal:", data?.type, data);
+    console.log("[signal] Socket connected:", socketRef.current.connected);
+    console.log("[signal] CallId:", callId);
     socketRef.current.emit("signal", { callId, data });
   }, [callId]);
 
@@ -112,6 +127,11 @@ export function useVideoSignaling(callId: string | undefined, token: string | un
     handlersRef.current.onSignal = handler;
   }, []);
 
+  const onCallEnded = useCallback((handler: (payload: { userId?: string; reason?: string; endedBy?: string }) => void) => {
+    console.log("[signal] 🔴 onCallEnded handler registered");
+    handlersRef.current.onCallEnded = handler;
+  }, []);
+
   const initiateCall = useCallback((targetUserId: string) => {
     if (!socketRef.current || !callId) return;
     console.log("[signal] initiate_call", { callId, targetUserId });
@@ -119,12 +139,38 @@ export function useVideoSignaling(callId: string | undefined, token: string | un
   }, [callId]);
 
   const emitPeerLeft = useCallback(() => {
-    if (!socketRef.current || !callId) return;
-    console.log("[signal] emit peer_left", { callId });
+    if (!socketRef.current || !callId) {
+      console.log("[signal] 🔴 Cannot emit peer_left - socket or callId missing", { 
+        hasSocket: !!socketRef.current, 
+        callId 
+      });
+      return;
+    }
+    
+    // Check if socket is connected, if not try to reconnect
+    if (!socketRef.current.connected) {
+      console.log("[signal] 🔴 Socket not connected, attempting to reconnect...");
+      // Try to reconnect the socket
+      socketRef.current.connect();
+      
+      // Wait a bit for connection, then try to emit
+      setTimeout(() => {
+        if (socketRef.current?.connected) {
+          console.log("[signal] 🔴 Socket reconnected, emitting peer_left event", { callId });
+          socketRef.current.emit("peer_left", { callId });
+        } else {
+          console.log("[signal] 🔴 Socket still not connected, cannot emit peer_left");
+        }
+      }, 500);
+      return;
+    }
+    
+    console.log("[signal] 🔴 Emitting peer_left event", { callId });
+    console.log("[signal] 🔴 Socket connected:", socketRef.current.connected);
     socketRef.current.emit("peer_left", { callId });
   }, [callId]);
 
-  return { connected, join, leave, sendSignal, initiateCall, emitPeerLeft, onPeerJoined, onPeerLeft, onSignal };
+  return { connected, join, leave, sendSignal, initiateCall, emitPeerLeft, onPeerJoined, onPeerLeft, onSignal, onCallEnded };
 }
 
 

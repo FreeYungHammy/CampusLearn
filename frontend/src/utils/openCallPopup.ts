@@ -7,7 +7,17 @@ export function openCallPopup(callId: string, initiatorId?: string, isInitiator?
   if (isInitiator !== undefined) {
     params.set('isInitiator', isInitiator.toString());
   }
+  // Use the main call route
   const url = `${origin}/call/${encodeURIComponent(callId)}${params.toString() ? '?' + params.toString() : ''}`;
+  
+  console.log("[DEBUG] openCallPopup called with:", {
+    callId,
+    initiatorId,
+    isInitiator,
+    generatedUrl: url,
+    params: Object.fromEntries(params.entries())
+  });
+  
   const features = [
     "noopener",
     "noreferrer", 

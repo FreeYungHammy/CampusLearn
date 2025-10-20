@@ -27,6 +27,7 @@ interface NamespaceHandlers {
     onSignal?: (payload: { fromUserId?: string; data: SignalData }) => void;
     onPeerJoined?: (payload: { userId?: string }) => void;
     onPeerLeft?: (payload: { userId?: string }) => void;
+    onCallEnded?: (payload: { userId?: string; reason?: string; endedBy?: string }) => void;
     onConnectionChange?: (connected: boolean) => void;
     onIncomingCall?: (data: { callId: string; fromUserId: string; fromUserName: string }) => void;
     onCallCancelled?: (data: { callId: string }) => void;
@@ -274,6 +275,12 @@ class SocketManagerClass {
     videoSocket.on("peer_left", (payload: { userId?: string }) => {
       console.log("[SocketManager] Peer left:", payload);
       this.handlers.video.onPeerLeft?.(payload);
+    });
+
+    videoSocket.on("call_ended", (payload: { userId?: string; reason?: string; endedBy?: string }) => {
+      console.log("[SocketManager] 🔴 Call ended event received:", payload);
+      console.log("[SocketManager] 🔴 onCallEnded handler exists:", !!this.handlers.video.onCallEnded);
+      this.handlers.video.onCallEnded?.(payload);
     });
 
     videoSocket.on("incoming_call", (data: { callId: string; fromUserId: string; fromUserName: string }) => {

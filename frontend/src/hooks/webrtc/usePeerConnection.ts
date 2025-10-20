@@ -225,10 +225,10 @@ export function usePeerConnection() {
           quality = { score: 25, status: 'unknown', details: 'Establishing connection...' };
           break;
         case 'connected':
-          quality = { score: 100, status: 'excellent' as const, details: 'Connected' };
+          quality = { score: 80, status: 'good' as const, details: 'Connected - measuring quality...' };
           break;
         case 'completed':
-          quality = { score: 95, status: 'excellent' as const, details: 'Connection established' };
+          quality = { score: 85, status: 'good' as const, details: 'Connection established - measuring quality...' };
           break;
         case 'disconnected':
           quality = { score: 30, status: 'poor' as const, details: 'Connection lost - attempting recovery...' };
@@ -287,6 +287,8 @@ export function usePeerConnection() {
         case 'connected':
           console.log('[webrtc] Peer connection established successfully');
           setIsReconnecting(false);
+          // Let the real connection quality measurement system determine the status
+          // Don't override with hardcoded 'excellent' - let collectStats() handle it
           break;
         case 'connecting':
           console.log('[webrtc] Peer connection in progress...');

@@ -85,8 +85,14 @@ export const VideoCallPage: React.FC = () => {
   const [pendingInit, setPendingInit] = useState<{ audioDeviceId?: string; videoDeviceId?: string } | null>(null);
   const [remotePeerJoined, setRemotePeerJoined] = useState(false);
   const [showLeaveConfirmation, setShowLeaveConfirmation] = useState(false);
+  
+  // Debug logging for modal state changes
+  useEffect(() => {
+    console.log("[video-call] 🔴 showLeaveConfirmation changed to:", showLeaveConfirmation);
+  }, [showLeaveConfirmation]);
   const [showSpeedTooltip, setShowSpeedTooltip] = useState(false);
   const [showDisconnectMessage, setShowDisconnectMessage] = useState(false);
+  const [showCallEndedMessage, setShowCallEndedMessage] = useState(false);
   const [connectionError, setConnectionError] = useState<{
     message: string;
     recoverable: boolean;
@@ -94,6 +100,8 @@ export const VideoCallPage: React.FC = () => {
   } | null>(null);
   const [canResendInvite, setCanResendInvite] = useState(false);
   const [inviteSent, setInviteSent] = useState(false);
+  const [connectionStable, setConnectionStable] = useState(false);
+  const [connectionTimeout, setConnectionTimeout] = useState<NodeJS.Timeout | null>(null);
 
   // Perfect Negotiation state
   const [isInitiator, setIsInitiator] = useState<boolean | null>(null);
@@ -114,6 +122,8 @@ export const VideoCallPage: React.FC = () => {
         setError(null);
         setPeerDisconnected(false);
         setWaitingForReconnect(false);
+        // Only mark as stable if we have both local and remote streams
+        // This ensures the connection is actually working, not just in 'connected' state
         break;
       case 'failed':
         setConnectionError({
@@ -121,12 +131,14 @@ export const VideoCallPage: React.FC = () => {
           recoverable: true,
           action: "Retry"
         });
+        setConnectionStable(false);
         break;
       case 'disconnecting':
         setConnectionError({
           message: "Disconnecting...",
           recoverable: false
         });
+        setConnectionStable(false);
         break;
       case 'waiting-for-peer':
         setConnectionError({
@@ -136,9 +148,10 @@ export const VideoCallPage: React.FC = () => {
         });
         setPeerDisconnected(true);
         setWaitingForReconnect(true);
+        setConnectionStable(false);
         break;
     }
-  }, [callState]);
+  }, [callState, connectionTimeout]);
 
   // Perfect Negotiation: Ignore offer function (moved to top level)
   const ignoreOffer = useCallback((offer: RTCSessionDescriptionInit): boolean => {
@@ -184,6 +197,42 @@ export const VideoCallPage: React.FC = () => {
   useEffect(() => {
     document.title = `Call • ${callId ?? "Unknown"}`;
   }, [callId]);
+
+  // Connection timeout effect - close popup if connection doesn't establish
+  useEffect(() => {
+    if (!prejoinDone || !pendingInit) return;
+    
+    console.log("[video-call] Setting up connection timeout...");
+    
+    // Set a timeout to close the popup if connection doesn't establish within 30 seconds
+    const timeout = setTimeout(() => {
+      if (!connectionStable) {
+        console.log("[video-call] Connection timeout - closing popup");
+        setConnectionError({
+          message: "Connection failed to establish. Closing call.",
+          recoverable: false
+        });
+        
+        // Clear call state and close popup
+        clearActiveCallId();
+        const { setCallInProgress } = useCallStore.getState();
+        setCallInProgress(false);
+        
+        // Close popup after a short delay
+        setTimeout(() => {
+          window.close();
+        }, 2000);
+      }
+    }, 30000); // 30 second timeout
+    
+    setConnectionTimeout(timeout);
+    
+    return () => {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+    };
+  }, [prejoinDone, pendingInit, clearActiveCallId]); // Removed connectionStable from dependencies to prevent re-running
 
   // initialize PC and bind signaling after prejoin selection
   useEffect(() => {
@@ -241,6 +290,16 @@ export const VideoCallPage: React.FC = () => {
                     recoverable: true,
                     action: "Retry Connection"
                   });
+                  
+                  // Auto-close popup when connection fails
+                  console.log("[video-call] Connection failed - auto-closing popup");
+                  setTimeout(() => {
+                    clearActiveCallId();
+                    const { setCallInProgress } = useCallStore.getState();
+                    setCallInProgress(false);
+                    window.close();
+                  }, 3000); // Close after 3 seconds
+                  
                   // Attempt ICE restart after a delay
                   setTimeout(() => {
                     if (peerConnection.iceConnectionState === "failed") {
@@ -258,6 +317,16 @@ export const VideoCallPage: React.FC = () => {
                     recoverable: true,
                     action: "Retry Connection"
                   });
+                  
+                  // Auto-close popup when connection is lost
+                  console.log("[video-call] Connection lost - auto-closing popup");
+                  setTimeout(() => {
+                    clearActiveCallId();
+                    const { setCallInProgress } = useCallStore.getState();
+                    setCallInProgress(false);
+                    window.close();
+                  }, 3000); // Close after 3 seconds
+                  
                   // Wait for automatic recovery, then attempt ICE restart if needed
                   setTimeout(() => {
                     if (peerConnection.iceConnectionState === "disconnected") {
@@ -295,8 +364,17 @@ export const VideoCallPage: React.FC = () => {
           // 4. FOURTH: Set up Perfect Negotiation signaling handlers (AFTER peer connection exists)
           console.log("[perfect-negotiation] Setting up signaling handlers...");
           
+          // Set up peer joined handler early to catch events
+          signaling.onPeerJoined(() => {
+            console.log("[perfect-negotiation] Peer joined event received, starting negotiation...");
+            if (isActualInitiator === true) {
+              startNegotiation();
+            }
+          });
+          
           signaling.onSignal(async ({ data }) => {
-            console.log("[perfect-negotiation] Received signal:", data?.type);
+            console.log("[perfect-negotiation] 📨 Received signal:", data?.type);
+            console.log("[perfect-negotiation] Signal data:", data);
             if (!data?.type) return;
             
             try {
@@ -381,34 +459,47 @@ export const VideoCallPage: React.FC = () => {
           console.log("[video-call] Signaling connected:", signaling.connected);
           signaling.join(role);
 
-            // Determine initiator based on URL parameter (actual call initiator)
-            if (callId && user?.id) {
-              const urlParams = new URLSearchParams(window.location.search);
-              const isInitiatorParam = urlParams.get('isInitiator');
-              const initiatorId = urlParams.get('initiator');
-              
-              // Determine if this user is the actual initiator
-              const isActualInitiator = isInitiatorParam === 'true' || initiatorId === user.id;
-              setIsInitiator(isActualInitiator);
-              
-              console.log("[perfect-negotiation] User role determined:", { 
-                userId: user.id, 
-                callId, 
-                isInitiator: isActualInitiator,
-                isInitiatorParam,
-                initiatorId,
-                urlParams: Object.fromEntries(urlParams.entries())
-              });
-              
-              // Notification will be sent from PreJoinPanel when user clicks "Join Call"
-            }
+          // Determine initiator based on URL parameter (actual call initiator)
+          let isActualInitiator = false;
+          if (callId && user?.id) {
+            const urlParams = new URLSearchParams(window.location.search);
+            const isInitiatorParam = urlParams.get('isInitiator');
+            const initiatorId = urlParams.get('initiator');
+            
+            console.log("[DEBUG] URL Analysis:", {
+              fullUrl: window.location.href,
+              search: window.location.search,
+              urlParams: Object.fromEntries(urlParams.entries()),
+              userId: user.id,
+              callId
+            });
+            
+            // Determine if this user is the actual initiator
+            isActualInitiator = isInitiatorParam === 'true' || initiatorId === user.id;
+            setIsInitiator(isActualInitiator);
+            
+            console.log("[perfect-negotiation] User role determined:", { 
+              userId: user.id, 
+              callId, 
+              isInitiator: isActualInitiator,
+              isInitiatorParam,
+              initiatorId,
+              urlParams: Object.fromEntries(urlParams.entries())
+            });
+            
+            // Notification will be sent from PreJoinPanel when user clicks "Join Call"
+          }
             
             // Perfect Negotiation: Start negotiation process
-            // Both peers will attempt to create offers, but Perfect Negotiation handles conflicts
-            setTimeout(async () => {
-              if (isInitiator === true) {
+            // Wait for peer to join before starting negotiation
+            console.log("[perfect-negotiation] Waiting for peer to join before starting negotiation...");
+            
+            // Set up peer joined handler to start negotiation
+            const startNegotiation = async () => {
+              console.log("[perfect-negotiation] Peer joined! Starting negotiation...", { isInitiator: isActualInitiator, makingOffer });
+              if (isActualInitiator === true) {
                 try {
-                  console.log("[perfect-negotiation] Creating initial offer as initiator...");
+                  console.log("[perfect-negotiation] ✅ Creating initial offer as initiator...");
                   transitionToState('connecting', 'Creating initial offer');
                   
                   const peerConnection = pc.pcRef.current;
@@ -436,8 +527,9 @@ export const VideoCallPage: React.FC = () => {
                   await peerConnection.setLocalDescription(offer);
                   setMakingOffer(false);
                   
-                  console.log("[perfect-negotiation] Initial offer created and sent");
-                  signaling.sendSignal({ type: "offer", sdp: offer.sdp });
+                  console.log("[perfect-negotiation] ✅ Initial offer created and sent");
+                  console.log("[perfect-negotiation] Offer SDP length:", offer.sdp?.length || 0);
+                  signaling.sendSignal({ type: "offer", sdp: offer.sdp || "" });
                 } catch (e: any) {
                   console.error("[perfect-negotiation] Failed to create initial offer:", e);
                   setMakingOffer(false);
@@ -445,12 +537,18 @@ export const VideoCallPage: React.FC = () => {
                   setError(`Failed to create offer: ${e.message}`);
                 }
               }
-            }, 1000); // Small delay to ensure both peers are ready
+            };
+            
+            // Check if peer has already joined (in case we missed the event)
+            if (remotePeerJoined) {
+              console.log("[perfect-negotiation] Peer already joined, starting negotiation immediately...");
+              startNegotiation();
+            }
             
             // Fallback: If no offer is created within 5 seconds, try again (safety net)
             setTimeout(async () => {
               const peerConnection = pc.pcRef.current;
-              if (peerConnection && isInitiator === true && !makingOffer) {
+              if (peerConnection && isActualInitiator === true && !makingOffer) {
                 const currentState = peerConnection.signalingState;
                 if (currentState === "stable" || currentState === "have-remote-offer") {
                   console.log("[perfect-negotiation] Fallback: No initial offer detected, creating one...");
@@ -481,12 +579,32 @@ export const VideoCallPage: React.FC = () => {
   useEffect(() => {
     return () => {
       console.log("[video-call] Component unmounting, leaving call");
-      signaling.leave();
-      // Reset global call state
-      const { setCallInProgress } = useCallStore.getState();
-      setCallInProgress(false);
+      console.log("[video-call] 🔴 Emitting peer_left event on unmount");
+      
+      // Clear connection timeout if it exists
+      if (connectionTimeout) {
+        clearTimeout(connectionTimeout);
+        setConnectionTimeout(null);
+      }
+      
+      // Try to emit peer_left event to notify other participants before leaving
+      try {
+        signaling.emitPeerLeft();
+        signaling.leave();
+      } catch (error) {
+        console.log("[video-call] Error during cleanup:", error);
+      }
+      
+      // Reset global call state to re-enable video call button
+      try {
+        const { setCallInProgress } = useCallStore.getState();
+        setCallInProgress(false);
+        clearActiveCallId();
+      } catch (error) {
+        console.log("[video-call] Error resetting call state:", error);
+      }
     };
-  }, []); // Empty dependency array means this only runs on mount/unmount
+  }, []); // Empty dependency array - this should only run on unmount
 
   // Monitor remote stream to update remotePeerJoined state
   useEffect(() => {
@@ -501,6 +619,75 @@ export const VideoCallPage: React.FC = () => {
       }
     }
   }, [pc.remoteStream, waitingForReconnect, callState, transitionToState]);
+
+  // Monitor connection stability - only set stable when we have both streams and good connection
+  useEffect(() => {
+    const checkConnectionStability = () => {
+      const hasLocalStream = !!pc.localStream;
+      const hasRemoteStream = !!pc.remoteStream;
+      const isConnected = callState === 'connected';
+      const hasGoodConnection = pc.connectionQuality.status === 'excellent' || 
+                               pc.connectionQuality.status === 'good' || 
+                               pc.connectionQuality.status === 'fair';
+      
+      // Check ICE connection state for additional validation
+      const peerConnection = pc.pcRef.current;
+      const iceConnectionState = peerConnection?.iceConnectionState;
+      const isIceConnected = iceConnectionState === 'connected' || iceConnectionState === 'completed';
+      
+      // Only set stable if we have both streams, are connected, have good connection quality, and ICE is connected
+      const shouldBeStable = hasLocalStream && hasRemoteStream && isConnected && hasGoodConnection && isIceConnected;
+      
+      console.log("[video-call] Connection stability check:", {
+        hasLocalStream,
+        hasRemoteStream,
+        isConnected,
+        hasGoodConnection,
+        isIceConnected,
+        iceConnectionState,
+        shouldBeStable,
+        currentStable: connectionStable
+      });
+      
+      if (shouldBeStable && !connectionStable) {
+        console.log("[video-call] ✅ Connection is now stable");
+        setConnectionStable(true);
+        // Clear any existing timeout since connection is established
+        if (connectionTimeout) {
+          clearTimeout(connectionTimeout);
+          setConnectionTimeout(null);
+        }
+      } else if (!shouldBeStable && connectionStable) {
+        console.log("[video-call] ❌ Connection is no longer stable");
+        setConnectionStable(false);
+      }
+    };
+
+    // Check immediately
+    checkConnectionStability();
+    
+    // Set up interval to check connection stability
+    const stabilityInterval = setInterval(checkConnectionStability, 2000); // Check every 2 seconds
+    
+    return () => {
+      clearInterval(stabilityInterval);
+    };
+  }, [pc.localStream, pc.remoteStream, pc.connectionQuality.status, callState, connectionStable, connectionTimeout]);
+
+  // Auto-close popup when connection is lost
+  useEffect(() => {
+    if (connectionError?.message === "Connection lost. Attempting to reconnect...") {
+      console.log("[video-call] Connection lost detected - auto-closing popup in 3 seconds");
+      const closeTimeout = setTimeout(() => {
+        clearActiveCallId();
+        const { setCallInProgress } = useCallStore.getState();
+        setCallInProgress(false);
+        window.close();
+      }, 3000);
+      
+      return () => clearTimeout(closeTimeout);
+    }
+  }, [connectionError, clearActiveCallId]);
 
   // Handle peer joined event
   useEffect(() => {
@@ -556,6 +743,7 @@ export const VideoCallPage: React.FC = () => {
       console.log("[video-call] Peer left:", payload);
       setRemotePeerJoined(false);
       setShowDisconnectMessage(true);
+      setWaitingForReconnect(true);
       
       // Clear heartbeat when peer leaves but DON'T clear callId
       // The user might want to rejoin or the peer might reconnect
@@ -565,19 +753,43 @@ export const VideoCallPage: React.FC = () => {
       // Transition to waiting state instead of closing
       console.log("[video-call] Peer disconnected, entering waiting state");
       transitionToState('waiting-for-peer', 'Peer disconnected');
+    });
+
+    // Listen for call ended events (when someone explicitly ends the call)
+    signaling.onCallEnded((payload) => {
+      console.log("[video-call] 🔴 Call ended event received:", payload);
+      console.log("[video-call] 🔴 Setting showCallEndedMessage to true");
+      setRemotePeerJoined(false);
+      setShowCallEndedMessage(true);
+      setWaitingForReconnect(false);
       
-      // Set up a longer timeout for reconnection (30 seconds)
+      // Clear heartbeat and call ID since call is definitively ended
+      const heartbeatKey = `call-heartbeat-${callId}`;
+      localStorage.removeItem(heartbeatKey);
+      clearActiveCallId();
+      
+      // Reset call in progress flag to re-enable video call button
+      const { setCallInProgress } = useCallStore.getState();
+      setCallInProgress(false);
+      
+      // Transition to failed state since call is over
+      console.log("[video-call] 🔴 Call ended by other user - showing call ended message");
+      transitionToState('failed', 'Call ended by other participant');
+    });
+  }, [signaling, callId, transitionToState]);
+
+  // Handle reconnection timeout
+  useEffect(() => {
+    if (waitingForReconnect && !remotePeerJoined) {
       const reconnectTimeout = setTimeout(() => {
-        if (!remotePeerJoined && waitingForReconnect) {
-          console.log("[video-call] Peer hasn't rejoined after 30 seconds, closing window");
-          window.close();
-        }
+        console.log("[video-call] Peer hasn't rejoined after 30 seconds, refreshing page");
+        // Force page refresh to ensure clean state
+        window.location.reload();
       }, 30000);
       
-      // Cleanup timeout on component unmount
       return () => clearTimeout(reconnectTimeout);
-    });
-  }, [signaling, callId, remotePeerJoined, waitingForReconnect, transitionToState]);
+    }
+  }, [waitingForReconnect, remotePeerJoined]);
 
   // Handle peer disconnect events
   useEffect(() => {
@@ -614,8 +826,14 @@ export const VideoCallPage: React.FC = () => {
   useEffect(() => {
     const handleBeforeUnload = () => {
       console.log("[video-call] Browser closing - emitting peer_left and clearing call ID");
-      signaling.emitPeerLeft();
+      try {
+        signaling.emitPeerLeft();
+      } catch (error) {
+        console.log("[video-call] Error emitting peer_left on close:", error);
+      }
       clearActiveCallId(); // Clear the call ID when window closes
+      // Give a small delay to ensure the event is sent before the page unloads
+      return undefined; // Allow the page to unload normally
     };
 
     const handleVisibilityChange = () => {
@@ -880,11 +1098,23 @@ export const VideoCallPage: React.FC = () => {
                    callState === 'connecting' ? 'Connecting...' :
                    callState === 'connected' ? (pc.connectionQuality.status === 'excellent' ? 'Excellent' :
                                                 pc.connectionQuality.status === 'good' ? 'Good' :
-                                                pc.connectionQuality.status === 'fair' ? 'Fair' : 'Poor') + ' Connection' :
+                                                pc.connectionQuality.status === 'fair' ? 'Fair' : 
+                                                pc.connectionQuality.status === 'poor' ? 'Poor' : 
+                                                pc.connectionQuality.status === 'unknown' ? 'Connected' : 'Connected') + ' Connection' :
                    callState === 'disconnecting' ? 'Disconnecting...' :
                    callState === 'failed' ? 'Connection Failed' :
                    callState === 'waiting-for-peer' ? 'Waiting for Peer...' : 'Unknown'}
                 </span>
+                {connectionStable && (
+                  <span style={{ 
+                    fontSize: 10, 
+                    color: '#10b981', 
+                    fontWeight: 600,
+                    marginLeft: 4
+                  }}>
+                    ✓ Stable
+                  </span>
+                )}
               </div>
               
               {/* Speed tooltip */}
@@ -911,7 +1141,10 @@ export const VideoCallPage: React.FC = () => {
               onToggleMic={() => pc.toggleMic()}
               onToggleCam={() => pc.toggleCam()}
               onToggleScreenshare={() => pc.toggleScreenShare()}
-              onLeave={() => setShowLeaveConfirmation(true)}
+              onLeave={() => {
+                console.log("[video-call] 🔴 Leave Call button clicked!");
+                setShowLeaveConfirmation(true);
+              }}
               onReconnect={() => pc.attemptReconnection()}
               micOn={pc.audioEnabled}
               camOn={pc.videoEnabled}
@@ -925,6 +1158,54 @@ export const VideoCallPage: React.FC = () => {
         <div style={{ position: "absolute", top: 20, left: "50%", transform: "translateX(-50%)", background: "#e74c3c", color: "#fff", padding: "8px 12px", borderRadius: 6 }}>{error}</div>
       )}
       
+      {/* Connection Timeout Warning */}
+      {!connectionStable && callState !== 'connected' && callState !== 'idle' && (
+        <div style={{
+          position: "absolute",
+          top: 20,
+          left: "50%",
+          transform: "translateX(-50%)",
+          background: "rgba(245, 158, 11, 0.9)",
+          color: "#fff",
+          padding: "12px 16px",
+          borderRadius: 8,
+          display: "flex",
+          alignItems: "center",
+          gap: "12px",
+          maxWidth: "400px",
+          zIndex: 1000,
+          backdropFilter: "blur(6px)"
+        }}>
+          <div style={{ flex: 1 }}>
+            {callState === 'initializing' ? 'Establishing connection...' :
+             callState === 'connecting' ? 'Connecting to peer...' :
+             'Connection in progress...'}
+          </div>
+          <button
+            onClick={() => {
+              clearActiveCallId();
+              const { setCallInProgress } = useCallStore.getState();
+              setCallInProgress(false);
+              window.close();
+            }}
+            style={{
+              background: "rgba(255,255,255,0.2)",
+              border: "1px solid rgba(255,255,255,0.3)",
+              color: "#fff",
+              padding: "6px 12px",
+              borderRadius: 4,
+              cursor: "pointer",
+              fontSize: "12px",
+              fontWeight: "600"
+            }}
+            onMouseOver={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.3)"}
+            onMouseOut={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.2)"}
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+
       {/* Connection Error with Recovery Option */}
       {connectionError && (
         <div style={{
@@ -965,19 +1246,134 @@ export const VideoCallPage: React.FC = () => {
               {connectionError.action}
             </button>
           )}
+          {/* Always show close button for non-recoverable errors */}
+          {!connectionError.recoverable && (
+            <button
+              onClick={() => {
+                clearActiveCallId();
+                const { setCallInProgress } = useCallStore.getState();
+                setCallInProgress(false);
+                window.close();
+              }}
+              style={{
+                background: "rgba(255,255,255,0.2)",
+                border: "1px solid rgba(255,255,255,0.3)",
+                color: "#fff",
+                padding: "6px 12px",
+                borderRadius: 4,
+                cursor: "pointer",
+                fontSize: "12px",
+                fontWeight: "600"
+              }}
+              onMouseOver={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.3)"}
+              onMouseOut={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.2)"}
+            >
+              Close
+            </button>
+          )}
         </div>
       )}
       
       <LeaveConfirmationModal
         isOpen={showLeaveConfirmation}
-        onClose={() => setShowLeaveConfirmation(false)}
-        onConfirm={() => {
+        onClose={() => {
+          console.log("[video-call] 🔴 Leave confirmation modal closed");
           setShowLeaveConfirmation(false);
-          clearActiveCallId();
-          window.close();
+        }}
+        onConfirm={() => {
+          console.log("[video-call] User confirmed leave call - emitting peer_left event");
+          console.log("[video-call] Current callId:", callId);
+          console.log("[video-call] Signaling connected:", signaling.connected);
+          console.log("[video-call] Signaling object:", signaling);
+          
+          // Emit peer_left event to notify other participants
+          console.log("[video-call] About to call signaling.emitPeerLeft()");
+          try {
+            signaling.emitPeerLeft();
+            console.log("[video-call] Called signaling.emitPeerLeft()");
+          } catch (error) {
+            console.log("[video-call] Error emitting peer_left:", error);
+          }
+          
+          // Also emit leave_call to ensure proper cleanup
+          console.log("[video-call] Emitting leave_call for proper cleanup");
+          try {
+            signaling.leave();
+          } catch (error) {
+            console.log("[video-call] Error calling leave:", error);
+          }
+          
+          // Increased delay to ensure the event is sent and processed before closing
+          setTimeout(() => {
+            setShowLeaveConfirmation(false);
+            clearActiveCallId();
+            // Reset call in progress flag to re-enable video call button
+            const { setCallInProgress } = useCallStore.getState();
+            setCallInProgress(false);
+            console.log("[video-call] Call state reset, closing popup");
+            // Close the popup window instead of refreshing
+            window.close();
+          }, 1000); // Increased from 100ms to 1000ms to ensure proper event delivery
         }}
       />
       
+      {/* Call ended message overlay */}
+      {showCallEndedMessage && (
+        <div style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: "rgba(0, 0, 0, 0.9)",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "white",
+          zIndex: 1000
+        }}>
+          <div style={{ 
+            background: "rgba(255, 255, 255, 0.1)", 
+            padding: "24px", 
+            borderRadius: "12px", 
+            textAlign: "center",
+            maxWidth: "400px",
+            backdropFilter: "blur(10px)"
+          }}>
+            <div style={{ fontSize: "20px", fontWeight: "600", marginBottom: "12px" }}>
+              📞 Call ended
+            </div>
+            <div style={{ fontSize: "14px", opacity: 0.8, marginBottom: "20px" }}>
+              The other participant has ended the call.
+            </div>
+            <button
+              onClick={() => {
+                setShowCallEndedMessage(false);
+                clearActiveCallId();
+                // Reset call in progress flag to re-enable video call button
+                const { setCallInProgress } = useCallStore.getState();
+                setCallInProgress(false);
+                // Close the popup window
+                window.close();
+              }}
+              style={{
+                background: "#3b82f6",
+                border: "none",
+                color: "white",
+                padding: "8px 16px",
+                borderRadius: "6px",
+                cursor: "pointer",
+                fontSize: "14px",
+                fontWeight: "500"
+              }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Disconnect message overlay */}
       {showDisconnectMessage && (
         <div style={{
@@ -986,7 +1382,7 @@ export const VideoCallPage: React.FC = () => {
           left: 0,
           right: 0,
           bottom: 0,
-          background: "rgba(0, 0, 0, 0.8)",
+          background: "rgba(0, 0, 0, 0.9)",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
@@ -994,17 +1390,66 @@ export const VideoCallPage: React.FC = () => {
           color: "white",
           zIndex: 1000
         }}>
-          <div style={{ fontSize: "18px", fontWeight: "500", marginBottom: "8px" }}>
-            {callState === 'waiting-for-peer' ? 'Peer has disconnected' : 'User has disconnected'}
-          </div>
-          <div style={{ fontSize: "14px", opacity: 0.7 }}>
-            {callState === 'waiting-for-peer' ? 'Waiting for reconnection...' : 'Closing call window...'}
-          </div>
-          {callState === 'waiting-for-peer' && (
-            <div style={{ fontSize: "12px", opacity: 0.5, marginTop: "8px" }}>
+          <div style={{ 
+            background: "rgba(255, 255, 255, 0.1)", 
+            padding: "24px", 
+            borderRadius: "12px", 
+            textAlign: "center",
+            maxWidth: "400px",
+            backdropFilter: "blur(10px)"
+          }}>
+            <div style={{ fontSize: "20px", fontWeight: "600", marginBottom: "12px" }}>
+              👋 Other user disconnected
+            </div>
+            <div style={{ fontSize: "14px", opacity: 0.8, marginBottom: "20px" }}>
+              The other participant has left the call. You can wait for them to rejoin or end the call.
+            </div>
+            <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
+              <button
+                onClick={() => {
+                  setShowDisconnectMessage(false);
+                  setRemotePeerJoined(false);
+                  setWaitingForReconnect(true);
+                  // Keep the call active in case they want to rejoin
+                }}
+                style={{
+                  background: "rgba(255, 255, 255, 0.2)",
+                  border: "1px solid rgba(255, 255, 255, 0.3)",
+                  color: "white",
+                  padding: "8px 16px",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  fontWeight: "500"
+                }}
+              >
+                Wait for reconnection
+              </button>
+              <button
+                onClick={() => {
+                  setShowDisconnectMessage(false);
+                  clearActiveCallId();
+                  // Force page refresh to ensure clean state
+                  window.location.reload();
+                }}
+                style={{
+                  background: "#ef4444",
+                  border: "none",
+                  color: "white",
+                  padding: "8px 16px",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  fontWeight: "500"
+                }}
+              >
+                End call
+              </button>
+            </div>
+            <div style={{ fontSize: "12px", opacity: 0.6, marginTop: "12px" }}>
               The call will automatically close if no one rejoins within 30 seconds
             </div>
-          )}
+          </div>
         </div>
       )}
     </div>

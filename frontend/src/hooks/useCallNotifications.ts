@@ -49,6 +49,8 @@ export function useCallNotifications() {
           fromUserName: string; 
         }) => {
           console.log("[call-notifications] Incoming call received:", data);
+          console.log("[call-notifications] Current user:", user?.id);
+          console.log("[call-notifications] Call target user:", data.fromUserId);
           
           // Check if user is already in another call
           const { activeCallId } = useCallStore.getState();
@@ -98,8 +100,9 @@ export function useCallNotifications() {
     if (!incomingCall) return;
     
     // Open the call page as receiver (NOT initiator)
+    // Pass the initiator ID (fromUserId) and false for isInitiator
     import("@/utils/openCallPopup").then(({ openCallPopup }) => {
-      openCallPopup(incomingCall.callId, user?.id, false); // false = NOT initiator
+      openCallPopup(incomingCall.callId, incomingCall.fromUserId, false); // Pass initiator ID and false for isInitiator
     });
     setIncomingCall(null);
   }, [incomingCall, user?.id]);
