@@ -65,9 +65,17 @@ export const VideoCallPage: React.FC = () => {
                 console.log("[webrtc] ICE connection state changed:", peerConnection.iceConnectionState);
                 if (peerConnection.iceConnectionState === "connected" || peerConnection.iceConnectionState === "completed") {
                   console.log("[webrtc] ICE connection established successfully!");
+                  setError(null); // Clear any previous errors
                 } else if (peerConnection.iceConnectionState === "failed") {
-                  console.error("[webrtc] ICE connection failed");
-                  setError("Connection failed - please try again");
+                  console.error("[webrtc] ICE connection failed - will attempt recovery");
+                  setError("Connection failed - attempting to reconnect...");
+                  // Don't immediately fail - let the recovery mechanism handle it
+                } else if (peerConnection.iceConnectionState === "disconnected") {
+                  console.log("[webrtc] ICE connection disconnected - monitoring for recovery");
+                  setError("Connection lost - attempting to reconnect...");
+                } else if (peerConnection.iceConnectionState === "checking") {
+                  console.log("[webrtc] ICE connection checking - establishing connection...");
+                  setError(null);
                 }
               };
               
@@ -275,17 +283,23 @@ export const VideoCallPage: React.FC = () => {
   useEffect(() => {
     const handlePeerDisconnected = (event: CustomEvent) => {
       console.log("[video-call] Peer disconnected:", event.detail);
-      setShowDisconnectMessage(true);
       
-      // Clear heartbeat and call ID when peer disconnects
-      const heartbeatKey = `call-heartbeat-${callId}`;
-      localStorage.removeItem(heartbeatKey);
-      clearActiveCallId();
-      
-      // Auto-close after 2 seconds
-      setTimeout(() => {
-        window.close();
-      }, 2000);
+      // Only show disconnect message for permanent disconnections
+      if (event.detail?.reason === 'ice-disconnected-permanent') {
+        setShowDisconnectMessage(true);
+        
+        // Clear heartbeat and call ID when peer disconnects
+        const heartbeatKey = `call-heartbeat-${callId}`;
+        localStorage.removeItem(heartbeatKey);
+        clearActiveCallId();
+        
+        // Auto-close after 3 seconds (increased from 2)
+        setTimeout(() => {
+          window.close();
+        }, 3000);
+      } else {
+        console.log("[video-call] Temporary disconnect detected - not closing call");
+      }
     };
 
     window.addEventListener('peer-disconnected', handlePeerDisconnected as EventListener);

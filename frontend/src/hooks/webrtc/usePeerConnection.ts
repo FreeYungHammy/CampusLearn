@@ -218,22 +218,35 @@ export function usePeerConnection() {
           quality = { score: 95, status: 'excellent' as const, details: 'Connection established' };
           break;
         case 'disconnected':
-          quality = { score: 30, status: 'poor' as const, details: 'Connection lost' };
-          // Trigger disconnect detection after timeout
+          quality = { score: 30, status: 'poor' as const, details: 'Connection lost - attempting recovery...' };
+          // More conservative disconnect detection - only trigger after longer timeout
+          // and only if we've been disconnected for a while without recovery
           setTimeout(() => {
             if (pc.iceConnectionState === 'disconnected') {
-              console.log('[webrtc] Peer disconnected - triggering disconnect handler');
-              // Emit disconnect event
-              window.dispatchEvent(new CustomEvent('peer-disconnected', { 
-                detail: { reason: 'ice-disconnected' } 
-              }));
+              console.log('[webrtc] ICE still disconnected after 10 seconds - checking for recovery');
+              // Give it another chance to recover
+              setTimeout(() => {
+                if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed') {
+                  console.log('[webrtc] ICE connection failed to recover - triggering disconnect handler');
+                  window.dispatchEvent(new CustomEvent('peer-disconnected', { 
+                    detail: { reason: 'ice-disconnected-permanent' } 
+                  }));
+                } else {
+                  console.log('[webrtc] ICE connection recovered!');
+                }
+              }, 5000); // Additional 5 seconds for recovery
             }
-          }, 3000); // 3 second timeout to differentiate from temporary disconnects
+          }, 10000); // Increased from 3 to 10 seconds
           break;
         case 'failed':
-          quality = { score: 0, status: 'poor' as const, details: 'Connection failed' };
-          // Trigger reconnection attempt
-          setTimeout(() => attemptReconnection(), 2000);
+          quality = { score: 0, status: 'poor' as const, details: 'Connection failed - attempting recovery...' };
+          // More conservative failure handling - try recovery first
+          setTimeout(() => {
+            if (pc.iceConnectionState === 'failed') {
+              console.log('[webrtc] ICE connection failed - attempting reconnection');
+              attemptReconnection();
+            }
+          }, 3000); // Wait 3 seconds before attempting recovery
           break;
         case 'closed':
           quality = { score: 0, status: 'unknown', details: 'Connection closed' };
@@ -255,6 +268,27 @@ export function usePeerConnection() {
     pc.onconnectionstatechange = () => {
       console.log('[webrtc] Connection state changed:', pc.connectionState);
       setPcState(pc.connectionState);
+      
+      // Handle connection state changes more gracefully
+      switch (pc.connectionState) {
+        case 'connected':
+          console.log('[webrtc] Peer connection established successfully');
+          setIsReconnecting(false);
+          break;
+        case 'connecting':
+          console.log('[webrtc] Peer connection in progress...');
+          break;
+        case 'disconnected':
+          console.log('[webrtc] Peer connection disconnected - monitoring for recovery');
+          // Don't immediately trigger disconnect - let ICE state handle it
+          break;
+        case 'failed':
+          console.log('[webrtc] Peer connection failed - will attempt recovery via ICE state handler');
+          break;
+        case 'closed':
+          console.log('[webrtc] Peer connection closed');
+          break;
+      }
     };
 
     pc.onsignalingstatechange = () => {

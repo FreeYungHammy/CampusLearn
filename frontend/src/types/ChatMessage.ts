@@ -7,6 +7,7 @@ export interface ChatMessage {
   receiverId?: string;
   createdAt: string; // server sends Date; we keep it as ISO string on client
   editedAt?: string; // when message was last edited, ISO string on client
+  isEdited?: boolean; // flag indicating if message has been edited
   seen?: boolean;
   upload?: {
     data: string;

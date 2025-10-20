@@ -1183,14 +1183,19 @@ const Messages: React.FC = () => {
     if (!editingMessageId || !token || !editingContent.trim()) return;
 
     try {
-      // TODO: Call backend API to update message
-      // await chatApi.updateMessage(editingMessageId, editingContent, token);
-
-      // Update local state for now
+      // Call backend API to update message
+      const updatedMessage = await chatApi.updateMessage(editingMessageId, editingContent, token);
+      
+      // Update local state with the response from the server
       setMessages((prevMessages) =>
         prevMessages.map((msg) =>
           msg._id === editingMessageId
-            ? { ...msg, content: editingContent, isEdited: true }
+            ? { 
+                ...msg, 
+                content: updatedMessage.content, 
+                isEdited: updatedMessage.isEdited,
+                editedAt: updatedMessage.editedAt
+              }
             : msg,
         ),
       );
