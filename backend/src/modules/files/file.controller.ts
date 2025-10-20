@@ -339,7 +339,21 @@ export const FileController = {
                   
                   // Stream the video content
                   if (response.body) {
+                    console.log(`🔗 Starting to pipe video content to response...`);
                     response.body.pipe(res);
+                    
+                    // Add error handling for the stream
+                    response.body.on('error', (streamError) => {
+                      console.error(`❌ Stream error:`, streamError);
+                    });
+                    
+                    response.body.on('end', () => {
+                      console.log(`✅ Video streaming completed`);
+                    });
+                    
+                    res.on('close', () => {
+                      console.log(`🔗 Client disconnected during streaming`);
+                    });
                   } else {
                     throw new Error('No response body available');
                   }
@@ -464,7 +478,21 @@ export const FileController = {
                   
                   // Stream the video content
                   if (response.body) {
+                    console.log(`🔗 Starting to pipe video content to response...`);
                     response.body.pipe(res);
+                    
+                    // Add error handling for the stream
+                    response.body.on('error', (streamError) => {
+                      console.error(`❌ Stream error:`, streamError);
+                    });
+                    
+                    response.body.on('end', () => {
+                      console.log(`✅ Video streaming completed`);
+                    });
+                    
+                    res.on('close', () => {
+                      console.log(`🔗 Client disconnected during streaming`);
+                    });
                   } else {
                     throw new Error('No response body available');
                   }
