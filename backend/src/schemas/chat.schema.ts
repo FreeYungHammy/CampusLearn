@@ -10,6 +10,9 @@ const ChatSchema = new Schema(
     uploadFilename: { type: String },
     uploadContentType: { type: String },
     seen: { type: Boolean, default: false },
+    // Edit-related fields
+    isEdited: { type: Boolean, default: false },
+    editedAt: { type: Date },
     // Booking-related fields
     messageType: { 
       type: String, 

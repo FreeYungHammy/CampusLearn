@@ -146,6 +146,10 @@ const Header = () => {
                   <i className="fas fa-users-cog" />
                   <span>Users</span>
                 </NavLink>
+                <NavLink to="/admin/bills" className="cl-nav-item">
+                  <i className="fas fa-file-invoice-dollar" />
+                  <span>Bills</span>
+                </NavLink>
                 <NavLink to="/database-tools" className="cl-nav-item">
                   <i className="fas fa-database" />
                   <span>Database Tools</span>

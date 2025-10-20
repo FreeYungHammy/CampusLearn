@@ -47,8 +47,18 @@ const TutorSchema = new Schema(
     surname: { type: String, required: true },
     subjects: [{ type: String, required: true }],
     rating: {
-      totalScore: { type: Number, default: 0, min: 0 },
-      count: { type: Number, default: 0, min: 0 },
+      totalScore: { type: Number, default: 0, min: 0, validate: {
+        validator: function(v: any) {
+          return !isNaN(v) && v >= 0;
+        },
+        message: 'totalScore must be a valid number >= 0'
+      }},
+      count: { type: Number, default: 0, min: 0, validate: {
+        validator: function(v: any) {
+          return !isNaN(v) && v >= 0;
+        },
+        message: 'count must be a valid number >= 0'
+      }},
     },
     pfp: {
       data: Buffer,
@@ -83,6 +93,14 @@ TutorSchema.statics.deleteById = function (id: string) {
 TutorSchema.statics.applyRating = async function (id: string, score: number) {
   const tutor = await this.findById(id);
   if (!tutor) return null;
+
+  // Ensure rating fields are properly initialized
+  if (tutor.rating.totalScore === null || tutor.rating.totalScore === undefined || isNaN(tutor.rating.totalScore)) {
+    tutor.rating.totalScore = 0;
+  }
+  if (tutor.rating.count === null || tutor.rating.count === undefined || isNaN(tutor.rating.count)) {
+    tutor.rating.count = 0;
+  }
 
   tutor.rating.totalScore += score;
   tutor.rating.count += 1;

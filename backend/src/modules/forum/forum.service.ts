@@ -147,7 +147,12 @@ export const ForumService = {
       const cachedThreads = await CacheService.get<{ threads: any[]; totalCount: number }>(cacheKey);
       if (cachedThreads) {
         // Removed verbose cache hit logging
-        return cachedThreads;
+        // Add user vote information to cached threads
+        const threadsWithUserVotes = await ForumService.addUserVoteInfoToThreads(cachedThreads.threads, user);
+        return {
+          threads: threadsWithUserVotes,
+          totalCount: cachedThreads.totalCount
+        };
       } else {
         // Removed verbose cache miss logging
       }
@@ -298,17 +303,7 @@ export const ForumService = {
   },
 
   async getThreadById(threadId: string, user: User) {
-    const cacheKey = FORUM_THREAD_CACHE_KEY(threadId);
-    const startTime = performance.now();
-
-    let thread: any = await CacheService.get<any>(cacheKey);
-    if (thread) {
-      logger.info(
-        `[getThreadById] Redis retrieval for thread ${threadId} took ${(performance.now() - startTime).toFixed(2)} ms (Cache Hit)`,
-      );
-      return thread;
-    }
-
+    // Always fetch fresh data from database for accurate vote counts
     const dbStartTime = performance.now();
 
     const aggregation = ForumPostModel.aggregate([
@@ -504,7 +499,7 @@ export const ForumService = {
     ]);
 
     const result = await aggregation;
-    thread = result[0]; // Assign to the already declared 'thread' variable
+    const thread = result[0]; // Get the thread from aggregation result
 
     if (thread) {
       if (thread.author && thread.author.updatedAt) {
@@ -525,11 +520,6 @@ export const ForumService = {
 
     const dbDuration = performance.now() - dbStartTime;
     // Removed verbose aggregation timing
-
-    // 3. Store in cache
-    if (thread) {
-      await CacheService.set(cacheKey, thread, 1800);
-    }
 
     return thread;
   },
@@ -645,7 +635,6 @@ export const ForumService = {
       // Continue with reply creation even if email fails
     }
 
-    await CacheService.del(FORUM_THREAD_CACHE_KEY(threadId));
     return populatedReply;
   },
 
@@ -655,6 +644,7 @@ export const ForumService = {
     targetType: "ForumPost" | "ForumReply",
     voteType: 1 | -1,
   ) {
+    console.log(`[castVote] Starting vote for user ${user.id}, target ${targetId}, type ${targetType}, vote ${voteType}`);
     const session = await mongoose.startSession();
     session.startTransaction();
     try {
@@ -667,6 +657,8 @@ export const ForumService = {
         throw new HttpException(404, `${targetType} not found`);
       }
 
+      console.log(`[castVote] Current vote count: ${targetDoc.upvotes}`);
+
       const existingVote = await UserVoteModel.findOne({
         userId: user.id,
         targetId,
@@ -676,20 +668,24 @@ export const ForumService = {
       let voteChange = 0;
 
       if (existingVote) {
+        console.log(`[castVote] Existing vote found: ${existingVote.voteType}, new vote: ${voteType}`);
         if (existingVote.voteType === voteType) {
           // User is removing their vote
           await UserVoteModel.deleteOne({ _id: existingVote._id }).session(
             session,
           );
           voteChange = -voteType; // e.g., if un-upvoting, subtract 1
+          console.log(`[castVote] Removing vote, voteChange: ${voteChange}`);
         } else {
           // User is changing their vote
           existingVote.voteType = voteType;
           await existingVote.save({ session });
           voteChange = voteType * 2; // e.g., from -1 to 1 is a change of +2
+          console.log(`[castVote] Changing vote, voteChange: ${voteChange}`);
         }
       } else {
         // New vote
+        console.log(`[castVote] New vote, voteType: ${voteType}`);
         await UserVoteModel.create(
           [
             {
@@ -702,6 +698,7 @@ export const ForumService = {
           { session },
         );
         voteChange = voteType;
+        console.log(`[castVote] Created new vote, voteChange: ${voteChange}`);
       }
 
       const updatedTarget = (await Model.findByIdAndUpdate(
@@ -710,7 +707,16 @@ export const ForumService = {
         { new: true, session },
       ).lean()) as ForumPostDoc | ForumReplyDoc | null;
 
+      console.log(`[castVote] Before commit - voteChange: ${voteChange}, current score: ${targetDoc.upvotes}, new score: ${updatedTarget?.upvotes}`);
+      // Get the user's current vote state for this target before committing
+      const userVote = await UserVoteModel.findOne({
+        userId: user.id,
+        targetId,
+        targetType,
+      }).session(session);
+
       await session.commitTransaction();
+      console.log(`[castVote] Vote successful for user ${user.id}, new score: ${updatedTarget?.upvotes}`);
 
       // Invalidate cache and emit event after transaction commits
       const parentThreadId =
@@ -719,16 +725,26 @@ export const ForumService = {
           : // @ts-ignore
             targetDoc.postId.toString();
 
-      await CacheService.del(FORUM_THREAD_CACHE_KEY(parentThreadId));
-
+      console.log(`[castVote] Emitting socket event: targetId=${targetId}, newScore=${updatedTarget?.upvotes}, userVote=${userVote?.voteType || 0}`);
       io.emit("vote_updated", {
         targetId,
         targetType,
         newScore: updatedTarget?.upvotes,
+        userVote: userVote?.voteType || 0,
       });
 
-      return updatedTarget;
+      // Invalidate the forum threads list cache since vote counts have changed
+      await CacheService.del(FORUM_THREADS_CACHE_KEY);
+
+      // Return the updated target with user vote information
+      const response = {
+        ...updatedTarget,
+        userVote: userVote?.voteType || 0,
+      };
+
+      return response;
     } catch (error) {
+      console.error(`[castVote] Vote failed for user ${user.id}:`, error);
       await session.abortTransaction();
       throw error; // Re-throw the original error
     } finally {
@@ -772,8 +788,7 @@ export const ForumService = {
 
       await session.commitTransaction();
 
-      await CacheService.del(FORUM_THREAD_CACHE_KEY(threadId));
-      // Invalidate the forum threads list cache as well
+      // Invalidate the forum threads list cache as the thread was removed
       console.log(`[deleteThread] Invalidating cache for key: ${FORUM_THREADS_CACHE_KEY}`);
       await CacheService.del(FORUM_THREADS_CACHE_KEY);
       console.log(`[deleteThread] Cache invalidation completed for key: ${FORUM_THREADS_CACHE_KEY}`);
@@ -822,8 +837,6 @@ export const ForumService = {
 
       await session.commitTransaction();
 
-      await CacheService.del(FORUM_THREAD_CACHE_KEY(threadId));
-
       io.to(threadId).emit("reply_deleted", { replyId, threadId });
     } catch (error) {
       await session.abortTransaction();
@@ -871,8 +884,6 @@ export const ForumService = {
 
     const updatedPost = await post.save();
 
-    await CacheService.del(FORUM_THREAD_CACHE_KEY(threadId));
-
     const populatedPost = await this.getThreadById(threadId, user);
 
     io.emit("thread_updated", { threadId, updatedPost: populatedPost });
@@ -917,7 +928,6 @@ export const ForumService = {
     await reply.save();
 
     const threadId = reply.postId.toString();
-    await CacheService.del(FORUM_THREAD_CACHE_KEY(threadId));
 
     const populatedReply = {
       ...reply.toObject(),
@@ -931,5 +941,38 @@ export const ForumService = {
     });
 
     return populatedReply;
+  },
+
+  async addUserVoteInfoToThreads(threads: any[], user: User) {
+    console.log(`[addUserVoteInfoToThreads] Adding vote info for ${threads.length} threads for user ${user.id}`);
+    
+    // Get all thread IDs
+    const threadIds = threads.map(thread => thread._id);
+    
+    // Fetch user votes for all threads in one query
+    const userVotes = await UserVoteModel.find({
+      userId: user.id,
+      targetId: { $in: threadIds },
+      targetType: "ForumPost"
+    });
+
+    console.log(`[addUserVoteInfoToThreads] Found ${userVotes.length} user votes:`, userVotes.map(v => ({ targetId: v.targetId, voteType: v.voteType })));
+
+    // Create a map of threadId -> voteType for quick lookup
+    const voteMap = new Map();
+    userVotes.forEach(vote => {
+      voteMap.set(vote.targetId.toString(), vote.voteType);
+    });
+
+    // Add userVote field to each thread
+    const result = threads.map(thread => ({
+      ...thread,
+      userVote: voteMap.get(thread._id.toString()) || 0
+    }));
+
+    console.log(`[addUserVoteInfoToThreads] Result:`, result.map(t => ({ id: t._id, upvotes: t.upvotes, userVote: t.userVote })));
+    console.log(`[addUserVoteInfoToThreads] Vote counts from DB:`, result.map(t => ({ id: t._id, upvotes: t.upvotes, title: t.title?.substring(0, 20) })));
+    
+    return result;
   },
 };

@@ -25,6 +25,8 @@ interface RawChatMessage {
   uploadContentType?: string;
   messageType?: string;
   bookingId?: string;
+  isEdited?: boolean;
+  editedAt?: Date;
   // Add other fields if necessary, e.g., senderRole: 'student' | 'tutor'
 }
 
@@ -38,6 +40,8 @@ interface EnrichedChatMessage {
     name: string;
   };
   createdAt: Date;
+  isEdited?: boolean;
+  editedAt?: Date;
   upload?: {
     data: string;
     contentType: string;
@@ -93,6 +97,8 @@ export const ChatService = {
       senderId: rawMessage.senderId,
       sender: senderProfile,
       createdAt: new Date(), // Set creation time on the backend
+      isEdited: rawMessage.isEdited || false,
+      editedAt: rawMessage.editedAt,
       upload: rawMessage.upload ? {
         data: rawMessage.upload.toString('base64'),
         contentType: rawMessage.uploadContentType || 'application/octet-stream',
@@ -367,6 +373,9 @@ export const ChatService = {
               receiverId: (message.receiverId as any)?._id?.toString(),
               createdAt: message.createdAt,
               seen: message.seen,
+              // Include edit-related fields
+              isEdited: message.isEdited || false,
+              editedAt: message.editedAt ? message.editedAt.toISOString() : undefined,
               // The 'upload' field is now excluded, but we keep metadata fields
               uploadFilename: message.uploadFilename,
               uploadContentType: message.uploadContentType,
@@ -578,6 +587,118 @@ export const ChatService = {
       return result;
     } catch (error) {
       console.error(`Error deleting messages for user ${userId}:`, error);
+      throw error;
+    }
+  },
+
+  async updateMessage(messageId: string, content: string, userId: string): Promise<EnrichedChatMessage | null> {
+    try {
+      // Check if message exists and belongs to the user
+      const message = await ChatModel.findById(messageId);
+      if (!message) {
+        return null;
+      }
+
+      // Check if the user is the sender
+      if (message.senderId.toString() !== userId) {
+        return null;
+      }
+
+      // Check if message is within 10 minutes of creation
+      const messageTime = new Date(message.createdAt).getTime();
+      const now = Date.now();
+      const tenMinutes = 10 * 60 * 1000; // 10 minutes in milliseconds
+      
+      if ((now - messageTime) > tenMinutes) {
+        throw new Error("Message can only be edited within 10 minutes of creation");
+      }
+
+      // Update the message
+      const updatedMessage = await ChatModel.findByIdAndUpdate(
+        messageId,
+        { 
+          content,
+          isEdited: true,
+          editedAt: new Date()
+        },
+        { new: true }
+      );
+
+      if (!updatedMessage) {
+        return null;
+      }
+
+      // Enrich the message with sender information
+      const user = await UserModel.findById(updatedMessage.senderId).lean();
+      if (!user) {
+        console.error("Sender not found for ID:", updatedMessage.senderId);
+        return null;
+      }
+
+      let senderProfile: { _id: string; name: string } | null = null;
+
+      // Fetch sender's profile (Student or Tutor) to get the name
+      if (user.role === "student") {
+        const student = await StudentModel.findOne({ userId: user._id }).lean();
+        if (student) {
+          senderProfile = { _id: student._id.toString(), name: student.name };
+        }
+      } else if (user.role === "tutor") {
+        const tutor = await TutorModel.findOne({ userId: user._id }).lean();
+        if (tutor) {
+          senderProfile = { _id: tutor._id.toString(), name: tutor.name };
+        }
+      }
+
+      if (!senderProfile) {
+        console.error(
+          "Sender profile not found for user:",
+          user._id,
+          "with role:",
+          user.role,
+        );
+        // Fallback: use user ID as name if profile not found
+        senderProfile = { _id: user._id.toString(), name: user._id.toString() };
+      }
+
+      // Construct enriched message
+      const enrichedMessage: EnrichedChatMessage = {
+        _id: updatedMessage._id.toString(),
+        chatId: updatedMessage.chatId,
+        content: updatedMessage.content,
+        senderId: updatedMessage.senderId.toString(),
+        sender: senderProfile,
+        createdAt: updatedMessage.createdAt,
+        isEdited: updatedMessage.isEdited || false,
+        editedAt: updatedMessage.editedAt ? new Date(updatedMessage.editedAt) : undefined,
+        upload: updatedMessage.upload ? {
+          data: updatedMessage.upload.toString('base64'),
+          contentType: updatedMessage.uploadContentType || 'application/octet-stream',
+          filename: updatedMessage.uploadFilename || 'attachment'
+        } : undefined,
+        uploadFilename: updatedMessage.uploadFilename ?? undefined,
+        uploadContentType: updatedMessage.uploadContentType ?? undefined,
+        messageType: updatedMessage.messageType ?? undefined,
+        bookingId: updatedMessage.bookingId?.toString() ?? undefined
+      };
+
+      // Invalidate the cache for this chat thread
+      const cacheKey = `chat:${message.chatId}:thread`;
+      await CacheService.del(cacheKey);
+      logger.info(`Cache invalidated for chat thread after message update: ${message.chatId}`);
+
+      // Notify other participants in the chat
+      const chatId = message.chatId;
+      io.of("/chat").to(chatId).emit("message_updated", {
+        messageId,
+        content,
+        isEdited: true,
+        editedAt: updatedMessage.editedAt?.toISOString() || new Date().toISOString()
+      });
+
+      return enrichedMessage;
+    } catch (error) {
+      console.error(`Error updating message ${messageId}:`, error);
       throw error;
     }
   },

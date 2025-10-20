@@ -1,0 +1,247 @@
+/* ===== ADMIN BILLING STYLING ===== */
+
+/* Summary Cards */
+.admin-summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+.admin-summary-card {
+  background: var(--admin-bg-primary);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: var(--admin-shadow);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.admin-summary-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--admin-shadow-hover);
+}
+
+.admin-summary-icon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  color: white;
+  background: linear-gradient(135deg, var(--admin-primary), var(--admin-secondary));
+}
+
+.admin-summary-content {
+  flex: 1;
+}
+
+.admin-summary-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.admin-summary-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Time Selector */
+.admin-time-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.admin-time-selector label {
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.admin-select {
+  padding: 0.5rem 1rem;
+  border: 2px solid var(--admin-border);
+  border-radius: 8px;
+  background: var(--admin-bg-primary);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  min-width: 200px;
+  transition: border-color 0.2s ease;
+}
+
+.admin-select:focus {
+  outline: none;
+  border-color: var(--admin-primary);
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+/* No Data Message */
+.admin-no-data {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: var(--text-secondary);
+}
+
+.admin-no-data i {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  color: var(--text-muted);
+}
+
+.admin-no-data h3 {
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+}
+
+.admin-no-data p {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+/* Desktop Card Layout - Single Row Format */
+.admin-bills-table-mobile {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.admin-bill-card {
+  background: var(--admin-bg-primary);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: var(--admin-shadow);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+}
+
+.admin-bill-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--admin-shadow-hover);
+}
+
+.admin-bill-tutor-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 200px;
+}
+
+.admin-bill-tutor-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.admin-bill-tutor-email {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.admin-bill-stats {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  flex: 1;
+  justify-content: space-between;
+}
+
+.admin-bill-stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 80px;
+}
+
+.admin-bill-stat-label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+}
+
+.admin-bill-stat-value {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.admin-bill-stat-value.sessions {
+  color: var(--admin-warning);
+}
+
+.admin-bill-stat-value.hours {
+  color: var(--admin-secondary);
+}
+
+.admin-bill-stat-value.rate {
+  color: var(--admin-primary);
+}
+
+.admin-bill-stat-value.total {
+  color: var(--admin-success);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .admin-bills-table-mobile {
+    display: block;
+  }
+
+  .admin-bill-card {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .admin-bill-tutor-info {
+    min-width: unset;
+    width: 100%;
+  }
+
+  .admin-bill-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    width: 100%;
+    justify-content: unset;
+  }
+
+
+  .admin-summary-cards {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .admin-time-selector {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .admin-select {
+    width: 100%;
+    min-width: unset;
+  }
+}

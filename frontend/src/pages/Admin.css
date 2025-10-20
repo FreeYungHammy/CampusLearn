@@ -47,6 +47,485 @@
   --admin-shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.4);
 }
 
+/* ===== ADMIN BILLING STYLING ===== */
+.admin-bills-table-container {
+  background: var(--admin-bg-primary);
+  border-radius: 8px;
+  box-shadow: var(--admin-shadow);
+  overflow: hidden;
+  margin-top: 2rem;
+}
+
+.admin-bills-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.admin-bills-table th {
+  background: var(--admin-bg-secondary);
+  color: var(--text-primary);
+  font-weight: 600;
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 2px solid var(--admin-border);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.admin-bills-table td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--admin-border-light);
+  color: var(--text-primary);
+}
+
+.admin-bill-row:hover {
+  background: var(--admin-bg-secondary);
+  transition: background-color 0.2s ease;
+}
+
+.admin-tutor-info {
+  font-weight: 500;
+}
+
+.admin-tutor-name {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.admin-tutor-email {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.admin-sessions-count {
+  text-align: center;
+  font-weight: 500;
+  color: var(--admin-primary);
+}
+
+.admin-hours {
+  text-align: center;
+  font-weight: 500;
+  color: var(--admin-secondary);
+}
+
+.admin-rate {
+  text-align: center;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.admin-amount {
+  text-align: right;
+  font-weight: 600;
+  color: var(--admin-success);
+  font-size: 1rem;
+}
+
+.admin-summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+.admin-summary-card {
+  background: var(--admin-bg-primary);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: var(--admin-shadow);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.admin-summary-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--admin-shadow-hover);
+}
+
+.admin-summary-icon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  color: white;
+  background: linear-gradient(135deg, var(--admin-primary), var(--admin-secondary));
+}
+
+.admin-summary-content {
+  flex: 1;
+}
+
+.admin-summary-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.admin-summary-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.admin-time-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.admin-time-selector label {
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.admin-select {
+  padding: 0.5rem 1rem;
+  border: 2px solid var(--admin-border);
+  border-radius: 8px;
+  background: var(--admin-bg-primary);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  min-width: 200px;
+  transition: border-color 0.2s ease;
+}
+
+.admin-select:focus {
+  outline: none;
+  border-color: var(--admin-primary);
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.admin-no-data {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: var(--text-secondary);
+}
+
+.admin-no-data i {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  color: var(--text-muted);
+}
+
+.admin-no-data h3 {
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+}
+
+.admin-no-data p {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+/* ===== MOBILE RESPONSIVE STYLING ===== */
+@media (max-width: 768px) {
+  .admin-container {
+    padding: 1rem;
+  }
+
+  .admin-header-content {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+  .admin-header-right {
+    width: 100%;
+  }
+
+  .admin-time-selector {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .admin-select {
+    width: 100%;
+    min-width: unset;
+  }
+
+  .admin-summary-cards {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    margin: 1rem 0;
+  }
+
+  .admin-summary-card {
+    padding: 1rem;
+  }
+
+  .admin-summary-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    font-size: 1rem;
+  }
+
+  .admin-summary-value {
+    font-size: 1.2rem;
+  }
+
+  .admin-bills-table-container {
+    margin-top: 1rem;
+    overflow-x: auto;
+  }
+
+  .admin-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .admin-bills-table {
+    min-width: 600px;
+    font-size: 0.8rem;
+  }
+
+  .admin-bills-table th,
+  .admin-bills-table td {
+    padding: 0.75rem 0.5rem;
+    white-space: nowrap;
+  }
+
+  .admin-bills-table th {
+    font-size: 0.75rem;
+  }
+
+  .admin-tutor-name {
+    font-size: 0.85rem;
+  }
+
+  .admin-tutor-email {
+    font-size: 0.7rem;
+  }
+
+  .admin-amount {
+    font-size: 0.9rem;
+  }
+
+  /* Card layout - desktop grid */
+  .admin-bills-table-mobile {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 1.5rem;
+  }
+
+  /* Desktop card styling */
+  .admin-bill-card {
+    background: var(--admin-bg-primary);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: var(--admin-shadow);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .admin-bill-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--admin-shadow-hover);
+  }
+
+  @media (max-width: 768px) {
+    .admin-bills-table-mobile {
+      display: block;
+    }
+
+    .admin-bill-card {
+      background: var(--admin-bg-primary);
+      border-radius: 12px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      box-shadow: var(--admin-shadow);
+    }
+
+    .admin-bill-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.75rem;
+    }
+
+    .admin-bill-tutor-info {
+      flex: 1;
+    }
+
+    .admin-bill-tutor-name {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.25rem;
+    }
+
+    .admin-bill-tutor-email {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    .admin-bill-amount {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--admin-success);
+      text-align: right;
+    }
+
+    .admin-bill-details {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      margin-top: 0.75rem;
+    }
+
+    .admin-bill-detail-item {
+      text-align: center;
+    }
+
+    .admin-bill-detail-label {
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.25rem;
+    }
+
+    .admin-bill-detail-value {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .admin-bill-detail-value.rate {
+      color: var(--admin-primary);
+    }
+
+    .admin-bill-detail-value.hours {
+      color: var(--admin-secondary);
+    }
+
+    .admin-bill-detail-value.sessions {
+      color: var(--admin-warning);
+    }
+  }
+
+
+  /* Mobile navigation improvements */
+  .cl-header-inner {
+    padding: 0.75rem 1rem;
+  }
+
+  .cl-center {
+    gap: 0.5rem;
+  }
+
+  .cl-nav-item {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+  }
+
+  .cl-nav-item span {
+    display: none;
+  }
+
+  .cl-nav-item i {
+    font-size: 1rem;
+  }
+
+  /* Mobile admin header */
+  .admin-header {
+    padding: 1rem;
+  }
+
+  .admin-title {
+    font-size: 1.5rem;
+  }
+
+  .admin-subtitle {
+    font-size: 0.9rem;
+  }
+}
+
+/* Extra small mobile devices */
+@media (max-width: 480px) {
+  .admin-container {
+    padding: 0.5rem;
+  }
+
+  .admin-header {
+    padding: 0.75rem;
+  }
+
+  .admin-title {
+    font-size: 1.25rem;
+  }
+
+  .admin-summary-cards {
+    gap: 0.75rem;
+  }
+
+  .admin-summary-card {
+    padding: 0.75rem;
+  }
+
+  .admin-summary-icon {
+    width: 2rem;
+    height: 2rem;
+    font-size: 0.9rem;
+  }
+
+  .admin-summary-value {
+    font-size: 1rem;
+  }
+
+  .admin-bill-card {
+    padding: 0.75rem;
+  }
+
+  .admin-bill-tutor-name {
+    font-size: 0.9rem;
+  }
+
+  .admin-bill-tutor-email {
+    font-size: 0.75rem;
+  }
+
+  .admin-bill-amount {
+    font-size: 1rem;
+  }
+
+  .admin-bill-details {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+
+  .admin-bill-detail-label {
+    font-size: 0.65rem;
+  }
+
+  .admin-bill-detail-value {
+    font-size: 0.8rem;
+  }
+
+  /* Navigation for very small screens */
+  .cl-nav-item {
+    padding: 0.4rem 0.5rem;
+    font-size: 0.8rem;
+  }
+
+  .cl-nav-item i {
+    font-size: 0.9rem;
+  }
+}
+
 /* ===== ADMIN DASHBOARD STYLING ===== */
 
 .admin-dashboard {

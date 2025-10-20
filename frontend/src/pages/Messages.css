@@ -28,9 +28,6 @@
   overflow: visible;
 }
 
-
-
-
 [data-theme="dark"] .messages-root {
   --card: #1f2937;
   --border: #374151;
@@ -39,7 +36,6 @@
   --bubble-mine: #3b82f6;
   --bubble-theirs: #374151;
 }
-
 
 .messages-shell {
   display: grid;
@@ -717,8 +713,12 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .image-error {
@@ -808,6 +808,103 @@
 
 .clickable-image:hover {
   transform: scale(1.02);
+}
+
+/* Video Preview Styles */
+.video-preview {
+  margin: 8px 0;
+  border-radius: 12px;
+  overflow: visible; /* Allow video controls to be visible */
+  background: var(--bubble-theirs);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.video-preview.mine {
+  background: var(--bubble-mine);
+  border-color: var(--bubble-mine);
+}
+
+.message-video-player {
+  width: 100%;
+  max-width: 100%;
+  border-radius: 8px;
+  overflow: visible; /* Allow video controls to be visible */
+  /* Default height, will be adjusted dynamically */
+  height: 300px;
+  min-height: 200px;
+  display: block; /* Use block layout */
+}
+
+/* Responsive video sizing for different screen sizes */
+@media (max-width: 768px) {
+  .message-video-player {
+    height: 250px;
+    min-height: 180px;
+  }
+}
+
+@media (max-width: 480px) {
+  .message-video-player {
+    height: 200px;
+    min-height: 150px;
+  }
+}
+
+.video-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.05);
+  border-top: 1px solid var(--border);
+}
+
+.video-preview.mine .video-actions {
+  background: rgba(255, 255, 255, 0.1);
+  border-top-color: rgba(255, 255, 255, 0.2);
+}
+
+.video-actions .file-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  flex: 1;
+  margin-right: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.video-preview.mine .video-actions .file-name {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.video-actions .download-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.video-actions .download-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: var(--text);
+}
+
+.video-preview.mine .video-actions .download-btn {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.video-preview.mine .video-actions .download-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
 }
 
 /* ---------- Image Modal Styles ---------- */
@@ -938,24 +1035,24 @@
   .image-modal-overlay {
     padding: 10px;
   }
-  
+
   .image-modal-content {
     max-width: 100vw;
     max-height: 100vh;
   }
-  
+
   .image-modal-header {
     padding: 12px 16px;
   }
-  
+
   .image-modal-filename {
     font-size: 14px;
   }
-  
+
   .image-modal-btn {
     padding: 6px;
   }
-  
+
   .image-modal-body {
     padding: 10px;
   }
@@ -1360,6 +1457,74 @@
 
 [data-theme="dark"] .messages-root .custom-dropdown-item:hover {
   background: var(--muted);
+}
+
+/* ---------- Mobile Responsive (Below 850px) ---------- */
+@media (max-width: 750px) {
+  .messages-shell {
+    position: relative;
+    height: calc(100vh - 120px); /* Adjust based on header height */
+    overflow: hidden; /* Prevent chat panel from being visible */
+  }
+
+  .sidebar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    transition: transform 0.3s ease;
+  }
+
+  .sidebar.mobile-hidden {
+    transform: translateX(-100%);
+  }
+
+  .chat-panel {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 5;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+  }
+
+  .chat-panel.mobile-visible {
+    transform: translateX(0);
+  }
+
+  .mobile-back-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: var(--text);
+    cursor: pointer;
+    padding: 8px;
+    margin-right: 12px;
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
+  }
+
+  .mobile-back-btn:hover {
+    background: var(--border);
+  }
+
+  .mobile-back-btn svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* Hide mobile back button on desktop */
+@media (min-width: 851px) {
+  .mobile-back-btn {
+    display: none;
+  }
 }
 
 /* ---------- Utility ---------- */

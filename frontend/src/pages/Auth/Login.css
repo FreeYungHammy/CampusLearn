@@ -111,6 +111,7 @@ body {
 
 .password-wrapper {
   position: relative;
+  margin-bottom: 10px;
 }
 
 .password-toggle-icon {
@@ -438,15 +439,15 @@ body {
 }
 
 .success-message {
-  background-color: #5C574A;
-  border: 1px solid #8A2BE2;
+  background-color: #5c574a;
+  border: 1px solid #8a2be2;
   border-radius: 8px;
   padding: 12px 16px;
   margin: 16px 0;
   display: flex;
   align-items: center;
   gap: 12px;
-  color: #F5D76E;
+  color: #f5d76e;
   font-size: 14px;
   font-weight: 500;
   line-height: 1.4;
@@ -454,8 +455,8 @@ body {
 
 .success-message::before {
   content: "i";
-  background-color: #F5D76E;
-  color: #5C574A;
+  background-color: #f5d76e;
+  color: #5c574a;
   width: 20px;
   height: 20px;
   border-radius: 50%;

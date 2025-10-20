@@ -82,4 +82,12 @@ export const chatApi = {
     });
     return response.data;
   },
+
+  async updateMessage(messageId: string, content: string, token: string): Promise<ChatMessage> {
+    const response = await http.put(`/chat/messages/${messageId}`, 
+      { content },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return response.data;
+  },
 };

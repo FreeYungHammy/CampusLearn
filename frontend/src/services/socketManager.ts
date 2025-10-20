@@ -18,6 +18,7 @@ interface SocketManagerConfig {
 interface NamespaceHandlers {
   chat: {
     onNewMessage?: (message: ChatMessage) => void;
+    onMessageUpdated?: (data: { messageId: string; content: string; isEdited: boolean; editedAt: string }) => void;
     onUserStatusChange?: (userId: string, status: "online" | "offline", lastSeen: Date) => void;
     onChatCleared?: (payload: { chatId: string }) => void;
     onConnectionChange?: (connected: boolean) => void;
@@ -37,7 +38,7 @@ interface NamespaceHandlers {
     onThreadDeleted?: (data: { threadId: string }) => void;
     onThreadUpdated?: (data: { updatedPost: any }) => void;
     onForumReplyCountUpdated?: (data: { threadId: string; replyCount: number }) => void;
-    onVoteUpdated?: (data: { targetId: string; newScore: number }) => void;
+    onVoteUpdated?: (data: { targetId: string; newScore: number; userVote?: number }) => void;
   };
 }
 
@@ -185,6 +186,10 @@ class SocketManagerClass {
       this.handlers.chat.onNewMessage?.(message);
     });
 
+    chatSocket.on("message_updated", (data: { messageId: string; content: string; isEdited: boolean; editedAt: string }) => {
+      this.handlers.chat.onMessageUpdated?.(data);
+    });
+
     chatSocket.on("user_status_change", (data: { userId: string; status: "online" | "offline"; lastSeen: string | Date }) => {
       const lastSeenDate = new Date(data.lastSeen);
       
@@ -279,7 +284,7 @@ class SocketManagerClass {
       this.handlers.global.onForumReplyCountUpdated?.(data);
     });
 
-    globalSocket.on("vote_updated", (data: { targetId: string; newScore: number }) => {
+    globalSocket.on("vote_updated", (data: { targetId: string; newScore: number; userVote?: number }) => {
       console.log("[SocketManager] Vote updated:", data);
       this.handlers.global.onVoteUpdated?.(data);
     });
