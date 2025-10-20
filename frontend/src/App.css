@@ -1076,6 +1076,7 @@ body {
   display: flex;
   align-items: center;
   gap: 16px;
+  margin-left: 10px;
 }
 
 .tutor-count {
@@ -8114,6 +8115,16 @@ body.mobile-menu-open {
   margin-top: 8px;
 }
 
+/* Upload page: add comfortable spacing between stacked form groups */
+#upload-view .card-body .form-group + .form-group {
+  margin-top: 14px;
+}
+
+/* Upload page: add space above the submit button */
+#upload-view .card-body > .btn.btn-primary {
+  margin-top: 16px;
+}
+
 /* Student Cards Styling */
 #mystudents-view .section-title {
   display: flex;
@@ -8241,6 +8252,44 @@ body.mobile-menu-open {
   color: var(--text-secondary);
   margin-bottom: 12px;
   text-align: center;
+}
+
+/* My Students - Dark mode refinements */
+[data-theme="dark"] .student-card {
+  background: #111827; /* slate-900 */
+  border-color: #1f2937; /* slate-800 */
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.32);
+}
+
+[data-theme="dark"] .student-card:hover {
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.45);
+}
+
+[data-theme="dark"] .student-header {
+  background: linear-gradient(135deg, #0b1220 0%, #0f172a 100%);
+}
+
+[data-theme="dark"] .student-header::before {
+  background: linear-gradient(
+    135deg,
+    rgba(14, 165, 233, 0.1) 0%,
+    /* cyan-500 at low opacity */ rgba(139, 92, 246, 0.1) 100%
+      /* violet-500 at low opacity */
+  );
+}
+
+[data-theme="dark"] .student-details {
+  background: transparent;
+}
+
+/* Dark mode text and badge tuning for comfort */
+[data-theme="dark"] .subjects-label {
+  color: #94a3b8; /* slate-400 */
+}
+
+[data-theme="dark"] .subject-tag {
+  background: #1f2937; /* slate-800 */
+  color: #e2e8f0; /* slate-100 */
 }
 
 .subjects-list {

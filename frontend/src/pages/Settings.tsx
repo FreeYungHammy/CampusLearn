@@ -82,7 +82,7 @@ const Settings = () => {
   useEffect(() => {
     const loadEmailPreferences = async () => {
       if (!token) return;
-      
+
       try {
         const response = await getEmailPreferences(token);
         setEmailPreferences(response.preferences);
@@ -190,13 +190,17 @@ const Settings = () => {
         .test("password-strength", "Password is too weak", (value) => {
           return checkPasswordStrength(value || "") >= 4;
         })
-        .test("email-password", "Password cannot be the same as your email address", function(value) {
-          const { email } = this.parent;
-          if (value && email && value.toLowerCase() === email.toLowerCase()) {
-            return false;
-          }
-          return true;
-        }),
+        .test(
+          "email-password",
+          "Password cannot be the same as your email address",
+          function (value) {
+            const { email } = this.parent;
+            if (value && email && value.toLowerCase() === email.toLowerCase()) {
+              return false;
+            }
+            return true;
+          },
+        ),
       confirm: Yup.string()
         .oneOf([Yup.ref("new")], "Passwords must match")
         .required("Required"),
@@ -233,14 +237,21 @@ const Settings = () => {
     setNotifications({ ...notifications, [e.target.name]: e.target.checked });
   };
 
-  const handleEmailPreferenceChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleEmailPreferenceChange = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     if (!token) return;
 
-    const newPreferences = { ...emailPreferences, [e.target.name]: e.target.checked };
+    const newPreferences = {
+      ...emailPreferences,
+      [e.target.name]: e.target.checked,
+    };
     setEmailPreferences(newPreferences);
 
     try {
-      await updateEmailPreferences(token, { [e.target.name]: e.target.checked });
+      await updateEmailPreferences(token, {
+        [e.target.name]: e.target.checked,
+      });
     } catch (error) {
       console.error("Failed to update email preferences:", error);
       // Revert the change on error
@@ -383,7 +394,7 @@ const Settings = () => {
   };
 
   const pfpUrl = user
-    ? `${(import.meta.env.VITE_API_URL as string).replace(/\/$/, '')}/api/users/${user.id}/pfp?t=${pfpTimestamps[user.id] || 0}`
+    ? `${(import.meta.env.VITE_API_URL as string).replace(/\/$/, "")}/api/users/${user.id}/pfp?t=${pfpTimestamps[user.id] || 0}`
     : "";
 
   return (
@@ -808,17 +819,27 @@ const Settings = () => {
             <p className="card-description">
               Choose which emails you'd like to receive from CampusLearn.
             </p>
-            <div style={{backgroundColor: '#f0f9ff', border: '1px solid #93c5fd', borderRadius: '6px', padding: '12px', marginTop: '10px'}}>
-              <p style={{color: '#1e40af', margin: '0', fontSize: '14px'}}>
-                <strong>Note:</strong> Security emails (like suspicious login alerts) are always sent to protect your account.
-              </p>
-            </div>
+          </div>
+          <div
+            style={{
+              backgroundColor: "#f0f9ff",
+              border: "1px solid #93c5fd",
+              borderRadius: "6px",
+              padding: "12px",
+            }}
+          >
+            <p style={{ color: "#1e40af", margin: "0", fontSize: "14px" }}>
+              <strong>Note:</strong> Security emails (like suspicious login
+              alerts) are always sent to protect your account.
+            </p>
           </div>
           <div className="card-body">
             <div className="notification-group">
               <div>
                 <div className="notification-label">Booking Confirmations</div>
-                <p>Receive booking confirmations and session reminder emails.</p>
+                <p>
+                  Receive booking confirmations and session reminder emails.
+                </p>
               </div>
               <label className="switch">
                 <input
@@ -833,7 +854,10 @@ const Settings = () => {
             <div className="notification-group">
               <div>
                 <div className="notification-label">General Notifications</div>
-                <p>Receive forum reply notifications and important platform updates.</p>
+                <p>
+                  Receive forum reply notifications and important platform
+                  updates.
+                </p>
               </div>
               <label className="switch">
                 <input

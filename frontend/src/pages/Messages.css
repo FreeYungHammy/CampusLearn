@@ -138,15 +138,21 @@
   position: relative;
   width: 48px;
   height: 48px;
+  flex-shrink: 0; /* prevent squashing on small screens */
+  aspect-ratio: 1 / 1; /* keep it perfectly square */
 }
 
 .pfp-wrap.small {
   width: 40px;
   height: 40px;
+  flex-shrink: 0;
+  aspect-ratio: 1 / 1;
 }
 .pfp-wrap.xs {
   width: 32px;
   height: 32px;
+  flex-shrink: 0;
+  aspect-ratio: 1 / 1;
 }
 
 .pfp-wrap img {
@@ -1224,6 +1230,7 @@
   color: #fff;
   border: none;
   cursor: pointer;
+  margin-right: 2px; /* avoid clipping at container edge */
 }
 .send-btn:hover {
   background: var(--blue-600);
@@ -1465,6 +1472,15 @@
     position: relative;
     height: calc(100vh - 120px); /* Adjust based on header height */
     overflow: hidden; /* Prevent chat panel from being visible */
+  }
+
+  /* Slightly increase right padding to keep send button fully visible */
+  .composer {
+    padding-right: 16px;
+  }
+
+  .send-btn {
+    margin-right: 0;
   }
 
   .sidebar {

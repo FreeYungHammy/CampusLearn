@@ -695,8 +695,10 @@ const Messages: React.FC = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState("");
+  const [nowTs, setNowTs] = useState<number>(() => Date.now());
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const currentRoomRef = useRef<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -857,6 +859,12 @@ const Messages: React.FC = () => {
     [chatId, selectedConversation, user?.id],
   );
 
+  // Tick clock so time-based UI like edit window updates automatically
+  useEffect(() => {
+    const id = setInterval(() => setNowTs(Date.now()), 30000); // update every 30s
+    return () => clearInterval(id);
+  }, []);
+
   const handleUserStatusChange = useCallback(
     (userId: string, status: "online" | "offline", lastSeen: Date) => {
       console.log(
@@ -940,17 +948,24 @@ const Messages: React.FC = () => {
         );
         if (!ac.signal.aborted) {
           setConversations(sorted);
-          if (selectedConversationUserId) {
-            const preSelected = sorted.find(
-              (conv) => conv.otherUser._id === selectedConversationUserId,
-            );
-            if (preSelected) {
-              setSelectedConversation(preSelected);
+          const isMobile = window.innerWidth < 850;
+          if (!isMobile) {
+            if (selectedConversationUserId) {
+              const preSelected = sorted.find(
+                (conv) => conv.otherUser._id === selectedConversationUserId,
+              );
+              if (preSelected) {
+                setSelectedConversation(preSelected);
+              } else if (sorted.length > 0) {
+                setSelectedConversation((s) => s ?? sorted[0]);
+              }
             } else if (sorted.length > 0) {
               setSelectedConversation((s) => s ?? sorted[0]);
             }
-          } else if (sorted.length > 0) {
-            setSelectedConversation((s) => s ?? sorted[0]);
+          } else {
+            // On first mobile load, ensure the sidebar is shown first
+            setSelectedConversation(null);
+            setShowMobileChat(false);
           }
           setError(null);
         }
@@ -1038,7 +1053,18 @@ const Messages: React.FC = () => {
 
   /* -------- Auto-scroll on new messages -------- */
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTo({
+        top: chatScrollRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+    } else {
+      // Fallback if ref not available yet
+      messagesEndRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "end",
+      });
+    }
   }, [messages]);
 
   /* -------- Mark messages as seen -------- */
@@ -1184,17 +1210,21 @@ const Messages: React.FC = () => {
 
     try {
       // Call backend API to update message
-      const updatedMessage = await chatApi.updateMessage(editingMessageId, editingContent, token);
-      
+      const updatedMessage = await chatApi.updateMessage(
+        editingMessageId,
+        editingContent,
+        token,
+      );
+
       // Update local state with the response from the server
       setMessages((prevMessages) =>
         prevMessages.map((msg) =>
           msg._id === editingMessageId
-            ? { 
-                ...msg, 
-                content: updatedMessage.content, 
+            ? {
+                ...msg,
+                content: updatedMessage.content,
                 isEdited: updatedMessage.isEdited,
-                editedAt: updatedMessage.editedAt
+                editedAt: updatedMessage.editedAt,
               }
             : msg,
         ),
@@ -1239,13 +1269,16 @@ const Messages: React.FC = () => {
         callId,
         targetUserId: otherId,
       });
-      
+
       // Use centralized SocketManager instead of temporary socket
       const { SocketManager } = await import("../services/socketManager");
-      
+
       // Initialize socket manager if not already done
       if (!SocketManager.isSocketConnected()) {
-        const SOCKET_BASE_URL = (import.meta.env.VITE_WS_URL as string).replace(/\/$/, "");
+        const SOCKET_BASE_URL = (import.meta.env.VITE_WS_URL as string).replace(
+          /\/$/,
+          "",
+        );
         const token = useAuthStore.getState().token;
         if (token) {
           SocketManager.initialize({
@@ -1254,10 +1287,12 @@ const Messages: React.FC = () => {
           });
         }
       }
-      
+
       const videoSocket = SocketManager.getVideoSocket();
       if (videoSocket) {
-        console.log("[video-call] Sending initiate_call via centralized socket");
+        console.log(
+          "[video-call] Sending initiate_call via centralized socket",
+        );
         videoSocket.emit("initiate_call", { callId, targetUserId: otherId });
         console.log("[video-call] Call notification sent successfully");
       } else {
@@ -1514,14 +1549,6 @@ const Messages: React.FC = () => {
                 </div>
 
                 <div className="header-actions">
-                  <button className="action-button" aria-label="Call">
-                    <svg width="16" height="16" fill="none" viewBox="0 0 16 16">
-                      <path
-                        d="M3.654 1.328a.678.678 0 0 0-1.015-.063L1.605 2.3c-.483.484-.661 1.169-.45 1.77a17.568 17.568 0 0 0 4.168 6.608 17.569 17.569 0 0 0 6.608 4.168c.601.211 1.286.033 1.77-.45l1.034-1.034a.678.678 0 0 0-.063-1.015l-2.307-1.794a.678.678 0 0 0-.58-.122L9.804 10.5a.678.678 0 0 1-.55-.173L7.173 8.246a.678.678 0 0 1-.173-.55l.122-.58a.678.678 0 0 0-.122-.58L5.328 3.654z"
-                        fill="currentColor"
-                      />
-                    </svg>
-                  </button>
                   <button
                     className="action-button"
                     aria-label="Video"
@@ -1537,72 +1564,19 @@ const Messages: React.FC = () => {
                       />
                     </svg>
                   </button>
-                  <div className="relative" ref={dropdownRef}>
-                    <button
-                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                      className="action-button"
-                      aria-label="More options"
-                      aria-expanded={isDropdownOpen}
-                    >
-                      <i
-                        className={`fas fa-chevron-${isDropdownOpen ? "up" : "down"}`}
-                      />
-                    </button>
-                    {isDropdownOpen && (
-                      <div
-                        className="cl-menu"
-                        role="menu"
-                        style={{
-                          position: "fixed",
-                          top: "16vh",
-                          left: "135vh",
-                          zIndex: 99999,
-                        }}
-                      >
-                        {user?.role === "tutor" && selectedConversation && (
-                          <button
-                            className="cl-menu__item"
-                            onClick={() => {
-                              openBookingModal({
-                                id: selectedConversation.otherUser._id,
-                                name:
-                                  selectedConversation.otherUser.profile
-                                    ?.name || "Student",
-                                surname:
-                                  selectedConversation.otherUser.profile
-                                    ?.surname || "",
-                                role: "student" as const,
-                                subjects:
-                                  selectedConversation.otherUser.profile
-                                    ?.subjects || [],
-                              });
-                              setIsDropdownOpen(false);
-                            }}
-                          >
-                            <i className="fas fa-calendar-plus" />
-                            <span>Schedule Session</span>
-                          </button>
-                        )}
-                        {user?.role === "tutor" && (
-                          <button
-                            className="cl-menu__item"
-                            onClick={() => {
-                              setIsClearModalOpen(true);
-                              setIsDropdownOpen(false);
-                            }}
-                          >
-                            <i className="fas fa-trash" />
-                            <span>Clear Messages</span>
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                  <button
+                    className="action-button"
+                    aria-label="Clear chat"
+                    title="Clear messages"
+                    onClick={() => setIsClearModalOpen(true)}
+                  >
+                    <i className="fas fa-trash" />
+                  </button>
                 </div>
               </div>
 
               {/* Thread */}
-              <div className="chat-scroll">
+              <div className="chat-scroll" ref={chatScrollRef}>
                 {threadLoading && messages.length === 0 ? (
                   <div className="center-muted">Loading messages…</div>
                 ) : error ? (
@@ -1737,20 +1711,27 @@ const Messages: React.FC = () => {
                                 className={`chat-bubble ${mine ? "mine" : "theirs"} ${mine ? "editable" : ""}`}
                                 title={new Date(msg.createdAt).toLocaleString()}
                               >
-                                {mine && (
-                                  <button
-                                    className="message-edit-btn"
-                                    onClick={() =>
-                                      handleEditMessage(
-                                        msg._id || "",
-                                        msg.content,
-                                      )
-                                    }
-                                    title="Edit message"
-                                  >
-                                    <i className="fas fa-edit"></i>
-                                  </button>
-                                )}
+                                {(() => {
+                                  const created = new Date(
+                                    msg.createdAt,
+                                  ).getTime();
+                                  const withinWindow =
+                                    nowTs - created < 10 * 60 * 1000; // 10 minutes
+                                  return mine && withinWindow ? (
+                                    <button
+                                      className="message-edit-btn"
+                                      onClick={() =>
+                                        handleEditMessage(
+                                          msg._id || "",
+                                          msg.content,
+                                        )
+                                      }
+                                      title="Edit message"
+                                    >
+                                      <i className="fas fa-edit"></i>
+                                    </button>
+                                  ) : null;
+                                })()}
                                 <p className={!mine ? "text-dark" : ""}>
                                   {msg.content}
                                   {(msg as any).isEdited && (
