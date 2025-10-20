@@ -157,13 +157,13 @@ const Forum = () => {
         userVote: thread.userVote || 0,
       }));
 
-      console.log("Fetched threads with votes:", threadsWithVotes.map(t => ({ id: t._id, upvotes: t.upvotes, userVote: t.userVote })));
-      console.log("Vote counts breakdown:", threadsWithVotes.map(t => ({ id: t._id, upvotes: t.upvotes, title: t.title?.substring(0, 20) })));
+      console.log("Fetched threads with votes:", threadsWithVotes.map((t: any) => ({ id: t._id, upvotes: t.upvotes, userVote: t.userVote })));
+      console.log("Vote counts breakdown:", threadsWithVotes.map((t: any) => ({ id: t._id, upvotes: t.upvotes, title: t.title?.substring(0, 20) })));
 
       if (append) {
         setThreads((prevThreads) => [...prevThreads, ...threadsWithVotes]);
       } else {
-        console.log("Setting threads state:", threadsWithVotes.map(t => ({ id: t._id, upvotes: t.upvotes, userVote: t.userVote })));
+        console.log("Setting threads state:", threadsWithVotes.map((t: any) => ({ id: t._id, upvotes: t.upvotes, userVote: t.userVote })));
         setThreads(threadsWithVotes);
       }
       setTotalPosts(totalCount);
