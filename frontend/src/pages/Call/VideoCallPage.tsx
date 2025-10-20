@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { VideoCallPanel } from "../../components/video-call/VideoCallPanel";
 import { CallControls } from "../../components/video-call/CallControls";
@@ -10,6 +10,63 @@ import { useVideoSignaling } from "../../hooks/webrtc/useVideoSignaling";
 import { useAuthStore } from "../../store/authStore";
 import { useCallStore } from "../../store/callStore";
 import { SocketManager } from "../../services/socketManager";
+
+// SDP validation function
+const validateSDP = (sdp: string, type: 'offer' | 'answer'): boolean => {
+  try {
+    // Basic SDP format validation
+    if (!sdp || typeof sdp !== 'string') {
+      console.error("[webrtc] Invalid SDP: not a string");
+      return false;
+    }
+    
+    // Check for required SDP headers
+    const requiredHeaders = ['v=', 'o=', 's=', 't='];
+    for (const header of requiredHeaders) {
+      if (!sdp.includes(header)) {
+        console.error(`[webrtc] Invalid SDP: missing required header ${header}`);
+        return false;
+      }
+    }
+    
+    // Type-specific validation
+    if (type === 'offer') {
+      // Offers should have m= lines for media
+      if (!sdp.includes('m=')) {
+        console.error("[webrtc] Invalid offer SDP: missing media lines");
+        return false;
+      }
+    } else if (type === 'answer') {
+      // Answers should have m= lines and a= lines
+      if (!sdp.includes('m=') || !sdp.includes('a=')) {
+        console.error("[webrtc] Invalid answer SDP: missing media or attribute lines");
+        return false;
+      }
+    }
+    
+    console.log(`[webrtc] SDP validation passed for ${type}`);
+    return true;
+  } catch (error) {
+    console.error("[webrtc] SDP validation error:", error);
+    return false;
+  }
+};
+
+// ICE restart function for connection recovery
+const attemptIceRestart = async (peerConnection: RTCPeerConnection) => {
+  try {
+    console.log("[webrtc] Starting ICE restart...");
+    
+    // Create a new offer to restart ICE
+    const offer = await peerConnection.createOffer({ iceRestart: true });
+    await peerConnection.setLocalDescription(offer);
+    
+    // The offer will be sent via signaling automatically
+    console.log("[webrtc] ICE restart offer created and set as local description");
+  } catch (error) {
+    console.error("[webrtc] ICE restart failed:", error);
+  }
+};
 
 export const VideoCallPage: React.FC = () => {
   const { callId } = useParams();
@@ -25,6 +82,11 @@ export const VideoCallPage: React.FC = () => {
   const [showLeaveConfirmation, setShowLeaveConfirmation] = useState(false);
   const [showSpeedTooltip, setShowSpeedTooltip] = useState(false);
   const [showDisconnectMessage, setShowDisconnectMessage] = useState(false);
+  const [connectionError, setConnectionError] = useState<{
+    message: string;
+    recoverable: boolean;
+    action?: string;
+  } | null>(null);
 
   useEffect(() => {
     document.title = `Call • ${callId ?? "Unknown"}`;
@@ -66,22 +128,45 @@ export const VideoCallPage: React.FC = () => {
               }
             };
             
-            // Monitor ICE connection state changes
+            // Monitor ICE connection state changes with recovery mechanism
             peerConnection.oniceconnectionstatechange = () => {
               console.log("[webrtc] ICE connection state changed:", peerConnection.iceConnectionState);
               if (peerConnection.iceConnectionState === "connected" || peerConnection.iceConnectionState === "completed") {
                 console.log("[webrtc] ICE connection established successfully!");
-                setError(null); // Clear any previous errors
+                setError(null);
+                setConnectionError(null); // Clear any previous errors
               } else if (peerConnection.iceConnectionState === "failed") {
-                console.error("[webrtc] ICE connection failed - will attempt recovery");
-                setError("Connection failed - attempting to reconnect...");
-                // Don't immediately fail - let the recovery mechanism handle it
+                console.error("[webrtc] ICE connection failed - attempting recovery");
+                setConnectionError({
+                  message: "Connection failed. Attempting to reconnect...",
+                  recoverable: true,
+                  action: "Retry Connection"
+                });
+                // Attempt ICE restart after a delay
+                setTimeout(() => {
+                  if (peerConnection.iceConnectionState === "failed") {
+                    console.log("[webrtc] Attempting ICE restart...");
+                    attemptIceRestart(peerConnection);
+                  }
+                }, 5000);
               } else if (peerConnection.iceConnectionState === "disconnected") {
-                console.log("[webrtc] ICE connection disconnected - monitoring for recovery");
-                setError("Connection lost - attempting to reconnect...");
+                console.log("[webrtc] ICE connection disconnected - waiting for auto-recovery");
+                setConnectionError({
+                  message: "Connection lost. Attempting to reconnect...",
+                  recoverable: true,
+                  action: "Retry Connection"
+                });
+                // Wait for automatic recovery, then attempt ICE restart if needed
+                setTimeout(() => {
+                  if (peerConnection.iceConnectionState === "disconnected") {
+                    console.log("[webrtc] Auto-recovery failed, attempting ICE restart...");
+                    attemptIceRestart(peerConnection);
+                  }
+                }, 10000);
               } else if (peerConnection.iceConnectionState === "checking") {
                 console.log("[webrtc] ICE connection checking - establishing connection...");
                 setError(null);
+                setConnectionError(null);
               }
             };
             
@@ -110,6 +195,13 @@ export const VideoCallPage: React.FC = () => {
 
               if (data.type === "offer") {
                 console.log("[webrtc] Processing remote offer");
+                
+                // Validate SDP before processing
+                if (!data.sdp || !validateSDP(data.sdp, "offer")) {
+                  console.error("[webrtc] Invalid offer SDP, ignoring");
+                  return;
+                }
+                
                 await peerConnection.setRemoteDescription({ type: "offer", sdp: data.sdp });
                 const answer = await peerConnection.createAnswer();
                 await peerConnection.setLocalDescription(answer);
@@ -117,6 +209,13 @@ export const VideoCallPage: React.FC = () => {
                 signaling.sendSignal({ type: "answer", sdp: answer.sdp });
               } else if (data.type === "answer") {
                 console.log("[webrtc] Processing remote answer");
+                
+                // Validate SDP before processing
+                if (!data.sdp || !validateSDP(data.sdp, "answer")) {
+                  console.error("[webrtc] Invalid answer SDP, ignoring");
+                  return;
+                }
+                
                 const currentState = peerConnection.signalingState;
                 console.log("[webrtc] Current signaling state:", currentState);
                 
@@ -326,15 +425,18 @@ export const VideoCallPage: React.FC = () => {
     };
 
     const handleVisibilityChange = () => {
+      // Don't clear callId when document becomes hidden (tab switch, minimize)
+      // Video calls should continue running in background
       if (document.hidden) {
-        console.log("[video-call] Window hidden - clearing call ID");
-        clearActiveCallId();
+        console.log("[video-call] Window hidden - keeping call active");
       }
     };
 
     const handlePageHide = () => {
-      console.log("[video-call] Page hide - clearing call ID");
-      clearActiveCallId();
+      // Page hide can occur during navigation or tab switching
+      // Only clear call ID if this is actually the window closing
+      console.log("[video-call] Page hide detected - keeping call active unless window is closing");
+      // Don't clear callId here - let beforeunload handle actual window close
     };
 
     // Multiple event listeners to catch different ways the popup can be closed
@@ -349,41 +451,17 @@ export const VideoCallPage: React.FC = () => {
     };
   }, [signaling, clearActiveCallId]);
 
-  // Aggressive popup close detection - check if window is still focused
-  useEffect(() => {
-    let lastFocusTime = Date.now();
-    
-    const handleFocus = () => {
-      lastFocusTime = Date.now();
-    };
-    
-    const handleBlur = () => {
-      lastFocusTime = Date.now();
-    };
-    
-    const checkFocus = () => {
-      const now = Date.now();
-      const timeSinceLastFocus = now - lastFocusTime;
-      
-      // If window hasn't been focused for more than 3 seconds, assume it's closed
-      if (timeSinceLastFocus > 3000) {
-        console.log("[video-call] Window appears to be closed - clearing call ID");
-        clearActiveCallId();
-      }
-    };
-    
-    window.addEventListener('focus', handleFocus);
-    window.addEventListener('blur', handleBlur);
-    
-    // Check every 2 seconds
-    const interval = setInterval(checkFocus, 2000);
-    
-    return () => {
-      window.removeEventListener('focus', handleFocus);
-      window.removeEventListener('blur', handleBlur);
-      clearInterval(interval);
-    };
-  }, [clearActiveCallId]);
+  // Manual retry function for connection recovery
+  const handleRetryConnection = useCallback(() => {
+    if (pc.pcRef.current) {
+      console.log("[video-call] Manual retry connection requested");
+      attemptIceRestart(pc.pcRef.current);
+      setConnectionError(null);
+    }
+  }, [pc.pcRef]);
+
+  // Removed aggressive focus detection - video calls should run in background
+  // Only cleanup on actual window close (beforeunload event)
 
   // Placeholder shell; hooks/components will be wired next
   return (
@@ -485,6 +563,48 @@ export const VideoCallPage: React.FC = () => {
       </main>
       {error && (
         <div style={{ position: "absolute", top: 20, left: "50%", transform: "translateX(-50%)", background: "#e74c3c", color: "#fff", padding: "8px 12px", borderRadius: 6 }}>{error}</div>
+      )}
+      
+      {/* Connection Error with Recovery Option */}
+      {connectionError && (
+        <div style={{
+          position: "absolute",
+          top: 20,
+          left: "50%",
+          transform: "translateX(-50%)",
+          background: connectionError.recoverable ? "#f59e0b" : "#e74c3c",
+          color: "#fff",
+          padding: "12px 16px",
+          borderRadius: 8,
+          display: "flex",
+          alignItems: "center",
+          gap: "12px",
+          maxWidth: "400px",
+          zIndex: 1000
+        }}>
+          <div style={{ flex: 1 }}>
+            {connectionError.message}
+          </div>
+          {connectionError.recoverable && connectionError.action && (
+            <button
+              onClick={handleRetryConnection}
+              style={{
+                background: "rgba(255,255,255,0.2)",
+                border: "1px solid rgba(255,255,255,0.3)",
+                color: "#fff",
+                padding: "6px 12px",
+                borderRadius: 4,
+                cursor: "pointer",
+                fontSize: "12px",
+                fontWeight: "600"
+              }}
+              onMouseOver={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.3)"}
+              onMouseOut={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.2)"}
+            >
+              {connectionError.action}
+            </button>
+          )}
+        </div>
       )}
       
       <LeaveConfirmationModal

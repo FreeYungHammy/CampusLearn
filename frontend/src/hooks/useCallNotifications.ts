@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuthStore } from "@/store/authStore";
+import { useCallStore } from "@/store/callStore";
 import { Socket } from "socket.io-client";
 import { SocketManager } from "../services/socketManager";
 
@@ -48,6 +49,21 @@ export function useCallNotifications() {
           fromUserName: string; 
         }) => {
           console.log("[call-notifications] Incoming call received:", data);
+          
+          // Check if user is already in another call
+          const { activeCallId } = useCallStore.getState();
+          if (activeCallId && activeCallId !== data.callId) {
+            console.log("[call-notifications] User already in call, auto-declining new call");
+            // Auto-decline the incoming call since user is busy
+            if (videoSocket) {
+              videoSocket.emit("decline_call", { 
+                callId: data.callId, 
+                fromUserId: data.fromUserId 
+              });
+            }
+            return;
+          }
+          
           console.log("[call-notifications] Setting incoming call state...");
           setIncomingCall({
             callId: data.callId,
