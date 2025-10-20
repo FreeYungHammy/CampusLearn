@@ -262,8 +262,16 @@ class SocketManagerClass {
     });
 
     videoSocket.on("incoming_call", (data: { callId: string; fromUserId: string; fromUserName: string }) => {
-      console.log("[SocketManager] Incoming call:", data);
-      this.handlers.video.onIncomingCall?.(data);
+      console.log("[SocketManager] Incoming call received:", data);
+      console.log("[SocketManager] Current video handlers:", this.handlers.video);
+      console.log("[SocketManager] onIncomingCall handler exists:", !!this.handlers.video.onIncomingCall);
+      
+      if (this.handlers.video.onIncomingCall) {
+        console.log("[SocketManager] Calling onIncomingCall handler");
+        this.handlers.video.onIncomingCall(data);
+      } else {
+        console.warn("[SocketManager] No onIncomingCall handler registered");
+      }
     });
 
     videoSocket.on("call_cancelled", (data: { callId: string }) => {
@@ -315,14 +323,19 @@ class SocketManagerClass {
    * Register event handlers for namespaces
    */
   public registerHandlers(handlers: Partial<NamespaceHandlers>): void {
+    console.log("[SocketManager] Registering handlers:", handlers);
+    
     if (handlers.chat) {
       this.handlers.chat = { ...this.handlers.chat, ...handlers.chat };
+      console.log("[SocketManager] Chat handlers updated:", this.handlers.chat);
     }
     if (handlers.video) {
       this.handlers.video = { ...this.handlers.video, ...handlers.video };
+      console.log("[SocketManager] Video handlers updated:", this.handlers.video);
     }
     if (handlers.global) {
       this.handlers.global = { ...this.handlers.global, ...handlers.global };
+      console.log("[SocketManager] Global handlers updated:", this.handlers.global);
     }
   }
 

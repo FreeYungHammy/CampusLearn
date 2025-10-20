@@ -1220,8 +1220,8 @@ const Messages: React.FC = () => {
 
   const handleStartVideoCall = useCallback(async () => {
     console.log("[video-call] handleStartVideoCall called!");
-    console.log("[video-call] selectedConversation:", !!selectedConversation);
-    console.log("[video-call] user:", !!user);
+    console.log("[video-call] selectedConversation:", selectedConversation);
+    console.log("[video-call] user:", user);
 
     if (!selectedConversation || !user?.id) {
       console.log(
@@ -1231,7 +1231,16 @@ const Messages: React.FC = () => {
     }
 
     const otherId = selectedConversation.otherUser._id;
+    const otherUserName = `${selectedConversation.otherUser.profile?.name || "Unknown"} ${selectedConversation.otherUser.profile?.surname || "User"}`;
     const callId = [user.id, otherId].sort().join(":");
+    
+    console.log("[video-call] Call details:", {
+      callId,
+      userId: user.id,
+      otherId,
+      otherUserName,
+      selectedConversationId: selectedConversation._id
+    });
 
     // Check if we're already in a call
     const { useCallStore } = await import("@/store/callStore");
@@ -1579,6 +1588,8 @@ const Messages: React.FC = () => {
                     aria-label="Video"
                     onClick={() => {
                       console.log("[video-call] Video call button clicked!");
+                      console.log("[video-call] Current selectedConversation at button click:", selectedConversation);
+                      console.log("[video-call] Current user at button click:", user);
                       handleStartVideoCall();
                     }}
                   >

@@ -679,6 +679,36 @@ export const VideoCallPage: React.FC = () => {
     };
   }, [signaling, clearActiveCallId]);
 
+  // Ensure socket connection stability during call
+  useEffect(() => {
+    if (!callId || !user?.id) return;
+
+    console.log("[video-call] Ensuring socket connection stability for call:", callId);
+    
+    // Check if socket is connected, if not, try to reconnect
+    const checkSocketConnection = () => {
+      const videoSocket = SocketManager.getVideoSocket();
+      if (!videoSocket || !videoSocket.connected) {
+        console.log("[video-call] Socket not connected, attempting to reconnect...");
+        const wsUrl = (import.meta.env.VITE_WS_URL as string).replace(/\/$/, "");
+        SocketManager.initialize({
+          url: wsUrl,
+          token: token || "",
+        });
+      }
+    };
+
+    // Check immediately
+    checkSocketConnection();
+
+    // Check every 10 seconds during the call
+    const interval = setInterval(checkSocketConnection, 10000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [callId, user?.id, token]);
+
   // Manual retry function for connection recovery with state machine
   const handleRetryConnection = useCallback(() => {
     if (pc.pcRef.current) {

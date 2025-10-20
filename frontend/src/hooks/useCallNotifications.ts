@@ -64,14 +64,20 @@ export function useCallNotifications() {
             return;
           }
           
-          console.log("[call-notifications] Setting incoming call state...");
-          setIncomingCall({
-            callId: data.callId,
-            fromUserId: data.fromUserId,
-            fromUserName: data.fromUserName,
-            timestamp: new Date(),
-          });
-          console.log("[call-notifications] Incoming call state set successfully");
+          // Only show notification if user is not already in a call popup
+          // This prevents automatic notifications when user is already in a call
+          if (!activeCallId) {
+            console.log("[call-notifications] Setting incoming call state...");
+            setIncomingCall({
+              callId: data.callId,
+              fromUserId: data.fromUserId,
+              fromUserName: data.fromUserName,
+              timestamp: new Date(),
+            });
+            console.log("[call-notifications] Incoming call state set successfully");
+          } else {
+            console.log("[call-notifications] User already in call popup, not showing notification");
+          }
         },
         onCallCancelled: (data: { callId: string }) => {
           console.log("[call-notifications] Call cancelled:", data);
