@@ -125,6 +125,47 @@ export const VideoCallPage: React.FC = () => {
     }
   }, [callState]);
 
+  // Perfect Negotiation: Ignore offer function (moved to top level)
+  const ignoreOffer = useCallback((offer: RTCSessionDescriptionInit): boolean => {
+    const peerConnection = pc.pcRef.current;
+    if (!peerConnection) return true;
+    
+    // Always ignore offers if we're making an offer (prevent glare)
+    if (makingOffer) {
+      console.log("[perfect-negotiation] Ignoring offer - we're making an offer");
+      return true;
+    }
+    
+    // Check for glare condition
+    const currentState = peerConnection.signalingState;
+    if (currentState === "have-local-offer") {
+      console.log("[perfect-negotiation] Glare detected - checking who's polite");
+      
+      // Determine polite peer based on user ID comparison
+      // The peer with the lexicographically smaller ID is polite
+      if (callId && user?.id) {
+        const parts = callId.split(":").sort();
+        const isPolite = user.id === parts[0]; // Smaller ID is polite
+        
+        console.log("[perfect-negotiation] Glare resolution:", { 
+          userId: user.id, 
+          isPolite, 
+          sortedIds: parts 
+        });
+        
+        if (isPolite) {
+          console.log("[perfect-negotiation] Polite peer - rolling back local offer");
+          return false; // Accept the remote offer (we'll rollback)
+        } else {
+          console.log("[perfect-negotiation] Impolite peer - ignoring remote offer");
+          return true; // Ignore the remote offer
+        }
+      }
+    }
+    
+    return false; // Accept the offer
+  }, [makingOffer, callId, user?.id, pc.pcRef]);
+
   useEffect(() => {
     document.title = `Call • ${callId ?? "Unknown"}`;
   }, [callId]);
@@ -238,47 +279,6 @@ export const VideoCallPage: React.FC = () => {
 
           // 4. FOURTH: Set up Perfect Negotiation signaling handlers (AFTER peer connection exists)
           console.log("[perfect-negotiation] Setting up signaling handlers...");
-          
-          // Perfect Negotiation: Ignore offer function
-          const ignoreOffer = useCallback((offer: RTCSessionDescriptionInit): boolean => {
-            const peerConnection = pc.pcRef.current;
-            if (!peerConnection) return true;
-            
-            // Always ignore offers if we're making an offer (prevent glare)
-            if (makingOffer) {
-              console.log("[perfect-negotiation] Ignoring offer - we're making an offer");
-              return true;
-            }
-            
-            // Check for glare condition
-            const currentState = peerConnection.signalingState;
-            if (currentState === "have-local-offer") {
-              console.log("[perfect-negotiation] Glare detected - checking who's polite");
-              
-              // Determine polite peer based on user ID comparison
-              // The peer with the lexicographically smaller ID is polite
-              if (callId && user?.id) {
-                const parts = callId.split(":").sort();
-                const isPolite = user.id === parts[0]; // Smaller ID is polite
-                
-                console.log("[perfect-negotiation] Glare resolution:", { 
-                  userId: user.id, 
-                  isPolite, 
-                  sortedIds: parts 
-                });
-                
-                if (isPolite) {
-                  console.log("[perfect-negotiation] Polite peer - rolling back local offer");
-                  return false; // Accept the remote offer (we'll rollback)
-                } else {
-                  console.log("[perfect-negotiation] Impolite peer - ignoring remote offer");
-                  return true; // Ignore the remote offer
-                }
-              }
-            }
-            
-            return false; // Accept the offer
-          }, [makingOffer, callId, user?.id]);
           
           signaling.onSignal(async ({ data }) => {
             console.log("[perfect-negotiation] Received signal:", data?.type);
