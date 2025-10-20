@@ -296,6 +296,7 @@ export const FileController = {
                   }
                   
                   console.log(`🔗 Fetching signed URL with headers:`, fetchHeaders);
+                  console.log(`🔗 Request Range header:`, req.headers.range);
                   const response = await fetch(signedUrl, { headers: fetchHeaders });
                   
                   if (!response.ok) {
@@ -340,19 +341,39 @@ export const FileController = {
                   // Stream the video content
                   if (response.body) {
                     console.log(`🔗 Starting to pipe video content to response...`);
+                    
+                    // Set a timeout for the streaming operation
+                    const streamTimeout = setTimeout(() => {
+                      console.error(`❌ Stream timeout - no data received for 30 seconds`);
+                      if (!res.headersSent) {
+                        res.status(408).json({ message: "Stream timeout" });
+                      }
+                    }, 30000);
+                    
                     response.body.pipe(res);
                     
                     // Add error handling for the stream
                     response.body.on('error', (streamError) => {
                       console.error(`❌ Stream error:`, streamError);
+                      clearTimeout(streamTimeout);
+                      if (!res.headersSent) {
+                        res.status(500).json({ message: "Stream error" });
+                      }
                     });
                     
                     response.body.on('end', () => {
                       console.log(`✅ Video streaming completed`);
+                      clearTimeout(streamTimeout);
                     });
                     
                     res.on('close', () => {
                       console.log(`🔗 Client disconnected during streaming`);
+                      clearTimeout(streamTimeout);
+                    });
+                    
+                    res.on('error', (resError) => {
+                      console.error(`❌ Response error:`, resError);
+                      clearTimeout(streamTimeout);
                     });
                   } else {
                     throw new Error('No response body available');
@@ -435,6 +456,7 @@ export const FileController = {
                   }
                   
                   console.log(`🔗 Fetching signed URL with headers:`, fetchHeaders);
+                  console.log(`🔗 Request Range header:`, req.headers.range);
                   const response = await fetch(signedUrl, { headers: fetchHeaders });
                   
                   if (!response.ok) {
@@ -479,19 +501,39 @@ export const FileController = {
                   // Stream the video content
                   if (response.body) {
                     console.log(`🔗 Starting to pipe video content to response...`);
+                    
+                    // Set a timeout for the streaming operation
+                    const streamTimeout = setTimeout(() => {
+                      console.error(`❌ Stream timeout - no data received for 30 seconds`);
+                      if (!res.headersSent) {
+                        res.status(408).json({ message: "Stream timeout" });
+                      }
+                    }, 30000);
+                    
                     response.body.pipe(res);
                     
                     // Add error handling for the stream
                     response.body.on('error', (streamError) => {
                       console.error(`❌ Stream error:`, streamError);
+                      clearTimeout(streamTimeout);
+                      if (!res.headersSent) {
+                        res.status(500).json({ message: "Stream error" });
+                      }
                     });
                     
                     response.body.on('end', () => {
                       console.log(`✅ Video streaming completed`);
+                      clearTimeout(streamTimeout);
                     });
                     
                     res.on('close', () => {
                       console.log(`🔗 Client disconnected during streaming`);
+                      clearTimeout(streamTimeout);
+                    });
+                    
+                    res.on('error', (resError) => {
+                      console.error(`❌ Response error:`, resError);
+                      clearTimeout(streamTimeout);
                     });
                   } else {
                     throw new Error('No response body available');
