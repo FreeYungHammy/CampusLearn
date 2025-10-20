@@ -197,6 +197,8 @@ export const FileController = {
 
   getBinary: async (req: AuthedRequest, res: Response, next: NextFunction) => {
     try {
+      console.log(`🎬 [getBinary] Request for file ${req.params.id}, quality: ${req.query.quality}, token: ${req.query.token ? 'present' : 'missing'}`);
+      
       // Handle authentication via token in query parameter (for video elements)
       let userId = req.user?.id;
       
@@ -219,8 +221,11 @@ export const FileController = {
 
       const hasAccess = await verifyFileAccess(userId, req.params.id);
       if (!hasAccess) {
+        console.log(`🚫 [getBinary] Access denied for user ${userId} to file ${req.params.id}`);
         return res.status(403).json({ message: "Access denied" });
       }
+
+      console.log(`✅ [getBinary] Access granted for user ${userId} to file ${req.params.id}`);
 
       // Set CORS headers for video requests
       res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
@@ -229,8 +234,11 @@ export const FileController = {
       
       const item = await FileService.getWithBinary(req.params.id);
       if (!item) {
+        console.log(`❌ [getBinary] File not found: ${req.params.id}`);
         return res.status(404).json({ message: "File not found" });
       }
+
+      console.log(`📁 [getBinary] File found: ${item.title}, contentType: ${item.contentType}, externalUri: ${(item as any).externalUri ? 'present' : 'missing'}`);
 
       // If file is stored in GCS, redirect directly to signed URL
       if ((item as any).externalUri) {
