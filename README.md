@@ -245,6 +245,7 @@ POST /api/forum/threads
 GET /api/forum/threads/:id
 POST /api/forum/threads/:id/replies
 ```
+and many more coming soon...!
 
 ## 🔧 Troubleshooting
 
@@ -284,7 +285,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 👥 Team
 
-- **Developer**: Calvin Nijenhuis
+- **The Glue of Everything**: Calvin Nijenhuis, Gideon Vermeulen, Gabriel Botha, Pieter Pienaar, Thomas Venables
 - **Module**: SEN381 - Software Engineering
 - **Institution**: University of Cape Town
 
