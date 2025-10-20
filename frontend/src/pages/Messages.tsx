@@ -1311,8 +1311,12 @@ const Messages: React.FC = () => {
         
         if (videoSocket && videoSocket.connected) {
           console.log("[video-call] Sending initiate_call via centralized socket");
-          videoSocket.emit("initiate_call", { callId, targetUserId: otherId });
-          console.log("[video-call] Call notification sent successfully");
+          videoSocket.emit("initiate_call", { 
+            callId, 
+            targetUserId: otherId,
+            fromUserName: `${user.name || "Unknown"} ${user.surname || "User"}` // Pass fromUserName
+          });
+          console.log("[video-call] Call notification sent successfully with user name:", `${user.name || "Unknown"} ${user.surname || "User"}`);
         } else {
           console.error("[video-call] Video socket not available after reconnection attempt");
           // Still open the call popup even if notification fails

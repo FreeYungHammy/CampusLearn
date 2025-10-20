@@ -425,8 +425,12 @@ export const VideoCallPage: React.FC = () => {
                     
                     if (videoSocket && videoSocket.connected) {
                       console.log("[video-call] Sending initiate_call via centralized socket");
-                      videoSocket.emit("initiate_call", { callId, targetUserId });
-                      console.log("[video-call] Call notification sent successfully");
+                      videoSocket.emit("initiate_call", { 
+                        callId, 
+                        targetUserId,
+                        fromUserName: `${user.name || "Unknown"} ${user.surname || "User"}` // Pass fromUserName
+                      });
+                      console.log("[video-call] Call notification sent successfully with user name:", `${user.name || "Unknown"} ${user.surname || "User"}`);
                       setInviteSent(true);
                       setCanResendInvite(true);
                     } else {
@@ -771,7 +775,11 @@ export const VideoCallPage: React.FC = () => {
         
         if (videoSocket && videoSocket.connected) {
           console.log("[video-call] Resending invite to:", targetUserId);
-          videoSocket.emit("initiate_call", { callId, targetUserId });
+          videoSocket.emit("initiate_call", { 
+            callId, 
+            targetUserId,
+            fromUserName: `${user.name || "Unknown"} ${user.surname || "User"}` // Pass fromUserName
+          });
           setCanResendInvite(false);
           setInviteSent(true);
           

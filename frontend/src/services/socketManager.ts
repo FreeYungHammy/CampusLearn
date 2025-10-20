@@ -63,6 +63,7 @@ class SocketManagerClass {
 
   private isConnected = false;
   private connectionListeners: Set<(connected: boolean) => void> = new Set();
+  private heartbeatInterval: NodeJS.Timeout | null = null;
 
   // Singleton pattern
   private static instance: SocketManagerClass;
@@ -90,6 +91,9 @@ class SocketManagerClass {
 
     this.config = config;
     this.connect();
+    
+    // Start heartbeat to keep connection alive
+    this.startHeartbeat();
   }
 
   /**
@@ -123,14 +127,20 @@ class SocketManagerClass {
         this.isConnected = false;
         this.notifyConnectionChange(false);
         
-        // Don't automatically reconnect if it's a manual disconnect or auth error
-        if (reason === "io client disconnect" || reason === "io server disconnect") {
+        // Don't automatically reconnect if it's a manual disconnect
+        if (reason === "io client disconnect") {
           console.log("[SocketManager] Manual disconnect, not reconnecting");
           return;
         }
         
-        // For other disconnects, let the socket.io client handle reconnection
+        // For server disconnects and other reasons, attempt reconnection
         console.log("[SocketManager] Will attempt automatic reconnection");
+        setTimeout(() => {
+          if (!this.isConnected && this.config) {
+            console.log("[SocketManager] Attempting to reconnect...");
+            this.connect();
+          }
+        }, 1000);
       });
 
       this.socket.on("connect_error", (error) => {
@@ -143,6 +153,11 @@ class SocketManagerClass {
           console.error("[SocketManager] Authentication error, not reconnecting");
           return;
         }
+      });
+
+      // Handle pong response to heartbeat
+      this.socket.on("pong", () => {
+        console.log("[SocketManager] Heartbeat pong received");
       });
 
       // Initialize namespaces
@@ -415,10 +430,40 @@ class SocketManagerClass {
   }
 
   /**
+   * Start heartbeat to keep connection alive
+   */
+  private startHeartbeat(): void {
+    this.stopHeartbeat(); // Clear any existing heartbeat
+    
+    this.heartbeatInterval = setInterval(() => {
+      if (this.socket && this.socket.connected) {
+        // Send ping to keep connection alive
+        this.socket.emit('ping');
+      } else if (this.config) {
+        // Try to reconnect if disconnected
+        console.log("[SocketManager] Heartbeat detected disconnection, attempting reconnect...");
+        this.connect();
+      }
+    }, 30000); // Send heartbeat every 30 seconds
+  }
+
+  /**
+   * Stop heartbeat
+   */
+  private stopHeartbeat(): void {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
+    }
+  }
+
+  /**
    * Disconnect all sockets
    */
   public disconnect(): void {
     console.log("[SocketManager] Disconnecting all sockets");
+    
+    this.stopHeartbeat();
     
     if (this.namespaces.chat) {
       this.namespaces.chat.disconnect();

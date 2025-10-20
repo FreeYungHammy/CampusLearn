@@ -82,6 +82,11 @@ export function createSocketServer(httpServer: HttpServer) {
     socket.on("message:send", (msg: unknown) => {
       io.emit("message:receive", msg);
     });
+    
+    // Handle heartbeat ping
+    socket.on("ping", () => {
+      socket.emit("pong");
+    });
   });
 
   const chat = io.of("/chat");
@@ -348,7 +353,7 @@ export function createSocketServer(httpServer: HttpServer) {
     });
 
     // initiate_call: start a call and notify the other participant
-    socket.on("initiate_call", async ({ callId, targetUserId }: { callId: string; targetUserId: string }) => {
+    socket.on("initiate_call", async ({ callId, targetUserId, fromUserName }: { callId: string; targetUserId: string; fromUserName?: string }) => {
       if (process.env.NODE_ENV !== 'production') {
         console.log("[/video] initiate_call", { socket: socket.id, userId, callId, targetUserId });
       }
@@ -375,23 +380,25 @@ export function createSocketServer(httpServer: HttpServer) {
       // Find the target user's socket
       const targetUser = connectedUsers.get(targetUserId);
       if (targetUser) {
-        // Get the caller's name from the database
-        let fromUserName = "User";
-        try {
-          const { UserService } = await import("../modules/users/user.service");
-          const { UserRepo } = await import("../modules/users/user.repo");
-          
-          // First get the user to determine their role
-          const user = await UserRepo.findById(userId || "");
-          if (user) {
-            // Get the profile based on role
-            const profile = await UserService.getProfileByRole(user.id, user.role);
-            if (profile && profile.name) {
-              fromUserName = `${profile.name || ""} ${profile.surname || ""}`.trim() || "User";
+        // Use provided fromUserName or get from database
+        let callerName = fromUserName || "User";
+        if (!fromUserName) {
+          try {
+            const { UserService } = await import("../modules/users/user.service");
+            const { UserRepo } = await import("../modules/users/user.repo");
+            
+            // First get the user to determine their role
+            const user = await UserRepo.findById(userId || "");
+            if (user) {
+              // Get the profile based on role
+              const profile = await UserService.getProfileByRole(user.id, user.role);
+              if (profile && profile.name) {
+                callerName = `${profile.name || ""} ${profile.surname || ""}`.trim() || "User";
+              }
             }
+          } catch (error) {
+            console.error("Failed to get caller name:", error);
           }
-        } catch (error) {
-          console.error("Failed to get caller name:", error);
         }
         
         // Send notification to target user
@@ -403,7 +410,7 @@ export function createSocketServer(httpServer: HttpServer) {
             video.to(targetUser.videoSocketId).emit("incoming_call", {
               callId,
               fromUserId: userId,
-              fromUserName,
+              fromUserName: callerName,
             });
             console.log(`[video] Sent incoming_call to ${targetUserId} on socket ${targetUser.videoSocketId}`);
           } else {
@@ -413,7 +420,7 @@ export function createSocketServer(httpServer: HttpServer) {
               chat.to(targetUser.chatSocketId).emit("incoming_call", {
                 callId,
                 fromUserId: userId,
-                fromUserName,
+                fromUserName: callerName,
               });
               console.log(`[video] Sent incoming_call to ${targetUserId} via chat namespace fallback`);
             }
