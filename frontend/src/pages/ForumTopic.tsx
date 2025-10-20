@@ -398,7 +398,7 @@ const ForumTopic = () => {
               {thread.topic}
             </span>
           </div>
-          <div className="topic-body">
+          <div className="topic-body" style={{ paddingTop: "2.5rem" }}>
             {editingId === thread._id ? (
               <div className="edit-form">
                 <textarea
@@ -456,7 +456,15 @@ const ForumTopic = () => {
             </div>
           </div>
         </div>
-        <div className="topic-actions">
+        <div
+          className="topic-actions"
+          style={{
+            position: "absolute",
+            top: "1rem",
+            right: "1rem",
+            zIndex: 10,
+          }}
+        >
           {user &&
             thread.author &&
             user.id === thread.author.userId &&

@@ -432,11 +432,16 @@
   border-color: var(--blue-primary);
 }
 
-.topic-actions {
+.topic-actions-container {
   position: absolute;
   top: 1rem;
   right: 1rem;
   z-index: 10;
+}
+
+.topic-actions {
+  display: flex;
+  gap: 8px;
 }
 
 /* Ensure reply cards have relative positioning for absolute positioned actions */
@@ -880,7 +885,7 @@
   }
 
   .forum-container .reply-card {
-    padding: 16px 20px;
+    padding: 16px 10px;
   }
 
   .forum-container .reply-main-row {
@@ -940,7 +945,7 @@
 
   .forum-container .reply-card .topic-actions {
     top: 16px !important;
-    right: 20px !important;
+    right: 10px !important;
     gap: 6px !important;
   }
 
@@ -966,8 +971,8 @@
 
 @media (max-width: 480px) {
   .forum-container .reply-card {
-    padding: 12px 16px;
-    gap: 10px;
+    padding: 12px 8px;
+    gap: 8px;
   }
 
   .forum-container .reply-vote {
