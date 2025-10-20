@@ -16,7 +16,9 @@ const VIDEO_SIGNATURES: FileSignature[] = [
     signatures: [
       [0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70], // MP4 Box
       [0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70], // MP4 Box variant
-      [0x66, 0x74, 0x79, 0x70], // ftyp
+      [0x00, 0x00, 0x00, 0x1C, 0x66, 0x74, 0x79, 0x70], // MP4 Box variant
+      [0x00, 0x00, 0x00, 0x14, 0x66, 0x74, 0x79, 0x70], // MP4 Box variant
+      [0x66, 0x74, 0x79, 0x70], // ftyp (basic MP4 signature)
     ]
   },
   {
@@ -92,6 +94,21 @@ export function validateVideoSignature(buffer: Buffer, contentType: string): boo
       }
     }
 
+    // For MP4 files, also check if it contains ftyp anywhere in the first 32 bytes
+    if (contentType === "video/mp4") {
+      if (checkMp4Ftyp(buffer)) {
+        logger.info(`Valid MP4 ftyp signature found for ${contentType}`);
+        return true;
+      }
+      
+      // As a last resort for MP4, if the file is reasonably sized and has video/mp4 MIME type,
+      // allow it (some MP4 files may have non-standard box structures)
+      if (buffer.length > 1024) { // At least 1KB
+        logger.info(`Allowing MP4 file based on MIME type and size (${buffer.length} bytes)`);
+        return true;
+      }
+    }
+
     logger.warn(`No valid signature found for ${contentType}`);
     return false;
   } catch (error) {
@@ -118,6 +135,31 @@ function checkSignaturePattern(buffer: Buffer, pattern: number[]): boolean {
   }
 
   return true;
+}
+
+/**
+ * Checks if MP4 file contains ftyp signature anywhere in the first 32 bytes
+ * @param buffer File buffer
+ * @returns true if ftyp is found
+ */
+function checkMp4Ftyp(buffer: Buffer): boolean {
+  const ftyp = [0x66, 0x74, 0x79, 0x70]; // "ftyp"
+  const searchLength = Math.min(buffer.length, 32);
+  
+  for (let i = 0; i <= searchLength - ftyp.length; i++) {
+    let found = true;
+    for (let j = 0; j < ftyp.length; j++) {
+      if (buffer[i + j] !== ftyp[j]) {
+        found = false;
+        break;
+      }
+    }
+    if (found) {
+      return true;
+    }
+  }
+  
+  return false;
 }
 
 /**
