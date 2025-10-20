@@ -215,6 +215,7 @@ export const gcsService = {
     try {
       // await CacheService.set(cacheKey, url, 3000); // 50 minutes
       console.log(`GCS: Generated fresh signed URL for ${objectName} (caching disabled)`);
+      console.log(`GCS: Full signed URL: ${url}`);
     } catch (error) {
       console.warn(`GCS: Failed to cache signed URL for ${objectName}:`, error);
     }
