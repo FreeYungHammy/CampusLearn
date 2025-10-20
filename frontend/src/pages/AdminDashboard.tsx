@@ -389,31 +389,36 @@ const AdminDashboard = () => {
                 <p>No health check data available</p>
               </div>
             ) : (
-              healthChecks.map((check, index) => (
-                <div
-                  key={index}
-                  className={`status-card status-${check.status}`}
-                >
-                  <div className="status-icon">
-                    <i
-                      className={
-                        check.status === "error"
-                          ? "fas fa-times-circle"
-                          : check.status === "warning"
-                            ? "fas fa-exclamation-triangle"
-                            : "fas fa-check-circle"
-                      }
-                    ></i>
-                  </div>
-                  <div className="status-content">
-                    <div className="status-title">{check.name}</div>
-                    <div className="status-description">{check.message}</div>
-                    <div className="status-response-time">
-                      Response: {check.responseTime !== undefined ? `${check.responseTime}ms` : 'N/A'}
+              healthChecks
+                .filter((check) => check.name !== "System Resources")
+                .map((check, index) => (
+                  <div
+                    key={index}
+                    className={`status-card status-${check.status}`}
+                  >
+                    <div className="status-icon">
+                      <i
+                        className={
+                          check.status === "error"
+                            ? "fas fa-times-circle"
+                            : check.status === "warning"
+                              ? "fas fa-exclamation-triangle"
+                              : "fas fa-check-circle"
+                        }
+                      ></i>
+                    </div>
+                    <div className="status-content">
+                      <div className="status-title">{check.name}</div>
+                      <div className="status-description">{check.message}</div>
+                      <div className="status-response-time">
+                        Response:{" "}
+                        {check.responseTime !== undefined
+                          ? `${check.responseTime}ms`
+                          : "N/A"}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
+                ))
             )}
           </div>
         </motion.div>

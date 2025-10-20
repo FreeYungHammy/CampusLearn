@@ -507,25 +507,7 @@ const Settings = () => {
                 />
               </div>
             </div>
-            <div className="form-group">
-              <label className="form-label">Email Address</label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                className={`form-control ${
-                  profileFormik.touched.email && profileFormik.errors.email
-                    ? "is-invalid"
-                    : ""
-                }${
-                  profileFormik.touched.email && !profileFormik.errors.email
-                    ? "is-valid"
-                    : ""
-                }`}
-                onChange={profileFormik.handleChange}
-                value={profileFormik.values.email}
-              />
-            </div>
+            {/* Email field removed for all accounts */}
             <div className="card-footer">
               <button type="submit" className="btn btn-primary">
                 Save Profile
@@ -622,7 +604,7 @@ const Settings = () => {
           </form>
         </div>
 
-        {user?.role !== "admin" && (
+        {user?.role === "student" && (
           <div className="settings-card">
             <div className="card-header">
               <h2 className="card-title">My Subjects</h2>

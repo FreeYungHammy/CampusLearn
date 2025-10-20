@@ -1367,16 +1367,29 @@ body {
 [data-theme="dark"] .upvote-btn:hover,
 [data-theme="dark"] .downvote-btn:hover {
   background: var(--surface);
+  /* match border colors to hover intent */
+}
+
+[data-theme="dark"] .upvote-btn:hover {
+  border-color: #16a34a;
+  color: #16a34a;
+}
+
+[data-theme="dark"] .downvote-btn:hover {
+  border-color: #dc2626;
+  color: #dc2626;
 }
 
 [data-theme="dark"] .upvote-btn.upvoted {
-  background: var(--primary);
+  background: #22c55e;
   color: white;
+  border-color: #22c55e;
 }
 
 [data-theme="dark"] .downvote-btn.downvoted {
-  background: var(--danger);
+  background: #ef4444;
   color: white;
+  border-color: #ef4444;
 }
 
 /* Dark mode forum topic subject badges */
@@ -4965,25 +4978,25 @@ select {
 }
 
 .upvote-btn:hover {
-  border-color: var(--primary);
-  color: var(--primary);
+  border-color: #16a34a; /* green-600 */
+  color: #16a34a;
 }
 
 .downvote-btn:hover {
-  border-color: var(--danger);
-  color: var(--danger);
+  border-color: #dc2626; /* red-600 */
+  color: #dc2626;
 }
 
 .upvote-btn.upvoted {
-  background-color: var(--primary);
+  background-color: #22c55e; /* green-500 */
   color: white;
-  border-color: var(--primary);
+  border-color: #22c55e;
 }
 
 .downvote-btn.downvoted {
-  background-color: var(--danger);
+  background-color: #ef4444; /* red-500 */
   color: white;
-  border-color: var(--danger);
+  border-color: #ef4444;
 }
 
 .vote-count {
@@ -6250,7 +6263,7 @@ body.mobile-menu-open {
 }
 
 /* Admin account specific breakpoint - hamburger menu at 1312px */
-@media (max-width: 1235px) {
+@media (max-width: 1265px) {
   /* Only apply to admin accounts */
   .user-role-admin .cl-center.desktop-nav {
     display: none;
@@ -6418,6 +6431,7 @@ body.mobile-menu-open {
     gap: 8px !important;
     align-items: center !important;
     z-index: 10 !important;
+    margin-right: 10px;
   }
 
   .topic-header-actions .edit-btn,
@@ -6733,7 +6747,7 @@ body.mobile-menu-open {
     transition: all 0.3s ease;
     position: relative;
     max-width: 100%;
-    margin: 0 auto;
+    margin: 0;
     border-left: 4px solid transparent;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     align-items: flex-start;
@@ -7024,7 +7038,7 @@ body.mobile-menu-open {
   }
 
   [data-theme="dark"] .reply-card {
-    background: var(--surface);
+    background-color: var(--light-gray);
     border-color: var(--border);
   }
 
@@ -7085,6 +7099,11 @@ body.mobile-menu-open {
       align-items: center;
       min-width: 32px;
       padding: 2px 0;
+      margin-right: 0 !important;
+    }
+
+    .reply-text-content {
+      margin-top: 10px;
     }
 
     .upvote-btn,
@@ -7524,16 +7543,16 @@ body.mobile-menu-open {
   .topic-subject {
     background: var(--primary) !important;
     color: white !important;
-    padding: 6px 12px !important;
-    border-radius: 20px !important;
-    font-size: 12px !important;
+    padding: 4px 10px !important;
+    border-radius: 16px !important;
+    font-size: 10px !important;
     font-weight: 600 !important;
     text-transform: uppercase !important;
-    letter-spacing: 0.5px !important;
-    margin: 0 !important;
+    letter-spacing: 0.4px !important;
+    margin: 6px 0 0 0 !important; /* a bit of space from excerpt */
     white-space: nowrap !important;
-    align-self: center !important;
-    order: 1 !important;
+    align-self: flex-start !important; /* left align */
+    order: 3 !important; /* ensure below title and excerpt if flex-ordered */
   }
 
   .topic-title {
@@ -7563,6 +7582,8 @@ body.mobile-menu-open {
     max-width: calc(100% - 90px) !important;
     margin-right: 50px !important;
     padding: 0 !important;
+    margin-top: 8px;
+    margin-bottom: 8px;
   }
 
   .topic-excerpt {

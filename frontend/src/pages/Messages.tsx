@@ -902,8 +902,23 @@ const Messages: React.FC = () => {
             : msg,
         ),
       );
+
+      // Also update the sidebar snippet for the active conversation
+      setConversations((prev) =>
+        prev.map((c) =>
+          selectedConversation && c._id === selectedConversation._id
+            ? {
+                ...c,
+                lastMessage: {
+                  ...c.lastMessage,
+                  content: data.content,
+                },
+              }
+            : c,
+        ),
+      );
     },
-    [],
+    [selectedConversation?._id],
   );
 
   const handleChatCleared = useCallback(
@@ -1229,6 +1244,23 @@ const Messages: React.FC = () => {
             : msg,
         ),
       );
+
+      // Reflect the edit in the left-hand conversation list immediately
+      if (selectedConversation) {
+        setConversations((prev) =>
+          prev.map((c) =>
+            c._id === selectedConversation._id
+              ? {
+                  ...c,
+                  lastMessage: {
+                    ...c.lastMessage,
+                    content: updatedMessage.content,
+                  },
+                }
+              : c,
+          ),
+        );
+      }
 
       handleCancelEdit();
     } catch (error) {
