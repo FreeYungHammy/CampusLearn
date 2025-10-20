@@ -45,6 +45,11 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Debug: Log when optimizedSrc changes
+  useEffect(() => {
+    console.log(`🔄 optimizedSrc changed:`, optimizedSrc);
+  }, [optimizedSrc]);
+
   // Calculate optimal video dimensions based on container and aspect ratio
   const calculateOptimalDimensions = (videoWidth: number, videoHeight: number, containerWidth: number, containerHeight: number) => {
     const aspectRatio = videoWidth / videoHeight;
@@ -104,31 +109,38 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
             }
             if (headResp.ok) {
               const contentType = headResp.headers.get("content-type") || "";
+              console.log(`✅ HEAD request successful, content-type: ${contentType}`);
               if (contentType.includes("video") || contentType === "application/octet-stream") {
+                console.log(`🎯 Setting optimizedSrc to: ${candidateUrl}`);
                 setOptimizedSrc(candidateUrl);
               } else {
                 console.warn("HEAD non-video content-type; using original.", contentType);
                 const fallbackUrl = `${src}${token ? `?token=${token}` : ''}`;
+                console.log(`🔄 Setting optimizedSrc to fallback: ${fallbackUrl}`);
                 setOptimizedSrc(fallbackUrl);
               }
             } else {
               console.warn(`HEAD ${headResp.status} for optimized; using original.`);
               const fallbackUrl = `${src}${token ? `?token=${token}` : ''}`;
+              console.log(`🔄 Setting optimizedSrc to fallback: ${fallbackUrl}`);
               setOptimizedSrc(fallbackUrl);
             }
           } catch (e) {
             console.warn("HEAD request failed; using original.", e);
             const fallbackUrl = `${src}${token ? `?token=${token}` : ''}`;
+            console.log(`🔄 Setting optimizedSrc to fallback (catch): ${fallbackUrl}`);
             setOptimizedSrc(fallbackUrl);
           }
         } else {
           console.log(`📺 No fileId available, using original URL`);
           const fallbackUrl = `${src}${token ? `?token=${token}` : ''}`;
+          console.log(`🔄 Setting optimizedSrc to fallback (no fileId): ${fallbackUrl}`);
           setOptimizedSrc(fallbackUrl);
         }
       } catch (error) {
         console.warn("❌ Failed to optimize video source:", error);
         const fallbackUrl = `${src}${token ? `?token=${token}` : ''}`;
+        console.log(`🔄 Setting optimizedSrc to fallback (main catch): ${fallbackUrl}`);
         setOptimizedSrc(fallbackUrl);
       }
     };
