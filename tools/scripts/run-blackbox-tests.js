@@ -196,6 +196,32 @@ async function runTests() {
 
     await sleep(500);
 
+    // BB-AUTH-002.5: Register with Email as Password (Should Fail)
+    logger.log("\nTest: Register with Email as Password (Negative Test)");
+    const emailAsPasswordData = {
+      email: `emailpassword.test.${Date.now()}@student.belgiumcampus.ac.za`,
+      password: `emailpassword.test.${Date.now()}@student.belgiumcampus.ac.za`, // Same as email
+      role: "student",
+      firstName: "EmailPassword",
+      lastName: "Tester",
+      subjects: ["Programming"],
+    };
+
+    const emailPasswordRes = await makeRequest(
+      "POST",
+      "/users/register",
+      emailAsPasswordData,
+    );
+    recordTest(
+      "BB-AUTH-002.5",
+      "Register with Email as Password (Negative Test)",
+      "400 Bad Request with email-password error",
+      emailPasswordRes,
+      emailPasswordRes.status === 400 && emailPasswordRes.body.message.includes("Password cannot be the same as your email address"),
+    );
+
+    await sleep(500);
+
     // BB-AUTH-003: Login Valid User
     logger.log("\nTest: Login Valid User");
     const loginData = {

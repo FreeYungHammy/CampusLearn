@@ -3,7 +3,6 @@ import { useFormik } from "formik";
 import * as Yup from "yup";
 import { useAuthStore } from "../store/authStore";
 import "./Settings.css";
-import PasswordInput from "../components/PasswordInput";
 import SaveProfileConfirmationModal from "../components/SaveProfileConfirmationModal";
 import UpdatePasswordConfirmationModal from "../components/UpdatePasswordConfirmationModal";
 import SavePictureConfirmationModal from "../components/SavePictureConfirmationModal";
@@ -31,8 +30,6 @@ const Settings = () => {
     generalNotifications: true,
     marketingEmails: false,
   });
-
-  const [chatImageClickToLoad, setChatImageClickToLoad] = useState(false);
 
   const [profilePicture, setProfilePicture] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -184,6 +181,7 @@ const Settings = () => {
       current: "",
       new: "",
       confirm: "",
+      email: user?.email || "",
     },
     validationSchema: Yup.object({
       current: Yup.string().required("Required"),
@@ -191,6 +189,13 @@ const Settings = () => {
         .required("Required")
         .test("password-strength", "Password is too weak", (value) => {
           return checkPasswordStrength(value || "") >= 4;
+        })
+        .test("email-password", "Password cannot be the same as your email address", function(value) {
+          const { email } = this.parent;
+          if (value && email && value.toLowerCase() === email.toLowerCase()) {
+            return false;
+          }
+          return true;
         }),
       confirm: Yup.string()
         .oneOf([Yup.ref("new")], "Passwords must match")
@@ -226,21 +231,6 @@ const Settings = () => {
 
   const handleNotificationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setNotifications({ ...notifications, [e.target.name]: e.target.checked });
-  };
-
-  // Load chat image settings from localStorage
-  useEffect(() => {
-    const savedPreference = localStorage.getItem('chat-image-click-to-load');
-    setChatImageClickToLoad(savedPreference === 'true');
-  }, []);
-
-  const handleChatImageSettingChange = (checked: boolean) => {
-    setChatImageClickToLoad(checked);
-    localStorage.setItem('chat-image-click-to-load', checked.toString());
-    // Trigger a custom event to notify other components
-    window.dispatchEvent(new CustomEvent('chat-image-settings-changed', {
-      detail: { clickToLoad: checked }
-    }));
   };
 
   const handleEmailPreferenceChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -541,22 +531,23 @@ const Settings = () => {
           <form onSubmit={passwordFormik.handleSubmit}>
             <div className="form-group">
               <label className="form-label">Current Password</label>
-              <PasswordInput
+              <input
                 id="current"
                 name="current"
-                value={passwordFormik.values.current}
+                type="password"
+                className="form-control"
                 onChange={passwordFormik.handleChange}
+                value={passwordFormik.values.current}
               />
             </div>
             <div className="form-grid">
               <div className="form-group form-group-full">
                 <label className="form-label">New Password</label>
-                <PasswordInput
+                <input
                   id="new"
                   name="new"
-                  value={passwordFormik.values.new}
-                  onChange={passwordFormik.handleChange}
-                  className={`${
+                  type="password"
+                  className={`form-control ${
                     passwordFormik.touched.new && passwordFormik.errors.new
                       ? "is-invalid"
                       : ""
@@ -565,6 +556,8 @@ const Settings = () => {
                       ? "is-valid"
                       : ""
                   }`}
+                  onChange={passwordFormik.handleChange}
+                  value={passwordFormik.values.new}
                 />
                 <div className="password-strength-meter">
                   <div
@@ -578,12 +571,11 @@ const Settings = () => {
               </div>
               <div className="form-group form-group-full">
                 <label className="form-label">Confirm New Password</label>
-                <PasswordInput
+                <input
                   id="confirm"
                   name="confirm"
-                  value={passwordFormik.values.confirm}
-                  onChange={passwordFormik.handleChange}
-                  className={`${
+                  type="password"
+                  className={`form-control ${
                     passwordFormik.touched.confirm &&
                     passwordFormik.errors.confirm
                       ? "is-invalid"
@@ -594,6 +586,8 @@ const Settings = () => {
                       ? "is-valid"
                       : ""
                   }`}
+                  onChange={passwordFormik.handleChange}
+                  value={passwordFormik.values.confirm}
                 />
               </div>
             </div>
@@ -804,32 +798,6 @@ const Settings = () => {
               />
               <span className="slider"></span>
             </label>
-          </div>
-        </div>
-
-        {/* Chat Settings Section */}
-        <div className="settings-card">
-          <div className="card-header">
-            <h2 className="card-title">Chat Settings</h2>
-            <p className="card-description">
-              Customize your chat experience and image loading preferences.
-            </p>
-          </div>
-          <div className="card-body">
-            <div className="notification-group">
-              <div>
-                <div className="notification-label">Click to Load Images</div>
-                <p>Enable this to save bandwidth by requiring clicks to load images in chat messages.</p>
-              </div>
-              <label className="switch">
-                <input
-                  type="checkbox"
-                  checked={chatImageClickToLoad}
-                  onChange={(e) => handleChatImageSettingChange(e.target.checked)}
-                />
-                <span className="slider"></span>
-              </label>
-            </div>
           </div>
         </div>
 

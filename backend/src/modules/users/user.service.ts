@@ -103,7 +103,14 @@ export const UserService = {
       throw err;
     }
 
-    // 2. Check for duplicate email
+    // 2. Check if password is the same as email
+    if (input.password.toLowerCase() === input.email.toLowerCase()) {
+      const err = new Error("Password cannot be the same as your email address");
+      err.name = "BadRequest";
+      throw err;
+    }
+
+    // 3. Check for duplicate email
     const existing = await UserRepo.findByEmail(input.email);
     if (existing) {
       const err = new Error("User with this email already exists");
@@ -111,7 +118,7 @@ export const UserService = {
       throw err;
     }
 
-    // 3. Create User with email verification
+    // 4. Create User with email verification
     const passwordHash = await bcrypt.hash(input.password, 10);
     
     // Generate email verification token
@@ -131,7 +138,7 @@ export const UserService = {
       emailVerificationExpires,
     } as Partial<UserDoc>);
 
-    // 4. Create Student or Tutor Profile
+    // 5. Create Student or Tutor Profile
     if (input.role === "student") {
       await StudentRepo.create({
         userId: user._id,
@@ -152,7 +159,7 @@ export const UserService = {
       });
     }
 
-    // 5. Send email verification
+    // 6. Send email verification
     try {
       const userName = `${input.firstName} ${input.lastName}`;
       const verificationLink = `${process.env.FRONTEND_URL || 'https://campuslearn.onrender.com'}/verify-email/${verificationToken}`;
@@ -178,20 +185,11 @@ export const UserService = {
   },
 
   async login(input: { email: string; password: string }) {
-    console.log("Login attempt for email:", input.email);
     const user = await UserRepo.findByEmailWithPassword(input.email);
-    if (!user) {
-      console.log("User not found for email:", input.email);
-      throw new Error("Invalid credentials");
-    }
-    console.log("User found:", { id: user._id, email: user.email, role: user.role, emailVerified: (user as any).emailVerified });
+    if (!user) throw new Error("Invalid credentials");
 
     const ok = await bcrypt.compare(input.password, (user as any).passwordHash);
-    if (!ok) {
-      console.log("Password comparison failed for user:", user.email);
-      throw new Error("Invalid credentials");
-    }
-    console.log("Password comparison successful for user:", user.email);
+    if (!ok) throw new Error("Invalid credentials");
 
     const token = signJwt({
       id: (user as any)._id.toString(),
@@ -202,13 +200,10 @@ export const UserService = {
     let profile: any;
     if (user.role === "student") {
       profile = await StudentRepo.findOne({ userId: (user as any)._id });
-      console.log("Student profile lookup:", { userId: (user as any)._id, profileFound: !!profile, profile: profile });
     } else if (user.role === "tutor") {
       profile = await TutorRepo.findOne({ userId: (user as any)._id });
-      console.log("Tutor profile lookup:", { userId: (user as any)._id, profileFound: !!profile, profile: profile });
     } else if (user.role === "admin") {
       profile = await AdminModel.findOne({ userId: (user as any)._id });
-      console.log("Admin profile lookup:", { userId: (user as any)._id, profileFound: !!profile, profile: profile });
     }
 
     const { passwordHash: _ph, ...publicUser } = user as any;
@@ -218,7 +213,7 @@ export const UserService = {
       id: user._id.toString(),
       name: profile?.name,
       surname: profile?.surname,
-      pfp: profile?.pfp?.data
+      pfp: profile?.pfp
         ? {
             contentType: profile.pfp.contentType,
             data: profile.pfp.data.toString("base64"),
@@ -228,7 +223,7 @@ export const UserService = {
       enrolledCourses: profile?.enrolledCourses,
     };
 
-    // Removed verbose user profile logging
+    console.log("user.service.ts: userWithProfile:", userWithProfile);
     return { token, user: userWithProfile };
   },
 
@@ -398,6 +393,13 @@ export const UserService = {
 
     const ok = await bcrypt.compare(current, (user as any).passwordHash);
     if (!ok) throw new Error("Invalid credentials");
+
+    // Check if new password is the same as email
+    if (newPass.toLowerCase() === user.email.toLowerCase()) {
+      const err = new Error("Password cannot be the same as your email address");
+      err.name = "BadRequest";
+      throw err;
+    }
 
     const passwordHash = await bcrypt.hash(newPass, 10);
     await UserRepo.updateById(userId, { $set: { passwordHash } });

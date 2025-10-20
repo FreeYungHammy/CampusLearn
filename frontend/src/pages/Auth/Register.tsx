@@ -49,6 +49,13 @@ const Register = () => {
         .required("Required")
         .test("password-strength", "Password is too weak", (value) => {
           return checkPasswordStrength(value || "") >= 4;
+        })
+        .test("email-password", "Password cannot be the same as your email address", function(value) {
+          const { email } = this.parent;
+          if (value && email && value.toLowerCase() === email.toLowerCase()) {
+            return false;
+          }
+          return true;
         }),
       role: Yup.string().required("Required"),
       subjects: Yup.array().min(1, "Select at least one subject"),
