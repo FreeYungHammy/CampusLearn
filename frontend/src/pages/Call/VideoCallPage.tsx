@@ -53,7 +53,7 @@ const validateSDP = (sdp: string, type: 'offer' | 'answer'): boolean => {
 };
 
 // ICE restart function for connection recovery
-const attemptIceRestart = async (peerConnection: RTCPeerConnection) => {
+const attemptIceRestart = async (peerConnection: RTCPeerConnection, signaling: any) => {
   try {
     console.log("[webrtc] Starting ICE restart...");
     
@@ -61,12 +61,17 @@ const attemptIceRestart = async (peerConnection: RTCPeerConnection) => {
     const offer = await peerConnection.createOffer({ iceRestart: true });
     await peerConnection.setLocalDescription(offer);
     
-    // The offer will be sent via signaling automatically
-    console.log("[webrtc] ICE restart offer created and set as local description");
+    // CRITICAL: Send the ICE restart offer via signaling
+    console.log("[webrtc] Sending ICE restart offer via signaling...");
+    signaling.sendSignal({ type: "offer", sdp: offer.sdp });
+    console.log("[webrtc] ICE restart offer sent successfully");
   } catch (error) {
     console.error("[webrtc] ICE restart failed:", error);
   }
 };
+
+// Call state machine
+type CallState = 'idle' | 'initializing' | 'connecting' | 'connected' | 'disconnecting' | 'failed';
 
 export const VideoCallPage: React.FC = () => {
   const { callId } = useParams();
@@ -88,6 +93,38 @@ export const VideoCallPage: React.FC = () => {
     action?: string;
   } | null>(null);
 
+  // Perfect Negotiation state
+  const [isInitiator, setIsInitiator] = useState<boolean | null>(null);
+  const [makingOffer, setMakingOffer] = useState(false);
+  const [callState, setCallState] = useState<CallState>('idle');
+
+  // State transition function
+  const transitionToState = useCallback((newState: CallState, reason?: string) => {
+    console.log(`[state-machine] Transition: ${callState} → ${newState}${reason ? ` (${reason})` : ''}`);
+    setCallState(newState);
+    
+    // State-specific actions
+    switch (newState) {
+      case 'connected':
+        setConnectionError(null);
+        setError(null);
+        break;
+      case 'failed':
+        setConnectionError({
+          message: "Call failed. Please try again.",
+          recoverable: true,
+          action: "Retry"
+        });
+        break;
+      case 'disconnecting':
+        setConnectionError({
+          message: "Disconnecting...",
+          recoverable: false
+        });
+        break;
+    }
+  }, [callState]);
+
   useEffect(() => {
     document.title = `Call • ${callId ?? "Unknown"}`;
   }, [callId]);
@@ -98,6 +135,7 @@ export const VideoCallPage: React.FC = () => {
       if (!prejoinDone || !pendingInit) return;
       
       console.log("[video-call] Starting call initialization...");
+      transitionToState('initializing', 'Starting call initialization');
       
         try {
           console.log("[webrtc] Starting peer connection initialization...");
@@ -128,45 +166,63 @@ export const VideoCallPage: React.FC = () => {
               }
             };
             
-            // Monitor ICE connection state changes with recovery mechanism
+            // Monitor ICE connection state changes with state machine integration
             peerConnection.oniceconnectionstatechange = () => {
               console.log("[webrtc] ICE connection state changed:", peerConnection.iceConnectionState);
-              if (peerConnection.iceConnectionState === "connected" || peerConnection.iceConnectionState === "completed") {
-                console.log("[webrtc] ICE connection established successfully!");
-                setError(null);
-                setConnectionError(null); // Clear any previous errors
-              } else if (peerConnection.iceConnectionState === "failed") {
-                console.error("[webrtc] ICE connection failed - attempting recovery");
-                setConnectionError({
-                  message: "Connection failed. Attempting to reconnect...",
-                  recoverable: true,
-                  action: "Retry Connection"
-                });
-                // Attempt ICE restart after a delay
-                setTimeout(() => {
-                  if (peerConnection.iceConnectionState === "failed") {
-                    console.log("[webrtc] Attempting ICE restart...");
-                    attemptIceRestart(peerConnection);
-                  }
-                }, 5000);
-              } else if (peerConnection.iceConnectionState === "disconnected") {
-                console.log("[webrtc] ICE connection disconnected - waiting for auto-recovery");
-                setConnectionError({
-                  message: "Connection lost. Attempting to reconnect...",
-                  recoverable: true,
-                  action: "Retry Connection"
-                });
-                // Wait for automatic recovery, then attempt ICE restart if needed
-                setTimeout(() => {
-                  if (peerConnection.iceConnectionState === "disconnected") {
-                    console.log("[webrtc] Auto-recovery failed, attempting ICE restart...");
-                    attemptIceRestart(peerConnection);
-                  }
-                }, 10000);
-              } else if (peerConnection.iceConnectionState === "checking") {
-                console.log("[webrtc] ICE connection checking - establishing connection...");
-                setError(null);
-                setConnectionError(null);
+              
+              switch (peerConnection.iceConnectionState) {
+                case "connected":
+                case "completed":
+                  console.log("[webrtc] ICE connection established successfully!");
+                  transitionToState('connected', 'ICE connection established');
+                  break;
+                  
+                case "failed":
+                  console.error("[webrtc] ICE connection failed - attempting recovery");
+                  transitionToState('connecting', 'ICE failed - attempting recovery');
+                  setConnectionError({
+                    message: "Connection failed. Attempting to reconnect...",
+                    recoverable: true,
+                    action: "Retry Connection"
+                  });
+                  // Attempt ICE restart after a delay
+                  setTimeout(() => {
+                    if (peerConnection.iceConnectionState === "failed") {
+                      console.log("[webrtc] Attempting ICE restart...");
+                      attemptIceRestart(peerConnection, signaling);
+                    }
+                  }, 5000);
+                  break;
+                  
+                case "disconnected":
+                  console.log("[webrtc] ICE connection disconnected - waiting for auto-recovery");
+                  transitionToState('connecting', 'ICE disconnected - waiting for recovery');
+                  setConnectionError({
+                    message: "Connection lost. Attempting to reconnect...",
+                    recoverable: true,
+                    action: "Retry Connection"
+                  });
+                  // Wait for automatic recovery, then attempt ICE restart if needed
+                  setTimeout(() => {
+                    if (peerConnection.iceConnectionState === "disconnected") {
+                      console.log("[webrtc] Auto-recovery failed, attempting ICE restart...");
+                      attemptIceRestart(peerConnection, signaling);
+                    }
+                  }, 10000);
+                  break;
+                  
+                case "checking":
+                  console.log("[webrtc] ICE connection checking - establishing connection...");
+                  transitionToState('connecting', 'ICE connection checking');
+                  break;
+                  
+                case "new":
+                  console.log("[webrtc] ICE connection new - initializing");
+                  transitionToState('initializing', 'ICE connection new');
+                  break;
+                  
+                default:
+                  console.log("[webrtc] ICE connection state:", peerConnection.iceConnectionState);
               }
             };
             
@@ -180,57 +236,127 @@ export const VideoCallPage: React.FC = () => {
             };
           }
 
-          // 4. FOURTH: Set up signaling handlers (AFTER peer connection exists)
-          console.log("[webrtc] Setting up signaling handlers...");
+          // 4. FOURTH: Set up Perfect Negotiation signaling handlers (AFTER peer connection exists)
+          console.log("[perfect-negotiation] Setting up signaling handlers...");
+          
+          // Perfect Negotiation: Ignore offer function
+          const ignoreOffer = useCallback((offer: RTCSessionDescriptionInit): boolean => {
+            const peerConnection = pc.pcRef.current;
+            if (!peerConnection) return true;
+            
+            // Always ignore offers if we're making an offer (prevent glare)
+            if (makingOffer) {
+              console.log("[perfect-negotiation] Ignoring offer - we're making an offer");
+              return true;
+            }
+            
+            // Check for glare condition
+            const currentState = peerConnection.signalingState;
+            if (currentState === "have-local-offer") {
+              console.log("[perfect-negotiation] Glare detected - checking who's polite");
+              
+              // Determine polite peer based on user ID comparison
+              // The peer with the lexicographically smaller ID is polite
+              if (callId && user?.id) {
+                const parts = callId.split(":").sort();
+                const isPolite = user.id === parts[0]; // Smaller ID is polite
+                
+                console.log("[perfect-negotiation] Glare resolution:", { 
+                  userId: user.id, 
+                  isPolite, 
+                  sortedIds: parts 
+                });
+                
+                if (isPolite) {
+                  console.log("[perfect-negotiation] Polite peer - rolling back local offer");
+                  return false; // Accept the remote offer (we'll rollback)
+                } else {
+                  console.log("[perfect-negotiation] Impolite peer - ignoring remote offer");
+                  return true; // Ignore the remote offer
+                }
+              }
+            }
+            
+            return false; // Accept the offer
+          }, [makingOffer, callId, user?.id]);
+          
           signaling.onSignal(async ({ data }) => {
-            console.log("[signal] received", data?.type);
+            console.log("[perfect-negotiation] Received signal:", data?.type);
             if (!data?.type) return;
             
             try {
               const peerConnection = pc.pcRef.current;
               if (!peerConnection) {
-                console.error("[webrtc] No peer connection available for signaling");
+                console.error("[perfect-negotiation] No peer connection available for signaling");
                 return;
               }
 
               if (data.type === "offer") {
-                console.log("[webrtc] Processing remote offer");
+                console.log("[perfect-negotiation] Processing remote offer");
                 
                 // Validate SDP before processing
                 if (!data.sdp || !validateSDP(data.sdp, "offer")) {
-                  console.error("[webrtc] Invalid offer SDP, ignoring");
+                  console.error("[perfect-negotiation] Invalid offer SDP, ignoring");
                   return;
                 }
                 
-                await peerConnection.setRemoteDescription({ type: "offer", sdp: data.sdp });
+                const offer = { type: "offer" as const, sdp: data.sdp };
+                
+                // Check if we should ignore this offer (Perfect Negotiation glare handling)
+                if (ignoreOffer(offer)) {
+                  console.log("[perfect-negotiation] Ignoring offer due to glare condition");
+                  return;
+                }
+                
+                // Handle glare condition - rollback if we're the polite peer
+                const currentState = peerConnection.signalingState;
+                if (currentState === "have-local-offer") {
+                  console.log("[perfect-negotiation] Rolling back local offer to accept remote offer");
+                  await peerConnection.setLocalDescription({ type: "rollback" } as RTCSessionDescriptionInit);
+                }
+                
+                transitionToState('connecting', 'Processing remote offer');
+                await peerConnection.setRemoteDescription(offer);
+                
+                setMakingOffer(true);
                 const answer = await peerConnection.createAnswer();
                 await peerConnection.setLocalDescription(answer);
-                console.log("[webrtc] Created answer, sending back");
+                setMakingOffer(false);
+                
+                console.log("[perfect-negotiation] Created answer, sending back");
                 signaling.sendSignal({ type: "answer", sdp: answer.sdp });
+                
               } else if (data.type === "answer") {
-                console.log("[webrtc] Processing remote answer");
+                console.log("[perfect-negotiation] Processing remote answer");
                 
                 // Validate SDP before processing
                 if (!data.sdp || !validateSDP(data.sdp, "answer")) {
-                  console.error("[webrtc] Invalid answer SDP, ignoring");
+                  console.error("[perfect-negotiation] Invalid answer SDP, ignoring");
                   return;
                 }
                 
                 const currentState = peerConnection.signalingState;
-                console.log("[webrtc] Current signaling state:", currentState);
+                console.log("[perfect-negotiation] Current signaling state:", currentState);
                 
                 if (currentState === "have-local-offer") {
                   await peerConnection.setRemoteDescription({ type: "answer", sdp: data.sdp });
-                  console.log("[webrtc] Remote answer set successfully");
+                  console.log("[perfect-negotiation] Remote answer set successfully");
+                  transitionToState('connected', 'Answer received');
                 } else {
-                  console.warn("[webrtc] Ignoring answer - wrong signaling state:", currentState);
+                  console.warn("[perfect-negotiation] Ignoring answer - wrong signaling state:", currentState);
                 }
               } else if (data.type === "ice-candidate" && data.candidate) {
-                console.log("[webrtc] Adding remote ICE candidate");
-                await peerConnection.addIceCandidate(data.candidate);
+                console.log("[perfect-negotiation] Adding remote ICE candidate");
+                try {
+                  await peerConnection.addIceCandidate(data.candidate);
+                } catch (error) {
+                  console.warn("[perfect-negotiation] Failed to add ICE candidate:", error);
+                  // Don't throw - this is often non-fatal
+                }
               }
             } catch (error) {
-              console.error("[webrtc] Error processing signal:", error);
+              console.error("[perfect-negotiation] Error processing signal:", error);
+              transitionToState('failed', 'Signaling error');
             }
           });
 
@@ -240,86 +366,109 @@ export const VideoCallPage: React.FC = () => {
           console.log("[video-call] Signaling connected:", signaling.connected);
           signaling.join(role);
 
-            // Determine initiator based on URL parameter
-            // The initiator is the user who clicked "Start Video Call" button
-            const initiatorId = searchParams.get('initiator');
-            const initiator = initiatorId === user?.id;
-            console.log("[webrtc] initiator?", initiator, "initiatorId=", initiatorId, "user=", user?.id);
-            
-            // Send call notification if this is the initiator
-            if (initiator && callId && user?.id) {
-              try {
-                const parts = (callId || "").split(":");
-                const targetUserId = parts.find(id => id !== user.id);
+            // Perfect Negotiation: Determine initiator based on user ID comparison
+            // This ensures consistent role assignment without URL parameters
+            if (callId && user?.id) {
+              const parts = callId.split(":");
+              if (parts.length === 2) {
+                // Use lexicographic comparison to determine initiator
+                // This ensures both peers arrive at the same conclusion
+                const [id1, id2] = parts.sort();
+                const initiator = user.id === id1;
+                setIsInitiator(initiator);
+                console.log("[perfect-negotiation] User role determined:", { 
+                  userId: user.id, 
+                  callId, 
+                  isInitiator: initiator,
+                  sortedIds: [id1, id2]
+                });
                 
-                if (targetUserId) {
-                  console.log("[video-call] Sending call notification to:", targetUserId);
-                  
-                  const videoSocket = SocketManager.getVideoSocket();
-                  if (videoSocket) {
-                    console.log("[video-call] Sending initiate_call via centralized socket");
-                    videoSocket.emit("initiate_call", { callId, targetUserId });
-                    console.log("[video-call] Call notification sent successfully");
-                  } else {
-                    console.error("[video-call] Video socket not available");
+                // Send call notification if this is the initiator
+                if (initiator) {
+                  try {
+                    const targetUserId = id2;
+                    console.log("[video-call] Sending call notification to:", targetUserId);
+                    
+                    const videoSocket = SocketManager.getVideoSocket();
+                    if (videoSocket) {
+                      console.log("[video-call] Sending initiate_call via centralized socket");
+                      videoSocket.emit("initiate_call", { callId, targetUserId });
+                      console.log("[video-call] Call notification sent successfully");
+                    } else {
+                      console.error("[video-call] Video socket not available");
+                    }
+                  } catch (error) {
+                    console.error("[video-call] Failed to send call notification:", error);
                   }
                 }
-              } catch (error) {
-                console.error("[video-call] Failed to send call notification:", error);
               }
             }
             
-            // 6. SIXTH: Create offer if this is the initiator (AFTER everything is set up)
-            if (initiator) {
-              try {
-                console.log("[webrtc] Creating offer as initiator...");
-                console.log("[webrtc] PC ref exists:", !!pc.pcRef.current);
-                console.log("[webrtc] PC signaling state:", pc.pcRef.current?.signalingState);
-                console.log("[webrtc] PC connection state:", pc.pcRef.current?.connectionState);
-                
-                // Get the current peer connection
-                const peerConnection = pc.pcRef.current;
-                console.log("[webrtc] Got peer connection:", !!peerConnection);
-                
-                if (!peerConnection) {
-                  console.error("[webrtc] Peer connection not initialized");
-                  setError("Peer connection not initialized");
-                  return;
+            // Perfect Negotiation: Start negotiation process
+            // Both peers will attempt to create offers, but Perfect Negotiation handles conflicts
+            setTimeout(async () => {
+              if (isInitiator === true) {
+                try {
+                  console.log("[perfect-negotiation] Creating initial offer as initiator...");
+                  transitionToState('connecting', 'Creating initial offer');
+                  
+                  const peerConnection = pc.pcRef.current;
+                  if (!peerConnection) {
+                    console.error("[webrtc] Peer connection not initialized");
+                    transitionToState('failed', 'No peer connection');
+                    return;
+                  }
+                  
+                  // Check if we already have a local offer (prevent duplicate offers)
+                  const currentState = peerConnection.signalingState;
+                  if (currentState === "have-local-offer") {
+                    console.log("[webrtc] Already have local offer, skipping");
+                    return;
+                  }
+                  
+                  // Safety check: Ensure we're not already making an offer
+                  if (makingOffer) {
+                    console.log("[perfect-negotiation] Already making offer, skipping");
+                    return;
+                  }
+                  
+                  setMakingOffer(true);
+                  const offer = await peerConnection.createOffer();
+                  await peerConnection.setLocalDescription(offer);
+                  setMakingOffer(false);
+                  
+                  console.log("[perfect-negotiation] Initial offer created and sent");
+                  signaling.sendSignal({ type: "offer", sdp: offer.sdp });
+                } catch (e: any) {
+                  console.error("[perfect-negotiation] Failed to create initial offer:", e);
+                  setMakingOffer(false);
+                  transitionToState('failed', 'Failed to create offer');
+                  setError(`Failed to create offer: ${e.message}`);
                 }
-                
-                // Check if we already have a local offer (prevent duplicate offers)
-                const currentState = peerConnection.signalingState;
-                if (currentState === "have-local-offer") {
-                  console.log("[webrtc] Already have local offer, skipping");
-                  return;
-                }
-                
-                // Wait for ICE gathering to complete before creating offer
-                if (peerConnection.iceGatheringState === "gathering") {
-                  console.log("[webrtc] Waiting for ICE gathering to complete...");
-                  await new Promise((resolve) => {
-                    const checkGathering = () => {
-                      if (peerConnection.iceGatheringState === "complete") {
-                        resolve(void 0);
-                      } else {
-                        setTimeout(checkGathering, 100);
-                      }
-                    };
-                    checkGathering();
-                  });
-                }
-                
-                const offer = await peerConnection.createOffer();
-                await peerConnection.setLocalDescription(offer);
-                console.log("[webrtc] Offer created successfully:", offer.type);
-                console.log("[webrtc] Sending offer via signaling...");
-                signaling.sendSignal({ type: "offer", sdp: offer.sdp });
-                console.log("[webrtc] Offer sent successfully");
-              } catch (e: any) {
-                console.error("[webrtc] Failed to create offer:", e);
-                setError(`Failed to create offer: ${e.message}`);
               }
-            }
+            }, 1000); // Small delay to ensure both peers are ready
+            
+            // Fallback: If no offer is created within 5 seconds, try again (safety net)
+            setTimeout(async () => {
+              const peerConnection = pc.pcRef.current;
+              if (peerConnection && isInitiator === true && !makingOffer) {
+                const currentState = peerConnection.signalingState;
+                if (currentState === "stable" || currentState === "have-remote-offer") {
+                  console.log("[perfect-negotiation] Fallback: No initial offer detected, creating one...");
+                  try {
+                    setMakingOffer(true);
+                    const offer = await peerConnection.createOffer();
+                    await peerConnection.setLocalDescription(offer);
+                    setMakingOffer(false);
+                    signaling.sendSignal({ type: "offer", sdp: offer.sdp });
+                    console.log("[perfect-negotiation] Fallback offer created and sent");
+                  } catch (e: any) {
+                    console.error("[perfect-negotiation] Fallback offer failed:", e);
+                    setMakingOffer(false);
+                  }
+                }
+              }
+            }, 5000);
       } catch (e: any) {
         setError(e?.message || "Failed to initialize call");
       }
@@ -346,11 +495,12 @@ export const VideoCallPage: React.FC = () => {
         localStorage.setItem(heartbeatKey, Date.now().toString());
       }, 1000); // Send heartbeat every second
       
-      // Fallback: Clear call ID after 5 minutes to prevent stuck states
+      // Fallback: Clear call ID after 30 minutes to prevent stuck states
+      // This is much longer to avoid interfering with long calls
       const fallbackTimeout = setTimeout(() => {
-        console.log("[video-call] Fallback timeout - clearing call ID");
+        console.log("[video-call] Fallback timeout - clearing call ID after 30 minutes");
         clearActiveCallId();
-      }, 5 * 60 * 1000); // 5 minutes
+      }, 30 * 60 * 1000); // 30 minutes
       
       return () => {
         clearInterval(heartbeatInterval);
@@ -374,17 +524,25 @@ export const VideoCallPage: React.FC = () => {
       setRemotePeerJoined(false);
       setShowDisconnectMessage(true);
       
-      // Clear heartbeat and call ID when peer leaves
+      // Clear heartbeat when peer leaves but DON'T clear callId
+      // The user might want to rejoin or the peer might reconnect
       const heartbeatKey = `call-heartbeat-${callId}`;
       localStorage.removeItem(heartbeatKey);
-      clearActiveCallId();
+      // Don't clear callId here - let user manually leave or rejoin
       
-      // Auto-close after 2 seconds
+      // Auto-close after 2 seconds ONLY if this is a permanent leave
+      // For temporary disconnections, the peer might rejoin
       setTimeout(() => {
-        window.close();
+        // Check if peer has rejoined before closing
+        if (!remotePeerJoined) {
+          console.log("[video-call] Peer hasn't rejoined after 2 seconds, closing window");
+          window.close();
+        } else {
+          console.log("[video-call] Peer rejoined, keeping window open");
+        }
       }, 2000);
     });
-  }, [signaling, callId, clearActiveCallId]);
+  }, [signaling, callId, remotePeerJoined]);
 
   // Handle peer disconnect events
   useEffect(() => {
@@ -395,10 +553,11 @@ export const VideoCallPage: React.FC = () => {
       if (event.detail?.reason === 'ice-disconnected-permanent') {
         setShowDisconnectMessage(true);
         
-        // Clear heartbeat and call ID when peer disconnects
+        // Clear heartbeat when peer disconnects but DON'T clear callId
+        // The peer might reconnect or the user might want to wait
         const heartbeatKey = `call-heartbeat-${callId}`;
         localStorage.removeItem(heartbeatKey);
-        clearActiveCallId();
+        // Don't clear callId here - let user manually leave or wait for reconnection
         
         // Auto-close after 3 seconds (increased from 2)
         setTimeout(() => {
@@ -451,14 +610,15 @@ export const VideoCallPage: React.FC = () => {
     };
   }, [signaling, clearActiveCallId]);
 
-  // Manual retry function for connection recovery
+  // Manual retry function for connection recovery with state machine
   const handleRetryConnection = useCallback(() => {
     if (pc.pcRef.current) {
       console.log("[video-call] Manual retry connection requested");
-      attemptIceRestart(pc.pcRef.current);
+      transitionToState('connecting', 'Manual retry requested');
+      attemptIceRestart(pc.pcRef.current, signaling);
       setConnectionError(null);
     }
-  }, [pc.pcRef]);
+  }, [pc.pcRef, signaling, transitionToState]);
 
   // Removed aggressive focus detection - video calls should run in background
   // Only cleanup on actual window close (beforeunload event)
@@ -494,7 +654,7 @@ export const VideoCallPage: React.FC = () => {
               remotePeerJoined={remotePeerJoined}
               localVideoEnabled={pc.videoEnabled}
             />
-            {/* User-friendly connection status with speed tooltip */}
+            {/* User-friendly connection status with state machine and speed tooltip */}
             <div 
               style={{ 
                 position: "absolute", 
@@ -515,15 +675,20 @@ export const VideoCallPage: React.FC = () => {
                   width: 8, 
                   height: 8, 
                   borderRadius: "50%", 
-                  backgroundColor: pc.connectionQuality.status === 'excellent' ? '#10b981' : 
-                                 pc.connectionQuality.status === 'good' ? '#3b82f6' :
-                                 pc.connectionQuality.status === 'fair' ? '#f59e0b' : '#ef4444'
+                  backgroundColor: callState === 'connected' ? '#10b981' : 
+                                 callState === 'connecting' ? '#3b82f6' :
+                                 callState === 'initializing' ? '#8b5cf6' :
+                                 callState === 'failed' ? '#ef4444' : '#6b7280'
                 }} />
                 <span style={{ fontWeight: 500, color: 'white' }}>
-                  {pc.isReconnecting ? 'Reconnecting...' : 
-                   pc.connectionQuality.status === 'excellent' ? 'Excellent' :
-                   pc.connectionQuality.status === 'good' ? 'Good' :
-                   pc.connectionQuality.status === 'fair' ? 'Fair' : 'Poor'} Connection
+                  {callState === 'idle' ? 'Idle' :
+                   callState === 'initializing' ? 'Initializing...' :
+                   callState === 'connecting' ? 'Connecting...' :
+                   callState === 'connected' ? (pc.connectionQuality.status === 'excellent' ? 'Excellent' :
+                                                pc.connectionQuality.status === 'good' ? 'Good' :
+                                                pc.connectionQuality.status === 'fair' ? 'Fair' : 'Poor') + ' Connection' :
+                   callState === 'disconnecting' ? 'Disconnecting...' :
+                   callState === 'failed' ? 'Connection Failed' : 'Unknown'}
                 </span>
               </div>
               
