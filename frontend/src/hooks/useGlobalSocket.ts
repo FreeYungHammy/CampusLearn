@@ -43,5 +43,9 @@ export function useGlobalSocket() {
   return {
     isConnected: SocketManager.isSocketConnected(),
     isInitialized: SocketManager.isInitialized(),
+    socket: SocketManager.getSocket(),
+    chatSocket: SocketManager.getChatSocket(),
+    videoSocket: SocketManager.getVideoSocket(),
+    globalSocket: SocketManager.getGlobalSocket(),
   };
 }
