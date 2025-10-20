@@ -408,7 +408,6 @@ const TutorBookingModal: React.FC<TutorBookingModalProps> = ({
           contentClassName="booking-stepper-content"
           footerClassName="booking-stepper-footer"
           renderStepIndicator={renderStepIndicator}
-          hideFooterForSteps={[]}
           canProceedToNext={(step) => {
             if (step === 1) return !!selectedSubject; // Need subject selection
             if (step === 2) {
