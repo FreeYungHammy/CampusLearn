@@ -100,11 +100,12 @@ function App() {
         </Routes>
       </Suspense>
 
-      <BotpressChat />
+      {/* Botpress Chat - Only show when not in call popup */}
+      {!isCallPopup && <BotpressChat />}
       {showLogoutModal && <LogoutConfirmationModal />}
 
-      {/* Call Notifications */}
-      {!isCallPopup && <CallNotification />}
+      {/* Call Notifications - Only show when not in call popup and user is authenticated */}
+      {!isCallPopup && user && <CallNotification />}
 
       {/* Floating Chat Widget */}
     </>

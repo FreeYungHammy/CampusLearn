@@ -1,69 +1,51 @@
-import { useEffect, useState } from "react";
-import { Socket } from "socket.io-client";
-import { useAuthStore } from "../store/authStore";
+import { useEffect, useRef } from "react";
 import { SocketManager } from "../services/socketManager";
+import { useAuthStore } from "../store/authStore";
 
-const SOCKET_URL = import.meta.env.VITE_WS_URL as string;
-
-export const useGlobalSocket = () => {
-  const { token, refreshPfpForUser } = useAuthStore((s) => ({
-    token: s.token,
-    refreshPfpForUser: s.refreshPfpForUser,
-  }));
-
-  const [socket, setSocket] = useState<Socket | null>(null);
-  const [connected, setConnected] = useState(false);
+/**
+ * Global socket initialization hook
+ * Ensures sockets are initialized once per tab and shared across components
+ */
+export function useGlobalSocket() {
+  const { token, user } = useAuthStore();
+  const initializedRef = useRef(false);
 
   useEffect(() => {
-    if (!token) {
-      console.log("No token, disconnecting global socket");
-      SocketManager.disconnect();
-      setSocket(null);
-      setConnected(false);
+    if (!token || !user || initializedRef.current) {
       return;
     }
 
-    console.log("Initializing global socket with centralized manager");
+    const wsUrl = (import.meta.env.VITE_WS_URL as string).replace(/\/$/, "");
     
-    // Initialize socket manager
-    SocketManager.initialize({
-      url: SOCKET_URL,
-      token: token,
+    console.log("[useGlobalSocket] Initializing global socket for tab", { 
+      wsUrl, 
+      hasToken: !!token, 
+      userId: user.id 
     });
 
-    // Register global event handlers
-    SocketManager.registerHandlers({
-      global: {
-        onPfpUpdated: (data: { userId: string; timestamp: number }) => {
-          console.log(
-            `[useGlobalSocket] pfp_updated event received for user: ${data.userId} at ${data.timestamp}`,
-          );
-          refreshPfpForUser(data.userId, data.timestamp);
-        },
-        onConnectionChange: (connected: boolean) => {
-          console.log(`[useGlobalSocket] Connection state changed: ${connected}`);
-          setConnected(connected);
-        },
-      },
-    });
+    // Initialize socket manager once per tab
+    if (!SocketManager.isInitialized()) {
+      SocketManager.initialize({
+        url: wsUrl,
+        token: token,
+      });
+      initializedRef.current = true;
+    }
 
-    // Get socket instance
-    const globalSocket = SocketManager.getGlobalSocket();
-    setSocket(globalSocket);
-    setConnected(SocketManager.isSocketConnected());
-
-    // Add connection listener
-    const connectionListener = (connected: boolean) => {
-      setConnected(connected);
-    };
-    SocketManager.addConnectionListener(connectionListener);
-
-    // Cleanup
+    // Cleanup on unmount (when tab is closed)
     return () => {
-      SocketManager.removeConnectionListener(connectionListener);
-      // Don't disconnect here - let the manager handle it globally
+      console.log("[useGlobalSocket] Tab closing, disconnecting sockets");
+      SocketManager.disconnect();
+      initializedRef.current = false;
     };
-  }, [token, refreshPfpForUser]);
+  }, [token, user]);
 
-  return socket;
-};
+  return {
+    isConnected: SocketManager.isSocketConnected(),
+    isInitialized: SocketManager.isInitialized(),
+    socket: SocketManager.getSocket(),
+    chatSocket: SocketManager.getChatSocket(),
+    videoSocket: SocketManager.getVideoSocket(),
+    globalSocket: SocketManager.getGlobalSocket(),
+  };
+}

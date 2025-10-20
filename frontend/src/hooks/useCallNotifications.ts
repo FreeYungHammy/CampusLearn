@@ -49,6 +49,8 @@ export function useCallNotifications() {
           fromUserName: string; 
         }) => {
           console.log("[call-notifications] Incoming call received:", data);
+          console.log("[call-notifications] Current user:", user?.id);
+          console.log("[call-notifications] Call target user:", data.fromUserId);
           
           // Check if user is already in another call
           const { activeCallId } = useCallStore.getState();
@@ -64,14 +66,20 @@ export function useCallNotifications() {
             return;
           }
           
-          console.log("[call-notifications] Setting incoming call state...");
-          setIncomingCall({
-            callId: data.callId,
-            fromUserId: data.fromUserId,
-            fromUserName: data.fromUserName,
-            timestamp: new Date(),
-          });
-          console.log("[call-notifications] Incoming call state set successfully");
+          // Only show notification if user is not already in a call popup
+          // This prevents automatic notifications when user is already in a call
+          if (!activeCallId) {
+            console.log("[call-notifications] Setting incoming call state...");
+            setIncomingCall({
+              callId: data.callId,
+              fromUserId: data.fromUserId,
+              fromUserName: data.fromUserName,
+              timestamp: new Date(),
+            });
+            console.log("[call-notifications] Incoming call state set successfully");
+          } else {
+            console.log("[call-notifications] User already in call popup, not showing notification");
+          }
         },
         onCallCancelled: (data: { callId: string }) => {
           console.log("[call-notifications] Call cancelled:", data);
@@ -91,24 +99,13 @@ export function useCallNotifications() {
   const answerCall = useCallback(() => {
     if (!incomingCall) return;
     
-    // Open the call page
-    const origin = window.location.origin;
-    const url = `${origin}/call/${encodeURIComponent(incomingCall.callId)}`;
-    const features = [
-      "noopener",
-      "noreferrer", 
-      "resizable=yes",
-      "menubar=no",
-      "toolbar=no",
-      "location=no",
-      "status=no",
-      "width=1200",
-      "height=800",
-    ].join(",");
-    
-    window.open(url, "videocall", features);
+    // Open the call page as receiver (NOT initiator)
+    // Pass the initiator ID (fromUserId) and false for isInitiator
+    import("@/utils/openCallPopup").then(({ openCallPopup }) => {
+      openCallPopup(incomingCall.callId, incomingCall.fromUserId, false); // Pass initiator ID and false for isInitiator
+    });
     setIncomingCall(null);
-  }, [incomingCall]);
+  }, [incomingCall, user?.id]);
 
   const declineCall = useCallback(() => {
     if (!incomingCall || !socket) return;

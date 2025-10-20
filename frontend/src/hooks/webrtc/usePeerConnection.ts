@@ -225,10 +225,10 @@ export function usePeerConnection() {
           quality = { score: 25, status: 'unknown', details: 'Establishing connection...' };
           break;
         case 'connected':
-          quality = { score: 100, status: 'excellent' as const, details: 'Connected' };
+          quality = { score: 80, status: 'good' as const, details: 'Connected - measuring quality...' };
           break;
         case 'completed':
-          quality = { score: 95, status: 'excellent' as const, details: 'Connection established' };
+          quality = { score: 85, status: 'good' as const, details: 'Connection established - measuring quality...' };
           break;
         case 'disconnected':
           quality = { score: 30, status: 'poor' as const, details: 'Connection lost - attempting recovery...' };
@@ -287,6 +287,8 @@ export function usePeerConnection() {
         case 'connected':
           console.log('[webrtc] Peer connection established successfully');
           setIsReconnecting(false);
+          // Let the real connection quality measurement system determine the status
+          // Don't override with hardcoded 'excellent' - let collectStats() handle it
           break;
         case 'connecting':
           console.log('[webrtc] Peer connection in progress...');
@@ -504,43 +506,60 @@ export function usePeerConnection() {
     return true;
   };
 
+  // Keep last totals to compute deltas for Mbps
+  const lastInboundRef = useRef<{ bytes: number; ts: number } | null>(null);
+  const lastOutboundRef = useRef<{ bytes: number; ts: number } | null>(null);
+
   const collectStats = async () => {
     if (!pcRef.current) return;
-    
     try {
       const stats = await pcRef.current.getStats();
       let inboundBytes = 0;
       let outboundBytes = 0;
-      let inboundTimestamp = 0;
-      let outboundTimestamp = 0;
-      
+      let inboundTs = 0;
+      let outboundTs = 0;
+
       stats.forEach((report) => {
-        if (report.type === 'inbound-rtp' && report.mediaType === 'video') {
-          inboundBytes = report.bytesReceived || 0;
-          inboundTimestamp = report.timestamp || 0;
+        // Some browsers use report.kind; others mediaType
+        const kind = (report as any).kind || (report as any).mediaType;
+        if (report.type === 'inbound-rtp' && kind === 'video') {
+          inboundBytes = (report as any).bytesReceived || 0;
+          inboundTs = report.timestamp || 0;
         }
-        if (report.type === 'outbound-rtp' && report.mediaType === 'video') {
-          outboundBytes = report.bytesSent || 0;
-          outboundTimestamp = report.timestamp || 0;
+        if (report.type === 'outbound-rtp' && kind === 'video') {
+          outboundBytes = (report as any).bytesSent || 0;
+          outboundTs = report.timestamp || 0;
         }
       });
-      
-      // Calculate speeds (simplified - in real implementation you'd track over time)
-      const downloadMbps = inboundBytes > 0 ? (inboundBytes * 8) / (1024 * 1024) : 0;
-      const uploadMbps = outboundBytes > 0 ? (outboundBytes * 8) / (1024 * 1024) : 0;
-      
-      setSpeedMetrics({ downloadMbps, uploadMbps });
-      
-      // Update connection quality based on bandwidth
-      if (downloadMbps > 2 && uploadMbps > 1) {
-        setConnectionQuality(prev => ({ ...prev, status: 'excellent', score: 100 }));
-      } else if (downloadMbps > 1 && uploadMbps > 0.5) {
-        setConnectionQuality(prev => ({ ...prev, status: 'good', score: 80 }));
-      } else if (downloadMbps > 0.5 && uploadMbps > 0.25) {
-        setConnectionQuality(prev => ({ ...prev, status: 'fair', score: 60 }));
-      } else {
-        setConnectionQuality(prev => ({ ...prev, status: 'poor', score: 30 }));
+
+      // Compute Mbps from deltas
+      let downloadMbps = 0;
+      let uploadMbps = 0;
+      if (inboundBytes && inboundTs && lastInboundRef.current) {
+        const dt = (inboundTs - lastInboundRef.current.ts) / 1000; // seconds
+        const db = inboundBytes - lastInboundRef.current.bytes; // bytes
+        if (dt > 0 && db >= 0) downloadMbps = (db * 8) / (1024 * 1024 * dt);
       }
+      if (outboundBytes && outboundTs && lastOutboundRef.current) {
+        const dt = (outboundTs - lastOutboundRef.current.ts) / 1000;
+        const db = outboundBytes - lastOutboundRef.current.bytes;
+        if (dt > 0 && db >= 0) uploadMbps = (db * 8) / (1024 * 1024 * dt);
+      }
+
+      lastInboundRef.current = { bytes: inboundBytes, ts: inboundTs };
+      lastOutboundRef.current = { bytes: outboundBytes, ts: outboundTs };
+
+      setSpeedMetrics({ downloadMbps, uploadMbps });
+
+      // Update connection quality based on bandwidth
+      const nextStatus = downloadMbps > 2 && uploadMbps > 1
+        ? 'excellent'
+        : downloadMbps > 1 && uploadMbps > 0.5
+          ? 'good'
+          : downloadMbps > 0.5 && uploadMbps > 0.25
+            ? 'fair'
+            : 'poor';
+      setConnectionQuality(prev => ({ ...prev, status: nextStatus as any, score: nextStatus === 'excellent' ? 100 : nextStatus === 'good' ? 80 : nextStatus === 'fair' ? 60 : 30 }));
     } catch (error) {
       console.warn('[webrtc] Failed to collect stats:', error);
     }

@@ -18,7 +18,7 @@ export default function ChatWidget({ user }: ChatWidgetProps) {
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const previousUserId = useRef<string | null>(null);
-  const socket = useGlobalSocket();
+  const { globalSocket: socket } = useGlobalSocket();
 
   // TODO: Implement role-specific logic
   // Example: const isTutor = user?.role === 'tutor';
@@ -67,11 +67,13 @@ export default function ChatWidget({ user }: ChatWidgetProps) {
       }
     };
 
-    socket.on("botpress_response", handleBotResponse);
+    if (socket) {
+      socket.on("botpress_response", handleBotResponse);
 
-    return () => {
-      socket.off("botpress_response", handleBotResponse);
-    };
+      return () => {
+        socket.off("botpress_response", handleBotResponse);
+      };
+    }
   }, [socket, user?.id, addMessage]);
 
   // Don't show on hidden routes
