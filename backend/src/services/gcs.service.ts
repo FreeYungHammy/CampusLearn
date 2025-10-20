@@ -184,12 +184,14 @@ export const gcsService = {
 
     const cacheKey = `gcs:signed-url:${objectName}`;
 
+    // TEMPORARY: Disable caching to fix expired URL issue
     // Try to get from cache first
     try {
       const cached = await CacheService.get(cacheKey);
       if (cached && typeof cached === "string") {
         console.log(`GCS: Using cached signed URL for ${objectName}`);
-        return cached;
+        // TEMPORARY: Always generate new URL to avoid expired cache
+        // return cached;
       }
     } catch (error) {
       console.warn(`GCS: Cache miss for ${objectName}:`, error);
@@ -208,10 +210,11 @@ export const gcsService = {
       expires: Date.now() + env.gcsSignedUrlTtlSeconds * 1000,
     });
 
+    // TEMPORARY: Disable caching to fix expired URL issue
     // Cache the URL for 50 minutes (10 minutes before expiry)
     try {
-      await CacheService.set(cacheKey, url, 3000); // 50 minutes
-      console.log(`GCS: Cached signed URL for ${objectName}`);
+      // await CacheService.set(cacheKey, url, 3000); // 50 minutes
+      console.log(`GCS: Generated fresh signed URL for ${objectName} (caching disabled)`);
     } catch (error) {
       console.warn(`GCS: Failed to cache signed URL for ${objectName}:`, error);
     }
