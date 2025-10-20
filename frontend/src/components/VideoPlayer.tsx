@@ -23,20 +23,22 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isVisible, setIsVisible] = useState(false);
+  const [isVisible, setIsVisible] = useState(true); // Start as visible for immediate loading feedback
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
   const [optimizedSrc, setOptimizedSrc] = useState<string | null>(null);
+  const [currentQuality, setCurrentQuality] = useState<string>("480p");
   const hasTriedFallbackRef = useRef(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [videoDimensions, setVideoDimensions] = useState<{width: number, height: number} | null>(null);
-  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
-  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [retryCounter, setRetryCounter] = useState(0);
   
   // Get compression status from the hook
   const token = useAuthStore((state) => state.token);
+  const user = useAuthStore((state) => state.user);
   const { compressionStatus, compressedQualities, loading: statusLoading } = useVideoCompressionStatus(fileId || undefined, token || undefined);
 
   // Quality selection state
-  const [currentQuality, setCurrentQuality] = useState<string>("480p");
   const [availableQualities] = useState<VideoQuality[]>([
     { name: "720p", label: "720p" },
     { name: "480p", label: "480p" },
@@ -79,6 +81,10 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     const optimizeVideoSource = async () => {
       try {
         console.log(`🎬 VideoPlayer: Starting optimization for ${title}`);
+        
+        // Set loading state immediately when starting optimization
+        setLoading(true);
+        setError(null);
 
         const selectedQuality = currentQuality;
         console.log(`🎯 Selected quality: ${selectedQuality}`);
@@ -120,10 +126,19 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 console.log(`🔄 Setting optimizedSrc to fallback: ${fallbackUrl}`);
                 setOptimizedSrc(fallbackUrl);
               }
+            } else if (headResp.status === 202) {
+              console.log(`⏳ Video is being processed (202 Accepted), will retry in a moment`);
+              // Keep loading state active and retry after a delay
+              setTimeout(() => {
+                console.log(`🔄 Retrying video optimization after processing delay`);
+                setRetryCounter(prev => prev + 1); // Trigger re-run of useEffect
+              }, 3000); // Retry after 3 seconds
+              return; // Exit early to prevent fallback
             } else {
               console.warn(`HEAD ${headResp.status} for optimized; using original.`);
               const fallbackUrl = `${src}${token ? `?token=${token}` : ''}`;
               console.log(`🔄 Setting optimizedSrc to fallback: ${fallbackUrl}`);
+              console.log(`🔑 Token for fallback:`, token ? 'present' : 'missing');
               setOptimizedSrc(fallbackUrl);
             }
           } catch (e) {
@@ -148,13 +163,24 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
     hasTriedFallbackRef.current = false;
     optimizeVideoSource();
-  }, [src, fileId, title, currentQuality, token]);
+  }, [src, fileId, title, currentQuality, token, retryCounter]);
+
+  // When optimizedSrc changes, ensure loading state is properly managed
+  useEffect(() => {
+    if (optimizedSrc) {
+      console.log(`🎯 optimizedSrc updated, ensuring loading state is active`);
+      setLoading(true);
+      setError(null);
+    }
+  }, [optimizedSrc]);
 
   // When compression finishes, clear any stuck loading overlay
   useEffect(() => {
     if (!fileId) return;
-    if (compressionStatus !== "compressing" && loading) {
-      setLoading(false);
+    // Only clear loading if compression failed and we have an error
+    if (compressionStatus === "failed" && loading) {
+      console.log(`⚠️ Compression failed, but keeping loading state until video loads`);
+      // Don't set loading to false here - let the video loading handle it
     }
   }, [compressionStatus, fileId, loading]);
 
@@ -267,6 +293,13 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     if (compressionStatus === "compressing") {
       console.log("Video failed to load but compression is in progress, showing compression state instead of error");
       setLoading(true);
+      setError(null); // Clear any previous error
+      
+      // Retry optimization after a delay to check if compression completed
+      setTimeout(() => {
+        console.log(`🔄 Retrying video optimization during compression`);
+        setRetryCounter(prev => prev + 1); // This will trigger the useEffect dependency
+      }, 5000); // Retry after 5 seconds
       return;
     }
 
@@ -351,8 +384,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         </div>
       )}
 
-      {/* Show loading overlay when visible and loading OR when optimizedSrc is not ready */}
-      {isVisible && (loading || !optimizedSrc) && !error && compressionStatus !== "compressing" && (
+      {/* Show loading overlay when visible and loading OR when there's an error during compression */}
+      {isVisible && (loading || (error && compressionStatus === "compressing")) && (
         <div className="video-loading-overlay">
           <div className="loading-spinner">
             <div className="spinner"></div>
@@ -400,18 +433,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
                  onClick={handleVideoClick}
                  onPlay={handleVideoPlay}
                  onPause={handleVideoPause}
-                 onProgress={(e) => {
-                   const video = e.target as HTMLVideoElement;
-                   if (video.buffered.length > 0) {
-                     const bufferedEnd = video.buffered.end(video.buffered.length - 1);
-                     const duration = video.duration;
-                     if (duration > 0) {
-                       const progress = (bufferedEnd / duration) * 100;
-                       setLoadingProgress(progress);
-                       console.log(`📊 Buffering progress: ${progress.toFixed(1)}%`);
-                     }
-                   }
-                 }}
                  onLoad={(e) => {
                    const video = e.target as HTMLVideoElement;
                    console.log("🎬 Video load event:", {
@@ -450,14 +471,18 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
                      console.log(`📐 Video dimensions: ${video.videoWidth}x${video.videoHeight}`);
                    }
                  }}
-          onProgress={(e) => {
-            const video = e.target as HTMLVideoElement;
-            if (video.buffered.length > 0) {
-              console.log(
-                `📊 Video progress: ${video.buffered.end(0)}/${video.duration}`,
-              );
-            }
-          }}
+                 onProgress={(e) => {
+                   const video = e.target as HTMLVideoElement;
+                   if (video.buffered.length > 0) {
+                     const bufferedEnd = video.buffered.end(video.buffered.length - 1);
+                     const duration = video.duration;
+                     if (duration > 0) {
+                       const progress = (bufferedEnd / duration) * 100;
+                       setLoadingProgress(progress);
+                       console.log(`📊 Buffering progress: ${progress.toFixed(1)}%`);
+                     }
+                   }
+                 }}
           style={{
             width: "100%",
             height: "100%", /* Fill the container height */
@@ -470,7 +495,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
             margin: "0 auto",
           }}
           title={title}
-          crossOrigin="anonymous"
         >
           Your browser does not support the video tag.
         </video>

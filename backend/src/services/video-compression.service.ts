@@ -24,6 +24,32 @@ export class VideoCompressionService {
   // Track active compression processes to prevent multiple instances
   private static activeCompressions = new Set<string>();
 
+  // Cache for video quality lookups to prevent repeated GCS calls
+  private static qualityCache = new Map<string, { result: string; timestamp: number }>();
+  private static readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+  /**
+   * Clear cache entries for a specific video file
+   */
+  private static clearCacheForVideo(originalObjectName: string): void {
+    // Clear cache entries that might contain the original filename
+    const keysToDelete: string[] = [];
+    for (const [key, value] of this.qualityCache.entries()) {
+      if (key.includes(originalObjectName) || value.result.includes(originalObjectName)) {
+        keysToDelete.push(key);
+      }
+    }
+    
+    keysToDelete.forEach(key => {
+      this.qualityCache.delete(key);
+      logger.info(`🗑️ Cleared cache entry: ${key}`);
+    });
+    
+    if (keysToDelete.length > 0) {
+      logger.info(`🗑️ Cleared ${keysToDelete.length} cache entries for video: ${originalObjectName}`);
+    }
+  }
+
   private static readonly QUALITIES: VideoQuality[] = [
     { name: "720p", width: 1280, height: 720, bitrate: "2500k", crf: 23 },
     { name: "480p", width: 854, height: 480, bitrate: "1000k", crf: 25 },
@@ -186,6 +212,9 @@ export class VideoCompressionService {
       // Update database to show compression completed
       await this.updateCompressionStatus(inputObjectName, "completed", Object.keys(outputPaths));
 
+      // Clear cache entries for this video since the original file will be deleted
+      this.clearCacheForVideo(inputObjectName);
+
       return outputPaths;
     } catch (error) {
       logger.error("Video compression failed:", error);
@@ -285,6 +314,14 @@ export class VideoCompressionService {
     userConnectionSpeed?: "slow" | "medium" | "fast",
     requestedQuality?: string,
   ): Promise<string> {
+    // Check cache first
+    const cacheKey = `${videoObjectName}_${userConnectionSpeed || 'default'}_${requestedQuality || 'default'}`;
+    const cached = this.qualityCache.get(cacheKey);
+    if (cached && (Date.now() - cached.timestamp) < this.CACHE_TTL) {
+      logger.info(`🎯 Using cached result for ${videoObjectName}: ${cached.result}`);
+      return cached.result;
+    }
+
     const storage = this.getStorage();
     const bucket = storage.bucket(env.gcsBucket);
 
@@ -317,9 +354,15 @@ export class VideoCompressionService {
     const possibleNames = [
       `${baseName}_${preferredQuality}.mp4`, // Most common pattern: base_quality.mp4
       `${baseName}__${preferredQuality}__.mp4`, // Double underscore pattern
-      videoObjectName.replace(/_\d+p\.mp4$/, `_${preferredQuality}.mp4`), // Replace existing quality
-      videoObjectName.replace(/__\d+p__/, `__${preferredQuality}__`), // Replace double underscore
     ];
+
+    // Only add replacement patterns if the original filename has quality indicators
+    if (videoObjectName.match(/_\d+p\.mp4$/)) {
+      possibleNames.push(videoObjectName.replace(/_\d+p\.mp4$/, `_${preferredQuality}.mp4`));
+    }
+    if (videoObjectName.match(/__\d+p__/)) {
+      possibleNames.push(videoObjectName.replace(/__\d+p__/, `__${preferredQuality}__`));
+    }
 
     logger.info(
       `🔍 Looking for compressed ${preferredQuality} version of: ${videoObjectName}`,
@@ -356,6 +399,10 @@ export class VideoCompressionService {
           logger.info(
             `✅ Found existing compressed ${preferredQuality} version: ${compressedObjectName}`,
           );
+          
+          // Cache the result
+          this.qualityCache.set(cacheKey, { result: compressedObjectName, timestamp: Date.now() });
+          
           return compressedObjectName;
         } else {
           logger.info(`❌ Not found: ${compressedObjectName}`);
@@ -369,6 +416,10 @@ export class VideoCompressionService {
     logger.info(
       `No compressed version found, returning original: ${videoObjectName}`,
     );
+    
+    // Cache the result
+    this.qualityCache.set(cacheKey, { result: videoObjectName, timestamp: Date.now() });
+    
     return videoObjectName;
   }
 
@@ -522,6 +573,23 @@ export class VideoCompressionService {
         logger.info(`📊 Updated compression status for ${bucketPath}: ${status}`);
       } else {
         logger.warn(`⚠️ File not found for externalUri: ${bucketPath}`);
+        // Try to find by filename pattern as fallback
+        const filename = bucketPath.split('/').pop();
+        if (filename) {
+          const fallbackFile = await FileModel.findOne({ 
+            externalUri: { $regex: filename, $options: 'i' } 
+          });
+          if (fallbackFile) {
+            fallbackFile.compressionStatus = status;
+            if (compressedQualities) {
+              fallbackFile.compressedQualities = compressedQualities;
+            }
+            await fallbackFile.save();
+            logger.info(`📊 Updated compression status for fallback match ${fallbackFile.externalUri}: ${status}`);
+          } else {
+            logger.error(`❌ No file found for bucketPath: ${bucketPath}`);
+          }
+        }
       }
     } catch (error) {
       logger.error(`❌ Failed to update compression status for ${bucketPath}:`, error);
