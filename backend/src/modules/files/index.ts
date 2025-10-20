@@ -129,7 +129,7 @@ r.post("/test-compression/:id", requireAuth, requireTutor, async (req, res) => {
 r.get("/by-user/:userId", FileController.byUser);
 
 r.get("/by-tutor/:tutorId", FileController.byTutor);
-r.get("/:id/binary", requireAuth, FileController.getBinary);
+r.get("/:id/binary", FileController.getBinary);
 r.get("/:id/thumbnail", FileController.getThumbnail);
 r.get("/:id", requireAuth, FileController.getMeta);
 r.patch("/:id", requireAuth, requireTutor, FileController.update);

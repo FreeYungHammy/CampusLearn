@@ -197,12 +197,27 @@ export const FileController = {
 
   getBinary: async (req: AuthedRequest, res: Response, next: NextFunction) => {
     try {
+      // Handle authentication via token in query parameter (for video elements)
+      let userId = req.user?.id;
+      
+      if (!userId && req.query.token) {
+        try {
+          const { verifyJwt } = await import("../../auth/jwt");
+          const decoded = verifyJwt(req.query.token as string);
+          if (decoded) {
+            userId = decoded.id;
+          }
+        } catch (tokenError) {
+          console.warn("Invalid token in query parameter:", tokenError);
+        }
+      }
+      
       // Verify user has access to this file
-      if (!req.user?.id) {
+      if (!userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
 
-      const hasAccess = await verifyFileAccess(req.user.id, req.params.id);
+      const hasAccess = await verifyFileAccess(userId, req.params.id);
       if (!hasAccess) {
         return res.status(403).json({ message: "Access denied" });
       }
