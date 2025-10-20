@@ -2994,6 +2994,16 @@ body {
   color: #fdcb6e;
 }
 
+/* Footer styling with barely visible top border */
+.footer {
+  border-top: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+/* Dark mode footer border */
+[data-theme="dark"] .footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
 /* Forum specific fixes */
 .topic-card {
   background: var(--white);

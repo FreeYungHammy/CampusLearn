@@ -1860,9 +1860,7 @@ const Messages: React.FC = () => {
                     onClick={handleSend}
                     aria-label="Send"
                   >
-                    <svg width="20" height="20" fill="none" viewBox="0 0 20 20">
-                      <path d="M2 10l16-8-8 8 8 8-16-8z" fill="currentColor" />
-                    </svg>
+                    <i className="fas fa-paper-plane"></i>
                   </button>
                 </div>
 
