@@ -168,15 +168,28 @@ export function usePeerConnection() {
       const { data: cfg } = await http.get<IceConfigResponse>(iceConfigUrl);
       console.log('[webrtc] ICE config received:', cfg);
       
+      if (!cfg.iceServers || cfg.iceServers.length === 0) {
+        throw new Error("No ICE servers configured");
+      }
+      
       pc = new RTCPeerConnection({ iceServers: cfg.iceServers });
       pcRef.current = pc;
-      console.log('[webrtc] Peer connection created successfully');
+      console.log('[webrtc] Peer connection created successfully with', cfg.iceServers.length, 'ICE servers');
       console.log('[webrtc] PC ref set to:', !!pcRef.current);
       console.log('[webrtc] PC ref current value:', pcRef.current);
       console.log('[webrtc] PC signaling state:', pc.signalingState);
     } catch (error) {
-      console.error('[webrtc] Failed to initialize peer connection:', error);
-      throw error;
+      console.error('[webrtc] ICE config failed, using fallback STUN servers:', error);
+      // Fallback to basic STUN servers
+      const fallbackServers = [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' }
+      ];
+      
+      pc = new RTCPeerConnection({ iceServers: fallbackServers });
+      pcRef.current = pc;
+      console.log('[webrtc] Peer connection created with fallback STUN servers');
     }
 
     pc.ontrack = (e) => {

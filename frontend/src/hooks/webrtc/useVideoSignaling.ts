@@ -35,6 +35,13 @@ export function useVideoSignaling(callId: string | undefined, token: string | un
       setConnected(false);
       return;
     }
+    
+    // Verify video socket is actually connected
+    if (!videoSocket.connected) {
+      console.error("[signal] Video socket not connected");
+      setConnected(false);
+      return;
+    }
 
     socketRef.current = videoSocket;
 

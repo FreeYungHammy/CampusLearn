@@ -34,12 +34,62 @@ export const VideoCallPage: React.FC = () => {
   useEffect(() => {
     (async () => {
       if (!prejoinDone || !pendingInit) return;
+      
+      // Check connection state first
+      if (!signaling.connected) {
+        console.error("[video-call] Signaling not connected");
+        setError("Connection lost - please refresh and try again");
+        return;
+      }
+      
         try {
           console.log("[webrtc] Starting peer connection initialization...");
+          
+          // 1. Set up signaling handlers FIRST to avoid missing events
+          console.log("[webrtc] Setting up signaling handlers...");
+          signaling.onSignal(async ({ data }) => {
+            console.log("[signal] received", data?.type);
+            if (!data?.type) return;
+            
+            try {
+              const peerConnection = pc.pcRef.current;
+              if (!peerConnection) {
+                console.error("[webrtc] No peer connection available for signaling");
+                return;
+              }
+              
+              if (data.type === "offer") {
+                console.log("[webrtc] Processing remote offer");
+                await peerConnection.setRemoteDescription({ type: "offer", sdp: data.sdp });
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+                console.log("[webrtc] Created answer, sending back");
+                signaling.sendSignal({ type: "answer", sdp: answer.sdp });
+              } else if (data.type === "answer") {
+                console.log("[webrtc] Processing remote answer");
+                const currentState = peerConnection.signalingState;
+                console.log("[webrtc] Current signaling state:", currentState);
+                
+                if (currentState === "have-local-offer") {
+                  await peerConnection.setRemoteDescription({ type: "answer", sdp: data.sdp });
+                  console.log("[webrtc] Answer processed successfully");
+                } else {
+                  console.warn("[webrtc] Unexpected signaling state for answer:", currentState);
+                }
+              } else if (data.type === "ice-candidate") {
+                console.log("[webrtc] Processing remote ICE candidate");
+                await peerConnection.addIceCandidate(data.candidate);
+              }
+            } catch (e: any) {
+              console.error("[webrtc] Error processing signal:", e);
+            }
+          });
+          
+          // 2. Initialize peer connection
           await pc.init(); // Initialize peer connection without media
           console.log("[webrtc] Peer connection initialization completed");
           
-          // Add local stream with selected devices
+          // 3. Add local stream with selected devices
           console.log("[webrtc] Adding local stream with devices:", pendingInit);
           await pc.addLocalStream(pendingInit);
           console.log("[webrtc] Local stream added successfully");
@@ -88,44 +138,7 @@ export const VideoCallPage: React.FC = () => {
           };
         }
 
-        // inbound signaling
-        signaling.onSignal(async ({ data }) => {
-          console.log("[signal] received", data?.type);
-          if (!data?.type) return;
-          
-          try {
-            const peerConnection = pc.pcRef.current;
-            if (!peerConnection) {
-              console.error("[webrtc] No peer connection available for signaling");
-              return;
-            }
-
-            if (data.type === "offer") {
-              console.log("[webrtc] Processing remote offer");
-              await peerConnection.setRemoteDescription({ type: "offer", sdp: data.sdp });
-              const answer = await peerConnection.createAnswer();
-              await peerConnection.setLocalDescription(answer);
-              console.log("[webrtc] Created answer, sending back");
-              signaling.sendSignal({ type: "answer", sdp: answer.sdp });
-            } else if (data.type === "answer") {
-              console.log("[webrtc] Processing remote answer");
-              const currentState = peerConnection.signalingState;
-              console.log("[webrtc] Current signaling state:", currentState);
-              
-              if (currentState === "have-local-offer") {
-                await peerConnection.setRemoteDescription({ type: "answer", sdp: data.sdp });
-                console.log("[webrtc] Remote answer set successfully");
-              } else {
-                console.warn("[webrtc] Ignoring answer - wrong signaling state:", currentState);
-              }
-            } else if (data.type === "ice-candidate" && data.candidate) {
-              console.log("[webrtc] Adding remote ICE candidate");
-              await peerConnection.addIceCandidate(data.candidate);
-            }
-          } catch (error) {
-            console.error("[webrtc] Error processing signal:", error);
-          }
-        });
+        // Signaling handlers already set up above
 
         // join room
         const role = user?.role === "tutor" || user?.role === "student" ? (user.role as any) : "guest";

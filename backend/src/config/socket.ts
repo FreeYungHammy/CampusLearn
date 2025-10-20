@@ -355,12 +355,27 @@ export function createSocketServer(httpServer: HttpServer) {
         // Send notification to target user
         // Send to video namespace socket specifically
         if (targetUser.videoSocketId) {
-          video.to(targetUser.videoSocketId).emit("incoming_call", {
-            callId,
-            fromUserId: userId,
-            fromUserName,
-          });
-          console.log(`[video] Sent incoming_call to ${targetUserId} on socket ${targetUser.videoSocketId}`);
+          // Verify the socket is still connected before sending
+          const videoSocket = video.sockets.get(targetUser.videoSocketId);
+          if (videoSocket && videoSocket.connected) {
+            video.to(targetUser.videoSocketId).emit("incoming_call", {
+              callId,
+              fromUserId: userId,
+              fromUserName,
+            });
+            console.log(`[video] Sent incoming_call to ${targetUserId} on socket ${targetUser.videoSocketId}`);
+          } else {
+            console.warn(`[video] Socket ${targetUser.videoSocketId} is not connected, trying chat namespace fallback`);
+            // Fallback to chat namespace if video socket is disconnected
+            if (targetUser.chatSocketId) {
+              chat.to(targetUser.chatSocketId).emit("incoming_call", {
+                callId,
+                fromUserId: userId,
+                fromUserName,
+              });
+              console.log(`[video] Sent incoming_call to ${targetUserId} via chat namespace fallback`);
+            }
+          }
         } else {
           console.warn(`[video] Cannot send incoming_call - user ${targetUserId} not connected to video namespace`);
         }
