@@ -24,7 +24,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(false);
-  const [optimizedSrc, setOptimizedSrc] = useState(src);
+  const [optimizedSrc, setOptimizedSrc] = useState<string | null>(null);
   const hasTriedFallbackRef = useRef(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [videoDimensions, setVideoDimensions] = useState<{width: number, height: number} | null>(null);
@@ -188,6 +188,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
     // Check if this is the original video (might be compressing in background)
     if (
+      optimizedSrc && 
       optimizedSrc.includes("quality=480p") &&
       !optimizedSrc.includes("compressed")
     ) {
@@ -330,8 +331,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         </div>
       )}
 
-      {/* Show loading overlay only when visible and loading (and not compressing) */}
-      {isVisible && loading && !error && compressionStatus !== "compressing" && (
+      {/* Show loading overlay when visible and loading OR when optimizedSrc is not ready */}
+      {isVisible && (loading || !optimizedSrc) && !error && compressionStatus !== "compressing" && (
         <div className="video-loading-overlay">
           <div className="loading-spinner">
             <div className="spinner"></div>
@@ -353,8 +354,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         </div>
       )}
 
-      {/* Show video only when visible */}
-      {isVisible && (
+      {/* Show video only when visible and optimizedSrc is ready */}
+      {isVisible && optimizedSrc && (
         <video
           ref={videoRef}
           src={optimizedSrc}
