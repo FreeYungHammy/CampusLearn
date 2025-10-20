@@ -1239,38 +1239,29 @@ const Messages: React.FC = () => {
         callId,
         targetUserId: otherId,
       });
-      const { io } = await import("socket.io-client");
-      const SOCKET_BASE_URL = (import.meta.env.VITE_WS_URL as string).replace(
-        /\/$/,
-        "",
-      );
-      const url = SOCKET_BASE_URL.replace(/^http/, "ws");
-      const token = useAuthStore.getState().token;
-
-      if (token) {
-        console.log("[video-call] Creating temporary socket connection");
-        const tempSocket = io(`${url}/video`, {
-          auth: { token },
-          transports: ["websocket", "polling"],
-        });
-        tempSocket.on("connect", () => {
-          console.log(
-            "[video-call] Temporary socket connected, sending initiate_call",
-          );
-          tempSocket.emit("initiate_call", { callId, targetUserId: otherId });
-          setTimeout(() => {
-            console.log("[video-call] Disconnecting temporary socket");
-            tempSocket.disconnect();
-          }, 1000); // Clean up after sending
-        });
-        tempSocket.on("connect_error", (error) => {
-          console.error(
-            "[video-call] Temporary socket connection error:",
-            error,
-          );
-        });
+      
+      // Use centralized SocketManager instead of temporary socket
+      const { SocketManager } = await import("../services/socketManager");
+      
+      // Initialize socket manager if not already done
+      if (!SocketManager.isSocketConnected()) {
+        const SOCKET_BASE_URL = (import.meta.env.VITE_WS_URL as string).replace(/\/$/, "");
+        const token = useAuthStore.getState().token;
+        if (token) {
+          SocketManager.initialize({
+            url: SOCKET_BASE_URL,
+            token: token,
+          });
+        }
+      }
+      
+      const videoSocket = SocketManager.getVideoSocket();
+      if (videoSocket) {
+        console.log("[video-call] Sending initiate_call via centralized socket");
+        videoSocket.emit("initiate_call", { callId, targetUserId: otherId });
+        console.log("[video-call] Call notification sent successfully");
       } else {
-        console.warn("[video-call] No token available for call notification");
+        console.error("[video-call] Video socket not available");
       }
     } catch (error) {
       console.error("Failed to send call notification:", error);

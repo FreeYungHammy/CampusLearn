@@ -47,13 +47,15 @@ export function useCallNotifications() {
           fromUserId: string; 
           fromUserName: string; 
         }) => {
-          console.log("[call-notifications] Incoming call:", data);
+          console.log("[call-notifications] Incoming call received:", data);
+          console.log("[call-notifications] Setting incoming call state...");
           setIncomingCall({
             callId: data.callId,
             fromUserId: data.fromUserId,
             fromUserName: data.fromUserName,
             timestamp: new Date(),
           });
+          console.log("[call-notifications] Incoming call state set successfully");
         },
         onCallCancelled: (data: { callId: string }) => {
           console.log("[call-notifications] Call cancelled:", data);

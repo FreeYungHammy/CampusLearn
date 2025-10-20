@@ -35,17 +35,67 @@ export const VideoCallPage: React.FC = () => {
     (async () => {
       if (!prejoinDone || !pendingInit) return;
       
-      // Check connection state first
-      if (!signaling.connected) {
-        console.error("[video-call] Signaling not connected");
-        setError("Connection lost - please refresh and try again");
-        return;
-      }
+      console.log("[video-call] Starting call initialization...");
       
         try {
           console.log("[webrtc] Starting peer connection initialization...");
           
-          // 1. Set up signaling handlers FIRST to avoid missing events
+          // 1. FIRST: Initialize peer connection
+          await pc.init(); // Initialize peer connection without media
+          console.log("[webrtc] Peer connection initialization completed");
+          
+          // 2. SECOND: Add local stream with selected devices
+          console.log("[webrtc] Adding local stream with devices:", pendingInit);
+          await pc.addLocalStream(pendingInit);
+          console.log("[webrtc] Local stream added successfully");
+          
+          console.log("[webrtc] PC ref after init:", !!pc.pcRef.current);
+          console.log("[webrtc] PC ref current value:", pc.pcRef.current);
+          console.log("[webrtc] PC ref type:", typeof pc.pcRef.current);
+
+          // 3. THIRD: Set up peer connection event handlers
+          const peerConnection = pc.pcRef.current;
+          if (peerConnection) {
+            // Outbound ICE candidates
+            peerConnection.onicecandidate = (e) => {
+              if (e.candidate) {
+                console.log("[webrtc] local ice-candidate", e.candidate.type, e.candidate.protocol);
+                signaling.sendSignal({ type: "ice-candidate", candidate: e.candidate.toJSON() });
+              } else {
+                console.log("[webrtc] ICE gathering complete");
+              }
+            };
+            
+            // Monitor ICE connection state changes
+            peerConnection.oniceconnectionstatechange = () => {
+              console.log("[webrtc] ICE connection state changed:", peerConnection.iceConnectionState);
+              if (peerConnection.iceConnectionState === "connected" || peerConnection.iceConnectionState === "completed") {
+                console.log("[webrtc] ICE connection established successfully!");
+                setError(null); // Clear any previous errors
+              } else if (peerConnection.iceConnectionState === "failed") {
+                console.error("[webrtc] ICE connection failed - will attempt recovery");
+                setError("Connection failed - attempting to reconnect...");
+                // Don't immediately fail - let the recovery mechanism handle it
+              } else if (peerConnection.iceConnectionState === "disconnected") {
+                console.log("[webrtc] ICE connection disconnected - monitoring for recovery");
+                setError("Connection lost - attempting to reconnect...");
+              } else if (peerConnection.iceConnectionState === "checking") {
+                console.log("[webrtc] ICE connection checking - establishing connection...");
+                setError(null);
+              }
+            };
+            
+            // Monitor ICE gathering state
+            peerConnection.onicegatheringstatechange = () => {
+              console.log("[webrtc] ICE gathering state changed:", peerConnection.iceGatheringState);
+            };
+            
+            peerConnection.onconnectionstatechange = () => {
+              console.log("[webrtc] connection state:", peerConnection.connectionState);
+            };
+          }
+
+          // 4. FOURTH: Set up signaling handlers (AFTER peer connection exists)
           console.log("[webrtc] Setting up signaling handlers...");
           signaling.onSignal(async ({ data }) => {
             console.log("[signal] received", data?.type);
@@ -57,7 +107,7 @@ export const VideoCallPage: React.FC = () => {
                 console.error("[webrtc] No peer connection available for signaling");
                 return;
               }
-              
+
               if (data.type === "offer") {
                 console.log("[webrtc] Processing remote offer");
                 await peerConnection.setRemoteDescription({ type: "offer", sdp: data.sdp });
@@ -72,77 +122,24 @@ export const VideoCallPage: React.FC = () => {
                 
                 if (currentState === "have-local-offer") {
                   await peerConnection.setRemoteDescription({ type: "answer", sdp: data.sdp });
-                  console.log("[webrtc] Answer processed successfully");
+                  console.log("[webrtc] Remote answer set successfully");
                 } else {
-                  console.warn("[webrtc] Unexpected signaling state for answer:", currentState);
+                  console.warn("[webrtc] Ignoring answer - wrong signaling state:", currentState);
                 }
-              } else if (data.type === "ice-candidate") {
-                console.log("[webrtc] Processing remote ICE candidate");
+              } else if (data.type === "ice-candidate" && data.candidate) {
+                console.log("[webrtc] Adding remote ICE candidate");
                 await peerConnection.addIceCandidate(data.candidate);
               }
-            } catch (e: any) {
-              console.error("[webrtc] Error processing signal:", e);
+            } catch (error) {
+              console.error("[webrtc] Error processing signal:", error);
             }
           });
-          
-          // 2. Initialize peer connection
-          await pc.init(); // Initialize peer connection without media
-          console.log("[webrtc] Peer connection initialization completed");
-          
-          // 3. Add local stream with selected devices
-          console.log("[webrtc] Adding local stream with devices:", pendingInit);
-          await pc.addLocalStream(pendingInit);
-          console.log("[webrtc] Local stream added successfully");
-          
-          console.log("[webrtc] PC ref after init:", !!pc.pcRef.current);
-          console.log("[webrtc] PC ref current value:", pc.pcRef.current);
-          console.log("[webrtc] PC ref type:", typeof pc.pcRef.current);
 
-        // outbound ICE
-        const peerConnection = pc.pcRef.current;
-        if (peerConnection) {
-              peerConnection.onicecandidate = (e) => {
-                if (e.candidate) {
-                  console.log("[webrtc] local ice-candidate", e.candidate.type, e.candidate.protocol);
-                  signaling.sendSignal({ type: "ice-candidate", candidate: e.candidate.toJSON() });
-                } else {
-                  console.log("[webrtc] ICE gathering complete");
-                }
-              };
-              
-              // Monitor ICE connection state changes
-              peerConnection.oniceconnectionstatechange = () => {
-                console.log("[webrtc] ICE connection state changed:", peerConnection.iceConnectionState);
-                if (peerConnection.iceConnectionState === "connected" || peerConnection.iceConnectionState === "completed") {
-                  console.log("[webrtc] ICE connection established successfully!");
-                  setError(null); // Clear any previous errors
-                } else if (peerConnection.iceConnectionState === "failed") {
-                  console.error("[webrtc] ICE connection failed - will attempt recovery");
-                  setError("Connection failed - attempting to reconnect...");
-                  // Don't immediately fail - let the recovery mechanism handle it
-                } else if (peerConnection.iceConnectionState === "disconnected") {
-                  console.log("[webrtc] ICE connection disconnected - monitoring for recovery");
-                  setError("Connection lost - attempting to reconnect...");
-                } else if (peerConnection.iceConnectionState === "checking") {
-                  console.log("[webrtc] ICE connection checking - establishing connection...");
-                  setError(null);
-                }
-              };
-              
-              // Monitor ICE gathering state
-              peerConnection.onicegatheringstatechange = () => {
-                console.log("[webrtc] ICE gathering state changed:", peerConnection.iceGatheringState);
-              };
-          peerConnection.onconnectionstatechange = () => {
-            console.log("[webrtc] connection state:", peerConnection.connectionState);
-          };
-        }
-
-        // Signaling handlers already set up above
-
-        // join room
-        const role = user?.role === "tutor" || user?.role === "student" ? (user.role as any) : "guest";
-        signaling.join(role);
+          // 5. FIFTH: Join the room
+          const role = user?.role === "tutor" || user?.role === "student" ? (user.role as any) : "guest";
+          console.log("[video-call] Joining room with role:", role);
+          console.log("[video-call] Signaling connected:", signaling.connected);
+          signaling.join(role);
 
             // Determine initiator based on URL parameter
             // The initiator is the user who clicked "Start Video Call" button
@@ -160,12 +157,12 @@ export const VideoCallPage: React.FC = () => {
                   console.log("[video-call] Sending call notification to:", targetUserId);
                   
                   const videoSocket = SocketManager.getVideoSocket();
-                  if (videoSocket && videoSocket.connected) {
+                  if (videoSocket) {
                     console.log("[video-call] Sending initiate_call via centralized socket");
                     videoSocket.emit("initiate_call", { callId, targetUserId });
                     console.log("[video-call] Call notification sent successfully");
                   } else {
-                    console.error("[video-call] Video socket not available or not connected");
+                    console.error("[video-call] Video socket not available");
                   }
                 }
               } catch (error) {
@@ -173,58 +170,56 @@ export const VideoCallPage: React.FC = () => {
               }
             }
             
+            // 6. SIXTH: Create offer if this is the initiator (AFTER everything is set up)
             if (initiator) {
-              // Create offer after PC is initialized
-              setTimeout(async () => {
-                try {
-                  console.log("[webrtc] Creating offer as initiator...");
-                  console.log("[webrtc] PC ref exists:", !!pc.pcRef.current);
-                  console.log("[webrtc] PC signaling state:", pc.pcRef.current?.signalingState);
-                  console.log("[webrtc] PC connection state:", pc.pcRef.current?.connectionState);
-                  
-                  // Get the current peer connection
-                  const peerConnection = pc.pcRef.current;
-                  console.log("[webrtc] Got peer connection:", !!peerConnection);
-                  
-                  if (!peerConnection) {
-                    console.error("[webrtc] Peer connection not initialized");
-                    setError("Peer connection not initialized");
-                    return;
-                  }
-                  
-                  // Check if we already have a local offer (prevent duplicate offers)
-                  const currentState = peerConnection.signalingState;
-                  if (currentState === "have-local-offer") {
-                    console.log("[webrtc] Already have local offer, skipping");
-                    return;
-                  }
-                  
-                  // Wait for ICE gathering to complete before creating offer
-                  if (peerConnection.iceGatheringState === "gathering") {
-                    console.log("[webrtc] Waiting for ICE gathering to complete...");
-                    await new Promise((resolve) => {
-                      const checkGathering = () => {
-                        if (peerConnection.iceGatheringState === "complete") {
-                          resolve(void 0);
-                        } else {
-                          setTimeout(checkGathering, 100);
-                        }
-                      };
-                      checkGathering();
-                    });
-                  }
-                  
-                  const offer = await peerConnection.createOffer();
-                  await peerConnection.setLocalDescription(offer);
-                  console.log("[webrtc] Offer created successfully:", offer.type);
-                  console.log("[webrtc] Sending offer via signaling...");
-                  signaling.sendSignal({ type: "offer", sdp: offer.sdp });
-                  console.log("[webrtc] Offer sent successfully");
-                } catch (e: any) {
-                  console.error("[webrtc] Failed to create offer:", e);
-                  setError(`Failed to create offer: ${e.message}`);
+              try {
+                console.log("[webrtc] Creating offer as initiator...");
+                console.log("[webrtc] PC ref exists:", !!pc.pcRef.current);
+                console.log("[webrtc] PC signaling state:", pc.pcRef.current?.signalingState);
+                console.log("[webrtc] PC connection state:", pc.pcRef.current?.connectionState);
+                
+                // Get the current peer connection
+                const peerConnection = pc.pcRef.current;
+                console.log("[webrtc] Got peer connection:", !!peerConnection);
+                
+                if (!peerConnection) {
+                  console.error("[webrtc] Peer connection not initialized");
+                  setError("Peer connection not initialized");
+                  return;
                 }
-              }, 500); // Reduced delay since we're now waiting for PC ref
+                
+                // Check if we already have a local offer (prevent duplicate offers)
+                const currentState = peerConnection.signalingState;
+                if (currentState === "have-local-offer") {
+                  console.log("[webrtc] Already have local offer, skipping");
+                  return;
+                }
+                
+                // Wait for ICE gathering to complete before creating offer
+                if (peerConnection.iceGatheringState === "gathering") {
+                  console.log("[webrtc] Waiting for ICE gathering to complete...");
+                  await new Promise((resolve) => {
+                    const checkGathering = () => {
+                      if (peerConnection.iceGatheringState === "complete") {
+                        resolve(void 0);
+                      } else {
+                        setTimeout(checkGathering, 100);
+                      }
+                    };
+                    checkGathering();
+                  });
+                }
+                
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                console.log("[webrtc] Offer created successfully:", offer.type);
+                console.log("[webrtc] Sending offer via signaling...");
+                signaling.sendSignal({ type: "offer", sdp: offer.sdp });
+                console.log("[webrtc] Offer sent successfully");
+              } catch (e: any) {
+                console.error("[webrtc] Failed to create offer:", e);
+                setError(`Failed to create offer: ${e.message}`);
+              }
             }
       } catch (e: any) {
         setError(e?.message || "Failed to initialize call");
@@ -407,17 +402,6 @@ export const VideoCallPage: React.FC = () => {
             onCancel={() => window.close()}
             onConfirm={async (sel) => {
               console.log("[video-call] Join Call button clicked!");
-              
-              // Send call notification to the other user when joining
-              try {
-                const otherId = callId?.split(':').find(id => id !== user?.id);
-                if (otherId) {
-                  console.log("[video-call] Sending call notification to:", otherId);
-                  signaling.initiateCall(otherId);
-                }
-              } catch (error) {
-                console.error("[video-call] Failed to send call notification:", error);
-              }
               
               // Proceed with joining the call
               setPendingInit(sel);
