@@ -293,11 +293,22 @@ export const FileController = {
                   const fetchHeaders: any = {};
                   if (req.headers.range) {
                     fetchHeaders['Range'] = req.headers.range;
+                    console.log(`🔗 Range request: ${req.headers.range}`);
+                  } else {
+                    // For initial requests without range, request first 1MB for faster initial load
+                    fetchHeaders['Range'] = 'bytes=0-1048575';
+                    console.log(`🔗 No range header, requesting first 1MB for faster initial load`);
                   }
+                  
+                  // Add timeout and other optimizations
+                  const fetchOptions = {
+                    headers: fetchHeaders,
+                    timeout: 30000, // 30 second timeout
+                  };
                   
                   console.log(`🔗 Fetching signed URL with headers:`, fetchHeaders);
                   console.log(`🔗 Request Range header:`, req.headers.range);
-                  const response = await fetch(signedUrl, { headers: fetchHeaders });
+                  const response = await fetch(signedUrl, fetchOptions);
                   
                   if (!response.ok) {
                     throw new Error(`Failed to fetch video: ${response.status} ${response.statusText}`);
@@ -453,11 +464,22 @@ export const FileController = {
                   const fetchHeaders: any = {};
                   if (req.headers.range) {
                     fetchHeaders['Range'] = req.headers.range;
+                    console.log(`🔗 Range request: ${req.headers.range}`);
+                  } else {
+                    // For initial requests without range, request first 1MB for faster initial load
+                    fetchHeaders['Range'] = 'bytes=0-1048575';
+                    console.log(`🔗 No range header, requesting first 1MB for faster initial load`);
                   }
+                  
+                  // Add timeout and other optimizations
+                  const fetchOptions = {
+                    headers: fetchHeaders,
+                    timeout: 30000, // 30 second timeout
+                  };
                   
                   console.log(`🔗 Fetching signed URL with headers:`, fetchHeaders);
                   console.log(`🔗 Request Range header:`, req.headers.range);
-                  const response = await fetch(signedUrl, { headers: fetchHeaders });
+                  const response = await fetch(signedUrl, fetchOptions);
                   
                   if (!response.ok) {
                     throw new Error(`Failed to fetch video: ${response.status} ${response.statusText}`);

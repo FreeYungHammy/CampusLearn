@@ -29,6 +29,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [isMinimized, setIsMinimized] = useState(false);
   const [videoDimensions, setVideoDimensions] = useState<{width: number, height: number} | null>(null);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
   
   // Get compression status from the hook
   const token = useAuthStore((state) => state.token);
@@ -191,6 +192,12 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     setLoading(false);
     setIsVideoPlaying(true); // Video is ready to play, hide overlay
     console.log(`🎯 Overlay should now be hidden - video is ready to play`);
+    
+    // For large videos, start preloading more aggressively after initial play
+    if (videoRef.current && videoRef.current.duration > 300) { // 5+ minutes
+      console.log(`🚀 Large video detected (${videoRef.current.duration}s), enabling aggressive preloading`);
+      videoRef.current.preload = "auto";
+    }
 
     // Record performance metrics
     if (fileId) {
@@ -350,6 +357,17 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           <div className="loading-spinner">
             <div className="spinner"></div>
             <p>Loading video...</p>
+            {loadingProgress > 0 && (
+              <div className="loading-progress">
+                <div className="progress-bar">
+                  <div 
+                    className="progress-fill" 
+                    style={{ width: `${loadingProgress}%` }}
+                  ></div>
+                </div>
+                <p className="progress-text">{loadingProgress.toFixed(1)}% buffered</p>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -373,14 +391,27 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           ref={videoRef}
           src={optimizedSrc}
           controls
-          preload="auto"
+          preload="metadata"
           playsInline
+          crossOrigin="anonymous"
                  onLoadStart={handleLoadStart}
                  onCanPlay={handleCanPlay}
                  onError={handleError}
                  onClick={handleVideoClick}
                  onPlay={handleVideoPlay}
                  onPause={handleVideoPause}
+                 onProgress={(e) => {
+                   const video = e.target as HTMLVideoElement;
+                   if (video.buffered.length > 0) {
+                     const bufferedEnd = video.buffered.end(video.buffered.length - 1);
+                     const duration = video.duration;
+                     if (duration > 0) {
+                       const progress = (bufferedEnd / duration) * 100;
+                       setLoadingProgress(progress);
+                       console.log(`📊 Buffering progress: ${progress.toFixed(1)}%`);
+                     }
+                   }
+                 }}
                  onLoad={(e) => {
                    const video = e.target as HTMLVideoElement;
                    console.log("🎬 Video load event:", {
