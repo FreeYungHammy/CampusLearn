@@ -22,8 +22,24 @@ let io: Server;
 // Track connected users
 const connectedUsers = new Map<
   string,
-  { socketId: string; userId: string; lastSeen: Date }
+  { 
+    chatSocketId?: string; 
+    videoSocketId?: string; 
+    userId: string; 
+    lastSeen: Date 
+  }
 >();
+
+// Debug helper - remove after testing
+function logConnectedUsers(context: string) {
+  console.log(`[${context}] Connected users:`, 
+    Array.from(connectedUsers.entries()).map(([id, info]) => ({
+      userId: id,
+      chatSocket: info.chatSocketId?.slice(0, 8),
+      videoSocket: info.videoSocketId?.slice(0, 8)
+    }))
+  );
+}
 
 export function createSocketServer(httpServer: HttpServer) {
   const allowed = (process.env.CORS_ORIGIN || "")
@@ -110,9 +126,10 @@ export function createSocketServer(httpServer: HttpServer) {
 
     // Track connected user
     if (userId) {
+      const existing = connectedUsers.get(userId) || { userId, lastSeen: new Date() };
       connectedUsers.set(userId, {
-        socketId: socket.id,
-        userId: userId,
+        ...existing,
+        chatSocketId: socket.id,
         lastSeen: new Date(),
       });
 
@@ -122,6 +139,8 @@ export function createSocketServer(httpServer: HttpServer) {
         status: "online",
         lastSeen: new Date(),
       });
+      
+      logConnectedUsers("chat namespace connection");
     }
 
     socket.on("join_room", async (chatId: string) => {
@@ -204,14 +223,29 @@ export function createSocketServer(httpServer: HttpServer) {
 
       // Remove user from connected users and emit offline status
       if (userId) {
-        connectedUsers.delete(userId);
-
-        // Emit user offline status to all connected clients
-        chat.emit("user_status_change", {
-          userId: userId,
-          status: "offline",
-          lastSeen: new Date(),
-        });
+        const userInfo = connectedUsers.get(userId);
+        if (userInfo) {
+          // Remove chat socket but keep user if they're still on video
+          userInfo.chatSocketId = undefined;
+          userInfo.lastSeen = new Date();
+          
+          // Only delete entirely if no sockets remain
+          if (!userInfo.videoSocketId) {
+            connectedUsers.delete(userId);
+            
+            // Emit offline status only when fully disconnected
+            chat.emit("user_status_change", {
+              userId: userId,
+              status: "offline",
+              lastSeen: new Date(),
+            });
+          } else {
+            // Still connected via video, update lastSeen
+            connectedUsers.set(userId, userInfo);
+          }
+        }
+        
+        logConnectedUsers("chat namespace disconnection");
       }
     });
   });
@@ -249,7 +283,12 @@ export function createSocketServer(httpServer: HttpServer) {
   video.on("connection", (socket) => {
     const userId = socket.data.user?.id as string | undefined;
     if (userId) {
-      connectedUsers.set(userId, { socketId: socket.id, userId, lastSeen: new Date() });
+      const existing = connectedUsers.get(userId) || { userId, lastSeen: new Date() };
+      connectedUsers.set(userId, {
+        ...existing,
+        videoSocketId: socket.id,
+        lastSeen: new Date(),
+      });
       
       // Emit user online status to all connected clients in chat namespace
       chat.emit("user_status_change", {
@@ -257,6 +296,8 @@ export function createSocketServer(httpServer: HttpServer) {
         status: "online",
         lastSeen: new Date(),
       });
+      
+      logConnectedUsers("video namespace connection");
     }
 
     // join_call: client joins a signaling room for a given callId
@@ -312,11 +353,17 @@ export function createSocketServer(httpServer: HttpServer) {
         }
         
         // Send notification to target user
-        io.to(targetUser.socketId).emit("incoming_call", {
-          callId,
-          fromUserId: userId,
-          fromUserName,
-        });
+        // Send to video namespace socket specifically
+        if (targetUser.videoSocketId) {
+          video.to(targetUser.videoSocketId).emit("incoming_call", {
+            callId,
+            fromUserId: userId,
+            fromUserName,
+          });
+          console.log(`[video] Sent incoming_call to ${targetUserId} on socket ${targetUser.videoSocketId}`);
+        } else {
+          console.warn(`[video] Cannot send incoming_call - user ${targetUserId} not connected to video namespace`);
+        }
       }
     });
 
@@ -330,7 +377,11 @@ export function createSocketServer(httpServer: HttpServer) {
       // Notify the caller that the call was declined
       const caller = connectedUsers.get(fromUserId);
       if (caller) {
-        io.to(caller.socketId).emit("call_cancelled", { callId });
+        if (caller.videoSocketId) {
+          video.to(caller.videoSocketId).emit("call_cancelled", { callId });
+        } else {
+          console.warn(`[video] Cannot send call_cancelled - user ${fromUserId} not connected to video namespace`);
+        }
       }
     });
 
@@ -368,15 +419,30 @@ export function createSocketServer(httpServer: HttpServer) {
 
     socket.on("disconnect", async () => {
       if (userId) {
-        connectedUsers.delete(userId);
-        if (presence) await presence.markSocketOffline(userId, socket.id);
+        const userInfo = connectedUsers.get(userId);
+        if (userInfo) {
+          // Remove video socket but keep user if they're still on chat
+          userInfo.videoSocketId = undefined;
+          userInfo.lastSeen = new Date();
+          
+          // Only delete entirely if no sockets remain
+          if (!userInfo.chatSocketId) {
+            connectedUsers.delete(userId);
+            
+            // Emit offline status only when fully disconnected
+            chat.emit("user_status_change", {
+              userId: userId,
+              status: "offline",
+              lastSeen: new Date(),
+            });
+          } else {
+            // Still connected via chat, update lastSeen
+            connectedUsers.set(userId, userInfo);
+          }
+        }
         
-        // Emit user offline status to all connected clients in chat namespace
-        chat.emit("user_status_change", {
-          userId: userId,
-          status: "offline",
-          lastSeen: new Date(),
-        });
+        if (presence) await presence.markSocketOffline(userId, socket.id);
+        logConnectedUsers("video namespace disconnection");
       }
     });
   });
@@ -390,7 +456,7 @@ export function getUserOnlineStatus(userId: string): {
   lastSeen?: Date;
 } {
   const user = connectedUsers.get(userId);
-  if (user) {
+  if (user && (user.chatSocketId || user.videoSocketId)) {
     return { isOnline: true, lastSeen: user.lastSeen };
   }
   return { isOnline: false };
