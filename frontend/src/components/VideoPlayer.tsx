@@ -255,7 +255,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     if (!hasTriedFallbackRef.current && optimizedSrc !== src) {
       console.warn("Optimized stream failed; falling back to original.");
       hasTriedFallbackRef.current = true;
-      setOptimizedSrc(src);
+      const fallbackUrl = `${src}${token ? `?token=${token}` : ''}`;
+      setOptimizedSrc(fallbackUrl);
       setError(null);
       setLoading(true);
       if (videoRef.current) {

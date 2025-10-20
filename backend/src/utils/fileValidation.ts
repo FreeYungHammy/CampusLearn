@@ -86,6 +86,12 @@ export function validateVideoSignature(buffer: Buffer, contentType: string): boo
       return false;
     }
 
+    // Debug: Log first 32 bytes as hex
+    const first32Bytes = Array.from(buffer.slice(0, 32))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join(' ');
+    logger.info(`File signature (first 32 bytes): ${first32Bytes}`);
+
     // Check each signature pattern
     for (const pattern of signature.signatures) {
       if (checkSignaturePattern(buffer, pattern)) {
