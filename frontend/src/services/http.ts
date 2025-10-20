@@ -21,7 +21,14 @@ http.interceptors.request.use(
     console.log('🔑 HTTP Interceptor - Token available:', !!token);
     console.log('🌐 HTTP Interceptor - Request URL:', config.url);
     console.log('🔧 HTTP Interceptor - BaseURL:', config.baseURL);
-    console.log('🔧 HTTP Interceptor - Full URL will be:', (config.baseURL || '') + (config.url || ''));
+    
+    // Fix double baseURL issue by checking if URL is already absolute
+    if (config.url && (config.url.startsWith('http://') || config.url.startsWith('https://'))) {
+      console.log('🔧 HTTP Interceptor - Absolute URL detected, using as-is');
+    } else {
+      console.log('🔧 HTTP Interceptor - Full URL will be:', (config.baseURL || '') + (config.url || ''));
+    }
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
       console.log('✅ HTTP Interceptor - Authorization header added');

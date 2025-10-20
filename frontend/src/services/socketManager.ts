@@ -82,6 +82,12 @@ class SocketManagerClass {
       hasToken: !!config.token 
     });
 
+    // If already initialized with same config, don't reinitialize
+    if (this.config && this.config.url === config.url && this.config.token === config.token && this.isConnected) {
+      console.log("[SocketManager] Already initialized with same config, skipping");
+      return;
+    }
+
     this.config = config;
     this.connect();
   }
@@ -116,12 +122,27 @@ class SocketManagerClass {
         console.log("[SocketManager] Main socket disconnected:", reason);
         this.isConnected = false;
         this.notifyConnectionChange(false);
+        
+        // Don't automatically reconnect if it's a manual disconnect or auth error
+        if (reason === "io client disconnect" || reason === "io server disconnect") {
+          console.log("[SocketManager] Manual disconnect, not reconnecting");
+          return;
+        }
+        
+        // For other disconnects, let the socket.io client handle reconnection
+        console.log("[SocketManager] Will attempt automatic reconnection");
       });
 
       this.socket.on("connect_error", (error) => {
         console.error("[SocketManager] Main socket connection error:", error);
         this.isConnected = false;
         this.notifyConnectionChange(false);
+        
+        // Don't reconnect on auth errors
+        if (error.message?.includes("Authentication") || error.message?.includes("401")) {
+          console.error("[SocketManager] Authentication error, not reconnecting");
+          return;
+        }
       });
 
       // Initialize namespaces
@@ -371,6 +392,13 @@ class SocketManagerClass {
    */
   public isSocketConnected(): boolean {
     return this.isConnected && this.socket?.connected === true;
+  }
+
+  /**
+   * Check if already initialized
+   */
+  public isInitialized(): boolean {
+    return this.config !== null && this.socket !== null;
   }
 
   /**

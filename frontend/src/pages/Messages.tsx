@@ -1276,16 +1276,38 @@ const Messages: React.FC = () => {
               url: SOCKET_BASE_URL,
               token: token,
             });
+            
+            // Wait a bit for connection
+            await new Promise(resolve => setTimeout(resolve, 1000));
           }
         }
         
-        const videoSocket = SocketManager.getVideoSocket();
-        if (videoSocket) {
+        let videoSocket = SocketManager.getVideoSocket();
+        
+        // Double-check socket is available
+        if (!videoSocket || !videoSocket.connected) {
+          console.log("[video-call] Video socket not available, attempting to reconnect...");
+          const SOCKET_BASE_URL = (import.meta.env.VITE_WS_URL as string).replace(/\/$/, "");
+          const token = useAuthStore.getState().token;
+          if (token) {
+            SocketManager.initialize({
+              url: SOCKET_BASE_URL,
+              token: token,
+            });
+            
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            videoSocket = SocketManager.getVideoSocket();
+          }
+        }
+        
+        if (videoSocket && videoSocket.connected) {
           console.log("[video-call] Sending initiate_call via centralized socket");
           videoSocket.emit("initiate_call", { callId, targetUserId: otherId });
           console.log("[video-call] Call notification sent successfully");
         } else {
-          console.error("[video-call] Video socket not available");
+          console.error("[video-call] Video socket not available after reconnection attempt");
+          // Still open the call popup even if notification fails
+          console.log("[video-call] Opening call popup despite notification failure");
         }
       } catch (error) {
         console.error("Failed to send call notification:", error);

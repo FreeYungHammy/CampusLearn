@@ -21,11 +21,14 @@ export function useVideoSignaling(callId: string | undefined, token: string | un
     console.log("[signal] initializing with centralized manager", { url, hasToken: !!token });
 
     // Initialize socket manager if not already done
-    if (!SocketManager.isSocketConnected()) {
+    if (!SocketManager.isInitialized() || !SocketManager.isSocketConnected()) {
+      console.log("[signal] Initializing socket manager...");
       SocketManager.initialize({
         url: url,
         token: token,
       });
+    } else {
+      console.log("[signal] Socket manager already initialized and connected");
     }
 
     // Get video socket from manager

@@ -404,18 +404,46 @@ export const VideoCallPage: React.FC = () => {
                     const targetUserId = id2;
                     console.log("[video-call] Sending call notification to:", targetUserId);
                     
-                    const videoSocket = SocketManager.getVideoSocket();
-                    if (videoSocket) {
+                    let videoSocket = SocketManager.getVideoSocket();
+                    
+                    // Ensure socket is connected before sending
+                    if (!videoSocket || !videoSocket.connected) {
+                      console.log("[video-call] Video socket not available, attempting to reconnect...");
+                      
+                      // Try to reinitialize the socket manager
+                      const wsUrl = (import.meta.env.VITE_WS_URL as string).replace(/\/$/, "");
+                      SocketManager.initialize({
+                        url: wsUrl,
+                        token: token || "",
+                      });
+                      
+                      // Wait a bit for connection
+                      await new Promise(resolve => setTimeout(resolve, 1000));
+                      
+                      videoSocket = SocketManager.getVideoSocket();
+                    }
+                    
+                    if (videoSocket && videoSocket.connected) {
                       console.log("[video-call] Sending initiate_call via centralized socket");
                       videoSocket.emit("initiate_call", { callId, targetUserId });
                       console.log("[video-call] Call notification sent successfully");
                       setInviteSent(true);
                       setCanResendInvite(true);
                     } else {
-                      console.error("[video-call] Video socket not available");
+                      console.error("[video-call] Video socket not available after reconnection attempt");
+                      setConnectionError({
+                        message: "Unable to send call notification. Please check your connection.",
+                        recoverable: true,
+                        action: "Retry"
+                      });
                     }
                   } catch (error) {
                     console.error("[video-call] Failed to send call notification:", error);
+                    setConnectionError({
+                      message: "Failed to send call notification. Please try again.",
+                      recoverable: true,
+                      action: "Retry"
+                    });
                   }
                 }
               }
@@ -662,7 +690,7 @@ export const VideoCallPage: React.FC = () => {
   }, [pc.pcRef, signaling, transitionToState]);
 
   // Resend invite functionality - only the lexicographic initiator can resend (backend requirement)
-  const handleResendInvite = useCallback(() => {
+  const handleResendInvite = useCallback(async () => {
     if (!callId || !user?.id) {
       console.log("[video-call] Cannot resend invite - missing callId or userId");
       return;
@@ -692,19 +720,53 @@ export const VideoCallPage: React.FC = () => {
       const targetUserId = parts.find(id => id !== user.id);
       
       if (targetUserId) {
-        const videoSocket = SocketManager.getVideoSocket();
-        if (videoSocket) {
+        // Ensure socket is connected before sending
+        let videoSocket = SocketManager.getVideoSocket();
+        
+        if (!videoSocket || !videoSocket.connected) {
+          console.log("[video-call] Video socket not available, attempting to reconnect...");
+          
+          // Try to reinitialize the socket manager
+          const wsUrl = (import.meta.env.VITE_WS_URL as string).replace(/\/$/, "");
+          SocketManager.initialize({
+            url: wsUrl,
+            token: token || "",
+          });
+          
+          // Wait a bit for connection
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          videoSocket = SocketManager.getVideoSocket();
+        }
+        
+        if (videoSocket && videoSocket.connected) {
           console.log("[video-call] Resending invite to:", targetUserId);
           videoSocket.emit("initiate_call", { callId, targetUserId });
           setCanResendInvite(false);
+          setInviteSent(true);
+          
           // Re-enable resend after 10 seconds
           setTimeout(() => setCanResendInvite(true), 10000);
+          
+          console.log("[video-call] Invite resent successfully");
+        } else {
+          console.error("[video-call] Video socket still not available after reconnection attempt");
+          setConnectionError({
+            message: "Unable to send invite. Please check your connection and try again.",
+            recoverable: true,
+            action: "Retry"
+          });
         }
       }
     } catch (error) {
       console.error("[video-call] Failed to resend invite:", error);
+      setConnectionError({
+        message: "Failed to resend invite. Please try again.",
+        recoverable: true,
+        action: "Retry"
+      });
     }
-  }, [callId, user?.id]);
+  }, [callId, user?.id, token]);
 
   const handleCancelWait = useCallback(() => {
     console.log("[video-call] Canceling wait for peer reconnection");
@@ -878,7 +940,8 @@ export const VideoCallPage: React.FC = () => {
           </div>
           {connectionError.recoverable && connectionError.action && (
             <button
-              onClick={callState === 'waiting-for-peer' ? handleCancelWait : handleRetryConnection}
+              onClick={callState === 'waiting-for-peer' ? handleCancelWait : 
+                      connectionError.action === 'Retry' ? handleResendInvite : handleRetryConnection}
               style={{
                 background: "rgba(255,255,255,0.2)",
                 border: "1px solid rgba(255,255,255,0.3)",

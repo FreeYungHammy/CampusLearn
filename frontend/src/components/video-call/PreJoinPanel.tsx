@@ -7,7 +7,7 @@ type Props = {
 };
 
 export const PreJoinPanel: React.FC<Props> = ({ onConfirm, onCancel }) => {
-  const { cameras, mics } = useDevices();
+  const { cameras, mics, isLoading: devicesLoading, error: devicesError, refreshDevices } = useDevices();
   const [audioDeviceId, setAudioDeviceId] = useState<string | undefined>();
   const [videoDeviceId, setVideoDeviceId] = useState<string | undefined>();
   const previewRef = useRef<HTMLVideoElement | null>(null);
@@ -24,20 +24,29 @@ export const PreJoinPanel: React.FC<Props> = ({ onConfirm, onCancel }) => {
         setIsLoading(true);
         setError(null);
         
+        // Wait for devices to be loaded first
+        if (devicesLoading) {
+          console.log('[PreJoinPanel] Waiting for devices to load...');
+          return;
+        }
+        
         // Request both audio and video permissions with proper constraints
         const constraints = {
           audio: {
             echoCancellation: true,
             noiseSuppression: true,
             autoGainControl: true,
+            ...(audioDeviceId && { deviceId: { exact: audioDeviceId } })
           },
           video: {
             width: { min: 640, ideal: 1280 },
             height: { min: 480, ideal: 720 },
             frameRate: { min: 15, ideal: 30 },
+            ...(videoDeviceId && { deviceId: { exact: videoDeviceId } })
           }
         };
         
+        console.log('[PreJoinPanel] Requesting media with constraints:', constraints);
         stream = await navigator.mediaDevices.getUserMedia(constraints);
         
         setLocalStream(stream);
@@ -48,9 +57,11 @@ export const PreJoinPanel: React.FC<Props> = ({ onConfirm, onCancel }) => {
         
         // Auto-select first available devices if not already selected
         if (!audioDeviceId && mics.length > 0) {
+          console.log('[PreJoinPanel] Auto-selecting first microphone:', mics[0].label);
           setAudioDeviceId(mics[0].deviceId);
         }
         if (!videoDeviceId && cameras.length > 0) {
+          console.log('[PreJoinPanel] Auto-selecting first camera:', cameras[0].label);
           setVideoDeviceId(cameras[0].deviceId);
         }
         
@@ -81,7 +92,7 @@ export const PreJoinPanel: React.FC<Props> = ({ onConfirm, onCancel }) => {
         stream.getTracks().forEach((t) => t.stop());
       }
     };
-  }, [mics, cameras]); // Removed problematic dependencies
+  }, [mics, cameras, audioDeviceId, videoDeviceId, devicesLoading]); // Include device dependencies
 
   return (
     <div className="cl-prejoin">
@@ -164,10 +175,27 @@ export const PreJoinPanel: React.FC<Props> = ({ onConfirm, onCancel }) => {
           </div>
         </div>
 
-        {error && (
+        {(error || devicesError) && (
           <div className="cl-error-message">
             <i className="fas fa-exclamation-triangle"></i>
-            {error}
+            {error || devicesError}
+            {devicesError && (
+              <button 
+                onClick={refreshDevices}
+                style={{
+                  marginLeft: '8px',
+                  padding: '4px 8px',
+                  background: 'rgba(255,255,255,0.1)',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  color: 'white',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '12px'
+                }}
+              >
+                Retry
+              </button>
+            )}
           </div>
         )}
 
