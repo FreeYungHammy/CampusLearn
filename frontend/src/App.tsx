@@ -14,6 +14,7 @@ import Upload from "./pages/Upload";
 import TutorContentView from "./pages/Tutors/TutorContentView";
 import Settings from "./pages/Settings";
 import AdminUsers from "./pages/AdminUsers";
+import AdminBills from "./pages/AdminBills";
 import AdminTutorApplications from "./pages/AdminTutorApplications";
 import DatabaseTools from "./pages/DatabaseTools";
 import Bookings from "./pages/Bookings";
@@ -30,9 +31,6 @@ const Messages = React.lazy(() => import("./pages/Messages"));
 import { useInactivityLogout } from "./hooks/useInactivityLogout";
 import { useBackendHealth } from "./hooks/useBackendHealth";
 import { useGlobalSocket } from "./hooks/useGlobalSocket";
-import { useCallNotifications } from "./hooks/useCallNotifications";
-import { SocketManager } from "./services/socketManager";
-import { getWsUrl } from "./config/env";
 
 import { useAuthStore } from "./store/authStore";
 import LogoutConfirmationModal from "./components/LogoutConfirmationModal";
@@ -45,23 +43,11 @@ import { CallNotification } from "./components/CallNotification";
 
 function App() {
   const location = useLocation();
-  const { showLogoutModal, user, token } = useAuthStore();
-  
   useInactivityLogout();
   useBackendHealth();
   useGlobalSocket();
-  useCallNotifications();
 
-  // Initialize SocketManager when user is authenticated
-  React.useEffect(() => {
-    if (token && user) {
-      console.log("[App] Initializing SocketManager with token and user");
-      SocketManager.initialize({
-        url: getWsUrl(),
-        token: token,
-      });
-    }
-  }, [token, user]);
+  const { showLogoutModal, user } = useAuthStore();
   const isCallPopup = location.pathname.startsWith("/call/");
 
   return (
@@ -100,6 +86,7 @@ function App() {
               <Route path="/upload" element={<Upload />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/users" element={<AdminUsers />} />
+              <Route path="/admin/bills" element={<AdminBills />} />
               <Route
                 path="/admin/tutor-applications"
                 element={<AdminTutorApplications />}
@@ -113,7 +100,7 @@ function App() {
         </Routes>
       </Suspense>
 
-      {!location.pathname.startsWith('/call/') && <BotpressChat />}
+      <BotpressChat />
       {showLogoutModal && <LogoutConfirmationModal />}
 
       {/* Call Notifications */}

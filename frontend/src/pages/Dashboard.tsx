@@ -146,7 +146,9 @@ const Dashboard = () => {
   // Transform bookings into calendar events
   const calendarEvents = bookings.map((booking) => ({
     id: booking.id || (booking as any)._id,
-    title: `${booking.student.name} ${booking.student.surname}`,
+    title: user?.role === "student" 
+      ? `${booking.tutor.name} ${booking.tutor.surname}`
+      : `${booking.student.name} ${booking.student.surname}`,
     start: new Date(`${booking.date}T${booking.time}`),
     end: new Date(
       new Date(`${booking.date}T${booking.time}`).getTime() +
