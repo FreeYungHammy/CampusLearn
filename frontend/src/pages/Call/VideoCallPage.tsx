@@ -71,7 +71,7 @@ const attemptIceRestart = async (peerConnection: RTCPeerConnection, signaling: a
 };
 
 // Call state machine
-type CallState = 'idle' | 'initializing' | 'connecting' | 'connected' | 'disconnecting' | 'failed';
+type CallState = 'idle' | 'initializing' | 'connecting' | 'connected' | 'disconnecting' | 'failed' | 'waiting-for-peer';
 
 export const VideoCallPage: React.FC = () => {
   const { callId } = useParams();
@@ -97,6 +97,8 @@ export const VideoCallPage: React.FC = () => {
   const [isInitiator, setIsInitiator] = useState<boolean | null>(null);
   const [makingOffer, setMakingOffer] = useState(false);
   const [callState, setCallState] = useState<CallState>('idle');
+  const [peerDisconnected, setPeerDisconnected] = useState(false);
+  const [waitingForReconnect, setWaitingForReconnect] = useState(false);
 
   // State transition function
   const transitionToState = useCallback((newState: CallState, reason?: string) => {
@@ -108,6 +110,8 @@ export const VideoCallPage: React.FC = () => {
       case 'connected':
         setConnectionError(null);
         setError(null);
+        setPeerDisconnected(false);
+        setWaitingForReconnect(false);
         break;
       case 'failed':
         setConnectionError({
@@ -121,6 +125,15 @@ export const VideoCallPage: React.FC = () => {
           message: "Disconnecting...",
           recoverable: false
         });
+        break;
+      case 'waiting-for-peer':
+        setConnectionError({
+          message: "Waiting for peer to reconnect...",
+          recoverable: true,
+          action: "Cancel Wait"
+        });
+        setPeerDisconnected(true);
+        setWaitingForReconnect(true);
         break;
     }
   }, [callState]);
@@ -481,8 +494,30 @@ export const VideoCallPage: React.FC = () => {
   useEffect(() => {
     if (pc.remoteStream) {
       setRemotePeerJoined(true);
+      setShowDisconnectMessage(false);
+      
+      // If we were waiting for reconnect and peer rejoined, transition to connected
+      if (waitingForReconnect && callState === 'waiting-for-peer') {
+        console.log("[video-call] Peer rejoined, transitioning to connected state");
+        transitionToState('connected', 'Peer rejoined');
+      }
     }
-  }, [pc.remoteStream]);
+  }, [pc.remoteStream, waitingForReconnect, callState, transitionToState]);
+
+  // Handle peer joined event
+  useEffect(() => {
+    signaling.onPeerJoined((payload) => {
+      console.log("[video-call] Peer joined:", payload);
+      setRemotePeerJoined(true);
+      setShowDisconnectMessage(false);
+      
+      // If we were waiting for reconnect and peer rejoined, transition to connected
+      if (waitingForReconnect && callState === 'waiting-for-peer') {
+        console.log("[video-call] Peer rejoined via signaling, transitioning to connected state");
+        transitionToState('connected', 'Peer rejoined via signaling');
+      }
+    });
+  }, [signaling, waitingForReconnect, callState, transitionToState]);
 
   // Set active call ID when component mounts
   useEffect(() => {
@@ -528,21 +563,23 @@ export const VideoCallPage: React.FC = () => {
       // The user might want to rejoin or the peer might reconnect
       const heartbeatKey = `call-heartbeat-${callId}`;
       localStorage.removeItem(heartbeatKey);
-      // Don't clear callId here - let user manually leave or rejoin
       
-      // Auto-close after 2 seconds ONLY if this is a permanent leave
-      // For temporary disconnections, the peer might rejoin
-      setTimeout(() => {
-        // Check if peer has rejoined before closing
-        if (!remotePeerJoined) {
-          console.log("[video-call] Peer hasn't rejoined after 2 seconds, closing window");
+      // Transition to waiting state instead of closing
+      console.log("[video-call] Peer disconnected, entering waiting state");
+      transitionToState('waiting-for-peer', 'Peer disconnected');
+      
+      // Set up a longer timeout for reconnection (30 seconds)
+      const reconnectTimeout = setTimeout(() => {
+        if (!remotePeerJoined && waitingForReconnect) {
+          console.log("[video-call] Peer hasn't rejoined after 30 seconds, closing window");
           window.close();
-        } else {
-          console.log("[video-call] Peer rejoined, keeping window open");
         }
-      }, 2000);
+      }, 30000);
+      
+      // Cleanup timeout on component unmount
+      return () => clearTimeout(reconnectTimeout);
     });
-  }, [signaling, callId, remotePeerJoined]);
+  }, [signaling, callId, remotePeerJoined, waitingForReconnect, transitionToState]);
 
   // Handle peer disconnect events
   useEffect(() => {
@@ -620,6 +657,12 @@ export const VideoCallPage: React.FC = () => {
     }
   }, [pc.pcRef, signaling, transitionToState]);
 
+  const handleCancelWait = useCallback(() => {
+    console.log("[video-call] Canceling wait for peer reconnection");
+    clearActiveCallId();
+    window.close();
+  }, [clearActiveCallId]);
+
   // Removed aggressive focus detection - video calls should run in background
   // Only cleanup on actual window close (beforeunload event)
 
@@ -678,6 +721,7 @@ export const VideoCallPage: React.FC = () => {
                   backgroundColor: callState === 'connected' ? '#10b981' : 
                                  callState === 'connecting' ? '#3b82f6' :
                                  callState === 'initializing' ? '#8b5cf6' :
+                                 callState === 'waiting-for-peer' ? '#f59e0b' :
                                  callState === 'failed' ? '#ef4444' : '#6b7280'
                 }} />
                 <span style={{ fontWeight: 500, color: 'white' }}>
@@ -688,7 +732,8 @@ export const VideoCallPage: React.FC = () => {
                                                 pc.connectionQuality.status === 'good' ? 'Good' :
                                                 pc.connectionQuality.status === 'fair' ? 'Fair' : 'Poor') + ' Connection' :
                    callState === 'disconnecting' ? 'Disconnecting...' :
-                   callState === 'failed' ? 'Connection Failed' : 'Unknown'}
+                   callState === 'failed' ? 'Connection Failed' :
+                   callState === 'waiting-for-peer' ? 'Waiting for Peer...' : 'Unknown'}
                 </span>
               </div>
               
@@ -737,7 +782,7 @@ export const VideoCallPage: React.FC = () => {
           top: 20,
           left: "50%",
           transform: "translateX(-50%)",
-          background: connectionError.recoverable ? "#f59e0b" : "#e74c3c",
+          background: callState === 'waiting-for-peer' ? "#f59e0b" : (connectionError.recoverable ? "#f59e0b" : "#e74c3c"),
           color: "#fff",
           padding: "12px 16px",
           borderRadius: 8,
@@ -752,7 +797,7 @@ export const VideoCallPage: React.FC = () => {
           </div>
           {connectionError.recoverable && connectionError.action && (
             <button
-              onClick={handleRetryConnection}
+              onClick={callState === 'waiting-for-peer' ? handleCancelWait : handleRetryConnection}
               style={{
                 background: "rgba(255,255,255,0.2)",
                 border: "1px solid rgba(255,255,255,0.3)",
@@ -799,11 +844,16 @@ export const VideoCallPage: React.FC = () => {
           zIndex: 1000
         }}>
           <div style={{ fontSize: "18px", fontWeight: "500", marginBottom: "8px" }}>
-            User has disconnected
+            {callState === 'waiting-for-peer' ? 'Peer has disconnected' : 'User has disconnected'}
           </div>
           <div style={{ fontSize: "14px", opacity: 0.7 }}>
-            Closing call window...
+            {callState === 'waiting-for-peer' ? 'Waiting for reconnection...' : 'Closing call window...'}
           </div>
+          {callState === 'waiting-for-peer' && (
+            <div style={{ fontSize: "12px", opacity: 0.5, marginTop: "8px" }}>
+              The call will automatically close if no one rejoins within 30 seconds
+            </div>
+          )}
         </div>
       )}
     </div>

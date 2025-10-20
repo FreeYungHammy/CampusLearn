@@ -1233,42 +1233,72 @@ const Messages: React.FC = () => {
     const otherId = selectedConversation.otherUser._id;
     const callId = [user.id, otherId].sort().join(":");
 
-    // Send call notification to the other user first
-    try {
-      console.log("[video-call] Initiating call notification", {
-        callId,
-        targetUserId: otherId,
-      });
-      
-      // Use centralized SocketManager instead of temporary socket
-      const { SocketManager } = await import("../services/socketManager");
-      
-      // Initialize socket manager if not already done
-      if (!SocketManager.isSocketConnected()) {
-        const SOCKET_BASE_URL = (import.meta.env.VITE_WS_URL as string).replace(/\/$/, "");
-        const token = useAuthStore.getState().token;
-        if (token) {
-          SocketManager.initialize({
-            url: SOCKET_BASE_URL,
-            token: token,
-          });
-        }
-      }
-      
-      const videoSocket = SocketManager.getVideoSocket();
-      if (videoSocket) {
-        console.log("[video-call] Sending initiate_call via centralized socket");
-        videoSocket.emit("initiate_call", { callId, targetUserId: otherId });
-        console.log("[video-call] Call notification sent successfully");
-      } else {
-        console.error("[video-call] Video socket not available");
-      }
-    } catch (error) {
-      console.error("Failed to send call notification:", error);
+    // Check if we're already in a call
+    const { useCallStore } = await import("@/store/callStore");
+    const { activeCallId } = useCallStore.getState();
+    if (activeCallId) {
+      console.log("[video-call] Already in a call, ignoring new call request");
+      return;
     }
 
-    // Open the call popup
-    console.log("[video-call] Call ID:", callId, "Target User:", otherId);
+    // Determine initiator using the same logic as Perfect Negotiation
+    const [id1, id2] = [user.id, otherId].sort();
+    const isInitiator = user.id === id1;
+    
+    console.log("[video-call] Call initiation:", {
+      callId,
+      userId: user.id,
+      otherId,
+      isInitiator,
+      sortedIds: [id1, id2]
+    });
+
+    // Only the initiator sends the call notification and only when feature flag is enabled
+    const enableCallNotifications =
+      (import.meta.env.VITE_ENABLE_VIDEO_CALL_NOTIFICATIONS as string) ===
+      "true";
+    if (enableCallNotifications && isInitiator) {
+      try {
+        console.log("[video-call] Sending call notification as initiator", {
+          callId,
+          targetUserId: otherId,
+        });
+        
+        // Use centralized SocketManager instead of temporary socket
+        const { SocketManager } = await import("../services/socketManager");
+        
+        // Initialize socket manager if not already done
+        if (!SocketManager.isSocketConnected()) {
+          const SOCKET_BASE_URL = (import.meta.env.VITE_WS_URL as string).replace(/\/$/, "");
+          const token = useAuthStore.getState().token;
+          if (token) {
+            SocketManager.initialize({
+              url: SOCKET_BASE_URL,
+              token: token,
+            });
+          }
+        }
+        
+        const videoSocket = SocketManager.getVideoSocket();
+        if (videoSocket) {
+          console.log("[video-call] Sending initiate_call via centralized socket");
+          videoSocket.emit("initiate_call", { callId, targetUserId: otherId });
+          console.log("[video-call] Call notification sent successfully");
+        } else {
+          console.error("[video-call] Video socket not available");
+        }
+      } catch (error) {
+        console.error("Failed to send call notification:", error);
+      }
+    } else {
+      console.log(
+        "[video-call] Skipping call notification",
+        enableCallNotifications ? "not initiator" : "feature disabled",
+      );
+    }
+
+    // Open the call popup for both users
+    console.log("[video-call] Opening call popup:", { callId, userId: user.id, isInitiator });
 
     // Open the call popup with initiator information
     import("@/utils/openCallPopup").then(({ openCallPopup }) => {

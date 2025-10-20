@@ -30,6 +30,9 @@ const connectedUsers = new Map<
   }
 >();
 
+// Track active calls to prevent conflicts
+const activeCalls = new Set<string>();
+
 // Debug helper - remove after testing
 function logConnectedUsers(context: string) {
   console.log(`[${context}] Connected users:`, 
@@ -308,18 +311,40 @@ export function createSocketServer(httpServer: HttpServer) {
       }
       if (!callId) return;
       if (!rateLimit || !rateLimit.allowEvent(socket.id, "video:join")) return;
+      
       socket.join(callId);
+      
+      // Check if there are already participants in the call
+      const roomSockets = await video.in(callId).fetchSockets();
+      const otherParticipants = roomSockets.filter(s => s.id !== socket.id);
+      
+      if (otherParticipants.length > 0) {
+        console.log(`[video] User ${userId} joining existing call ${callId} with ${otherParticipants.length} other participants`);
+        
+        // Notify existing participants that someone joined
+        socket.to(callId).emit("peer_joined", { userId });
+        
+        // Notify the joining user about existing participants
+        for (const participant of otherParticipants) {
+          if (participant.data.user?.id) {
+            socket.emit("peer_joined", { userId: participant.data.user.id });
+          }
+        }
+      } else {
+        console.log(`[video] User ${userId} starting new call ${callId}`);
+      }
+      
       if (userId && presence) {
         await presence.markSocketOnline(userId, socket.id);
         await presence.addMemberToRoom(callId, userId);
       }
+      
       // Persist lifecycle (best-effort, non-blocking on errors)
       try {
         const { CallService } = await import("../realtime/call.service");
         await CallService.startCall(callId, userId || "unknown");
         if (userId) await CallService.joinCall(callId, userId, role || "guest");
       } catch {}
-      socket.to(callId).emit("peer_joined", { userId });
     });
 
     // initiate_call: start a call and notify the other participant
@@ -329,6 +354,23 @@ export function createSocketServer(httpServer: HttpServer) {
       }
       if (!callId || !targetUserId) return;
       if (!rateLimit || !rateLimit.allowEvent(socket.id, "video:initiate")) return;
+      
+      // Validate that the caller is the initiator (lexicographically smaller ID)
+      const [id1, id2] = [userId, targetUserId].sort();
+      if (userId !== id1) {
+        console.log(`[video] User ${userId} is not the initiator for call ${callId}, ignoring initiate_call`);
+        return;
+      }
+      
+      // Check if call is already active
+      if (activeCalls.has(callId)) {
+        console.log(`[video] Call ${callId} is already active, ignoring initiate_call`);
+        return;
+      }
+      
+      // Mark call as active
+      activeCalls.add(callId);
+      console.log(`[video] Call ${callId} marked as active`);
       
       // Find the target user's socket
       const targetUser = connectedUsers.get(targetUserId);
@@ -423,6 +465,16 @@ export function createSocketServer(httpServer: HttpServer) {
       if (userId && presence) {
         await presence.removeMemberFromRoom(callId, userId);
       }
+      
+      // Clean up call state if no one is in the room
+      setTimeout(async () => {
+        const roomSockets = await video.in(callId).fetchSockets();
+        if (roomSockets.length === 0) {
+          activeCalls.delete(callId);
+          console.log(`[video] Call ${callId} cleaned up - no participants`);
+        }
+      }, 1000);
+      
       try {
         if (userId) {
           const { CallService } = await import("../realtime/call.service");
@@ -458,6 +510,19 @@ export function createSocketServer(httpServer: HttpServer) {
         
         if (presence) await presence.markSocketOffline(userId, socket.id);
         logConnectedUsers("video namespace disconnection");
+        
+        // Clean up any active calls this user was part of
+        for (const callId of activeCalls) {
+          try {
+            const roomSockets = await video.in(callId).fetchSockets();
+            if (roomSockets.length === 0) {
+              activeCalls.delete(callId);
+              console.log(`[video] Call ${callId} cleaned up after user disconnect`);
+            }
+          } catch (error) {
+            console.error(`[video] Error cleaning up call ${callId}:`, error);
+          }
+        }
       }
     });
   });
