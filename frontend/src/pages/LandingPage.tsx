@@ -1,6 +1,6 @@
 // LandingPage.tsx
 import React, { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { motion, useScroll, useTransform, useInView } from "framer-motion";
 import anime from "animejs";
 // import { Rive, Layout, Fit, Alignment } from '@rive-app/react-canvas';
@@ -617,10 +617,10 @@ const LandingPage: React.FC = () => {
         <div className="footer-content">
           <div>© 2025 CampusLearn™ - Peer-Powered Learning Platform</div>
           <div className="footer-links">
-            <a href="#">Privacy Policy</a>
-            <a href="#">Terms of Service</a>
-            <a href="#">Contact Us</a>
-            <a href="#">About</a>
+            <Link to="/privacy">Privacy Policy</Link>
+            <Link to="/terms">Terms of Service</Link>
+            <Link to="/contact">Contact Us</Link>
+            <Link to="/about">About</Link>
           </div>
         </div>
       </footer>

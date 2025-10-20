@@ -39,6 +39,10 @@ import BotpressChat from "./components/BotpressChat/BotpressChat";
 
 import { VideoCallPage } from "./pages/Call/VideoCallPage";
 import { CallNotification } from "./components/CallNotification";
+import PrivacyPolicy from "./pages/Legal/PrivacyPolicy";
+import TermsOfService from "./pages/Legal/TermsOfService";
+import ContactUs from "./pages/Legal/ContactUs";
+import About from "./pages/Legal/About";
 
 
 function App() {
@@ -56,6 +60,10 @@ function App() {
         <Routes>
           {/* Public routes */}
           <Route path="/" element={<LandingPage />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/contact" element={<ContactUs />} />
+          <Route path="/about" element={<About />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />

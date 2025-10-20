@@ -167,8 +167,15 @@ export const FileController = {
 
   getBinary: async (req: Request, res: Response, next: NextFunction) => {
     try {
+      console.log(`🚀 DEBUG: getBinary called for file ID: ${req.params.id}`);
+      console.log(`🚀 DEBUG: Request headers:`, req.headers);
+      console.log(`🚀 DEBUG: Query params:`, req.query);
+      
       const item = await FileService.getWithBinary(req.params.id);
-      if (!item) return res.status(404).json({ message: "File not found" });
+      if (!item) {
+        console.log(`❌ DEBUG: File not found for ID: ${req.params.id}`);
+        return res.status(404).json({ message: "File not found" });
+      }
 
       console.log(`📁 Serving file: ${item.title} (${item.contentType})`);
       console.log(`🔗 External URI: ${(item as any).externalUri}`);
@@ -213,17 +220,21 @@ export const FileController = {
               console.log(`✅ Using compressed version: ${compressedUrl}`);
               console.log(`🔗 Generating signed URL for compressed version...`);
               try {
+                console.log(`🔗 DEBUG: Generating signed URL for: ${compressedUrl}`);
                 const signedUrl =
                   await gcsService.getSignedReadUrl(compressedUrl);
                 console.log(
                   `🔗 Generated signed URL: ${signedUrl.substring(0, 100)}...`,
                 );
+                console.log(`🔗 DEBUG: Full signed URL: ${signedUrl}`);
+                console.log(`🔗 DEBUG: Redirecting to signed URL`);
                 return res.redirect(signedUrl);
               } catch (error) {
                 console.error(
                   `❌ Failed to generate signed URL for compressed version:`,
                   error,
                 );
+                console.error(`❌ DEBUG: Error details:`, error);
                 return res.status(500).json({
                   message: "Failed to generate video URL",
                 });
@@ -270,17 +281,21 @@ export const FileController = {
                 `🔗 Generating signed URL for default compressed version...`,
               );
               try {
+                console.log(`🔗 DEBUG: Generating signed URL for default: ${defaultQualityUrl}`);
                 const signedUrl =
                   await gcsService.getSignedReadUrl(defaultQualityUrl);
                 console.log(
                   `🔗 Generated signed URL: ${signedUrl.substring(0, 100)}...`,
                 );
+                console.log(`🔗 DEBUG: Full signed URL: ${signedUrl}`);
+                console.log(`🔗 DEBUG: Redirecting to signed URL`);
                 return res.redirect(signedUrl);
               } catch (error) {
                 console.error(
                   `❌ Failed to generate signed URL for default compressed version:`,
                   error,
                 );
+                console.error(`❌ DEBUG: Error details:`, error);
                 return res.status(500).json({
                   message: "Failed to generate video URL",
                 });

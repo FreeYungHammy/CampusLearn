@@ -25,6 +25,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [optimizedSrc, setOptimizedSrc] = useState(src);
+  const hasTriedFallbackRef = useRef(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [videoDimensions, setVideoDimensions] = useState<{width: number, height: number} | null>(null);
   
@@ -66,7 +67,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     };
   };
 
-  // Detect connection speed and optimize video source
+  // Detect connection speed and optimize video source with graceful fallback
   useEffect(() => {
     const optimizeVideoSource = async () => {
       try {
@@ -81,26 +82,63 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           performanceMonitor.startTracking(fileId, selectedQuality, "manual");
         }
 
-        // Always optimize the URL with quality parameter for better chunking
         if (fileId) {
-          const optimizedUrl = src.replace(
+          const candidateUrl = src.replace(
             "/binary",
             `/binary?quality=${selectedQuality}`,
           );
           console.log(`🔗 Original URL: ${src}`);
-          console.log(`⚡ Optimized URL: ${optimizedUrl}`);
-          setOptimizedSrc(optimizedUrl);
+          console.log(`⚡ Optimized URL: ${candidateUrl}`);
+
+          try {
+            const headResp = await fetch(candidateUrl, {
+              method: "HEAD",
+              headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+              redirect: "manual", // avoid following to cross-origin (e.g., GCS) which can CORS-fail
+            });
+            // Treat redirects as unavailable rendition
+            if (headResp.type === "opaqueredirect" || (headResp.status >= 300 && headResp.status < 400)) {
+              console.warn("Optimized URL redirected cross-origin; using original.");
+              setOptimizedSrc(src);
+              return;
+            }
+            if (headResp.ok) {
+              const contentType = headResp.headers.get("content-type") || "";
+              if (contentType.includes("video") || contentType === "application/octet-stream") {
+                setOptimizedSrc(candidateUrl);
+              } else {
+                console.warn("HEAD non-video content-type; using original.", contentType);
+                setOptimizedSrc(src);
+              }
+            } else {
+              console.warn(`HEAD ${headResp.status} for optimized; using original.`);
+              setOptimizedSrc(src);
+            }
+          } catch (e) {
+            console.warn("HEAD request failed; using original.", e);
+            setOptimizedSrc(src);
+          }
         } else {
           console.log(`📺 No fileId available, using original URL`);
+          setOptimizedSrc(src);
         }
       } catch (error) {
         console.warn("❌ Failed to optimize video source:", error);
-        // Keep original src if optimization fails
+        setOptimizedSrc(src);
       }
     };
 
+    hasTriedFallbackRef.current = false;
     optimizeVideoSource();
-  }, [src, fileId, title, currentQuality]);
+  }, [src, fileId, title, currentQuality, token, compressionStatus]);
+
+  // When compression finishes, clear any stuck loading overlay
+  useEffect(() => {
+    if (!fileId) return;
+    if (compressionStatus !== "compressing" && loading) {
+      setLoading(false);
+    }
+  }, [compressionStatus, fileId, loading]);
 
   // Intersection Observer for lazy loading with aggressive preloading
   useEffect(() => {
@@ -172,7 +210,23 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   };
 
   const handleError = (e: React.SyntheticEvent<HTMLVideoElement, Event>) => {
-    console.error("Video loading error:", e);
+    const video = e.target as HTMLVideoElement;
+    const error = video.error;
+    
+    console.error("🚨 VIDEO ERROR DETAILS:");
+    console.error("  - Event:", e);
+    console.error("  - Video element:", video);
+    console.error("  - Video error:", error);
+    console.error("  - Error code:", error?.code);
+    console.error("  - Error message:", error?.message);
+    console.error("  - Current src:", video.src);
+    console.error("  - Optimized src:", optimizedSrc);
+    console.error("  - Original src:", src);
+    console.error("  - File ID:", fileId);
+    console.error("  - Compression status:", compressionStatus);
+    console.error("  - Has tried fallback:", hasTriedFallbackRef.current);
+    console.error("  - Video network state:", video.networkState);
+    console.error("  - Video ready state:", video.readyState);
     
     // If compression is still in progress, don't show error
     if (compressionStatus === "compressing") {
@@ -180,7 +234,28 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       setLoading(true);
       return;
     }
-    
+
+    // One-time fallback to original stream if optimized variant fails
+    if (!hasTriedFallbackRef.current && optimizedSrc !== src) {
+      console.warn("Optimized stream failed; falling back to original.");
+      hasTriedFallbackRef.current = true;
+      setOptimizedSrc(src);
+      setError(null);
+      setLoading(true);
+      if (videoRef.current) {
+        // Reload video with original src
+        const v = videoRef.current;
+        const currentTime = v.currentTime || 0;
+        // Attempt to preserve progress after switching src
+        requestAnimationFrame(() => {
+          try {
+            v.currentTime = currentTime;
+          } catch {}
+        });
+      }
+      return;
+    }
+
     setError("Failed to load video. Please try again.");
     setLoading(false);
 
@@ -271,30 +346,55 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           controls
           preload="auto"
           playsInline
-          onLoadStart={handleLoadStart}
-          onCanPlay={handleCanPlay}
-          onError={handleError}
-          onClick={handleVideoClick}
-          onPlay={handleVideoPlay}
+                 onLoadStart={handleLoadStart}
+                 onCanPlay={handleCanPlay}
+                 onError={handleError}
+                 onClick={handleVideoClick}
+                 onPlay={handleVideoPlay}
+                 onLoad={(e) => {
+                   const video = e.target as HTMLVideoElement;
+                   console.log("🎬 Video load event:", {
+                     src: video.src,
+                     duration: video.duration,
+                     networkState: video.networkState,
+                     readyState: video.readyState
+                   });
+                 }}
+                 onLoadedData={(e) => {
+                   const video = e.target as HTMLVideoElement;
+                   console.log("📊 Video loaded data:", {
+                     src: video.src,
+                     duration: video.duration,
+                     videoWidth: video.videoWidth,
+                     videoHeight: video.videoHeight,
+                     networkState: video.networkState,
+                     readyState: video.readyState
+                   });
+                 }}
+                 onLoadedMetadata={(e) => {
+                   const video = e.target as HTMLVideoElement;
+                   console.log("📊 Video metadata loaded:", {
+                     src: video.src,
+                     duration: video.duration,
+                     videoWidth: video.videoWidth,
+                     videoHeight: video.videoHeight,
+                     networkState: video.networkState,
+                     readyState: video.readyState
+                   });
+                   if (video.videoWidth && video.videoHeight) {
+                     setVideoDimensions({
+                       width: video.videoWidth,
+                       height: video.videoHeight
+                     });
+                     console.log(`📐 Video dimensions: ${video.videoWidth}x${video.videoHeight}`);
+                   }
+                 }}
           onProgress={(e) => {
             const video = e.target as HTMLVideoElement;
             if (video.buffered.length > 0) {
               console.log(
                 `📊 Video progress: ${video.buffered.end(0)}/${video.duration}`,
               );
-            }
-          }}
-          onLoadedMetadata={(e) => {
-            const video = e.target as HTMLVideoElement;
-            console.log(`📊 Video metadata loaded - ready to play`);
-            
-            // Store video dimensions for reference
-            if (video.videoWidth && video.videoHeight) {
-              setVideoDimensions({
-                width: video.videoWidth,
-                height: video.videoHeight
-              });
-              console.log(`📐 Video dimensions: ${video.videoWidth}x${video.videoHeight}`);
             }
           }}
           style={{
@@ -309,10 +409,13 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
             margin: "0 auto",
           }}
           title={title}
+          crossOrigin="anonymous"
         >
           Your browser does not support the video tag.
         </video>
       )}
+
+      {/* no toast notification */}
 
       {/* Quality Selector - only show when video is visible */}
       {isVisible && !loading && !error && (
