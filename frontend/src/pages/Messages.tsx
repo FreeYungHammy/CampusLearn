@@ -1241,23 +1241,23 @@ const Messages: React.FC = () => {
       return;
     }
 
-    // Determine initiator using the same logic as Perfect Negotiation
+    // Determine initiator using the same logic as backend validation
     const [id1, id2] = [user.id, otherId].sort();
-    const isInitiator = user.id === id1;
+    const isLexicographicInitiator = user.id === id1;
     
     console.log("[video-call] Call initiation:", {
       callId,
       userId: user.id,
       otherId,
-      isInitiator,
+      isLexicographicInitiator,
       sortedIds: [id1, id2]
     });
 
-    // Only the initiator sends the call notification and only when feature flag is enabled
+    // Only the lexicographic initiator can send initiate_call (backend requirement)
     const enableCallNotifications =
       (import.meta.env.VITE_ENABLE_VIDEO_CALL_NOTIFICATIONS as string) ===
       "true";
-    if (enableCallNotifications && isInitiator) {
+    if (enableCallNotifications && isLexicographicInitiator) {
       try {
         console.log("[video-call] Sending call notification as initiator", {
           callId,
@@ -1298,7 +1298,7 @@ const Messages: React.FC = () => {
     }
 
     // Open the call popup for both users
-    console.log("[video-call] Opening call popup:", { callId, userId: user.id, isInitiator });
+    console.log("[video-call] Opening call popup:", { callId, userId: user.id, isLexicographicInitiator });
 
     // Open the call popup with initiator information
     import("@/utils/openCallPopup").then(({ openCallPopup }) => {

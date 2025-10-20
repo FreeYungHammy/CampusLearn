@@ -661,12 +661,34 @@ export const VideoCallPage: React.FC = () => {
     }
   }, [pc.pcRef, signaling, transitionToState]);
 
-  // Resend invite functionality
+  // Resend invite functionality - only the lexicographic initiator can resend (backend requirement)
   const handleResendInvite = useCallback(() => {
-    if (!callId || !user?.id) return;
+    if (!callId || !user?.id) {
+      console.log("[video-call] Cannot resend invite - missing callId or userId");
+      return;
+    }
+    
+    // Check if this user is the lexicographic initiator (same logic as backend validation)
+    const parts = callId.split(":");
+    if (parts.length !== 2) {
+      console.log("[video-call] Invalid callId format");
+      return;
+    }
+    
+    const [id1, id2] = parts.sort();
+    const isLexicographicInitiator = user.id === id1;
+    
+    if (!isLexicographicInitiator) {
+      console.log("[video-call] Cannot resend invite - not lexicographic initiator", { 
+        callId, 
+        userId: user.id, 
+        sortedIds: [id1, id2],
+        isLexicographicInitiator 
+      });
+      return;
+    }
     
     try {
-      const parts = (callId || "").split(":");
       const targetUserId = parts.find(id => id !== user.id);
       
       if (targetUserId) {
@@ -703,7 +725,13 @@ export const VideoCallPage: React.FC = () => {
           </svg>
           <span>CampusLearn</span>
         </div>
-        {inviteSent && canResendInvite && !remotePeerJoined && (
+        {inviteSent && canResendInvite && !remotePeerJoined && (() => {
+          if (!callId || !user?.id) return false;
+          const parts = callId.split(":");
+          if (parts.length !== 2) return false;
+          const [id1, id2] = parts.sort();
+          return user.id === id1; // Only show for lexicographic initiator
+        })() && (
           <button
             onClick={handleResendInvite}
             style={{
