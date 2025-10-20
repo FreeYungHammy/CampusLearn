@@ -92,6 +92,8 @@ export const VideoCallPage: React.FC = () => {
     recoverable: boolean;
     action?: string;
   } | null>(null);
+  const [canResendInvite, setCanResendInvite] = useState(false);
+  const [inviteSent, setInviteSent] = useState(false);
 
   // Perfect Negotiation state
   const [isInitiator, setIsInitiator] = useState<boolean | null>(null);
@@ -407,6 +409,8 @@ export const VideoCallPage: React.FC = () => {
                       console.log("[video-call] Sending initiate_call via centralized socket");
                       videoSocket.emit("initiate_call", { callId, targetUserId });
                       console.log("[video-call] Call notification sent successfully");
+                      setInviteSent(true);
+                      setCanResendInvite(true);
                     } else {
                       console.error("[video-call] Video socket not available");
                     }
@@ -657,6 +661,29 @@ export const VideoCallPage: React.FC = () => {
     }
   }, [pc.pcRef, signaling, transitionToState]);
 
+  // Resend invite functionality
+  const handleResendInvite = useCallback(() => {
+    if (!callId || !user?.id) return;
+    
+    try {
+      const parts = (callId || "").split(":");
+      const targetUserId = parts.find(id => id !== user.id);
+      
+      if (targetUserId) {
+        const videoSocket = SocketManager.getVideoSocket();
+        if (videoSocket) {
+          console.log("[video-call] Resending invite to:", targetUserId);
+          videoSocket.emit("initiate_call", { callId, targetUserId });
+          setCanResendInvite(false);
+          // Re-enable resend after 10 seconds
+          setTimeout(() => setCanResendInvite(true), 10000);
+        }
+      }
+    } catch (error) {
+      console.error("[video-call] Failed to resend invite:", error);
+    }
+  }, [callId, user?.id]);
+
   const handleCancelWait = useCallback(() => {
     console.log("[video-call] Canceling wait for peer reconnection");
     clearActiveCallId();
@@ -676,6 +703,32 @@ export const VideoCallPage: React.FC = () => {
           </svg>
           <span>CampusLearn</span>
         </div>
+        {inviteSent && canResendInvite && !remotePeerJoined && (
+          <button
+            onClick={handleResendInvite}
+            style={{
+              background: "rgba(59, 130, 246, 0.1)",
+              border: "1px solid rgba(59, 130, 246, 0.3)",
+              color: "#3b82f6",
+              padding: "6px 12px",
+              borderRadius: "6px",
+              cursor: "pointer",
+              fontSize: "12px",
+              fontWeight: "500",
+              display: "flex",
+              alignItems: "center",
+              gap: "4px"
+            }}
+            onMouseOver={(e) => e.currentTarget.style.background = "rgba(59, 130, 246, 0.2)"}
+            onMouseOut={(e) => e.currentTarget.style.background = "rgba(59, 130, 246, 0.1)"}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg>
+            Resend Invite
+          </button>
+        )}
       </header>
       <main className="cl-stage">
         {!prejoinDone ? (
