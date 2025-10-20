@@ -381,76 +381,26 @@ export const VideoCallPage: React.FC = () => {
           console.log("[video-call] Signaling connected:", signaling.connected);
           signaling.join(role);
 
-            // Perfect Negotiation: Determine initiator based on user ID comparison
-            // This ensures consistent role assignment without URL parameters
+            // Determine initiator based on URL parameter (actual call initiator)
             if (callId && user?.id) {
-              const parts = callId.split(":");
-              if (parts.length === 2) {
-                // Use lexicographic comparison to determine initiator
-                // This ensures both peers arrive at the same conclusion
-                const [id1, id2] = parts.sort();
-                const initiator = user.id === id1;
-                setIsInitiator(initiator);
-                console.log("[perfect-negotiation] User role determined:", { 
-                  userId: user.id, 
-                  callId, 
-                  isInitiator: initiator,
-                  sortedIds: [id1, id2]
-                });
-                
-                // Send call notification if this is the initiator
-                if (initiator) {
-                  try {
-                    const targetUserId = id2;
-                    console.log("[video-call] Sending call notification to:", targetUserId);
-                    
-                    let videoSocket = SocketManager.getVideoSocket();
-                    
-                    // Ensure socket is connected before sending
-                    if (!videoSocket || !videoSocket.connected) {
-                      console.log("[video-call] Video socket not available, attempting to reconnect...");
-                      
-                      // Try to reinitialize the socket manager
-                      const wsUrl = (import.meta.env.VITE_WS_URL as string).replace(/\/$/, "");
-                      SocketManager.initialize({
-                        url: wsUrl,
-                        token: token || "",
-                      });
-                      
-                      // Wait a bit for connection
-                      await new Promise(resolve => setTimeout(resolve, 1000));
-                      
-                      videoSocket = SocketManager.getVideoSocket();
-                    }
-                    
-                    if (videoSocket && videoSocket.connected) {
-                      console.log("[video-call] Sending initiate_call via centralized socket");
-                      videoSocket.emit("initiate_call", { 
-                        callId, 
-                        targetUserId,
-                        fromUserName: `${user.name || "Unknown"} ${user.surname || "User"}` // Pass fromUserName
-                      });
-                      console.log("[video-call] Call notification sent successfully with user name:", `${user.name || "Unknown"} ${user.surname || "User"}`);
-                      setInviteSent(true);
-                      setCanResendInvite(true);
-                    } else {
-                      console.error("[video-call] Video socket not available after reconnection attempt");
-                      setConnectionError({
-                        message: "Unable to send call notification. Please check your connection.",
-                        recoverable: true,
-                        action: "Retry"
-                      });
-                    }
-                  } catch (error) {
-                    console.error("[video-call] Failed to send call notification:", error);
-                    setConnectionError({
-                      message: "Failed to send call notification. Please try again.",
-                      recoverable: true,
-                      action: "Retry"
-                    });
-                  }
-                }
-              }
+              const urlParams = new URLSearchParams(window.location.search);
+              const isInitiatorParam = urlParams.get('isInitiator');
+              const initiatorId = urlParams.get('initiator');
+              
+              // Determine if this user is the actual initiator
+              const isActualInitiator = isInitiatorParam === 'true' || initiatorId === user.id;
+              setIsInitiator(isActualInitiator);
+              
+              console.log("[perfect-negotiation] User role determined:", { 
+                userId: user.id, 
+                callId, 
+                isInitiator: isActualInitiator,
+                isInitiatorParam,
+                initiatorId,
+                urlParams: Object.fromEntries(urlParams.entries())
+              });
+              
+              // Notification will be sent from PreJoinPanel when user clicks "Join Call"
             }
             
             // Perfect Negotiation: Start negotiation process
@@ -522,9 +472,21 @@ export const VideoCallPage: React.FC = () => {
         setError(e?.message || "Failed to initialize call");
       }
     })();
-    return () => signaling.leave();
+    // Don't call signaling.leave() here as it causes premature disconnection
+    // The leave will be handled by the component unmount cleanup
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [callId, token, prejoinDone, pendingInit]);
+
+  // Cleanup on component unmount
+  useEffect(() => {
+    return () => {
+      console.log("[video-call] Component unmounting, leaving call");
+      signaling.leave();
+      // Reset global call state
+      const { setCallInProgress } = useCallStore.getState();
+      setCallInProgress(false);
+    };
+  }, []); // Empty dependency array means this only runs on mount/unmount
 
   // Monitor remote stream to update remotePeerJoined state
   useEffect(() => {
@@ -812,6 +774,12 @@ export const VideoCallPage: React.FC = () => {
     window.close();
   }, [clearActiveCallId]);
 
+  const handleCallStateChange = useCallback((isInCall: boolean) => {
+    console.log("[video-call] Call state changed:", isInCall);
+    const { setCallInProgress } = useCallStore.getState();
+    setCallInProgress(isInCall);
+  }, []);
+
   // Removed aggressive focus detection - video calls should run in background
   // Only cleanup on actual window close (beforeunload event)
 
@@ -869,6 +837,7 @@ export const VideoCallPage: React.FC = () => {
               setPendingInit(sel);
               setPrejoinDone(true);
             }}
+            onCallStateChange={handleCallStateChange}
           />
         ) : (
           <>

@@ -11,6 +11,7 @@ import { useChatSocket } from "@/hooks/useChatSocket";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { useAuthStore } from "@/store/authStore";
 import { useBookingStore } from "@/store/bookingStore";
+import { useCallStore } from "@/store/callStore";
 import { SocketManager } from "../services/socketManager";
 import { chatApi, type Conversation } from "@/services/chatApi";
 import type { SendMessagePayload, ChatMessage } from "@/types/ChatMessage";
@@ -710,6 +711,7 @@ const Messages: React.FC = () => {
     createBooking,
   } = useBookingStore();
   const { getStatus, isOnline, getLastSeen } = useOnlineStatus();
+  const { isCallInProgress } = useCallStore();
   const location = useLocation();
   const selectedConversationUserId = (location.state as any)
     ?.selectedConversationUserId;
@@ -1230,6 +1232,12 @@ const Messages: React.FC = () => {
       return;
     }
 
+    // Prevent multiple calls
+    if (isCallInProgress) {
+      console.log("[video-call] Video call already in progress, ignoring request");
+      return;
+    }
+
     const otherId = selectedConversation.otherUser._id;
     const otherUserName = `${selectedConversation.otherUser.profile?.name || "Unknown"} ${selectedConversation.otherUser.profile?.surname || "User"}`;
     const callId = [user.id, otherId].sort().join(":");
@@ -1262,84 +1270,17 @@ const Messages: React.FC = () => {
       sortedIds: [id1, id2]
     });
 
-    // Only the lexicographic initiator can send initiate_call (backend requirement)
-    const enableCallNotifications =
-      (import.meta.env.VITE_ENABLE_VIDEO_CALL_NOTIFICATIONS as string) ===
-      "true";
-    if (enableCallNotifications && isLexicographicInitiator) {
-      try {
-        console.log("[video-call] Sending call notification as initiator", {
-          callId,
-          targetUserId: otherId,
-        });
-        
-        // Use centralized SocketManager instead of temporary socket
-        const { SocketManager } = await import("../services/socketManager");
-        
-        // Initialize socket manager if not already done
-        if (!SocketManager.isSocketConnected()) {
-          const SOCKET_BASE_URL = (import.meta.env.VITE_WS_URL as string).replace(/\/$/, "");
-          const token = useAuthStore.getState().token;
-          if (token) {
-            SocketManager.initialize({
-              url: SOCKET_BASE_URL,
-              token: token,
-            });
-            
-            // Wait a bit for connection
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          }
-        }
-        
-        let videoSocket = SocketManager.getVideoSocket();
-        
-        // Double-check socket is available
-        if (!videoSocket || !videoSocket.connected) {
-          console.log("[video-call] Video socket not available, attempting to reconnect...");
-          const SOCKET_BASE_URL = (import.meta.env.VITE_WS_URL as string).replace(/\/$/, "");
-          const token = useAuthStore.getState().token;
-          if (token) {
-            SocketManager.initialize({
-              url: SOCKET_BASE_URL,
-              token: token,
-            });
-            
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            videoSocket = SocketManager.getVideoSocket();
-          }
-        }
-        
-        if (videoSocket && videoSocket.connected) {
-          console.log("[video-call] Sending initiate_call via centralized socket");
-          videoSocket.emit("initiate_call", { 
-            callId, 
-            targetUserId: otherId,
-            fromUserName: `${user.name || "Unknown"} ${user.surname || "User"}` // Pass fromUserName
-          });
-          console.log("[video-call] Call notification sent successfully with user name:", `${user.name || "Unknown"} ${user.surname || "User"}`);
-        } else {
-          console.error("[video-call] Video socket not available after reconnection attempt");
-          // Still open the call popup even if notification fails
-          console.log("[video-call] Opening call popup despite notification failure");
-        }
-      } catch (error) {
-        console.error("Failed to send call notification:", error);
-      }
-    } else {
-      console.log(
-        "[video-call] Skipping call notification",
-        enableCallNotifications ? "not initiator" : "feature disabled",
-      );
-    }
+    // Notification will be sent from PreJoinPanel when user clicks "Join Call"
 
     // Open the call popup for both users
     console.log("[video-call] Opening call popup:", { callId, userId: user.id, isLexicographicInitiator });
 
     // Open the call popup with initiator information
     import("@/utils/openCallPopup").then(({ openCallPopup }) => {
-      openCallPopup(callId, user.id); // Pass the initiator ID
+      openCallPopup(callId, user.id, true); // Pass the initiator ID and true for isInitiator
     });
-  }, [selectedConversation, user?.id]);
+  }, [selectedConversation, user?.id, isCallInProgress]);
+
 
   /* -------- Messages with date separators, profile picture grouping, and timestamp grouping -------- */
   const messagesWithSeparators = useMemo(() => {
@@ -1590,11 +1531,16 @@ const Messages: React.FC = () => {
                   <button
                     className="action-button"
                     aria-label="Video"
+                    disabled={isCallInProgress}
                     onClick={() => {
                       console.log("[video-call] Video call button clicked!");
                       console.log("[video-call] Current selectedConversation at button click:", selectedConversation);
                       console.log("[video-call] Current user at button click:", user);
                       handleStartVideoCall();
+                    }}
+                    style={{
+                      opacity: isCallInProgress ? 0.5 : 1,
+                      cursor: isCallInProgress ? 'not-allowed' : 'pointer'
                     }}
                   >
                     <svg width="16" height="16" fill="none" viewBox="0 0 16 16">

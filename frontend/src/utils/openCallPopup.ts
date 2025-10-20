@@ -1,11 +1,16 @@
-export function openCallPopup(callId: string, initiatorId?: string) {
+export function openCallPopup(callId: string, initiatorId?: string, isInitiator?: boolean) {
   const origin = window.location.origin;
-  const url = initiatorId 
-    ? `${origin}/call/${encodeURIComponent(callId)}?initiator=${encodeURIComponent(initiatorId)}`
-    : `${origin}/call/${encodeURIComponent(callId)}`;
+  const params = new URLSearchParams();
+  if (initiatorId) {
+    params.set('initiator', initiatorId);
+  }
+  if (isInitiator !== undefined) {
+    params.set('isInitiator', isInitiator.toString());
+  }
+  const url = `${origin}/call/${encodeURIComponent(callId)}${params.toString() ? '?' + params.toString() : ''}`;
   const features = [
     "noopener",
-    "noreferrer",
+    "noreferrer", 
     "resizable=yes",
     "menubar=no",
     "toolbar=no",

@@ -97,24 +97,12 @@ export function useCallNotifications() {
   const answerCall = useCallback(() => {
     if (!incomingCall) return;
     
-    // Open the call page
-    const origin = window.location.origin;
-    const url = `${origin}/call/${encodeURIComponent(incomingCall.callId)}`;
-    const features = [
-      "noopener",
-      "noreferrer", 
-      "resizable=yes",
-      "menubar=no",
-      "toolbar=no",
-      "location=no",
-      "status=no",
-      "width=1200",
-      "height=800",
-    ].join(",");
-    
-    window.open(url, "videocall", features);
+    // Open the call page as receiver (NOT initiator)
+    import("@/utils/openCallPopup").then(({ openCallPopup }) => {
+      openCallPopup(incomingCall.callId, user?.id, false); // false = NOT initiator
+    });
     setIncomingCall(null);
-  }, [incomingCall]);
+  }, [incomingCall, user?.id]);
 
   const declineCall = useCallback(() => {
     if (!incomingCall || !socket) return;
