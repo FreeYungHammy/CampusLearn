@@ -28,6 +28,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const hasTriedFallbackRef = useRef(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [videoDimensions, setVideoDimensions] = useState<{width: number, height: number} | null>(null);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   
   // Get compression status from the hook
   const token = useAuthStore((state) => state.token);
@@ -130,7 +131,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
     hasTriedFallbackRef.current = false;
     optimizeVideoSource();
-  }, [src, fileId, title, currentQuality, token, compressionStatus]);
+  }, [src, fileId, title, currentQuality, token]);
 
   // When compression finishes, clear any stuck loading overlay
   useEffect(() => {
@@ -166,11 +167,14 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     console.log(`🎬 Video loading started for: ${title}`);
     setLoading(true);
     setError(null);
+    // Don't reset isVideoPlaying - video is still ready to play, just reloading
   };
 
   const handleCanPlay = () => {
     console.log(`✅ Video can play for: ${title}`);
     setLoading(false);
+    setIsVideoPlaying(true); // Video is ready to play, hide overlay
+    console.log(`🎯 Overlay should now be hidden - video is ready to play`);
 
     // Record performance metrics
     if (fileId) {
@@ -207,6 +211,13 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   const handleVideoPlay = () => {
     console.log(`▶️ User started playing video`);
+    setIsVideoPlaying(true);
+  };
+
+  const handleVideoPause = () => {
+    console.log(`⏸️ User paused video`);
+    // Don't set isVideoPlaying to false - video is still ready to play
+    // The overlay should only show during initial loading/compression, not when paused
   };
 
   const handleError = (e: React.SyntheticEvent<HTMLVideoElement, Event>) => {
@@ -302,8 +313,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         </div>
       )}
 
-      {/* Show compression overlay when compressing */}
-      {isVisible && compressionStatus === "compressing" && (
+      {/* Show compression overlay when compressing AND video is not playing AND not loading */}
+      {isVisible && compressionStatus === "compressing" && !isVideoPlaying && !loading && (
         <div className="video-loading-overlay">
           <div className="loading-spinner">
             <div className="spinner"></div>
@@ -351,6 +362,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
                  onError={handleError}
                  onClick={handleVideoClick}
                  onPlay={handleVideoPlay}
+                 onPause={handleVideoPause}
                  onLoad={(e) => {
                    const video = e.target as HTMLVideoElement;
                    console.log("🎬 Video load event:", {

@@ -5,6 +5,8 @@ import { createLogger } from "../../config/logger";
 import zlib from "zlib";
 import { promisify } from "util";
 import { gcsService } from "../../services/gcs.service";
+import { validateVideoSignature, validateFileSize, sanitizeFilename } from "../../utils/fileValidation";
+import { env } from "../../config/env";
 
 const gzip = promisify(zlib.gzip);
 const gunzip = promisify(zlib.gunzip);
@@ -27,6 +29,24 @@ export const FileService = {
 
     const contentType = input.file?.mimetype || "application/octet-stream";
 
+    // Validate file size
+    if (!validateFileSize(input.file.buffer, env.maxFileSize)) {
+      throw new Error(`File size exceeds maximum allowed size of ${env.maxFileSize / (1024 * 1024)}MB`);
+    }
+
+    // Validate content type for videos
+    if (contentType.startsWith("video/")) {
+      const allowedVideoTypes = ["video/mp4", "video/avi", "video/mov", "video/wmv", "video/flv", "video/webm"];
+      if (!allowedVideoTypes.includes(contentType)) {
+        throw new Error(`Unsupported video format: ${contentType}`);
+      }
+
+      // Validate file signature for videos
+      if (!validateVideoSignature(input.file.buffer, contentType)) {
+        throw new Error(`Invalid video file signature for ${contentType}`);
+      }
+    }
+
     let compressedContent: Buffer | undefined;
     let externalUri: string | undefined;
 
@@ -43,7 +63,10 @@ export const FileService = {
     };
 
     if (gcsService.isEnabled() && contentType.startsWith("video/")) {
-      const safeName = `${Date.now()}-${(input.file.originalname || "upload").replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+      // Enhanced filename sanitization using utility
+      const timestamp = Date.now();
+      const sanitizedName = sanitizeFilename(input.file.originalname || "upload");
+      const safeName = `${timestamp}-${sanitizedName}`;
       const destination = `uploads/videos/${safeName}`;
 
       // Upload original video first - try both methods
@@ -99,10 +122,20 @@ export const FileService = {
           .then(async () => {
             logger.info(`✅ Compression completed for: ${destination}`);
 
-            // Delete original video after successful compression
+            // Only delete original if compressed versions are available
             try {
-              await gcsService.deleteObject(destination);
-              logger.info(`🗑️ Deleted original video: ${destination}`);
+              const { VideoCompressionService } = await import(
+                "../../services/video-compression.service"
+              );
+              const compressedVersions = await VideoCompressionService.findAllCompressedVersions(destination);
+              
+              if (compressedVersions.length > 0) {
+                logger.info(`✅ Found ${compressedVersions.length} compressed versions, deleting original: ${destination}`);
+                await gcsService.deleteObject(destination);
+                logger.info(`🗑️ Deleted original video: ${destination}`);
+              } else {
+                logger.warn(`⚠️ No compressed versions found, keeping original: ${destination}`);
+              }
             } catch (error) {
               logger.warn(
                 `⚠️ Failed to delete original video ${destination}:`,

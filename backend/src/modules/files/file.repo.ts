@@ -29,11 +29,21 @@ export const FileRepo = {
   },
 
   findById(id: string) {
+    // Validate ObjectId format before querying
+    if (!Types.ObjectId.isValid(id)) {
+      logger.warn(`Invalid ObjectId format: ${id}`);
+      return null;
+    }
     return FileModel.findById(id).lean<FileDoc | null>();
   },
 
   // When you need the binary
   findByIdWithContent(id: string) {
+    // Validate ObjectId format before querying
+    if (!Types.ObjectId.isValid(id)) {
+      logger.warn(`Invalid ObjectId format: ${id}`);
+      return null;
+    }
     return FileModel.findById(id).select("+content");
   },
 

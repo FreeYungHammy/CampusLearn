@@ -95,6 +95,12 @@ export const gcsService = {
     return Boolean(env.gcsBucket);
   },
 
+  getBucket() {
+    if (!env.gcsBucket) throw new Error("GCS bucket not configured");
+    const client = getStorage();
+    return client.bucket(env.gcsBucket);
+  },
+
   async uploadBuffer(
     buffer: Buffer,
     contentType: string,
@@ -179,23 +185,8 @@ export const gcsService = {
   },
 
   async getSignedReadUrl(objectName: string): Promise<string> {
-    // Import CacheService dynamically to avoid circular dependencies
-    const { CacheService } = await import("../services/cache.service");
-
-    const cacheKey = `gcs:signed-url:${objectName}`;
-
-    // TEMPORARY: Disable caching to fix expired URL issue
-    // Try to get from cache first
-    try {
-      const cached = await CacheService.get(cacheKey);
-      if (cached && typeof cached === "string") {
-        console.log(`GCS: Using cached signed URL for ${objectName}`);
-        // TEMPORARY: Always generate new URL to avoid expired cache
-        // return cached;
-      }
-    } catch (error) {
-      console.warn(`GCS: Cache miss for ${objectName}:`, error);
-    }
+    // TEMPORARY: Disable caching completely to fix expired URL issue
+    console.log(`GCS: Generating fresh signed URL for ${objectName} (caching disabled)`);
 
     const client = getStorage();
     const { bucket, objectPath } = parseBucketAndObject(objectName);
@@ -210,15 +201,8 @@ export const gcsService = {
       expires: Date.now() + env.gcsSignedUrlTtlSeconds * 1000,
     });
 
-    // TEMPORARY: Disable caching to fix expired URL issue
-    // Cache the URL for 50 minutes (10 minutes before expiry)
-    try {
-      // await CacheService.set(cacheKey, url, 3000); // 50 minutes
-      console.log(`GCS: Generated fresh signed URL for ${objectName} (caching disabled)`);
-      console.log(`GCS: Full signed URL: ${url}`);
-    } catch (error) {
-      console.warn(`GCS: Failed to cache signed URL for ${objectName}:`, error);
-    }
+    console.log(`GCS: Generated fresh signed URL for ${objectName}`);
+    console.log(`GCS: Full signed URL: ${url}`);
 
     return url;
   },

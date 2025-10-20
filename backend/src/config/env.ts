@@ -76,5 +76,17 @@ export const env = {
     "http://localhost:5173",
     "http://localhost:8080",
     "https://campuslearn.onrender.com",
+    "https://www.campuslearn-api.run.place",
+    "https://campuslearn-api.run.place",
   ],
+  
+  // Security Configuration
+  maxFileSize: Number(process.env.MAX_FILE_SIZE ?? 500 * 1024 * 1024), // 500MB
+  allowedOrigins: process.env.ALLOWED_ORIGINS?.split(',') ?? [],
+  enableRateLimit: process.env.ENABLE_RATE_LIMIT === 'true',
+  logLevel: process.env.LOG_LEVEL ?? 'info',
+  
+  // Rate limiting configuration
+  uploadRateLimitWindowMs: Number(process.env.UPLOAD_RATE_LIMIT_WINDOW_MS ?? 15 * 60 * 1000), // 15 minutes
+  uploadRateLimitMax: Number(process.env.UPLOAD_RATE_LIMIT_MAX ?? 5), // 5 uploads per window
 };

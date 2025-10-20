@@ -3,8 +3,42 @@ import { FileService } from "./file.service";
 import multer from "multer";
 import { AuthedRequest } from "../../auth/auth.middleware";
 import mime from "mime-types";
+import fetch from "node-fetch";
+import { createLogger } from "../../config/logger";
 
 const upload = multer({ storage: multer.memoryStorage() });
+const logger = createLogger("FileController");
+
+/**
+ * Verifies if the authenticated user has access to the requested file
+ * @param userId Authenticated user ID
+ * @param fileId File ID to check access for
+ * @returns Promise<boolean> true if user has access
+ */
+async function verifyFileAccess(userId: string, fileId: string): Promise<boolean> {
+  try {
+    const file = await FileService.getMeta(fileId);
+    if (!file) {
+      logger.warn(`File not found: ${fileId}`);
+      return false;
+    }
+
+    // Check if user is the owner of the file
+    const isOwner = await FileService.isOwner(userId, file.tutorId.toString());
+    if (isOwner) {
+      logger.info(`User ${userId} has owner access to file ${fileId}`);
+      return true;
+    }
+
+    // For now, allow all authenticated users to access files
+    // In the future, you might want to implement more granular permissions
+    logger.info(`User ${userId} has general access to file ${fileId}`);
+    return true;
+  } catch (error) {
+    logger.error(`Error verifying file access for user ${userId}, file ${fileId}:`, error);
+    return false;
+  }
+}
 
 // Range request handler for video streaming
 async function handleRangeRequest(
@@ -15,19 +49,10 @@ async function handleRangeRequest(
   isOriginalVideo: boolean = false,
 ) {
   try {
-    console.log(`🎥 Range request for: ${objectName}`);
-    console.log(`📊 Range header: ${req.headers.range}`);
-
     const { gcsService } = await import("../../services/gcs.service");
-    const { Storage } = await import("@google-cloud/storage");
-    const { env } = await import("../../config/env");
-
-    const storage = new Storage({
-      projectId: env.gcsProjectId,
-      credentials: env.gcsKeyJson ? JSON.parse(env.gcsKeyJson) : undefined,
-    });
-
-    const bucket = storage.bucket(env.gcsBucket);
+    
+    // Use the existing authenticated GCS service instead of creating a new instance
+    const bucket = gcsService.getBucket();
     const file = bucket.file(objectName);
 
     // Get file metadata
@@ -45,19 +70,14 @@ async function handleRangeRequest(
     const start = parseInt(parts[0], 10);
     let end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
 
-    // MINIMAL chunk optimization - let browser handle most buffering
-    // Only limit extremely large chunks to prevent memory issues
-    if (end - start > 2097152) {
-      // 2MB = 2 * 1024 * 1024
-      console.log(`⚡ Limiting chunk size to 2MB (was ${end - start} bytes)`);
-      end = start + 2097151; // 2MB - 1 byte
+    // Limit chunk size to prevent memory issues
+    if (end - start > 2097152) { // 2MB
+      end = start + 2097151;
     }
 
     // For initial requests, allow larger chunks for better buffering
-    if (start === 0 && end > 1048576) {
-      // 1MB = 1024 * 1024
-      console.log(`⚡ Initial chunk limited to 1MB (was ${end} bytes)`);
-      end = 1048575; // 1MB - 1 byte
+    if (start === 0 && end > 1048576) { // 1MB
+      end = 1048575;
     }
 
     // Validate range
@@ -74,17 +94,17 @@ async function handleRangeRequest(
     res.setHeader("Accept-Ranges", "bytes");
     res.setHeader("Content-Length", chunkSize);
     res.setHeader("Content-Type", contentType);
-    res.setHeader("Cache-Control", "public, max-age=3600, immutable"); // 1 hour cache
-    res.setHeader("ETag", `"${objectName}-${start}-${end}"`); // Unique ETag for range
-    res.setHeader("Vary", "Range"); // Important for proper caching
-    res.setHeader("Connection", "keep-alive"); // Keep connection alive for better streaming
+    res.setHeader("Cache-Control", "public, max-age=3600, immutable");
+    res.setHeader("ETag", `"${objectName}-${start}-${end}"`);
+    res.setHeader("Vary", "Range");
+    res.setHeader("Connection", "keep-alive");
 
     // Stream the range from GCS
     const stream = file.createReadStream({ start, end });
     stream.pipe(res);
 
     stream.on("error", (error) => {
-      console.error("Stream error:", error);
+      console.error("Video stream error:", error.message);
       if (!res.headersSent) {
         res.status(500).send("Stream error");
       }
@@ -155,8 +175,18 @@ export const FileController = {
     }
   },
 
-  getMeta: async (req: Request, res: Response, next: NextFunction) => {
+  getMeta: async (req: AuthedRequest, res: Response, next: NextFunction) => {
     try {
+      // Verify user has access to this file
+      if (!req.user?.id) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const hasAccess = await verifyFileAccess(req.user.id, req.params.id);
+      if (!hasAccess) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
       const item = await FileService.getMeta(req.params.id);
       if (!item) return res.status(404).json({ message: "File not found" });
       res.json(item);
@@ -165,22 +195,27 @@ export const FileController = {
     }
   },
 
-  getBinary: async (req: Request, res: Response, next: NextFunction) => {
+  getBinary: async (req: AuthedRequest, res: Response, next: NextFunction) => {
     try {
-      console.log(`🚀 DEBUG: getBinary called for file ID: ${req.params.id}`);
-      console.log(`🚀 DEBUG: Request headers:`, req.headers);
-      console.log(`🚀 DEBUG: Query params:`, req.query);
+      // Verify user has access to this file
+      if (!req.user?.id) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const hasAccess = await verifyFileAccess(req.user.id, req.params.id);
+      if (!hasAccess) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Set CORS headers for video requests
+      res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+      res.header('Access-Control-Allow-Credentials', 'true');
+      res.header('Access-Control-Expose-Headers', 'Content-Range, Accept-Ranges, Content-Length');
       
       const item = await FileService.getWithBinary(req.params.id);
       if (!item) {
-        console.log(`❌ DEBUG: File not found for ID: ${req.params.id}`);
         return res.status(404).json({ message: "File not found" });
       }
-
-      console.log(`📁 Serving file: ${item.title} (${item.contentType})`);
-      console.log(`🔗 External URI: ${(item as any).externalUri}`);
-      console.log(`📊 Range header: ${req.headers.range}`);
-      console.log(`🎯 Quality param: ${req.query.quality}`);
 
       // If file is stored in GCS, redirect directly to signed URL
       if ((item as any).externalUri) {
@@ -228,7 +263,71 @@ export const FileController = {
                 );
                 console.log(`🔗 DEBUG: Full signed URL: ${signedUrl}`);
                 console.log(`🔗 DEBUG: Redirecting to signed URL`);
-                return res.redirect(signedUrl);
+                console.log(`🔗 DEBUG: Proxying video content instead of redirecting`);
+                // Instead of redirecting, proxy the video content to avoid CORS issues
+                try {
+                  // Prepare headers for the fetch request
+                  const fetchHeaders: any = {};
+                  if (req.headers.range) {
+                    fetchHeaders['Range'] = req.headers.range;
+                  }
+                  
+                  console.log(`🔗 Fetching signed URL with headers:`, fetchHeaders);
+                  const response = await fetch(signedUrl, { headers: fetchHeaders });
+                  
+                  if (!response.ok) {
+                    throw new Error(`Failed to fetch video: ${response.status} ${response.statusText}`);
+                  }
+                  
+                  console.log(`🔗 Response status: ${response.status}`);
+                  console.log(`🔗 Response headers:`, Object.fromEntries(response.headers.entries()));
+                  
+                  // Set appropriate headers for video streaming
+                  const responseHeaders: any = {
+                    'Content-Type': response.headers.get('content-type') || item.contentType,
+                    'Accept-Ranges': 'bytes',
+                    'Cache-Control': 'public, max-age=3600',
+                    'Access-Control-Allow-Origin': req.headers.origin || '*',
+                    'Access-Control-Allow-Credentials': 'true',
+                    'Access-Control-Expose-Headers': 'Content-Range, Accept-Ranges, Content-Length'
+                  };
+                  
+                  // Copy content-length and content-range from the response
+                  const contentLength = response.headers.get('content-length');
+                  if (contentLength) {
+                    responseHeaders['Content-Length'] = contentLength;
+                  }
+                  
+                  const contentRange = response.headers.get('content-range');
+                  if (contentRange) {
+                    responseHeaders['Content-Range'] = contentRange;
+                  }
+                  
+                  // Set status code
+                  if (response.status === 206) {
+                    res.status(206);
+                  } else {
+                    res.status(200);
+                  }
+                  
+                  res.set(responseHeaders);
+                  
+                  console.log(`🔗 Streaming video content...`);
+                  
+                  // Stream the video content
+                  if (response.body) {
+                    response.body.pipe(res);
+                  } else {
+                    throw new Error('No response body available');
+                  }
+                  return;
+                } catch (proxyError) {
+                  console.error(`❌ Failed to proxy video content:`, proxyError);
+                  return res.status(500).json({
+                    message: "Failed to stream video content",
+                    error: String(proxyError)
+                  });
+                }
               } catch (error) {
                 console.error(
                   `❌ Failed to generate signed URL for compressed version:`,
@@ -273,15 +372,15 @@ export const FileController = {
                 "480p", // Default to 480p
               );
 
-            if (defaultQualityUrl && defaultQualityUrl !== objectName) {
+            if (defaultQualityUrl) {
               console.log(
-                `✅ Using default compressed version: ${defaultQualityUrl}`,
+                `✅ Using video version: ${defaultQualityUrl}`,
               );
               console.log(
-                `🔗 Generating signed URL for default compressed version...`,
+                `🔗 Generating signed URL for video...`,
               );
               try {
-                console.log(`🔗 DEBUG: Generating signed URL for default: ${defaultQualityUrl}`);
+                console.log(`🔗 DEBUG: Generating signed URL for: ${defaultQualityUrl}`);
                 const signedUrl =
                   await gcsService.getSignedReadUrl(defaultQualityUrl);
                 console.log(
@@ -289,7 +388,71 @@ export const FileController = {
                 );
                 console.log(`🔗 DEBUG: Full signed URL: ${signedUrl}`);
                 console.log(`🔗 DEBUG: Redirecting to signed URL`);
-                return res.redirect(signedUrl);
+                console.log(`🔗 DEBUG: Proxying video content instead of redirecting`);
+                // Instead of redirecting, proxy the video content to avoid CORS issues
+                try {
+                  // Prepare headers for the fetch request
+                  const fetchHeaders: any = {};
+                  if (req.headers.range) {
+                    fetchHeaders['Range'] = req.headers.range;
+                  }
+                  
+                  console.log(`🔗 Fetching signed URL with headers:`, fetchHeaders);
+                  const response = await fetch(signedUrl, { headers: fetchHeaders });
+                  
+                  if (!response.ok) {
+                    throw new Error(`Failed to fetch video: ${response.status} ${response.statusText}`);
+                  }
+                  
+                  console.log(`🔗 Response status: ${response.status}`);
+                  console.log(`🔗 Response headers:`, Object.fromEntries(response.headers.entries()));
+                  
+                  // Set appropriate headers for video streaming
+                  const responseHeaders: any = {
+                    'Content-Type': response.headers.get('content-type') || item.contentType,
+                    'Accept-Ranges': 'bytes',
+                    'Cache-Control': 'public, max-age=3600',
+                    'Access-Control-Allow-Origin': req.headers.origin || '*',
+                    'Access-Control-Allow-Credentials': 'true',
+                    'Access-Control-Expose-Headers': 'Content-Range, Accept-Ranges, Content-Length'
+                  };
+                  
+                  // Copy content-length and content-range from the response
+                  const contentLength = response.headers.get('content-length');
+                  if (contentLength) {
+                    responseHeaders['Content-Length'] = contentLength;
+                  }
+                  
+                  const contentRange = response.headers.get('content-range');
+                  if (contentRange) {
+                    responseHeaders['Content-Range'] = contentRange;
+                  }
+                  
+                  // Set status code
+                  if (response.status === 206) {
+                    res.status(206);
+                  } else {
+                    res.status(200);
+                  }
+                  
+                  res.set(responseHeaders);
+                  
+                  console.log(`🔗 Streaming video content...`);
+                  
+                  // Stream the video content
+                  if (response.body) {
+                    response.body.pipe(res);
+                  } else {
+                    throw new Error('No response body available');
+                  }
+                  return;
+                } catch (proxyError) {
+                  console.error(`❌ Failed to proxy video content:`, proxyError);
+                  return res.status(500).json({
+                    message: "Failed to stream video content",
+                    error: String(proxyError)
+                  });
+                }
               } catch (error) {
                 console.error(
                   `❌ Failed to generate signed URL for default compressed version:`,
@@ -301,10 +464,9 @@ export const FileController = {
                 });
               }
             } else {
-              console.log(`⚠️ No compressed versions available, returning 404`);
+              console.log(`⚠️ No video URL available`);
               return res.status(404).json({
-                message:
-                  "Video not available. Original may have been compressed and deleted.",
+                message: "Video not available.",
               });
             }
           } catch (error) {
