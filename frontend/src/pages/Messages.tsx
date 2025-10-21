@@ -11,6 +11,7 @@ import { useChatSocket } from "@/hooks/useChatSocket";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { useAuthStore } from "@/store/authStore";
 import { useBookingStore } from "@/store/bookingStore";
+import { useCallStore } from "@/store/callStore";
 import { SocketManager } from "../services/socketManager";
 import { chatApi, type Conversation } from "@/services/chatApi";
 import type { SendMessagePayload, ChatMessage } from "@/types/ChatMessage";
@@ -695,8 +696,10 @@ const Messages: React.FC = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState("");
+  const [nowTs, setNowTs] = useState<number>(() => Date.now());
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const currentRoomRef = useRef<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -710,6 +713,7 @@ const Messages: React.FC = () => {
     createBooking,
   } = useBookingStore();
   const { getStatus, isOnline, getLastSeen } = useOnlineStatus();
+  const { isCallInProgress } = useCallStore();
   const location = useLocation();
   const selectedConversationUserId = (location.state as any)
     ?.selectedConversationUserId;
@@ -857,6 +861,12 @@ const Messages: React.FC = () => {
     [chatId, selectedConversation, user?.id],
   );
 
+  // Tick clock so time-based UI like edit window updates automatically
+  useEffect(() => {
+    const id = setInterval(() => setNowTs(Date.now()), 30000); // update every 30s
+    return () => clearInterval(id);
+  }, []);
+
   const handleUserStatusChange = useCallback(
     (userId: string, status: "online" | "offline", lastSeen: Date) => {
       console.log(
@@ -894,8 +904,23 @@ const Messages: React.FC = () => {
             : msg,
         ),
       );
+
+      // Also update the sidebar snippet for the active conversation
+      setConversations((prev) =>
+        prev.map((c) =>
+          selectedConversation && c._id === selectedConversation._id
+            ? {
+                ...c,
+                lastMessage: {
+                  ...c.lastMessage,
+                  content: data.content,
+                },
+              }
+            : c,
+        ),
+      );
     },
-    [],
+    [selectedConversation?._id],
   );
 
   const handleChatCleared = useCallback(
@@ -940,17 +965,24 @@ const Messages: React.FC = () => {
         );
         if (!ac.signal.aborted) {
           setConversations(sorted);
-          if (selectedConversationUserId) {
-            const preSelected = sorted.find(
-              (conv) => conv.otherUser._id === selectedConversationUserId,
-            );
-            if (preSelected) {
-              setSelectedConversation(preSelected);
+          const isMobile = window.innerWidth < 850;
+          if (!isMobile) {
+            if (selectedConversationUserId) {
+              const preSelected = sorted.find(
+                (conv) => conv.otherUser._id === selectedConversationUserId,
+              );
+              if (preSelected) {
+                setSelectedConversation(preSelected);
+              } else if (sorted.length > 0) {
+                setSelectedConversation((s) => s ?? sorted[0]);
+              }
             } else if (sorted.length > 0) {
               setSelectedConversation((s) => s ?? sorted[0]);
             }
-          } else if (sorted.length > 0) {
-            setSelectedConversation((s) => s ?? sorted[0]);
+          } else {
+            // On first mobile load, ensure the sidebar is shown first
+            setSelectedConversation(null);
+            setShowMobileChat(false);
           }
           setError(null);
         }
@@ -1038,7 +1070,18 @@ const Messages: React.FC = () => {
 
   /* -------- Auto-scroll on new messages -------- */
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTo({
+        top: chatScrollRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+    } else {
+      // Fallback if ref not available yet
+      messagesEndRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "end",
+      });
+    }
   }, [messages]);
 
   /* -------- Mark messages as seen -------- */
@@ -1183,17 +1226,43 @@ const Messages: React.FC = () => {
     if (!editingMessageId || !token || !editingContent.trim()) return;
 
     try {
-      // TODO: Call backend API to update message
-      // await chatApi.updateMessage(editingMessageId, editingContent, token);
+      // Call backend API to update message
+      const updatedMessage = await chatApi.updateMessage(
+        editingMessageId,
+        editingContent,
+        token,
+      );
 
-      // Update local state for now
+      // Update local state with the response from the server
       setMessages((prevMessages) =>
         prevMessages.map((msg) =>
           msg._id === editingMessageId
-            ? { ...msg, content: editingContent, isEdited: true }
+            ? {
+                ...msg,
+                content: updatedMessage.content,
+                isEdited: updatedMessage.isEdited,
+                editedAt: updatedMessage.editedAt,
+              }
             : msg,
         ),
       );
+
+      // Reflect the edit in the left-hand conversation list immediately
+      if (selectedConversation) {
+        setConversations((prev) =>
+          prev.map((c) =>
+            c._id === selectedConversation._id
+              ? {
+                  ...c,
+                  lastMessage: {
+                    ...c.lastMessage,
+                    content: updatedMessage.content,
+                  },
+                }
+              : c,
+          ),
+        );
+      }
 
       handleCancelEdit();
     } catch (error) {
@@ -1215,8 +1284,8 @@ const Messages: React.FC = () => {
 
   const handleStartVideoCall = useCallback(async () => {
     console.log("[video-call] handleStartVideoCall called!");
-    console.log("[video-call] selectedConversation:", !!selectedConversation);
-    console.log("[video-call] user:", !!user);
+    console.log("[video-call] selectedConversation:", selectedConversation);
+    console.log("[video-call] user:", user);
 
     if (!selectedConversation || !user?.id) {
       console.log(
@@ -1225,60 +1294,55 @@ const Messages: React.FC = () => {
       return;
     }
 
-    const otherId = selectedConversation.otherUser._id;
-    const callId = [user.id, otherId].sort().join(":");
-
-    // Send call notification to the other user first
-    try {
-      console.log("[video-call] Initiating call notification", {
-        callId,
-        targetUserId: otherId,
-      });
-      const { io } = await import("socket.io-client");
-      const SOCKET_BASE_URL = (import.meta.env.VITE_WS_URL as string).replace(
-        /\/$/,
-        "",
-      );
-      const url = SOCKET_BASE_URL.replace(/^http/, "ws");
-      const token = useAuthStore.getState().token;
-
-      if (token) {
-        console.log("[video-call] Creating temporary socket connection");
-        const tempSocket = io(`${url}/video`, {
-          auth: { token },
-          transports: ["websocket", "polling"],
-        });
-        tempSocket.on("connect", () => {
-          console.log(
-            "[video-call] Temporary socket connected, sending initiate_call",
-          );
-          tempSocket.emit("initiate_call", { callId, targetUserId: otherId });
-          setTimeout(() => {
-            console.log("[video-call] Disconnecting temporary socket");
-            tempSocket.disconnect();
-          }, 1000); // Clean up after sending
-        });
-        tempSocket.on("connect_error", (error) => {
-          console.error(
-            "[video-call] Temporary socket connection error:",
-            error,
-          );
-        });
-      } else {
-        console.warn("[video-call] No token available for call notification");
-      }
-    } catch (error) {
-      console.error("Failed to send call notification:", error);
+    // Prevent multiple calls
+    if (isCallInProgress) {
+      console.log("[video-call] Video call already in progress, ignoring request");
+      return;
     }
 
-    // Open the call popup
-    console.log("[video-call] Call ID:", callId, "Target User:", otherId);
+    const otherId = selectedConversation.otherUser._id;
+    const otherUserName = `${selectedConversation.otherUser.profile?.name || "Unknown"} ${selectedConversation.otherUser.profile?.surname || "User"}`;
+    const callId = [user.id, otherId].sort().join(":");
+    
+    console.log("[video-call] Call details:", {
+      callId,
+      userId: user.id,
+      otherId,
+      otherUserName,
+      selectedConversationId: selectedConversation._id
+    });
+
+    // Check if we're already in a call
+    const { useCallStore } = await import("@/store/callStore");
+    const { activeCallId } = useCallStore.getState();
+    if (activeCallId) {
+      console.log("[video-call] Already in a call, ignoring new call request");
+      return;
+    }
+
+    // Determine initiator using the same logic as backend validation
+    const [id1, id2] = [user.id, otherId].sort();
+    const isLexicographicInitiator = user.id === id1;
+    
+    console.log("[video-call] Call initiation:", {
+      callId,
+      userId: user.id,
+      otherId,
+      isLexicographicInitiator,
+      sortedIds: [id1, id2]
+    });
+
+    // Notification will be sent from PreJoinPanel when user clicks "Join Call"
+
+    // Open the call popup for both users
+    console.log("[video-call] Opening call popup:", { callId, userId: user.id, isLexicographicInitiator });
 
     // Open the call popup with initiator information
     import("@/utils/openCallPopup").then(({ openCallPopup }) => {
-      openCallPopup(callId, user.id); // Pass the initiator ID
+      openCallPopup(callId, user.id, true); // Pass the initiator ID and true for isInitiator
     });
-  }, [selectedConversation, user?.id]);
+  }, [selectedConversation, user?.id, isCallInProgress]);
+
 
   /* -------- Messages with date separators, profile picture grouping, and timestamp grouping -------- */
   const messagesWithSeparators = useMemo(() => {
@@ -1518,20 +1582,19 @@ const Messages: React.FC = () => {
                 </div>
 
                 <div className="header-actions">
-                  <button className="action-button" aria-label="Call">
-                    <svg width="16" height="16" fill="none" viewBox="0 0 16 16">
-                      <path
-                        d="M3.654 1.328a.678.678 0 0 0-1.015-.063L1.605 2.3c-.483.484-.661 1.169-.45 1.77a17.568 17.568 0 0 0 4.168 6.608 17.569 17.569 0 0 0 6.608 4.168c.601.211 1.286.033 1.77-.45l1.034-1.034a.678.678 0 0 0-.063-1.015l-2.307-1.794a.678.678 0 0 0-.58-.122L9.804 10.5a.678.678 0 0 1-.55-.173L7.173 8.246a.678.678 0 0 1-.173-.55l.122-.58a.678.678 0 0 0-.122-.58L5.328 3.654z"
-                        fill="currentColor"
-                      />
-                    </svg>
-                  </button>
                   <button
                     className="action-button"
                     aria-label="Video"
+                    disabled={isCallInProgress}
                     onClick={() => {
                       console.log("[video-call] Video call button clicked!");
+                      console.log("[video-call] Current selectedConversation at button click:", selectedConversation);
+                      console.log("[video-call] Current user at button click:", user);
                       handleStartVideoCall();
+                    }}
+                    style={{
+                      opacity: isCallInProgress ? 0.5 : 1,
+                      cursor: isCallInProgress ? 'not-allowed' : 'pointer'
                     }}
                   >
                     <svg width="16" height="16" fill="none" viewBox="0 0 16 16">
@@ -1541,72 +1604,19 @@ const Messages: React.FC = () => {
                       />
                     </svg>
                   </button>
-                  <div className="relative" ref={dropdownRef}>
-                    <button
-                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                      className="action-button"
-                      aria-label="More options"
-                      aria-expanded={isDropdownOpen}
-                    >
-                      <i
-                        className={`fas fa-chevron-${isDropdownOpen ? "up" : "down"}`}
-                      />
-                    </button>
-                    {isDropdownOpen && (
-                      <div
-                        className="cl-menu"
-                        role="menu"
-                        style={{
-                          position: "fixed",
-                          top: "16vh",
-                          left: "135vh",
-                          zIndex: 99999,
-                        }}
-                      >
-                        {user?.role === "tutor" && selectedConversation && (
-                          <button
-                            className="cl-menu__item"
-                            onClick={() => {
-                              openBookingModal({
-                                id: selectedConversation.otherUser._id,
-                                name:
-                                  selectedConversation.otherUser.profile
-                                    ?.name || "Student",
-                                surname:
-                                  selectedConversation.otherUser.profile
-                                    ?.surname || "",
-                                role: "student" as const,
-                                subjects:
-                                  selectedConversation.otherUser.profile
-                                    ?.subjects || [],
-                              });
-                              setIsDropdownOpen(false);
-                            }}
-                          >
-                            <i className="fas fa-calendar-plus" />
-                            <span>Schedule Session</span>
-                          </button>
-                        )}
-                        {user?.role === "tutor" && (
-                          <button
-                            className="cl-menu__item"
-                            onClick={() => {
-                              setIsClearModalOpen(true);
-                              setIsDropdownOpen(false);
-                            }}
-                          >
-                            <i className="fas fa-trash" />
-                            <span>Clear Messages</span>
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                  <button
+                    className="action-button"
+                    aria-label="Clear chat"
+                    title="Clear messages"
+                    onClick={() => setIsClearModalOpen(true)}
+                  >
+                    <i className="fas fa-trash" />
+                  </button>
                 </div>
               </div>
 
               {/* Thread */}
-              <div className="chat-scroll">
+              <div className="chat-scroll" ref={chatScrollRef}>
                 {threadLoading && messages.length === 0 ? (
                   <div className="center-muted">Loading messages…</div>
                 ) : error ? (
@@ -1741,20 +1751,27 @@ const Messages: React.FC = () => {
                                 className={`chat-bubble ${mine ? "mine" : "theirs"} ${mine ? "editable" : ""}`}
                                 title={new Date(msg.createdAt).toLocaleString()}
                               >
-                                {mine && (
-                                  <button
-                                    className="message-edit-btn"
-                                    onClick={() =>
-                                      handleEditMessage(
-                                        msg._id || "",
-                                        msg.content,
-                                      )
-                                    }
-                                    title="Edit message"
-                                  >
-                                    <i className="fas fa-edit"></i>
-                                  </button>
-                                )}
+                                {(() => {
+                                  const created = new Date(
+                                    msg.createdAt,
+                                  ).getTime();
+                                  const withinWindow =
+                                    nowTs - created < 10 * 60 * 1000; // 10 minutes
+                                  return mine && withinWindow ? (
+                                    <button
+                                      className="message-edit-btn"
+                                      onClick={() =>
+                                        handleEditMessage(
+                                          msg._id || "",
+                                          msg.content,
+                                        )
+                                      }
+                                      title="Edit message"
+                                    >
+                                      <i className="fas fa-edit"></i>
+                                    </button>
+                                  ) : null;
+                                })()}
                                 <p className={!mine ? "text-dark" : ""}>
                                   {msg.content}
                                   {(msg as any).isEdited && (
@@ -1851,9 +1868,7 @@ const Messages: React.FC = () => {
                     onClick={handleSend}
                     aria-label="Send"
                   >
-                    <svg width="20" height="20" fill="none" viewBox="0 0 20 20">
-                      <path d="M2 10l16-8-8 8 8 8-16-8z" fill="currentColor" />
-                    </svg>
+                    <i className="fas fa-paper-plane"></i>
                   </button>
                 </div>
 

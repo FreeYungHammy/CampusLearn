@@ -27,6 +27,7 @@ interface NamespaceHandlers {
     onSignal?: (payload: { fromUserId?: string; data: SignalData }) => void;
     onPeerJoined?: (payload: { userId?: string }) => void;
     onPeerLeft?: (payload: { userId?: string }) => void;
+    onCallEnded?: (payload: { userId?: string; reason?: string; endedBy?: string }) => void;
     onConnectionChange?: (connected: boolean) => void;
     onIncomingCall?: (data: { callId: string; fromUserId: string; fromUserName: string }) => void;
     onCallCancelled?: (data: { callId: string }) => void;
@@ -38,7 +39,8 @@ interface NamespaceHandlers {
     onThreadDeleted?: (data: { threadId: string }) => void;
     onThreadUpdated?: (data: { updatedPost: any }) => void;
     onForumReplyCountUpdated?: (data: { threadId: string; replyCount: number }) => void;
-    onVoteUpdated?: (data: { targetId: string; newScore: number; userVote?: number }) => void;
+    onVoteUpdated?: (data: { targetId: string; newScore: number }) => void;
+    onBookingStatusUpdated?: (data: { bookingId: string; status: string; tutorId: string; studentId: string }) => void;
   };
 }
 
@@ -63,6 +65,7 @@ class SocketManagerClass {
 
   private isConnected = false;
   private connectionListeners: Set<(connected: boolean) => void> = new Set();
+  private heartbeatInterval: NodeJS.Timeout | null = null;
 
   // Singleton pattern
   private static instance: SocketManagerClass;
@@ -82,8 +85,17 @@ class SocketManagerClass {
       hasToken: !!config.token 
     });
 
+    // If already initialized with same config, don't reinitialize
+    if (this.config && this.config.url === config.url && this.config.token === config.token && this.isConnected) {
+      console.log("[SocketManager] Already initialized with same config, skipping");
+      return;
+    }
+
     this.config = config;
     this.connect();
+    
+    // Start heartbeat to keep connection alive
+    this.startHeartbeat();
   }
 
   /**
@@ -116,12 +128,38 @@ class SocketManagerClass {
         console.log("[SocketManager] Main socket disconnected:", reason);
         this.isConnected = false;
         this.notifyConnectionChange(false);
+        
+        // Don't automatically reconnect if it's a manual disconnect
+        if (reason === "io client disconnect") {
+          console.log("[SocketManager] Manual disconnect, not reconnecting");
+          return;
+        }
+        
+        // For server disconnects and other reasons, attempt reconnection
+        console.log("[SocketManager] Will attempt automatic reconnection");
+        setTimeout(() => {
+          if (!this.isConnected && this.config) {
+            console.log("[SocketManager] Attempting to reconnect...");
+            this.connect();
+          }
+        }, 1000);
       });
 
       this.socket.on("connect_error", (error) => {
         console.error("[SocketManager] Main socket connection error:", error);
         this.isConnected = false;
         this.notifyConnectionChange(false);
+        
+        // Don't reconnect on auth errors
+        if (error.message?.includes("Authentication") || error.message?.includes("401")) {
+          console.error("[SocketManager] Authentication error, not reconnecting");
+          return;
+        }
+      });
+
+      // Handle pong response to heartbeat
+      this.socket.on("pong", () => {
+        console.log("[SocketManager] Heartbeat pong received");
       });
 
       // Initialize namespaces
@@ -240,9 +278,23 @@ class SocketManagerClass {
       this.handlers.video.onPeerLeft?.(payload);
     });
 
+    videoSocket.on("call_ended", (payload: { userId?: string; reason?: string; endedBy?: string }) => {
+      console.log("[SocketManager] 🔴 Call ended event received:", payload);
+      console.log("[SocketManager] 🔴 onCallEnded handler exists:", !!this.handlers.video.onCallEnded);
+      this.handlers.video.onCallEnded?.(payload);
+    });
+
     videoSocket.on("incoming_call", (data: { callId: string; fromUserId: string; fromUserName: string }) => {
-      console.log("[SocketManager] Incoming call:", data);
-      this.handlers.video.onIncomingCall?.(data);
+      console.log("[SocketManager] Incoming call received:", data);
+      console.log("[SocketManager] Current video handlers:", this.handlers.video);
+      console.log("[SocketManager] onIncomingCall handler exists:", !!this.handlers.video.onIncomingCall);
+      
+      if (this.handlers.video.onIncomingCall) {
+        console.log("[SocketManager] Calling onIncomingCall handler");
+        this.handlers.video.onIncomingCall(data);
+      } else {
+        console.warn("[SocketManager] No onIncomingCall handler registered");
+      }
     });
 
     videoSocket.on("call_cancelled", (data: { callId: string }) => {
@@ -284,9 +336,14 @@ class SocketManagerClass {
       this.handlers.global.onForumReplyCountUpdated?.(data);
     });
 
-    globalSocket.on("vote_updated", (data: { targetId: string; newScore: number; userVote?: number }) => {
+    globalSocket.on("vote_updated", (data: { targetId: string; newScore: number }) => {
       console.log("[SocketManager] Vote updated:", data);
       this.handlers.global.onVoteUpdated?.(data);
+    });
+
+    globalSocket.on("booking_status_updated", (data: { bookingId: string; status: string; tutorId: string; studentId: string }) => {
+      console.log("[SocketManager] Booking status updated:", data);
+      this.handlers.global.onBookingStatusUpdated?.(data);
     });
   }
 
@@ -294,14 +351,19 @@ class SocketManagerClass {
    * Register event handlers for namespaces
    */
   public registerHandlers(handlers: Partial<NamespaceHandlers>): void {
+    console.log("[SocketManager] Registering handlers:", handlers);
+    
     if (handlers.chat) {
       this.handlers.chat = { ...this.handlers.chat, ...handlers.chat };
+      console.log("[SocketManager] Chat handlers updated:", this.handlers.chat);
     }
     if (handlers.video) {
       this.handlers.video = { ...this.handlers.video, ...handlers.video };
+      console.log("[SocketManager] Video handlers updated:", this.handlers.video);
     }
     if (handlers.global) {
       this.handlers.global = { ...this.handlers.global, ...handlers.global };
+      console.log("[SocketManager] Global handlers updated:", this.handlers.global);
     }
   }
 
@@ -374,10 +436,47 @@ class SocketManagerClass {
   }
 
   /**
+   * Check if already initialized
+   */
+  public isInitialized(): boolean {
+    return this.config !== null && this.socket !== null;
+  }
+
+  /**
+   * Start heartbeat to keep connection alive
+   */
+  private startHeartbeat(): void {
+    this.stopHeartbeat(); // Clear any existing heartbeat
+    
+    this.heartbeatInterval = setInterval(() => {
+      if (this.socket && this.socket.connected) {
+        // Send ping to keep connection alive
+        this.socket.emit('ping');
+      } else if (this.config) {
+        // Try to reconnect if disconnected
+        console.log("[SocketManager] Heartbeat detected disconnection, attempting reconnect...");
+        this.connect();
+      }
+    }, 30000); // Send heartbeat every 30 seconds
+  }
+
+  /**
+   * Stop heartbeat
+   */
+  private stopHeartbeat(): void {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
+    }
+  }
+
+  /**
    * Disconnect all sockets
    */
   public disconnect(): void {
     console.log("[SocketManager] Disconnecting all sockets");
+    
+    this.stopHeartbeat();
     
     if (this.namespaces.chat) {
       this.namespaces.chat.disconnect();

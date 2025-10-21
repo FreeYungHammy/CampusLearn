@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import Header from "../../components/Header";
+import PageHeader from "../../components/PageHeader";
 import Footer from "../../components/Footer";
 import "./legal.css";
 
@@ -9,9 +9,13 @@ const PrivacyPolicy: React.FC = () => {
 
   return (
     <div className="app-shell">
-      <Header />
       <main className="site-main">
         <div className="container legal-container">
+          <PageHeader
+            title="Privacy Policy"
+            subtitle="How we collect, use, and protect your information"
+            icon="fas fa-shield-alt"
+          />
           <div className="legal-page">
             <div className="legal-topbar">
               <button className="btn btn-outline" onClick={() => navigate(-1)}>
@@ -19,31 +23,48 @@ const PrivacyPolicy: React.FC = () => {
               </button>
             </div>
             <div className="legal-card">
-              <h1>Privacy Policy</h1>
               <p>
-                This Privacy Policy explains how CampusLearn collects, uses, and
-                protects your information. This is example content and can be replaced
-                with your actual policy.
+                This Privacy Policy explains how CampusLearn collects, uses, and protects your information when you use our platform.
               </p>
+              
               <h2>Information We Collect</h2>
               <ul>
-                <li>Account details you provide (name, email).</li>
-                <li>Usage data such as pages visited and features used.</li>
-                <li>Device and browser metadata for performance and security.</li>
+                <li>Account details you provide (name, email, student ID)</li>
+                <li>Usage data such as pages visited and features used</li>
+                <li>Communication data including messages and forum posts</li>
+                <li>Device and browser information for technical support</li>
+                <li>Educational content you upload or create</li>
               </ul>
+
               <h2>How We Use Information</h2>
               <ul>
-                <li>To provide core platform functionality.</li>
-                <li>To improve reliability, performance, and user experience.</li>
-                <li>To communicate updates related to your account.</li>
+                <li>To provide and improve our services</li>
+                <li>To match you with tutors and learning resources</li>
+                <li>To track your progress and provide recommendations</li>
+                <li>To facilitate communication between users</li>
+                <li>To ensure platform security and prevent misuse</li>
+                <li>To send important updates about your account</li>
               </ul>
-              <h2>Your Choices</h2>
+
+              <h2>Data Security</h2>
               <p>
-                You may request access or deletion of your personal information by
-                contacting us. We will process requests in accordance with applicable
-                regulations.
+                We use standard security measures to protect your data, including encryption and secure servers.
               </p>
-              <p>Last updated: October 2025</p>
+
+              <h2>Your Rights</h2>
+              <ul>
+                <li>Access your personal data</li>
+                <li>Request correction of inaccurate information</li>
+                <li>Request deletion of your account</li>
+                <li>Opt out of non-essential communications</li>
+              </ul>
+
+              <h2>Data Sharing</h2>
+              <p>
+                We do not sell your personal information. We may share data only with your consent or for legal compliance.
+              </p>
+
+              <p><strong>Last updated:</strong> December 2024</p>
             </div>
           </div>
         </div>

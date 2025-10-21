@@ -168,15 +168,28 @@ export function usePeerConnection() {
       const { data: cfg } = await http.get<IceConfigResponse>(iceConfigUrl);
       console.log('[webrtc] ICE config received:', cfg);
       
+      if (!cfg.iceServers || cfg.iceServers.length === 0) {
+        throw new Error("No ICE servers configured");
+      }
+      
       pc = new RTCPeerConnection({ iceServers: cfg.iceServers });
       pcRef.current = pc;
-      console.log('[webrtc] Peer connection created successfully');
+      console.log('[webrtc] Peer connection created successfully with', cfg.iceServers.length, 'ICE servers');
       console.log('[webrtc] PC ref set to:', !!pcRef.current);
       console.log('[webrtc] PC ref current value:', pcRef.current);
       console.log('[webrtc] PC signaling state:', pc.signalingState);
     } catch (error) {
-      console.error('[webrtc] Failed to initialize peer connection:', error);
-      throw error;
+      console.error('[webrtc] ICE config failed, using fallback STUN servers:', error);
+      // Fallback to basic STUN servers
+      const fallbackServers = [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' }
+      ];
+      
+      pc = new RTCPeerConnection({ iceServers: fallbackServers });
+      pcRef.current = pc;
+      console.log('[webrtc] Peer connection created with fallback STUN servers');
     }
 
     pc.ontrack = (e) => {
@@ -212,28 +225,41 @@ export function usePeerConnection() {
           quality = { score: 25, status: 'unknown', details: 'Establishing connection...' };
           break;
         case 'connected':
-          quality = { score: 100, status: 'excellent' as const, details: 'Connected' };
+          quality = { score: 80, status: 'good' as const, details: 'Connected - measuring quality...' };
           break;
         case 'completed':
-          quality = { score: 95, status: 'excellent' as const, details: 'Connection established' };
+          quality = { score: 85, status: 'good' as const, details: 'Connection established - measuring quality...' };
           break;
         case 'disconnected':
-          quality = { score: 30, status: 'poor' as const, details: 'Connection lost' };
-          // Trigger disconnect detection after timeout
+          quality = { score: 30, status: 'poor' as const, details: 'Connection lost - attempting recovery...' };
+          // More conservative disconnect detection - only trigger after longer timeout
+          // and only if we've been disconnected for a while without recovery
           setTimeout(() => {
             if (pc.iceConnectionState === 'disconnected') {
-              console.log('[webrtc] Peer disconnected - triggering disconnect handler');
-              // Emit disconnect event
-              window.dispatchEvent(new CustomEvent('peer-disconnected', { 
-                detail: { reason: 'ice-disconnected' } 
-              }));
+              console.log('[webrtc] ICE still disconnected after 10 seconds - checking for recovery');
+              // Give it another chance to recover
+              setTimeout(() => {
+                if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed') {
+                  console.log('[webrtc] ICE connection failed to recover - triggering disconnect handler');
+                  window.dispatchEvent(new CustomEvent('peer-disconnected', { 
+                    detail: { reason: 'ice-disconnected-permanent' } 
+                  }));
+                } else {
+                  console.log('[webrtc] ICE connection recovered!');
+                }
+              }, 5000); // Additional 5 seconds for recovery
             }
-          }, 3000); // 3 second timeout to differentiate from temporary disconnects
+          }, 10000); // Increased from 3 to 10 seconds
           break;
         case 'failed':
-          quality = { score: 0, status: 'poor' as const, details: 'Connection failed' };
-          // Trigger reconnection attempt
-          setTimeout(() => attemptReconnection(), 2000);
+          quality = { score: 0, status: 'poor' as const, details: 'Connection failed - attempting recovery...' };
+          // More conservative failure handling - try recovery first
+          setTimeout(() => {
+            if (pc.iceConnectionState === 'failed') {
+              console.log('[webrtc] ICE connection failed - attempting reconnection');
+              attemptReconnection();
+            }
+          }, 3000); // Wait 3 seconds before attempting recovery
           break;
         case 'closed':
           quality = { score: 0, status: 'unknown', details: 'Connection closed' };
@@ -255,6 +281,29 @@ export function usePeerConnection() {
     pc.onconnectionstatechange = () => {
       console.log('[webrtc] Connection state changed:', pc.connectionState);
       setPcState(pc.connectionState);
+      
+      // Handle connection state changes more gracefully
+      switch (pc.connectionState) {
+        case 'connected':
+          console.log('[webrtc] Peer connection established successfully');
+          setIsReconnecting(false);
+          // Let the real connection quality measurement system determine the status
+          // Don't override with hardcoded 'excellent' - let collectStats() handle it
+          break;
+        case 'connecting':
+          console.log('[webrtc] Peer connection in progress...');
+          break;
+        case 'disconnected':
+          console.log('[webrtc] Peer connection disconnected - monitoring for recovery');
+          // Don't immediately trigger disconnect - let ICE state handle it
+          break;
+        case 'failed':
+          console.log('[webrtc] Peer connection failed - will attempt recovery via ICE state handler');
+          break;
+        case 'closed':
+          console.log('[webrtc] Peer connection closed');
+          break;
+      }
     };
 
     pc.onsignalingstatechange = () => {
@@ -457,43 +506,60 @@ export function usePeerConnection() {
     return true;
   };
 
+  // Keep last totals to compute deltas for Mbps
+  const lastInboundRef = useRef<{ bytes: number; ts: number } | null>(null);
+  const lastOutboundRef = useRef<{ bytes: number; ts: number } | null>(null);
+
   const collectStats = async () => {
     if (!pcRef.current) return;
-    
     try {
       const stats = await pcRef.current.getStats();
       let inboundBytes = 0;
       let outboundBytes = 0;
-      let inboundTimestamp = 0;
-      let outboundTimestamp = 0;
-      
+      let inboundTs = 0;
+      let outboundTs = 0;
+
       stats.forEach((report) => {
-        if (report.type === 'inbound-rtp' && report.mediaType === 'video') {
-          inboundBytes = report.bytesReceived || 0;
-          inboundTimestamp = report.timestamp || 0;
+        // Some browsers use report.kind; others mediaType
+        const kind = (report as any).kind || (report as any).mediaType;
+        if (report.type === 'inbound-rtp' && kind === 'video') {
+          inboundBytes = (report as any).bytesReceived || 0;
+          inboundTs = report.timestamp || 0;
         }
-        if (report.type === 'outbound-rtp' && report.mediaType === 'video') {
-          outboundBytes = report.bytesSent || 0;
-          outboundTimestamp = report.timestamp || 0;
+        if (report.type === 'outbound-rtp' && kind === 'video') {
+          outboundBytes = (report as any).bytesSent || 0;
+          outboundTs = report.timestamp || 0;
         }
       });
-      
-      // Calculate speeds (simplified - in real implementation you'd track over time)
-      const downloadMbps = inboundBytes > 0 ? (inboundBytes * 8) / (1024 * 1024) : 0;
-      const uploadMbps = outboundBytes > 0 ? (outboundBytes * 8) / (1024 * 1024) : 0;
-      
-      setSpeedMetrics({ downloadMbps, uploadMbps });
-      
-      // Update connection quality based on bandwidth
-      if (downloadMbps > 2 && uploadMbps > 1) {
-        setConnectionQuality(prev => ({ ...prev, status: 'excellent', score: 100 }));
-      } else if (downloadMbps > 1 && uploadMbps > 0.5) {
-        setConnectionQuality(prev => ({ ...prev, status: 'good', score: 80 }));
-      } else if (downloadMbps > 0.5 && uploadMbps > 0.25) {
-        setConnectionQuality(prev => ({ ...prev, status: 'fair', score: 60 }));
-      } else {
-        setConnectionQuality(prev => ({ ...prev, status: 'poor', score: 30 }));
+
+      // Compute Mbps from deltas
+      let downloadMbps = 0;
+      let uploadMbps = 0;
+      if (inboundBytes && inboundTs && lastInboundRef.current) {
+        const dt = (inboundTs - lastInboundRef.current.ts) / 1000; // seconds
+        const db = inboundBytes - lastInboundRef.current.bytes; // bytes
+        if (dt > 0 && db >= 0) downloadMbps = (db * 8) / (1024 * 1024 * dt);
       }
+      if (outboundBytes && outboundTs && lastOutboundRef.current) {
+        const dt = (outboundTs - lastOutboundRef.current.ts) / 1000;
+        const db = outboundBytes - lastOutboundRef.current.bytes;
+        if (dt > 0 && db >= 0) uploadMbps = (db * 8) / (1024 * 1024 * dt);
+      }
+
+      lastInboundRef.current = { bytes: inboundBytes, ts: inboundTs };
+      lastOutboundRef.current = { bytes: outboundBytes, ts: outboundTs };
+
+      setSpeedMetrics({ downloadMbps, uploadMbps });
+
+      // Update connection quality based on bandwidth
+      const nextStatus = downloadMbps > 2 && uploadMbps > 1
+        ? 'excellent'
+        : downloadMbps > 1 && uploadMbps > 0.5
+          ? 'good'
+          : downloadMbps > 0.5 && uploadMbps > 0.25
+            ? 'fair'
+            : 'poor';
+      setConnectionQuality(prev => ({ ...prev, status: nextStatus as any, score: nextStatus === 'excellent' ? 100 : nextStatus === 'good' ? 80 : nextStatus === 'fair' ? 60 : 30 }));
     } catch (error) {
       console.warn('[webrtc] Failed to collect stats:', error);
     }

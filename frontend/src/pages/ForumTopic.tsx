@@ -163,15 +163,22 @@ const ForumTopic = () => {
         setThread((prevThread: any) => {
           if (!prevThread) return null;
 
+          // Use the authoritative vote count from the database
+          const validatedScore = Number(newScore) || 0;
+          
           const updatedThread = {
             ...prevThread,
-            upvotes:
-              prevThread._id === targetId ? newScore : prevThread.upvotes,
+            upvotes: prevThread._id === targetId ? validatedScore : prevThread.upvotes,
           };
 
-          updatedThread.replies = updatedThread.replies.map((reply: any) =>
-            reply._id === targetId ? { ...reply, upvotes: newScore } : reply,
-          );
+          // Update vote count for replies with authoritative score, preserve each user's own vote state
+          updatedThread.replies = updatedThread.replies.map((reply: any) => {
+            if (reply._id === targetId) {
+              console.log(`[ForumTopic] Reply vote update: newScore=${validatedScore}`);
+              return { ...reply, upvotes: validatedScore };
+            }
+            return reply;
+          });
 
           return updatedThread;
         });
@@ -398,7 +405,7 @@ const ForumTopic = () => {
               {thread.topic}
             </span>
           </div>
-          <div className="topic-body">
+          <div className="topic-body" style={{ paddingTop: "2.5rem" }}>
             {editingId === thread._id ? (
               <div className="edit-form">
                 <textarea
@@ -456,7 +463,15 @@ const ForumTopic = () => {
             </div>
           </div>
         </div>
-        <div className="topic-actions">
+        <div
+          className="topic-actions"
+          style={{
+            position: "absolute",
+            top: "1rem",
+            right: "1rem",
+            zIndex: 10,
+          }}
+        >
           {user &&
             thread.author &&
             user.id === thread.author.userId &&

@@ -11,6 +11,7 @@ export const env = {
   // Feature flags
   enableVideoCalls: true,
   enableNotifications: true,
+  enableVideoCallNotifications: import.meta.env.VITE_ENABLE_VIDEO_CALL_NOTIFICATIONS === "true",
   
   // WebRTC Configuration
   webrtc: {

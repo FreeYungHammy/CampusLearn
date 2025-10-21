@@ -94,7 +94,7 @@ export const UserService = {
     lastName: string;
     subjects: string[];
   }) {
-    // 1. Validate email domain
+    // 1. Validate email domain for registration
     if (!input.email.endsWith(ALLOWED_EMAIL_DOMAIN)) {
       const err = new Error(
         `Invalid email domain. Only ${ALLOWED_EMAIL_DOMAIN} emails are allowed.`,
