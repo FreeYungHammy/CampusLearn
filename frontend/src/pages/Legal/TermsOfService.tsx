@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import Header from "../../components/Header";
+import PageHeader from "../../components/PageHeader";
 import Footer from "../../components/Footer";
 import "./legal.css";
 
@@ -9,9 +9,13 @@ const TermsOfService: React.FC = () => {
 
   return (
     <div className="app-shell">
-      <Header />
       <main className="site-main">
         <div className="container legal-container">
+          <PageHeader
+            title="Terms of Service"
+            subtitle="The terms and conditions for using CampusLearn"
+            icon="fas fa-file-contract"
+          />
           <div className="legal-page">
             <div className="legal-topbar">
               <button className="btn btn-outline" onClick={() => navigate(-1)}>
@@ -19,28 +23,50 @@ const TermsOfService: React.FC = () => {
               </button>
             </div>
             <div className="legal-card">
-              <h1>Terms of Service</h1>
               <p>
-                These Terms govern your use of CampusLearn. This is example content and
-                should be reviewed and replaced with your actual terms.
+                These Terms of Service govern your use of CampusLearn. By using our platform, you agree to these terms.
               </p>
-              <h2>Use of Service</h2>
+              
+              <h2>Account Requirements</h2>
               <ul>
-                <li>You must create an account to access certain features.</li>
-                <li>You agree not to misuse or disrupt the platform.</li>
-                <li>You are responsible for the content you share.</li>
+                <li>You must provide accurate information when creating your account</li>
+                <li>You are responsible for keeping your account secure</li>
+                <li>You must be at least 13 years old to use our services</li>
+                <li>You are responsible for all activities under your account</li>
               </ul>
+
+              <h2>Acceptable Use</h2>
+              <p>You agree to use CampusLearn for educational purposes only. You will not:</p>
+              <ul>
+                <li>Violate any laws or regulations</li>
+                <li>Infringe on others' intellectual property rights</li>
+                <li>Harass or harm other users</li>
+                <li>Share inappropriate or harmful content</li>
+                <li>Attempt to gain unauthorized access to our systems</li>
+                <li>Interfere with the platform's functionality</li>
+              </ul>
+
               <h2>Content and Ownership</h2>
               <p>
-                Users retain ownership of their content. By uploading, you grant
-                CampusLearn a license to host and display it for educational purposes.
+                You retain ownership of content you create. By uploading content, you grant us a license to host and display it for educational purposes.
               </p>
-              <h2>Disclaimers</h2>
+
+              <h2>Service Availability</h2>
               <p>
-                The service is provided "as is" without warranties of any kind. We are
-                not liable for indirect or consequential damages.
+                We strive to maintain service availability but cannot guarantee uninterrupted access. We may modify or suspend services with notice.
               </p>
-              <p>Effective date: October 2025</p>
+
+              <h2>Limitation of Liability</h2>
+              <p>
+                CampusLearn is provided "as is" without warranties. We are not liable for indirect or consequential damages.
+              </p>
+
+              <h2>Termination</h2>
+              <p>
+                We may suspend or terminate your account if you violate these Terms. You may terminate your account at any time.
+              </p>
+
+              <p><strong>Effective date:</strong> December 2024</p>
             </div>
           </div>
         </div>

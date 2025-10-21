@@ -692,7 +692,7 @@ const FindTutors = () => {
         </div>
       )}
 
-      {!isLoading && tutors.length < totalTutors && totalTutors >= 10 && (
+      {!isLoading && tutors.length >= PAGE_SIZE && tutors.length < totalTutors && (
         <div className="load-more-container">
           <button onClick={handleLoadMore} className="btn btn-primary">
             Load More Tutors ({tutors.length} of {totalTutors} shown)

@@ -556,6 +556,21 @@ export const BookingService = {
         messageType: `booking_${status}`,
         bookingId: booking._id.toString(),
       });
+
+      // Emit socket event for real-time updates
+      const { io } = await import("../../config/socket");
+      
+      if (io) {
+        // Emit booking status update to all connected clients
+        io.emit("booking_status_updated", {
+          bookingId: booking._id.toString(),
+          status: status,
+          tutorId: tutor._id.toString(),
+          studentId: student._id.toString(),
+        });
+        
+        console.log(`[BookingService] Emitted booking_status_updated event for booking ${booking._id} with status ${status}`);
+      }
     } catch (error) {
       console.error("Error sending status update message:", error);
       // Don't throw here as the booking update should still succeed

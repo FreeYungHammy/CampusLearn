@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useAuthStore } from "../store/authStore";
 import { adminApi } from "../services/adminApi";
+import { SocketManager } from "../services/socketManager";
 import "./AdminBills.css";
 
 interface TutorBill {
@@ -65,6 +66,37 @@ const AdminBills = () => {
       fetchBillsData(selectedMonth, selectedYear);
     }
   }, [selectedMonth, selectedYear, token]);
+
+  // Listen for booking status updates and refresh data
+  useEffect(() => {
+    if (!token) return;
+
+    const handleBookingStatusUpdate = (data: { bookingId: string; status: string; tutorId: string; studentId: string }) => {
+      console.log("[AdminBills] Booking status updated:", data);
+      
+      // Only refresh if the booking status changed to 'completed' and we have current data
+      if (data.status === 'completed' && billsData) {
+        console.log("[AdminBills] Refreshing bills data due to booking completion");
+        fetchBillsData(selectedMonth, selectedYear);
+      }
+    };
+
+    // Register the socket handler
+    SocketManager.registerHandlers({
+      global: {
+        onBookingStatusUpdated: handleBookingStatusUpdate
+      }
+    });
+
+    // Cleanup on unmount
+    return () => {
+      SocketManager.unregisterHandlers({
+        global: {
+          onBookingStatusUpdated: handleBookingStatusUpdate
+        }
+      });
+    };
+  }, [token, selectedMonth, selectedYear, billsData]);
 
   const fetchAvailableMonths = async () => {
     if (!token) return;

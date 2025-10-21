@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Header from "../../components/Header";
+import PageHeader from "../../components/PageHeader";
 import Footer from "../../components/Footer";
 import "./legal.css";
 
@@ -15,9 +15,13 @@ const ContactUs: React.FC = () => {
 
   return (
     <div className="app-shell">
-      <Header />
       <main className="site-main">
         <div className="container legal-container">
+          <PageHeader
+            title="Contact Us"
+            subtitle="Get in touch with our team for support and feedback"
+            icon="fas fa-envelope"
+          />
           <div className="legal-page">
             <div className="legal-topbar">
               <button className="btn btn-outline" onClick={() => navigate(-1)}>
@@ -25,10 +29,8 @@ const ContactUs: React.FC = () => {
               </button>
             </div>
             <div className="legal-card">
-              <h1>Contact Us</h1>
               <p>
-                Have questions or feedback? Send us a message and we'll get back to
-                you. This is a demo-only form with no backend logic.
+                Have questions or feedback? Send us a message and we'll get back to you.
               </p>
               {submitted ? (
                 <div className="alert-success">Thanks! We'll be in touch shortly.</div>

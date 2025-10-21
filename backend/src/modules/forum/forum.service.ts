@@ -670,18 +670,19 @@ export const ForumService = {
       if (existingVote) {
         console.log(`[castVote] Existing vote found: ${existingVote.voteType}, new vote: ${voteType}`);
         if (existingVote.voteType === voteType) {
-          // User is removing their vote
+          // User is removing their vote - subtract the vote they're removing
           await UserVoteModel.deleteOne({ _id: existingVote._id }).session(
             session,
           );
-          voteChange = -voteType; // e.g., if un-upvoting, subtract 1
+          voteChange = -existingVote.voteType; // Remove the existing vote (if existing was +1, subtract 1; if existing was -1, subtract -1 which adds 1)
           console.log(`[castVote] Removing vote, voteChange: ${voteChange}`);
         } else {
           // User is changing their vote
+          const oldVoteType = existingVote.voteType;
           existingVote.voteType = voteType;
           await existingVote.save({ session });
-          voteChange = voteType * 2; // e.g., from -1 to 1 is a change of +2
-          console.log(`[castVote] Changing vote, voteChange: ${voteChange}`);
+          voteChange = voteType - oldVoteType; // e.g., from -1 to 1 is a change of +2, from 1 to -1 is a change of -2
+          console.log(`[castVote] Changing vote from ${oldVoteType} to ${voteType}, voteChange: ${voteChange}`);
         }
       } else {
         // New vote
@@ -725,13 +726,27 @@ export const ForumService = {
           : // @ts-ignore
             targetDoc.postId.toString();
 
-      console.log(`[castVote] Emitting socket event: targetId=${targetId}, newScore=${updatedTarget?.upvotes}, userVote=${userVote?.voteType || 0}`);
-      io.emit("vote_updated", {
-        targetId,
-        targetType,
-        newScore: updatedTarget?.upvotes,
-        userVote: userVote?.voteType || 0,
-      });
+      console.log(`[castVote] Emitting socket event: targetId=${targetId}, newScore=${updatedTarget?.upvotes}`);
+      
+      // Emit vote update to relevant rooms only (not globally)
+      // Send the updated vote count from the database (this is the authoritative count)
+      if (targetType === "ForumPost") {
+        // For forum posts, emit to all clients (since posts appear in main forum list)
+        io.emit("vote_updated", {
+          targetId,
+          targetType,
+          newScore: updatedTarget?.upvotes || 0, // Send the authoritative vote count from DB
+          // Don't include userVote - let each client maintain their own vote state
+        });
+      } else {
+        // For replies, emit only to users viewing that specific thread
+        io.to(parentThreadId).emit("vote_updated", {
+          targetId,
+          targetType,
+          newScore: updatedTarget?.upvotes || 0, // Send the authoritative vote count from DB
+          // Don't include userVote - let each client maintain their own vote state
+        });
+      }
 
       // Invalidate the forum threads list cache since vote counts have changed
       await CacheService.del(FORUM_THREADS_CACHE_KEY);

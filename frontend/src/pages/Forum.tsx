@@ -177,18 +177,39 @@ const Forum = () => {
       if (append) {
         setThreads((prevThreads) => [...prevThreads, ...threadsWithVotes]);
       } else {
-        console.log(
-          "Setting threads state:",
-          threadsWithVotes.map((t: any) => ({
-            id: t._id,
-            upvotes: t.upvotes,
-            userVote: t.userVote,
-          })),
-        );
-        setThreads(threadsWithVotes);
+        // When replacing threads (filtering), preserve vote state from previous threads
+        setThreads((prevThreads) => {
+          const voteStateMap = new Map(
+            prevThreads.map(thread => [thread._id, { upvotes: thread.upvotes, userVote: thread.userVote }])
+          );
+          
+          const threadsWithPreservedVotes = threadsWithVotes.map((thread: any) => {
+            const preservedState = voteStateMap.get(thread._id);
+            if (preservedState) {
+              return {
+                ...thread,
+                upvotes: preservedState.upvotes,
+                userVote: preservedState.userVote,
+              };
+            }
+            return thread;
+          });
+          
+          console.log(
+            "Setting threads state with preserved votes:",
+            threadsWithPreservedVotes.map((t: any) => ({
+              id: t._id,
+              upvotes: t.upvotes,
+              userVote: t.userVote,
+            })),
+          );
+          
+          return threadsWithPreservedVotes;
+        });
       }
       setTotalPosts(totalCount);
-      setHasMorePosts(threadsWithVotes.length + offset < totalCount);
+      // Only show "Load More Posts" if there are 10 or more posts on current page AND more posts available
+      setHasMorePosts(threadsWithVotes.length >= postsPerPage && threadsWithVotes.length + offset < totalCount);
     } catch (error) {
       console.error("Failed to fetch threads", error);
     }
@@ -197,7 +218,7 @@ const Forum = () => {
   useEffect(() => {
     // Reset page and fetch first set of threads when filters/sort change
     setCurrentPage(1);
-    setThreads([]); // Clear threads to show loading state or new filtered results
+    // Don't clear threads immediately - let fetchAndSetThreads handle the state
     fetchAndSetThreads(1);
   }, [token, sortBy, searchQuery, selectedSubjects]);
 
@@ -239,20 +260,24 @@ const Forum = () => {
             ),
           );
         },
-        onVoteUpdated: ({ targetId, newScore, userVote }) => {
+        onVoteUpdated: ({ targetId, newScore }) => {
           console.log("Received vote update:", {
             targetId,
             newScore,
-            userVote,
           });
           setThreads((prevThreads) =>
             prevThreads.map((thread) => {
               if (thread._id === targetId) {
-                // Update both the vote count and user's vote state from the server
+                // Use the authoritative vote count from the database
+                const validatedScore = Number(newScore) || 0;
+                
+                console.log(`[Forum] Vote update: threadId=${targetId}, currentCount=${thread.upvotes}, newScore=${validatedScore}, userVote=${thread.userVote}`);
+                
+                // Update with the authoritative vote count from the database
                 return {
                   ...thread,
-                  upvotes: newScore,
-                  userVote: userVote || 0,
+                  upvotes: validatedScore,
+                  // Keep the existing userVote - don't override with socket data
                 };
               }
               return thread;
@@ -270,28 +295,25 @@ const Forum = () => {
 
     setIsVoting((prev) => ({ ...prev, [threadId]: true }));
 
+    // Only update the user's vote state immediately (no vote count change)
     setThreads((prevThreads) =>
       prevThreads.map((thread) => {
         if (thread._id === threadId) {
           const currentVote = thread.userVote;
-          let voteChange = 0;
           let newUserVote = 0;
 
           if (currentVote === 1) {
-            voteChange = -1;
-            newUserVote = 0;
+            newUserVote = 0; // Remove upvote
           } else if (currentVote === -1) {
-            voteChange = 2;
-            newUserVote = 1;
+            newUserVote = 1; // Change from downvote to upvote
           } else {
-            voteChange = 1;
-            newUserVote = 1;
+            newUserVote = 1; // New upvote
           }
 
           return {
             ...thread,
-            upvotes: thread.upvotes + voteChange,
             userVote: newUserVote,
+            // Don't change upvotes here - let the socket event handle it
           };
         }
         return thread;
@@ -301,14 +323,14 @@ const Forum = () => {
     voteOnPost(threadId, 1, token)
       .then((response) => {
         console.log("Upvote successful:", response);
-        // Update the UI with the server response immediately
+        // Update the user's vote state with the server response
         setThreads((prevThreads) =>
           prevThreads.map((thread) => {
             if (thread._id === threadId) {
               return {
                 ...thread,
-                upvotes: response.upvotes,
                 userVote: response.userVote || 0,
+                // Don't update upvotes here - socket event will handle it
               };
             }
             return thread;
@@ -317,29 +339,16 @@ const Forum = () => {
       })
       .catch((err) => {
         console.error("Failed to upvote post", err);
-        // Revert the optimistic update on error
+        // Revert the user vote state on error - go back to previous state
         setThreads((prevThreads) =>
           prevThreads.map((thread) => {
             if (thread._id === threadId) {
-              const currentVote = thread.userVote;
-              let voteChange = 0;
-              let newUserVote = 0;
-
-              if (currentVote === 1) {
-                voteChange = 1;
-                newUserVote = 0;
-              } else if (currentVote === -1) {
-                voteChange = -2;
-                newUserVote = -1;
-              } else {
-                voteChange = -1;
-                newUserVote = 0;
-              }
-
+              // Revert to the original vote state before the optimistic update
+              const originalVote = thread.userVote === 1 ? 0 : (thread.userVote === 0 ? -1 : 0);
+              console.log(`[Upvote Error] Reverting vote state from ${thread.userVote} to ${originalVote}`);
               return {
                 ...thread,
-                upvotes: thread.upvotes + voteChange,
-                userVote: newUserVote,
+                userVote: originalVote,
               };
             }
             return thread;
@@ -359,28 +368,27 @@ const Forum = () => {
 
     setIsVoting((prev) => ({ ...prev, [threadId]: true }));
 
+    // Only update the user's vote state immediately (no vote count change)
     setThreads((prevThreads) =>
       prevThreads.map((thread) => {
         if (thread._id === threadId) {
           const currentVote = thread.userVote;
-          let voteChange = 0;
           let newUserVote = 0;
 
           if (currentVote === -1) {
-            voteChange = 1;
-            newUserVote = 0;
+            newUserVote = 0; // Remove downvote
           } else if (currentVote === 1) {
-            voteChange = -2;
-            newUserVote = -1;
+            newUserVote = -1; // Change from upvote to downvote
           } else {
-            voteChange = -1;
-            newUserVote = -1;
+            newUserVote = -1; // New downvote
           }
+
+          console.log(`[Downvote] Changing vote state from ${currentVote} to ${newUserVote} for thread ${threadId}`);
 
           return {
             ...thread,
-            upvotes: thread.upvotes + voteChange,
             userVote: newUserVote,
+            // Don't change upvotes here - let the socket event handle it
           };
         }
         return thread;
@@ -390,14 +398,14 @@ const Forum = () => {
     voteOnPost(threadId, -1, token)
       .then((response) => {
         console.log("Downvote successful:", response);
-        // Update the UI with the server response immediately
+        // Update the user's vote state with the server response
         setThreads((prevThreads) =>
           prevThreads.map((thread) => {
             if (thread._id === threadId) {
               return {
                 ...thread,
-                upvotes: response.upvotes,
                 userVote: response.userVote || 0,
+                // Don't update upvotes here - socket event will handle it
               };
             }
             return thread;
@@ -406,29 +414,16 @@ const Forum = () => {
       })
       .catch((err) => {
         console.error("Failed to downvote post", err);
-        // Revert the optimistic update on error
+        // Revert the user vote state on error - go back to previous state
         setThreads((prevThreads) =>
           prevThreads.map((thread) => {
             if (thread._id === threadId) {
-              const currentVote = thread.userVote;
-              let voteChange = 0;
-              let newUserVote = 0;
-
-              if (currentVote === -1) {
-                voteChange = -1;
-                newUserVote = 0;
-              } else if (currentVote === 1) {
-                voteChange = 2;
-                newUserVote = 1;
-              } else {
-                voteChange = 1;
-                newUserVote = 0;
-              }
-
+              // Revert to the original vote state before the optimistic update
+              const originalVote = thread.userVote === -1 ? 0 : (thread.userVote === 0 ? 1 : 0);
+              console.log(`[Downvote Error] Reverting vote state from ${thread.userVote} to ${originalVote}`);
               return {
                 ...thread,
-                upvotes: thread.upvotes + voteChange,
-                userVote: newUserVote,
+                userVote: originalVote,
               };
             }
             return thread;

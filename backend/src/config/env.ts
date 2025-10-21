@@ -1,6 +1,13 @@
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? "development",
-  port: Number(process.env.PORT ?? 5001),
+  port: (() => {
+    const portValue = process.env.PORT ?? 5001;
+    // Extract just the number from strings like "production5000"
+    const numericPort = portValue.toString().replace(/[^0-9]/g, '');
+    const parsedPort = Number(numericPort) || 5001;
+    console.log(`[env] PORT env var: "${process.env.PORT}", extracted: "${numericPort}", parsed: ${parsedPort}`);
+    return parsedPort;
+  })(),
   mongoUri:
     process.env.MONGO_URI ??
     (() => {
