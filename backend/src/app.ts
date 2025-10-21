@@ -67,15 +67,7 @@ app.options('*', (req, res) => {
 app.use(express.json({ limit: "15mb" }));
 app.use(express.urlencoded({ extended: true, limit: "15mb" }));
 
-// Add video-specific size limits
-app.use('/api/files', (req, res, next) => {
-  if (req.method === 'POST' && req.headers['content-type']?.includes('multipart/form-data')) {
-    // Set higher limit for video uploads (500MB)
-    express.json({ limit: "500mb" })(req, res, next);
-  } else {
-    next();
-  }
-});
+// No video-specific size limits for hosted environment
 
 /* ---------- Diagnostics ---------- */
 app.get("/__ping", (_req, res) => res.status(200).send("All is operational."));

@@ -171,7 +171,9 @@ export class AdminService {
         name: data.name,
         surname: data.surname,
         enrolledCourses: data.enrolledCourses
-          ? data.enrolledCourses.split(",").map((c: string) => c.trim())
+          ? Array.isArray(data.enrolledCourses)
+            ? data.enrolledCourses
+            : data.enrolledCourses.split(",").map((c: string) => c.trim())
           : [],
       });
       const savedStudent = await student.save();
@@ -196,7 +198,9 @@ export class AdminService {
         name: data.name,
         surname: data.surname,
         subjects: data.subjects
-          ? data.subjects.split(",").map((s: string) => s.trim())
+          ? Array.isArray(data.subjects)
+            ? data.subjects
+            : data.subjects.split(",").map((s: string) => s.trim())
           : [],
         rating: { totalScore: 0, count: 0 },
       });

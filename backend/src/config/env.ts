@@ -41,12 +41,12 @@ export const env = {
     "360p",
   ],
 
-  // Advanced video settings
+  // Advanced video settings - no limits for hosted environment
   videoCompressionEnabled: process.env.VIDEO_COMPRESSION_ENABLED === "true",
   videoInitialChunkSize: Number(
-    process.env.VIDEO_INITIAL_CHUNK_SIZE ?? 2097152,
-  ), // 2MB
-  videoMaxChunkSize: Number(process.env.VIDEO_MAX_CHUNK_SIZE ?? 10485760), // 10MB
+    process.env.VIDEO_INITIAL_CHUNK_SIZE ?? 0,
+  ), // No limit
+  videoMaxChunkSize: Number(process.env.VIDEO_MAX_CHUNK_SIZE ?? 0), // No limit
 
   // CDN Configuration
   cdnEnabled: process.env.CDN_ENABLED === "true",
