@@ -15,21 +15,8 @@ const app = express();
 const server = http.createServer(app);
 app.disable("etag");
 
-/* ---------- Rate Limiting ---------- */
-const uploadLimiter = rateLimit({
-  windowMs: env.uploadRateLimitWindowMs,
-  max: env.uploadRateLimitMax,
-  message: {
-    error: 'Too many uploads, please try again later',
-    retryAfter: Math.ceil(env.uploadRateLimitWindowMs / 1000)
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-  skip: (req) => {
-    // Skip rate limiting in development
-    return env.nodeEnv === 'development' && !env.enableRateLimit;
-  }
-});
+/* ---------- Upload Rate Limiting - Disabled for Hosted Environment ---------- */
+// Upload rate limiting removed for hosted environment - no artificial limits on video/file uploads
 
 /* ---------- CORS ---------- */
 const allowed = (process.env.CORS_ORIGIN || "")
@@ -102,7 +89,7 @@ app.get("/favicon.ico", (_req, res) => res.status(204).end());
 
 /* ---------- Routes ---------- */
 app.use("/health", health); // GET /health -> { ok: true }
-app.use("/api/files", uploadLimiter); // Apply rate limiting to file operations
+// No upload rate limiting applied for hosted environment
 app.use("/api", api); // GET /api/v1/ping -> { ok: true }
 
 /* ---------- 404 (last) ---------- */
