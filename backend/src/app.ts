@@ -4,14 +4,32 @@ dotenv.config();
 import express from "express";
 import http from "http";
 import cors from "cors";
+import rateLimit from "express-rate-limit";
 import health from "./routes/health";
 import api from "./routes/index";
 import { connectMongo } from "./infra/db/mongoose";
 import { env } from "./config/env";
+import EnvironmentValidator from "./utils/envValidator";
 
 const app = express();
 const server = http.createServer(app);
 app.disable("etag");
+
+/* ---------- Rate Limiting ---------- */
+const uploadLimiter = rateLimit({
+  windowMs: env.uploadRateLimitWindowMs,
+  max: env.uploadRateLimitMax,
+  message: {
+    error: 'Too many uploads, please try again later',
+    retryAfter: Math.ceil(env.uploadRateLimitWindowMs / 1000)
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => {
+    // Skip rate limiting in development
+    return env.nodeEnv === 'development' && !env.enableRateLimit;
+  }
+});
 
 /* ---------- CORS ---------- */
 const allowed = (process.env.CORS_ORIGIN || "")
@@ -19,16 +37,45 @@ const allowed = (process.env.CORS_ORIGIN || "")
   .map((s) => s.trim())
   .filter(Boolean);
 
+const corsOrigins = allowed.length ? allowed : env.corsOrigins;
+console.log("🌐 CORS Configuration:");
+console.log("  - Environment CORS_ORIGIN:", process.env.CORS_ORIGIN);
+console.log("  - Allowed origins:", corsOrigins);
+
 app.use(
   cors({
-    origin: allowed.length ? allowed : env.corsOrigins,
+    origin: corsOrigins,
     credentials: true,
   }),
 );
 
+// Handle preflight requests explicitly
+app.options('*', (req, res) => {
+  const origin = req.headers.origin;
+  if (corsOrigins.includes(origin as string)) {
+    res.header('Access-Control-Allow-Origin', origin as string);
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Range');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.sendStatus(200);
+  } else {
+    res.sendStatus(403); // Reject unauthorized origins
+  }
+});
+
 /* ---------- Parsers ---------- */
 app.use(express.json({ limit: "15mb" }));
 app.use(express.urlencoded({ extended: true, limit: "15mb" }));
+
+// Add video-specific size limits
+app.use('/api/files', (req, res, next) => {
+  if (req.method === 'POST' && req.headers['content-type']?.includes('multipart/form-data')) {
+    // Set higher limit for video uploads (500MB)
+    express.json({ limit: "500mb" })(req, res, next);
+  } else {
+    next();
+  }
+});
 
 /* ---------- Diagnostics ---------- */
 app.get("/__ping", (_req, res) => res.status(200).send("All is operational."));
@@ -44,6 +91,17 @@ app.get("/", (_req, res) => {
 
 /* Database connection call */
 export async function boot() {
+  // Validate environment configuration
+  console.log("🔍 Validating environment configuration...");
+  const envValidation = EnvironmentValidator.validate();
+  EnvironmentValidator.logValidationResults(envValidation);
+  
+  if (!envValidation.isValid) {
+    console.error("❌ Environment validation failed. Please check your .env file.");
+    console.error("Missing required variables:", envValidation.missing.join(", "));
+    process.exit(1);
+  }
+  
   await connectMongo();
 }
 
@@ -52,6 +110,7 @@ app.get("/favicon.ico", (_req, res) => res.status(204).end());
 
 /* ---------- Routes ---------- */
 app.use("/health", health); // GET /health -> { ok: true }
+app.use("/api/files", uploadLimiter); // Apply rate limiting to file operations
 app.use("/api", api); // GET /api/v1/ping -> { ok: true }
 
 /* ---------- 404 (last) ---------- */

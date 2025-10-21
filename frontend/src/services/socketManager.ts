@@ -39,7 +39,8 @@ interface NamespaceHandlers {
     onThreadDeleted?: (data: { threadId: string }) => void;
     onThreadUpdated?: (data: { updatedPost: any }) => void;
     onForumReplyCountUpdated?: (data: { threadId: string; replyCount: number }) => void;
-    onVoteUpdated?: (data: { targetId: string; newScore: number; userVote?: number }) => void;
+    onVoteUpdated?: (data: { targetId: string; newScore: number }) => void;
+    onBookingStatusUpdated?: (data: { bookingId: string; status: string; tutorId: string; studentId: string }) => void;
   };
 }
 
@@ -335,9 +336,14 @@ class SocketManagerClass {
       this.handlers.global.onForumReplyCountUpdated?.(data);
     });
 
-    globalSocket.on("vote_updated", (data: { targetId: string; newScore: number; userVote?: number }) => {
+    globalSocket.on("vote_updated", (data: { targetId: string; newScore: number }) => {
       console.log("[SocketManager] Vote updated:", data);
       this.handlers.global.onVoteUpdated?.(data);
+    });
+
+    globalSocket.on("booking_status_updated", (data: { bookingId: string; status: string; tutorId: string; studentId: string }) => {
+      console.log("[SocketManager] Booking status updated:", data);
+      this.handlers.global.onBookingStatusUpdated?.(data);
     });
   }
 

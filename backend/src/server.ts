@@ -12,7 +12,22 @@ import { createLogger } from "./config/logger";
 import mongoose from "mongoose";
 
 const logger = createLogger("server");
-const port = Number(process.env.PORT ?? env.port ?? 8080);
+// Parse and validate port number
+const extractPortNumber = (portValue: string | undefined): number => {
+  if (!portValue) return 8080;
+  const numericPort = portValue.toString().replace(/[^0-9]/g, '');
+  return Number(numericPort) || 8080;
+};
+
+let port = extractPortNumber(process.env.PORT) || Number(env.port) || 8080;
+
+// Validate port number
+if (isNaN(port) || port < 0 || port > 65535) {
+  logger.error(`Invalid port number: ${process.env.PORT}. Using default port 8080.`);
+  port = 8080;
+}
+
+logger.info(`Using port: ${port}`);
 
 // Attach Socket.IO and keep a handle for shutdown
 const io = createSocketServer(server);

@@ -1,6 +1,13 @@
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? "development",
-  port: Number(process.env.PORT ?? 5001),
+  port: (() => {
+    const portValue = process.env.PORT ?? 5001;
+    // Extract just the number from strings like "production5000"
+    const numericPort = portValue.toString().replace(/[^0-9]/g, '');
+    const parsedPort = Number(numericPort) || 5001;
+    console.log(`[env] PORT env var: "${process.env.PORT}", extracted: "${numericPort}", parsed: ${parsedPort}`);
+    return parsedPort;
+  })(),
   mongoUri:
     process.env.MONGO_URI ??
     (() => {
@@ -76,5 +83,17 @@ export const env = {
     "http://localhost:5173",
     "http://localhost:8080",
     "https://campuslearn.onrender.com",
+    "https://www.campuslearn-api.run.place",
+    "https://campuslearn-api.run.place",
   ],
+  
+  // Security Configuration
+  maxFileSize: Number(process.env.MAX_FILE_SIZE ?? 500 * 1024 * 1024), // 500MB
+  allowedOrigins: process.env.ALLOWED_ORIGINS?.split(',') ?? [],
+  enableRateLimit: process.env.ENABLE_RATE_LIMIT === 'true',
+  logLevel: process.env.LOG_LEVEL ?? 'info',
+  
+  // Rate limiting configuration
+  uploadRateLimitWindowMs: Number(process.env.UPLOAD_RATE_LIMIT_WINDOW_MS ?? 15 * 60 * 1000), // 15 minutes
+  uploadRateLimitMax: Number(process.env.UPLOAD_RATE_LIMIT_MAX ?? 5), // 5 uploads per window
 };
