@@ -157,13 +157,34 @@ const Forum = () => {
         userVote: thread.userVote || 0,
       }));
 
-      console.log("Fetched threads with votes:", threadsWithVotes.map((t: any) => ({ id: t._id, upvotes: t.upvotes, userVote: t.userVote })));
-      console.log("Vote counts breakdown:", threadsWithVotes.map((t: any) => ({ id: t._id, upvotes: t.upvotes, title: t.title?.substring(0, 20) })));
+      console.log(
+        "Fetched threads with votes:",
+        threadsWithVotes.map((t: any) => ({
+          id: t._id,
+          upvotes: t.upvotes,
+          userVote: t.userVote,
+        })),
+      );
+      console.log(
+        "Vote counts breakdown:",
+        threadsWithVotes.map((t: any) => ({
+          id: t._id,
+          upvotes: t.upvotes,
+          title: t.title?.substring(0, 20),
+        })),
+      );
 
       if (append) {
         setThreads((prevThreads) => [...prevThreads, ...threadsWithVotes]);
       } else {
-        console.log("Setting threads state:", threadsWithVotes.map((t: any) => ({ id: t._id, upvotes: t.upvotes, userVote: t.userVote })));
+        console.log(
+          "Setting threads state:",
+          threadsWithVotes.map((t: any) => ({
+            id: t._id,
+            upvotes: t.upvotes,
+            userVote: t.userVote,
+          })),
+        );
         setThreads(threadsWithVotes);
       }
       setTotalPosts(totalCount);
@@ -219,15 +240,19 @@ const Forum = () => {
           );
         },
         onVoteUpdated: ({ targetId, newScore, userVote }) => {
-          console.log("Received vote update:", { targetId, newScore, userVote });
+          console.log("Received vote update:", {
+            targetId,
+            newScore,
+            userVote,
+          });
           setThreads((prevThreads) =>
             prevThreads.map((thread) => {
               if (thread._id === targetId) {
                 // Update both the vote count and user's vote state from the server
-                return { 
-                  ...thread, 
+                return {
+                  ...thread,
                   upvotes: newScore,
-                  userVote: userVote || 0
+                  userVote: userVote || 0,
                 };
               }
               return thread;
@@ -649,17 +674,17 @@ const Forum = () => {
                   <h2 className="topic-title" data-cy="post-title">
                     {thread.title}
                   </h2>
-                  <span
-                    className={`topic-subject ${formatSubjectClass(
-                      thread.topic,
-                    )}`}
-                  >
-                    {thread.topic}
-                  </span>
                 </div>
                 <div className="topic-excerpt-wrapper">
                   <p className="topic-excerpt">{thread.content}</p>
                 </div>
+                <span
+                  className={`topic-subject ${formatSubjectClass(
+                    thread.topic,
+                  )}`}
+                >
+                  {thread.topic}
+                </span>
               </Link>
               <div className="topic-meta">
                 <div className="meta-stats">
@@ -716,7 +741,17 @@ const Forum = () => {
             </div>
 
             {/* Edit and Delete buttons positioned at top right of card */}
-            <div className="topic-header-actions">
+            <div
+              className="topic-header-actions"
+              style={{
+                position: "absolute",
+                top: "1rem",
+                right: "1rem",
+                zIndex: 10,
+                display: "flex",
+                gap: "0.5rem",
+              }}
+            >
               {user &&
                 thread.author &&
                 user.id === thread.author.userId &&

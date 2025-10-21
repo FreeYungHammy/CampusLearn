@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useCallNotifications } from "@/hooks/useCallNotifications";
+import { useCallStore } from "@/store/callStore";
 
 export const CallNotification: React.FC = () => {
   const { incomingCall, answerCall, declineCall, dismissNotification } = useCallNotifications();
+  const { setCallInProgress } = useCallStore();
   const [isVisible, setIsVisible] = useState(false);
+  const [isAnswering, setIsAnswering] = useState(false);
 
   useEffect(() => {
     if (incomingCall) {
@@ -72,22 +75,42 @@ export const CallNotification: React.FC = () => {
 
       <div style={{ display: "flex", gap: "8px" }}>
         <button
-          onClick={answerCall}
+          onClick={async () => {
+            if (isAnswering) return;
+            setIsAnswering(true);
+            try {
+              await answerCall();
+              // Set global call state when answering
+              setCallInProgress(true);
+            } finally {
+              setIsAnswering(false);
+            }
+          }}
+          disabled={isAnswering}
           style={{
             flex: 1,
-            background: "#10b981",
+            background: isAnswering ? "#6b7280" : "#10b981",
             color: "white",
             border: "none",
             padding: "12px 16px",
             borderRadius: "8px",
             fontWeight: "600",
-            cursor: "pointer",
+            cursor: isAnswering ? "not-allowed" : "pointer",
             transition: "background 0.2s",
+            opacity: isAnswering ? 0.7 : 1,
           }}
-          onMouseOver={(e) => e.currentTarget.style.background = "#059669"}
-          onMouseOut={(e) => e.currentTarget.style.background = "#10b981"}
+          onMouseOver={(e) => {
+            if (!isAnswering) {
+              e.currentTarget.style.background = "#059669";
+            }
+          }}
+          onMouseOut={(e) => {
+            if (!isAnswering) {
+              e.currentTarget.style.background = "#10b981";
+            }
+          }}
         >
-          Answer
+          {isAnswering ? "Joining..." : "Answer"}
         </button>
         <button
           onClick={declineCall}

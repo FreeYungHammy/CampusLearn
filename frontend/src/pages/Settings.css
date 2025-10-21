@@ -60,20 +60,44 @@
 }
 
 .email-note-box {
+  background-color: #f0f9ff;
   border: 1px solid #93c5fd;
   border-radius: 6px;
   padding: 12px;
 }
 
 .email-note-text {
-  color: #ffffff;
+  color: #1e40af;
   margin: 0;
   font-size: 14px;
   line-height: 1.4;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Dark mode support for email note */
+[data-theme="dark"] .email-note-box {
+  background-color: rgba(59, 130, 246, 0.12); /* soft blue */
+  border-color: rgba(147, 197, 253, 0.4);
+}
+
+[data-theme="dark"] .email-note-text {
+  color: #bfdbfe;
+}
+
+.email-note-text i {
+  color: inherit;
+  font-size: 14px;
 }
 
 .card-body {
   padding-top: 10px;
+}
+
+/* Spacing tweak for Change Password fields */
+.change-password-form .form-group + .form-grid {
+  margin-top: 14px;
 }
 
 .form-grid {
