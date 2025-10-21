@@ -31,10 +31,20 @@ export default function LogoutConfirmationModal() {
           <h2 id="logout-title" className="modal-title">
             Confirm Logout
           </h2>
-          <p className="modal-body">Are you sure you want to end your session?</p>
+          <p className="modal-body">
+            Are you sure you want to end your session?
+          </p>
         </div>
-        
+
         <div className="modal-buttons">
+          <button
+            type="button"
+            className="btn btn-outline"
+            onClick={close}
+            style={{ marginTop: "0px" }}
+          >
+            Cancel
+          </button>
           <button
             type="button"
             className="btn btn-danger"
@@ -43,9 +53,6 @@ export default function LogoutConfirmationModal() {
           >
             <i className="fas fa-sign-out-alt"></i>
             {busy ? "Logging out…" : "Logout"}
-          </button>
-          <button type="button" className="btn btn-outline" onClick={close}>
-            Cancel
           </button>
         </div>
       </div>

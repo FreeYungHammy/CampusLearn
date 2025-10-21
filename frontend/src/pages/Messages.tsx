@@ -1296,20 +1296,22 @@ const Messages: React.FC = () => {
 
     // Prevent multiple calls
     if (isCallInProgress) {
-      console.log("[video-call] Video call already in progress, ignoring request");
+      console.log(
+        "[video-call] Video call already in progress, ignoring request",
+      );
       return;
     }
 
     const otherId = selectedConversation.otherUser._id;
     const otherUserName = `${selectedConversation.otherUser.profile?.name || "Unknown"} ${selectedConversation.otherUser.profile?.surname || "User"}`;
     const callId = [user.id, otherId].sort().join(":");
-    
+
     console.log("[video-call] Call details:", {
       callId,
       userId: user.id,
       otherId,
       otherUserName,
-      selectedConversationId: selectedConversation._id
+      selectedConversationId: selectedConversation._id,
     });
 
     // Check if we're already in a call
@@ -1323,26 +1325,29 @@ const Messages: React.FC = () => {
     // Determine initiator using the same logic as backend validation
     const [id1, id2] = [user.id, otherId].sort();
     const isLexicographicInitiator = user.id === id1;
-    
+
     console.log("[video-call] Call initiation:", {
       callId,
       userId: user.id,
       otherId,
       isLexicographicInitiator,
-      sortedIds: [id1, id2]
+      sortedIds: [id1, id2],
     });
 
     // Notification will be sent from PreJoinPanel when user clicks "Join Call"
 
     // Open the call popup for both users
-    console.log("[video-call] Opening call popup:", { callId, userId: user.id, isLexicographicInitiator });
+    console.log("[video-call] Opening call popup:", {
+      callId,
+      userId: user.id,
+      isLexicographicInitiator,
+    });
 
     // Open the call popup with initiator information
     import("@/utils/openCallPopup").then(({ openCallPopup }) => {
       openCallPopup(callId, user.id, true); // Pass the initiator ID and true for isInitiator
     });
   }, [selectedConversation, user?.id, isCallInProgress]);
-
 
   /* -------- Messages with date separators, profile picture grouping, and timestamp grouping -------- */
   const messagesWithSeparators = useMemo(() => {
@@ -1588,13 +1593,19 @@ const Messages: React.FC = () => {
                     disabled={isCallInProgress}
                     onClick={() => {
                       console.log("[video-call] Video call button clicked!");
-                      console.log("[video-call] Current selectedConversation at button click:", selectedConversation);
-                      console.log("[video-call] Current user at button click:", user);
+                      console.log(
+                        "[video-call] Current selectedConversation at button click:",
+                        selectedConversation,
+                      );
+                      console.log(
+                        "[video-call] Current user at button click:",
+                        user,
+                      );
                       handleStartVideoCall();
                     }}
                     style={{
                       opacity: isCallInProgress ? 0.5 : 1,
-                      cursor: isCallInProgress ? 'not-allowed' : 'pointer'
+                      cursor: isCallInProgress ? "not-allowed" : "pointer",
                     }}
                   >
                     <svg width="16" height="16" fill="none" viewBox="0 0 16 16">
@@ -1679,12 +1690,24 @@ const Messages: React.FC = () => {
 
                       // Render booking message differently
                       if (isBookingMessage) {
+                        const senderId = msg.senderId || msg.sender?._id;
+                        const senderName = msg.sender?.name || "User";
+                        const profilePictureUrl = senderId
+                          ? getProfilePictureUrl(
+                              senderId,
+                              pfpTimestamps?.[senderId],
+                            )
+                          : undefined;
+
                         return (
                           <BookingMessageCard
                             key={msg._id || `${msg.createdAt}-${idx}`}
                             message={msg}
                             isOwnMessage={mine}
                             onBookingAction={handleBookingAction}
+                            showProfilePicture={msg.showProfilePicture}
+                            profilePictureUrl={profilePictureUrl}
+                            senderName={senderName}
                           />
                         );
                       }

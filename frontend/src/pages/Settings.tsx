@@ -521,7 +521,10 @@ const Settings = () => {
           <div className="card-header">
             <h2 className="card-title">Change Password</h2>
           </div>
-          <form onSubmit={passwordFormik.handleSubmit}>
+          <form
+            onSubmit={passwordFormik.handleSubmit}
+            className="change-password-form"
+          >
             <div className="form-group">
               <label className="form-label">Current Password</label>
               <input
@@ -810,7 +813,20 @@ const Settings = () => {
               padding: "12px",
             }}
           >
-            <p style={{ color: "#1e40af", margin: "0", fontSize: "14px" }}>
+            <p
+              style={{
+                color: "#1e40af",
+                margin: "0",
+                fontSize: "14px",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+              }}
+            >
+              <i
+                className="fas fa-info-circle"
+                style={{ fontSize: "14px" }}
+              ></i>
               <strong>Note:</strong> Security emails (like suspicious login
               alerts) are always sent to protect your account.
             </p>

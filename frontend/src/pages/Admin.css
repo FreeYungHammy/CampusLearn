@@ -140,7 +140,9 @@
   display: flex;
   align-items: center;
   gap: 1rem;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .admin-summary-card:hover {
@@ -157,7 +159,11 @@
   justify-content: center;
   font-size: 1.2rem;
   color: white;
-  background: linear-gradient(135deg, var(--admin-primary), var(--admin-secondary));
+  background: linear-gradient(
+    135deg,
+    var(--admin-primary),
+    var(--admin-secondary)
+  );
 }
 
 .admin-summary-content {
@@ -328,7 +334,9 @@
     border-radius: 12px;
     padding: 1.5rem;
     box-shadow: var(--admin-shadow);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease;
   }
 
   .admin-bill-card:hover {
@@ -416,7 +424,6 @@
       color: var(--admin-warning);
     }
   }
-
 
   /* Mobile navigation improvements */
   .cl-header-inner {
@@ -1927,6 +1934,47 @@
   .application-btn:hover,
   .delete-user-btn:hover {
     transform: none;
+  }
+}
+
+/* ===== PAGE HEADER MOBILE RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .page-header-card {
+    padding: 16px;
+    margin-bottom: 20px;
+  }
+
+  .page-header-title {
+    font-size: 1.5rem;
+    gap: 8px;
+  }
+
+  .page-header-title i {
+    font-size: 1.3rem;
+  }
+
+  .page-header-subtitle {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-header-card {
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+
+  .page-header-title {
+    font-size: 1.3rem;
+    gap: 6px;
+  }
+
+  .page-header-title i {
+    font-size: 1.1rem;
+  }
+
+  .page-header-subtitle {
+    font-size: 0.85rem;
   }
 }
 
