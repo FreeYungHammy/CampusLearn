@@ -114,6 +114,12 @@ const MyContent = () => {
     return out;
   }, [items]);
 
+  // Helper function to generate authenticated download URL
+  const getDownloadUrl = (fileId: string) => {
+    const baseUrl = `${apiBaseUrl}/files/${fileId}/binary?download=true`;
+    return token ? `${baseUrl}&token=${token}` : baseUrl;
+  };
+
   const handleViewClick = (file: TutorUpload) => {
     const isViewable = VIEWABLE_MIME_TYPES.some((type) =>
       file.contentType.startsWith(type),
@@ -564,7 +570,7 @@ const MyContent = () => {
                                       {file.contentType !==
                                         "application/pdf" && (
                                         <a
-                                          href={`${apiBaseUrl}/files/${fileId}/binary?download=true`}
+                                          href={getDownloadUrl(fileId)}
                                           className="btn btn-sm btn-outline-download"
                                           download
                                         >
@@ -605,7 +611,7 @@ const MyContent = () => {
               <h3>{selectedFile.title}</h3>
               <div className="modal-actions">
                 <a
-                  href={`${apiBaseUrl}/files/${(selectedFile as any).id || (selectedFile as any)._id}/binary?download=true`}
+                  href={getDownloadUrl((selectedFile as any).id || (selectedFile as any)._id)}
                   className="btn btn-sm btn-primary"
                   download
                 >

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useAuthStore } from "../../store/authStore";
 import { apiBaseUrl } from "../../lib/api";
 import { getTutorContent } from "../../services/fileApi";
 import type { TutorUpload } from "../../types/tutorUploads";
@@ -58,6 +59,7 @@ type Grouped = Record<string, Record<string, TutorUpload[]>>;
 
 const TutorContentView = () => {
   const { tutorId } = useParams<{ tutorId: string }>();
+  const { token } = useAuthStore();
   const [tutor, setTutor] = useState<Tutor | null>(null);
   const [items, setItems] = useState<TutorUpload[]>([]);
   const [loading, setLoading] = useState(false);
@@ -116,6 +118,12 @@ const TutorContentView = () => {
     }
     return out;
   }, [items]);
+
+  // Helper function to generate authenticated download URL
+  const getDownloadUrl = (fileId: string) => {
+    const baseUrl = `${apiBaseUrl}/files/${fileId}/binary?download=true`;
+    return token ? `${baseUrl}&token=${token}` : baseUrl;
+  };
 
   const handleViewClick = (file: TutorUpload) => {
     const isViewable = VIEWABLE_MIME_TYPES.some((type) =>
@@ -456,7 +464,7 @@ const TutorContentView = () => {
                                   )}
                                   {file.contentType !== "application/pdf" && (
                                     <a
-                                      href={`${apiBaseUrl}/files/${fileId}/binary?download=true`}
+                                      href={getDownloadUrl(fileId)}
                                       className="btn btn-sm btn-outline-download"
                                       download
                                     >
@@ -489,7 +497,7 @@ const TutorContentView = () => {
               <h3>{selectedFile.title}</h3>
               <div className="modal-actions">
                 <a
-                  href={`${apiBaseUrl}/files/${(selectedFile as any).id || (selectedFile as any)._id}/binary?download=true`}
+                  href={getDownloadUrl((selectedFile as any).id || (selectedFile as any)._id)}
                   className="btn btn-sm btn-primary"
                   download
                 >
