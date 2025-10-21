@@ -180,21 +180,26 @@ const Forum = () => {
         // When replacing threads (filtering), preserve vote state from previous threads
         setThreads((prevThreads) => {
           const voteStateMap = new Map(
-            prevThreads.map(thread => [thread._id, { upvotes: thread.upvotes, userVote: thread.userVote }])
+            prevThreads.map((thread) => [
+              thread._id,
+              { upvotes: thread.upvotes, userVote: thread.userVote },
+            ]),
           );
-          
-          const threadsWithPreservedVotes = threadsWithVotes.map((thread: any) => {
-            const preservedState = voteStateMap.get(thread._id);
-            if (preservedState) {
-              return {
-                ...thread,
-                upvotes: preservedState.upvotes,
-                userVote: preservedState.userVote,
-              };
-            }
-            return thread;
-          });
-          
+
+          const threadsWithPreservedVotes = threadsWithVotes.map(
+            (thread: any) => {
+              const preservedState = voteStateMap.get(thread._id);
+              if (preservedState) {
+                return {
+                  ...thread,
+                  upvotes: preservedState.upvotes,
+                  userVote: preservedState.userVote,
+                };
+              }
+              return thread;
+            },
+          );
+
           console.log(
             "Setting threads state with preserved votes:",
             threadsWithPreservedVotes.map((t: any) => ({
@@ -203,13 +208,16 @@ const Forum = () => {
               userVote: t.userVote,
             })),
           );
-          
+
           return threadsWithPreservedVotes;
         });
       }
       setTotalPosts(totalCount);
       // Only show "Load More Posts" if there are 10 or more posts on current page AND more posts available
-      setHasMorePosts(threadsWithVotes.length >= postsPerPage && threadsWithVotes.length + offset < totalCount);
+      setHasMorePosts(
+        threadsWithVotes.length >= postsPerPage &&
+          threadsWithVotes.length + offset < totalCount,
+      );
     } catch (error) {
       console.error("Failed to fetch threads", error);
     }
@@ -270,9 +278,11 @@ const Forum = () => {
               if (thread._id === targetId) {
                 // Use the authoritative vote count from the database
                 const validatedScore = Number(newScore) || 0;
-                
-                console.log(`[Forum] Vote update: threadId=${targetId}, currentCount=${thread.upvotes}, newScore=${validatedScore}, userVote=${thread.userVote}`);
-                
+
+                console.log(
+                  `[Forum] Vote update: threadId=${targetId}, currentCount=${thread.upvotes}, newScore=${validatedScore}, userVote=${thread.userVote}`,
+                );
+
                 // Update with the authoritative vote count from the database
                 return {
                   ...thread,
@@ -344,8 +354,11 @@ const Forum = () => {
           prevThreads.map((thread) => {
             if (thread._id === threadId) {
               // Revert to the original vote state before the optimistic update
-              const originalVote = thread.userVote === 1 ? 0 : (thread.userVote === 0 ? -1 : 0);
-              console.log(`[Upvote Error] Reverting vote state from ${thread.userVote} to ${originalVote}`);
+              const originalVote =
+                thread.userVote === 1 ? 0 : thread.userVote === 0 ? -1 : 0;
+              console.log(
+                `[Upvote Error] Reverting vote state from ${thread.userVote} to ${originalVote}`,
+              );
               return {
                 ...thread,
                 userVote: originalVote,
@@ -383,7 +396,9 @@ const Forum = () => {
             newUserVote = -1; // New downvote
           }
 
-          console.log(`[Downvote] Changing vote state from ${currentVote} to ${newUserVote} for thread ${threadId}`);
+          console.log(
+            `[Downvote] Changing vote state from ${currentVote} to ${newUserVote} for thread ${threadId}`,
+          );
 
           return {
             ...thread,
@@ -419,8 +434,11 @@ const Forum = () => {
           prevThreads.map((thread) => {
             if (thread._id === threadId) {
               // Revert to the original vote state before the optimistic update
-              const originalVote = thread.userVote === -1 ? 0 : (thread.userVote === 0 ? 1 : 0);
-              console.log(`[Downvote Error] Reverting vote state from ${thread.userVote} to ${originalVote}`);
+              const originalVote =
+                thread.userVote === -1 ? 0 : thread.userVote === 0 ? 1 : 0;
+              console.log(
+                `[Downvote Error] Reverting vote state from ${thread.userVote} to ${originalVote}`,
+              );
               return {
                 ...thread,
                 userVote: originalVote,
@@ -682,11 +700,9 @@ const Forum = () => {
                 </span>
               </Link>
               <div className="topic-meta">
-                <div className="meta-stats">
-                  <span className="stat-item">
-                    <i className="far fa-comment"></i>
-                    {thread.replies.length} replies
-                  </span>
+                <div className="stat-item">
+                  <i className="far fa-comment"></i>
+                  {thread.replies.length} replies
                 </div>
                 <div className="topic-author">
                   <div className="author-avatar">

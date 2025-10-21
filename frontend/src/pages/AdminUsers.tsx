@@ -37,7 +37,9 @@ function DeleteUserModal({
         className="modal-content delete-user-modal"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="modal-title">Confirm User Deletion</h2>
+        <h2 className="modal-title" style={{ marginTop: "10px" }}>
+          Confirm User Deletion
+        </h2>
         <div className="modal-body">
           <p className="warning-text">
             ⚠️ Are you sure you want to delete this user account?
@@ -368,9 +370,7 @@ const AdminUsers: React.FC = () => {
                                 user.surname ||
                                 "Name not available"}
                           </div>
-                          <div className="admin-user-email">
-                            {user.email}
-                          </div>
+                          <div className="admin-user-email">{user.email}</div>
                         </div>
                       </td>
                       <td style={{ padding: "1rem" }}>

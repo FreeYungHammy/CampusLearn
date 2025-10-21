@@ -165,16 +165,19 @@ const ForumTopic = () => {
 
           // Use the authoritative vote count from the database
           const validatedScore = Number(newScore) || 0;
-          
+
           const updatedThread = {
             ...prevThread,
-            upvotes: prevThread._id === targetId ? validatedScore : prevThread.upvotes,
+            upvotes:
+              prevThread._id === targetId ? validatedScore : prevThread.upvotes,
           };
 
           // Update vote count for replies with authoritative score, preserve each user's own vote state
           updatedThread.replies = updatedThread.replies.map((reply: any) => {
             if (reply._id === targetId) {
-              console.log(`[ForumTopic] Reply vote update: newScore=${validatedScore}`);
+              console.log(
+                `[ForumTopic] Reply vote update: newScore=${validatedScore}`,
+              );
               return { ...reply, upvotes: validatedScore };
             }
             return reply;
@@ -405,7 +408,7 @@ const ForumTopic = () => {
               {thread.topic}
             </span>
           </div>
-          <div className="topic-body" style={{ paddingTop: "2.5rem" }}>
+          <div className="topic-body" style={{ paddingTop: "0rem" }}>
             {editingId === thread._id ? (
               <div className="edit-form">
                 <textarea
@@ -426,39 +429,39 @@ const ForumTopic = () => {
               <p className="topic-content-text">{thread.content}</p>
             )}
           </div>
-          <div className="topic-meta detailed">
+          <div className="topic-meta">
             <div className="meta-stats">
               <span className="stat-item">
                 <i className="far fa-comment"></i>
                 {thread.replies.length}{" "}
                 {thread.replies.length === 1 ? "reply" : "replies"}
               </span>
-            </div>
-            <div className="topic-author">
-              <div className="author-avatar">
-                {thread.isAnonymous ? (
-                  <div className="anonymous-avatar">A</div>
-                ) : thread.author ? (
-                  <img
-                    src={`${(import.meta.env.VITE_API_URL as string).replace(/\/$/, "")}/api/users/${thread.author.userId}/pfp?t=${pfpTimestamps[thread.author.userId] || 0}`}
-                    alt="Profile"
-                    className="pfp-avatar"
-                  />
-                ) : (
-                  <div className="anonymous-avatar">?</div>
-                )}
-              </div>
-              <div className="author-details">
-                <span className="author-name">
-                  {thread.isAnonymous
-                    ? "Anonymous"
-                    : thread.author
-                      ? thread.author.name
-                      : "Anonymous"}
-                </span>
-                <span className="post-time">
-                  {new Date(thread.createdAt).toLocaleString()}
-                </span>
+              <div className="topic-author">
+                <div className="author-avatar">
+                  {thread.isAnonymous ? (
+                    <div className="anonymous-avatar">A</div>
+                  ) : thread.author ? (
+                    <img
+                      src={`${(import.meta.env.VITE_API_URL as string).replace(/\/$/, "")}/api/users/${thread.author.userId}/pfp?t=${pfpTimestamps[thread.author.userId] || 0}`}
+                      alt="Profile"
+                      className="pfp-avatar"
+                    />
+                  ) : (
+                    <div className="anonymous-avatar">?</div>
+                  )}
+                </div>
+                <div className="author-details">
+                  <span className="author-name">
+                    {thread.isAnonymous
+                      ? "Anonymous"
+                      : thread.author
+                        ? thread.author.name
+                        : "Anonymous"}
+                  </span>
+                  <span className="post-time">
+                    {new Date(thread.createdAt).toLocaleString()}
+                  </span>
+                </div>
               </div>
             </div>
           </div>

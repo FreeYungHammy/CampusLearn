@@ -3742,6 +3742,13 @@ select {
   color: #ffffff;
 }
 
+@media (max-width: 768px) {
+  .dashboard-title,
+  .time-info {
+    text-align: center;
+  }
+}
+
 /* Welcome Section Styling */
 .welcome-section {
   display: flex;
@@ -5067,6 +5074,7 @@ select {
   display: flex;
   align-items: center;
   gap: 16px;
+  width: 100% !important;
 }
 
 .stat-item {
@@ -5078,9 +5086,15 @@ select {
 }
 
 .topic-author {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  flex: 1 !important;
+  width: 100% !important;
+  order: 2 !important;
+  justify-content: flex-end !important;
 }
 
 .author-avatar {
@@ -5372,32 +5386,78 @@ header.cl-bleed-header,
   background: transparent;
 }
 
-.modal-actions {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 20px;
-  align-items: start;
-  padding: 20px;
+/* Forum Delete Modal - Horizontal Button Layout */
+/* Target delete confirmation modals specifically */
+.modal-actions:has(.btn-danger-solid) {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 12px !important;
+  justify-content: center !important;
+}
+
+.modal-actions:has(.btn-danger-solid) button {
+  flex: 0 0 auto !important;
+  min-width: 120px !important;
+  width: 120px !important;
+  max-width: 120px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  padding: 8px 16px !important;
+  box-sizing: border-box !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  line-height: 1.2 !important;
+}
+
+.modal-actions:has(.btn-danger-solid) .btn-danger-solid {
+  /* Ensure delete button is the same size as cancel button */
+  min-width: 120px !important;
+  width: 120px !important;
+  max-width: 120px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  padding: 8px 16px !important;
+  box-sizing: border-box !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  line-height: 1.2 !important;
+}
+
+.modal-actions:has(.btn-danger-solid) .btn-ghost {
+  /* Ensure cancel button is the same size as delete button */
+  min-width: 120px !important;
+  width: 120px !important;
+  max-width: 120px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  padding: 8px 16px !important;
+  box-sizing: border-box !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  line-height: 1.2 !important;
 }
 
 .modal-actions .modal-content-text {
-  grid-column: 1;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  text-align: center;
 }
 
 .modal-actions .modal-buttons {
-  grid-column: 2;
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-  min-width: 140px;
+  flex-direction: row;
+  gap: 12px;
+  justify-content: center;
 }
 
 .modal-actions .modal-buttons .btn {
-  width: 100%;
+  flex: 1;
   min-width: 120px;
+  max-width: 140px;
 }
 
 /* Modal Button Styles */
@@ -6763,13 +6823,6 @@ body.mobile-menu-open {
     align-items: flex-start;
   }
 
-  .reply-card:hover {
-    background: linear-gradient(135deg, var(--light-gray) 0%, #f8f9fa 100%);
-    transform: translateX(4px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    border-left-color: var(--primary);
-  }
-
   .reply-card:last-child {
     border-bottom: none;
   }
@@ -6780,16 +6833,6 @@ body.mobile-menu-open {
     border-color: var(--border);
     border-left-color: transparent;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-  }
-
-  [data-theme="dark"] .reply-card:hover {
-    background: linear-gradient(
-      135deg,
-      var(--surface-2) 0%,
-      var(--surface) 100%
-    );
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    border-left-color: var(--primary);
   }
 
   /* Reply Voting Section */
@@ -7110,10 +7153,11 @@ body.mobile-menu-open {
       min-width: 32px;
       padding: 2px 0;
       margin-right: 0 !important;
+      margin-top: 8px;
     }
 
     .reply-text-content {
-      margin-top: 10px;
+      margin-top: 20px;
     }
 
     .upvote-btn,
@@ -7135,7 +7179,7 @@ body.mobile-menu-open {
     }
 
     .reply-content p {
-      font-size: 13px;
+      font-size: 14px;
       line-height: 1.4;
       margin: 0 0 6px 0;
     }
@@ -7651,6 +7695,9 @@ body.mobile-menu-open {
     margin: 0 !important;
     padding: 0 !important;
     flex: 1 !important;
+    width: 100% !important;
+    order: 2 !important;
+    justify-content: flex-end !important;
   }
 
   /* Replies count - first element */
@@ -7662,6 +7709,7 @@ body.mobile-menu-open {
     padding: 0 !important;
     order: 1 !important;
     margin-left: -4px !important;
+    flex-shrink: 0 !important;
   }
 
   .stat-item {
@@ -8708,11 +8756,11 @@ body.mobile-menu-open {
 }
 
 .content-section-title {
-  font-size: 20px;
+  font-size: 25px;
   font-weight: 700;
   color: var(--blue-primary);
   margin-bottom: 16px;
-  text-align: left;
+  text-align: center;
 }
 
 /* Content Header */
@@ -8757,6 +8805,7 @@ body.mobile-menu-open {
   display: flex;
   align-items: center;
   gap: 16px;
+  justify-content: center;
 }
 
 .results-count {
@@ -9602,15 +9651,17 @@ body.mobile-menu-open {
     grid-column: unset !important;
     order: 2 !important;
     display: flex !important;
-    flex-direction: column !important;
+    flex-direction: row !important;
     gap: 12px !important;
     min-width: unset !important;
     width: 100% !important;
+    justify-content: center !important;
   }
 
   .modal-actions .modal-buttons .btn {
-    width: 100% !important;
-    min-width: unset !important;
+    flex: 1 !important;
+    min-width: 120px !important;
+    max-width: 140px !important;
   }
 
   .modal-body {
@@ -10219,10 +10270,6 @@ body.mobile-menu-open {
   transition: box-shadow 0.2s;
 }
 
-.reply-card:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
 .reply-content {
   flex-grow: 1;
 }
@@ -10231,6 +10278,12 @@ body.mobile-menu-open {
   margin: 0;
   line-height: 1.5;
   color: var(--dark);
+}
+
+.reply-text-content {
+  overflow-wrap: break-word;
+  max-width: 70%;
+  word-break: break-word;
 }
 
 .reply-meta {
@@ -10335,6 +10388,7 @@ body.mobile-menu-open {
 .success-notification-content {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   padding: 16px 20px;
   gap: 12px;
   background: transparent !important; /* Remove inner background */
@@ -10342,6 +10396,7 @@ body.mobile-menu-open {
   box-shadow: none !important; /* Remove inner shadow */
   background-color: transparent !important;
   background-image: none !important;
+  min-height: 60px; /* Ensure minimum height for proper centering */
 }
 
 .success-message {
@@ -10367,17 +10422,18 @@ body.mobile-menu-open {
 }
 
 .success-icon {
-  width: 48px; /* Larger icon */
-  height: 48px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--white); /* White background */
   color: var(--secondary); /* Green checkmark */
-  font-size: 20px; /* Larger icon font size */
+  font-size: 20px;
   flex-shrink: 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin: 0 auto 1.5rem;
 }
 
 .success-message h4 {
@@ -10471,4 +10527,155 @@ body.mobile-menu-open {
 [data-theme="dark"] .success-close-btn:hover {
   background: rgba(255, 255, 255, 0.2);
   opacity: 1;
+}
+
+/* Error Notification Styles */
+.error-notification-overlay {
+  position: fixed !important; /* Ensure it's fixed */
+  top: 80px; /* Position below header */
+  right: 20px;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.error-notification {
+  background: var(--danger); /* Red background */
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  min-width: 320px;
+  max-width: 400px;
+  box-shadow: var(--card-shadow);
+  border: 1px solid var(--danger);
+  animation: slideInRight 0.3s ease-out;
+  pointer-events: auto;
+}
+
+.error-notification-content {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 16px 20px;
+  gap: 12px;
+  background: transparent !important; /* Remove inner background */
+  min-height: 60px; /* Ensure minimum height for proper centering */
+}
+
+/* Ensure no inherited styles affect the notification content */
+.error-notification-content > * {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.error-notification-content > .error-icon {
+  background: var(--white) !important; /* White background for icon */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+.error-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.error-icon i {
+  font-size: 20px;
+  color: var(--danger);
+}
+
+.error-message {
+  flex: 1;
+  min-width: 0;
+}
+
+.error-message h4 {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--white);
+}
+
+.error-message p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--white);
+  opacity: 0.9;
+  line-height: 1.4;
+}
+
+.error-close-btn {
+  background: none;
+  border: none;
+  color: var(--white);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  opacity: 0.8;
+  flex-shrink: 0;
+}
+
+.error-close-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  opacity: 1;
+}
+
+.error-progress-bar {
+  height: 3px;
+  background: rgba(255, 255, 255, 0.3); /* Darker red progress bar background */
+  overflow: hidden;
+}
+
+.error-progress-fill {
+  height: 100%;
+  background: var(--white); /* White progress fill */
+  animation: progressBar 5s linear forwards;
+}
+
+/* Dark mode support for error notifications */
+[data-theme="dark"] .error-notification {
+  background: var(--danger);
+  border-color: var(--danger);
+}
+
+[data-theme="dark"] .error-message h4 {
+  color: var(--white);
+}
+
+[data-theme="dark"] .error-message p {
+  color: var(--white);
+  opacity: 0.9;
+}
+
+[data-theme="dark"] .error-close-btn {
+  color: var(--white);
+  opacity: 0.8;
+}
+
+[data-theme="dark"] .error-close-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  opacity: 1;
+}
+
+.view-btn,
+.edit-btn,
+.delete-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }

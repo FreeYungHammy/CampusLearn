@@ -419,6 +419,7 @@
 
 .form-group {
   margin-bottom: 0; /* Remove bottom margin since flexbox handles spacing */
+  width: 100%;
 }
 
 /* Responsive behavior for modal forms */
@@ -835,9 +836,8 @@
   }
 
   .view-btn {
-    background: #06b6d4;
+    background: transparent;
     color: white;
-    border-color: #06b6d4;
   }
 
   .view-btn:hover {
@@ -885,21 +885,21 @@
 }
 
 /* Fallback Button Styling - Ensure visibility regardless of CSS variables */
+.view-btn,
 .edit-btn,
-.delete-btn,
-.view-btn {
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border: 1px solid;
-  text-decoration: none;
-  display: inline-block;
-  text-align: center;
-  min-width: 50px;
-  flex-shrink: 0;
+.delete-btn {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 8px !important;
+  border: 1px solid var(--border) !important;
+  color: #ffffff !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  font-size: 14px !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
 }
 
 .edit-btn {

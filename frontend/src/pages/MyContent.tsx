@@ -286,6 +286,13 @@ const MyContent = () => {
         )}
 
         <div id="content-display">
+          <h3 className="content-section-title">
+            {currentPath.length === 0
+              ? "Subjects"
+              : currentPath.length === 1
+                ? `Folders in ${currentPath[0]}`
+                : `Files in ${currentPath[currentPath.length - 1]}`}
+          </h3>
           {user?.role !== "tutor" && (
             <div className="empty-state">
               <i className="fas fa-lock"></i>
@@ -423,11 +430,6 @@ const MyContent = () => {
                       {selectedSubject && selectedSubtopic && (
                         <div className="files-container">
                           <div className="results-info">
-                            <h3 className="content-section-title">
-                              {selectedSubject}{" "}
-                              <i className="fas fa-chevron-right"></i>{" "}
-                              {selectedSubtopic}
-                            </h3>
                             <span className="results-count">
                               {filteredItems.length} file
                               {filteredItems.length !== 1 ? "s" : ""}
@@ -611,7 +613,9 @@ const MyContent = () => {
               <h3>{selectedFile.title}</h3>
               <div className="modal-actions">
                 <a
-                  href={getDownloadUrl((selectedFile as any).id || (selectedFile as any)._id)}
+                  href={getDownloadUrl(
+                    (selectedFile as any).id || (selectedFile as any)._id,
+                  )}
                   className="btn btn-sm btn-primary"
                   download
                 >

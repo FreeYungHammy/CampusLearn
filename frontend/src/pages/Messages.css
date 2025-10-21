@@ -24,7 +24,7 @@
     Arial,
     "Apple Color Emoji",
     "Segoe UI Emoji";
-  max-height: 85vh;
+  max-height: 90vh;
   overflow: visible;
 }
 
@@ -42,7 +42,7 @@
   grid-template-columns: 380px 1fr;
   gap: 16px;
   height: calc(100vh - 280px);
-  max-height: 60vh;
+  max-height: 70vh;
 }
 
 /* ---------- Sidebar ---------- */

@@ -1,14 +1,15 @@
 .booking-message-card {
-  margin: 0.5rem 0;
-  max-width: 400px;
+  margin: 0;
+  max-width: 100%;
+  width: 100%;
 }
 
 .booking-message-card.own-message {
-  margin-left: auto;
+  margin-left: 0;
 }
 
 .booking-message-card.other-message {
-  margin-right: auto;
+  margin-right: 0;
 }
 
 .booking-card {
@@ -137,33 +138,33 @@
   .booking-message-card {
     max-width: 100%;
   }
-  
+
   .booking-card {
     padding: 0.75rem;
   }
-  
+
   .booking-header {
     gap: 0.5rem;
   }
-  
+
   .booking-icon {
     width: 2rem;
     height: 2rem;
     font-size: 1.25rem;
   }
-  
+
   .booking-title h4 {
     font-size: 0.875rem;
   }
-  
+
   .booking-subject {
     font-size: 0.75rem;
   }
-  
+
   .booking-actions {
     flex-direction: column;
   }
-  
+
   .booking-action-btn {
     padding: 0.75rem 1rem;
   }

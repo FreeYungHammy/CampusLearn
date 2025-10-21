@@ -309,6 +309,10 @@ select.form-control-enhanced option {
   cursor: pointer;
   transition: all 0.2s ease;
   min-width: 100px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-cancel:hover {
@@ -341,7 +345,14 @@ select.form-control-enhanced option {
   cursor: pointer;
   transition: all 0.2s ease;
   min-width: 120px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+  overflow: hidden;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .btn-submit:hover:not(:disabled) {
@@ -372,10 +383,19 @@ select.form-control-enhanced option {
   color: var(--danger);
 }
 
-/* Loading state */
-.btn-submit.loading {
-  position: relative;
-  color: transparent;
+/* Ensure button doesn't expand - override any conflicting styles */
+.create-post-modal-footer .btn-submit {
+  height: 48px !important;
+  min-height: 48px !important;
+  max-height: 48px !important;
+  flex-shrink: 0 !important;
+  overflow: hidden !important;
+}
+
+.create-post-modal-footer .btn-submit.loading {
+  height: 48px !important;
+  min-height: 48px !important;
+  max-height: 48px !important;
 }
 
 .btn-submit.loading::after {
