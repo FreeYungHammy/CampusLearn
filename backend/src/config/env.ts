@@ -93,7 +93,7 @@ export const env = {
   enableRateLimit: process.env.ENABLE_RATE_LIMIT === 'true',
   logLevel: process.env.LOG_LEVEL ?? 'info',
   
-  // Rate limiting configuration
-  uploadRateLimitWindowMs: Number(process.env.UPLOAD_RATE_LIMIT_WINDOW_MS ?? 15 * 60 * 1000), // 15 minutes
-  uploadRateLimitMax: Number(process.env.UPLOAD_RATE_LIMIT_MAX ?? 5), // 5 uploads per window
+  // Upload rate limiting configuration - disabled for hosted environment
+  uploadRateLimitWindowMs: 0, // No upload rate limiting
+  uploadRateLimitMax: 0, // No upload rate limiting
 };

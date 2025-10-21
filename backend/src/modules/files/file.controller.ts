@@ -370,15 +370,12 @@ export const FileController = {
                   const fetchHeaders: any = {};
                   if (req.headers.range) {
                     fetchHeaders['Range'] = req.headers.range;
-                  } else {
-                    // For initial requests without range, request first 1MB for faster initial load
-                    fetchHeaders['Range'] = 'bytes=0-1048575';
                   }
+                  // No initial range limit - let the client request what it needs
                   
-                  // Add timeout and other optimizations
+                  // No timeout limits for hosted environment
                   const fetchOptions = {
                     headers: fetchHeaders,
-                    timeout: 30000, // 30 second timeout
                   };
                   
                   const response = await fetch(signedUrl, fetchOptions);
@@ -466,13 +463,11 @@ export const FileController = {
                 if (req.headers.range) {
                   fetchHeaders['Range'] = req.headers.range;
                 } else {
-                  // For initial requests without range, request first 1MB for faster initial load
-                  fetchHeaders['Range'] = 'bytes=0-1048575';
+                  // No initial range limit - let the client request what it needs
                 }
                 
                 const fetchOptions = {
                   headers: fetchHeaders,
-                  timeout: 300000, // 5 minutes for large videos
                 };
                 
                 const response = await fetch(signedUrl, fetchOptions);
@@ -543,13 +538,11 @@ export const FileController = {
                 if (req.headers.range) {
                   fetchHeaders['Range'] = req.headers.range;
                 } else {
-                  // For initial requests without range, request first 1MB for faster initial load
-                  fetchHeaders['Range'] = 'bytes=0-1048575';
+                  // No initial range limit - let the client request what it needs
                 }
                 
                 const fetchOptions = {
                   headers: fetchHeaders,
-                  timeout: 300000, // 5 minutes for large videos
                 };
                 
                 const response = await fetch(signedUrl, fetchOptions);
@@ -631,15 +624,12 @@ export const FileController = {
                   const fetchHeaders: any = {};
                   if (req.headers.range) {
                     fetchHeaders['Range'] = req.headers.range;
-                  } else {
-                    // For initial requests without range, request first 1MB for faster initial load
-                    fetchHeaders['Range'] = 'bytes=0-1048575';
                   }
+                  // No initial range limit - let the client request what it needs
                   
-                  // Add timeout and other optimizations
+                  // No timeout limits for hosted environment
                   const fetchOptions = {
                     headers: fetchHeaders,
-                    timeout: 30000, // 30 second timeout
                   };
                   
                   const response = await fetch(signedUrl, fetchOptions);
