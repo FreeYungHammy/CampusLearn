@@ -198,12 +198,17 @@ export const UserService = {
     });
 
     let profile: any;
-    if (user.role === "student") {
-      profile = await StudentRepo.findOne({ userId: (user as any)._id });
-    } else if (user.role === "tutor") {
-      profile = await TutorRepo.findOne({ userId: (user as any)._id });
-    } else if (user.role === "admin") {
-      profile = await AdminModel.findOne({ userId: (user as any)._id });
+    try {
+      if (user.role === "student") {
+        profile = await StudentRepo.findOne({ userId: (user as any)._id });
+      } else if (user.role === "tutor") {
+        profile = await TutorRepo.findOne({ userId: (user as any)._id });
+      } else if (user.role === "admin") {
+        profile = await AdminModel.findOne({ userId: (user as any)._id });
+      }
+    } catch (profileError) {
+      console.error("Error fetching user profile:", profileError);
+      profile = null; // Continue with null profile rather than failing login
     }
 
     const { passwordHash: _ph, ...publicUser } = user as any;
@@ -213,7 +218,7 @@ export const UserService = {
       id: user._id.toString(),
       name: profile?.name,
       surname: profile?.surname,
-      pfp: profile?.pfp
+      pfp: profile?.pfp && profile.pfp.data
         ? {
             contentType: profile.pfp.contentType,
             data: profile.pfp.data.toString("base64"),

@@ -411,12 +411,22 @@
 }
 
 .modal-body {
-  padding-top: 10px;
-  padding-bottom: 20px;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 0; /* Remove bottom margin since flexbox handles spacing */
+}
+
+/* Responsive behavior for modal forms */
+@media (max-width: 768px) {
+  .modal-body {
+    gap: 16px;
+    padding: 16px;
+  }
 }
 
 .form-group label {

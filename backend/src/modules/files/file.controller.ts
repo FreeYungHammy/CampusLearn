@@ -9,29 +9,20 @@ import { createLogger } from "../../config/logger";
 const upload = multer({ storage: multer.memoryStorage() });
 const logger = createLogger("FileController");
 
-// Helper function to stream video content with consistent error handling
-async function streamVideoContent(fetchResponse: any, expressRes: any, timeoutMs: number = 300000): Promise<void> {
+// Helper function to stream video content with no timeout limits for hosted environment
+async function streamVideoContent(fetchResponse: any, expressRes: any): Promise<void> {
   if (!fetchResponse.body) {
     throw new Error('No response body available');
   }
 
   console.log(`📦 Starting to pipe video content to client`);
   
-  // Set timeout for the streaming operation
-  const streamTimeout = setTimeout(() => {
-    console.error(`❌ Stream timeout after ${timeoutMs/1000} seconds`);
-    if (!expressRes.headersSent) {
-      expressRes.status(408).json({ message: "Stream timeout" });
-    }
-  }, timeoutMs);
-  
-  // Use the simple pipe method
+  // Use the simple pipe method with no timeout limits
   fetchResponse.body.pipe(expressRes);
   
   // Add error handling for the stream
   fetchResponse.body.on('error', (streamError: Error) => {
     console.error(`❌ Stream error:`, streamError);
-    clearTimeout(streamTimeout);
     if (!expressRes.headersSent) {
       expressRes.status(500).json({ message: "Stream error" });
     }
@@ -39,17 +30,11 @@ async function streamVideoContent(fetchResponse: any, expressRes: any, timeoutMs
   
   fetchResponse.body.on('end', () => {
     console.log(`✅ Video stream completed successfully`);
-    clearTimeout(streamTimeout);
   });
   
   // Add response event handlers for cleanup
-  expressRes.on('close', () => {
-    clearTimeout(streamTimeout);
-  });
-  
   expressRes.on('error', (resError: Error) => {
     console.error(`❌ Response error:`, resError);
-    clearTimeout(streamTimeout);
   });
 }
 
@@ -114,15 +99,7 @@ async function handleRangeRequest(
     const start = parseInt(parts[0], 10);
     let end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
 
-    // Limit chunk size to prevent memory issues
-    if (end - start > 2097152) { // 2MB
-      end = start + 2097151;
-    }
-
-    // For initial requests, allow larger chunks for better buffering
-    if (start === 0 && end > 1048576) { // 1MB
-      end = 1048575;
-    }
+    // No chunk size limits - allow full range requests for optimal performance
 
     // Validate range
     if (start >= fileSize || end >= fileSize || start > end) {
@@ -443,7 +420,7 @@ export const FileController = {
                   
                   
                   // Stream the video content using helper function
-                  await streamVideoContent(response, res, 30000);
+                  await streamVideoContent(response, res);
                   return;
                 } catch (proxyError) {
                   console.error(`❌ Failed to proxy video content:`, proxyError);
@@ -535,7 +512,7 @@ export const FileController = {
                 res.set(responseHeaders);
                 
                 // Stream the video content using helper function
-                await streamVideoContent(response, res, 300000);
+                await streamVideoContent(response, res);
                 return;
               } catch (proxyError) {
                 console.error(`❌ Failed to proxy original video content during compression:`, proxyError);
@@ -609,7 +586,7 @@ export const FileController = {
                 res.set(responseHeaders);
                 
                 // Stream the video content using helper function
-                await streamVideoContent(response, res, 300000);
+                await streamVideoContent(response, res);
                 return;
               } catch (proxyError) {
                 console.error(`❌ Failed to proxy original video content:`, proxyError);
@@ -704,7 +681,7 @@ export const FileController = {
                   
                   
                   // Stream the video content using helper function
-                  await streamVideoContent(response, res, 30000);
+                  await streamVideoContent(response, res);
                   return;
                 } catch (proxyError) {
                   console.error(`❌ Failed to proxy video content:`, proxyError);

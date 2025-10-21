@@ -3,6 +3,7 @@ import { useAuthStore } from "../store/authStore";
 import { adminApi } from "../services/adminApi";
 import PageHeader from "../components/PageHeader";
 import PasswordInput from "../components/PasswordInput";
+import SubjectSelector from "../components/SubjectSelector";
 import "./DatabaseTools.css";
 import "./Admin.css";
 
@@ -611,9 +612,9 @@ const CreateModal: React.FC<CreateModalProps> = ({
         { name: "surname", type: "text", required: true },
         {
           name: "enrolledCourses",
-          type: "text",
+          type: "subjects",
           required: false,
-          placeholder: "Comma-separated list",
+          placeholder: "Select enrolled courses",
         },
       ],
       tutors: [
@@ -623,9 +624,9 @@ const CreateModal: React.FC<CreateModalProps> = ({
         { name: "surname", type: "text", required: true },
         {
           name: "subjects",
-          type: "text",
+          type: "subjects",
           required: true,
-          placeholder: "Comma-separated list",
+          placeholder: "Select subjects to teach",
         },
       ],
     };
@@ -681,52 +682,64 @@ const CreateModal: React.FC<CreateModalProps> = ({
             )}
             {getFormFields(entityType).map((field: any) => (
               <div key={field.name} className="form-group">
-                <label>
-                  {field.name.charAt(0).toUpperCase() + field.name.slice(1)}
-                  {field.required && <span className="required">*</span>}
-                </label>
-                {field.type === "textarea" ? (
-                  <textarea
-                    value={formData[field.name] || ""}
-                    onChange={(e) => handleChange(field.name, e.target.value)}
+                {field.type === "subjects" ? (
+                  <SubjectSelector
+                    selectedSubjects={formData[field.name] || []}
+                    onSubjectsChange={(subjects) => handleChange(field.name, subjects)}
+                    label={field.name.charAt(0).toUpperCase() + field.name.slice(1)}
+                    required={field.required}
                     placeholder={field.placeholder}
-                    required={field.required}
-                  />
-                ) : field.type === "select" ? (
-                  <select
-                    value={formData[field.name] || ""}
-                    onChange={(e) => handleChange(field.name, e.target.value)}
-                    required={field.required}
-                  >
-                    <option value="">Select...</option>
-                    {field.options?.map((option: any) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                ) : field.type === "password" ? (
-                  <PasswordInput
-                    name={field.name}
-                    value={formData[field.name] || ""}
-                    onChange={(e) => handleChange(field.name, e.target.value)}
-                    placeholder={field.placeholder}
-                    required={field.required}
-                  />
-                ) : field.type === "checkbox" ? (
-                  <input
-                    type="checkbox"
-                    checked={formData[field.name] || false}
-                    onChange={(e) => handleChange(field.name, e.target.checked)}
                   />
                 ) : (
-                  <input
-                    type={field.type}
-                    value={formData[field.name] || ""}
-                    onChange={(e) => handleChange(field.name, e.target.value)}
-                    placeholder={field.placeholder}
-                    required={field.required}
-                  />
+                  <>
+                    <label>
+                      {field.name.charAt(0).toUpperCase() + field.name.slice(1)}
+                      {field.required && <span className="required">*</span>}
+                    </label>
+                    {field.type === "textarea" ? (
+                      <textarea
+                        value={formData[field.name] || ""}
+                        onChange={(e) => handleChange(field.name, e.target.value)}
+                        placeholder={field.placeholder}
+                        required={field.required}
+                      />
+                    ) : field.type === "select" ? (
+                      <select
+                        value={formData[field.name] || ""}
+                        onChange={(e) => handleChange(field.name, e.target.value)}
+                        required={field.required}
+                      >
+                        <option value="">Select...</option>
+                        {field.options?.map((option: any) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                    ) : field.type === "password" ? (
+                      <PasswordInput
+                        name={field.name}
+                        value={formData[field.name] || ""}
+                        onChange={(e) => handleChange(field.name, e.target.value)}
+                        placeholder={field.placeholder}
+                        required={field.required}
+                      />
+                    ) : field.type === "checkbox" ? (
+                      <input
+                        type="checkbox"
+                        checked={formData[field.name] || false}
+                        onChange={(e) => handleChange(field.name, e.target.checked)}
+                      />
+                    ) : (
+                      <input
+                        type={field.type}
+                        value={formData[field.name] || ""}
+                        onChange={(e) => handleChange(field.name, e.target.value)}
+                        placeholder={field.placeholder}
+                        required={field.required}
+                      />
+                    )}
+                  </>
                 )}
               </div>
             ))}
@@ -799,9 +812,9 @@ const EditModal: React.FC<EditModalProps> = ({
         { name: "surname", type: "text", required: true },
         {
           name: "enrolledCourses",
-          type: "text",
+          type: "subjects",
           required: false,
-          placeholder: "Comma-separated list",
+          placeholder: "Select enrolled courses",
         },
       ],
       tutors: [
@@ -811,9 +824,9 @@ const EditModal: React.FC<EditModalProps> = ({
         { name: "surname", type: "text", required: true },
         {
           name: "subjects",
-          type: "text",
+          type: "subjects",
           required: true,
-          placeholder: "Comma-separated list",
+          placeholder: "Select subjects to teach",
         },
       ],
     };
@@ -845,39 +858,51 @@ const EditModal: React.FC<EditModalProps> = ({
           <div className="modal-body">
             {getFormFields(entityType).map((field: any) => (
               <div key={field.name} className="form-group">
-                <label>
-                  {field.name.charAt(0).toUpperCase() + field.name.slice(1)}
-                  {field.required && <span className="required">*</span>}
-                </label>
-                {field.type === "textarea" ? (
-                  <textarea
-                    value={formData[field.name] || ""}
-                    onChange={(e) => handleChange(field.name, e.target.value)}
-                    placeholder={field.placeholder}
+                {field.type === "subjects" ? (
+                  <SubjectSelector
+                    selectedSubjects={formData[field.name] || []}
+                    onSubjectsChange={(subjects) => handleChange(field.name, subjects)}
+                    label={field.name.charAt(0).toUpperCase() + field.name.slice(1)}
                     required={field.required}
-                  />
-                ) : field.type === "password" ? (
-                  <PasswordInput
-                    name={field.name}
-                    value={formData[field.name] || ""}
-                    onChange={(e) => handleChange(field.name, e.target.value)}
                     placeholder={field.placeholder}
-                    required={field.required}
-                  />
-                ) : field.type === "checkbox" ? (
-                  <input
-                    type="checkbox"
-                    checked={formData[field.name] || false}
-                    onChange={(e) => handleChange(field.name, e.target.checked)}
                   />
                 ) : (
-                  <input
-                    type={field.type}
-                    value={formData[field.name] || ""}
-                    onChange={(e) => handleChange(field.name, e.target.value)}
-                    placeholder={field.placeholder}
-                    required={field.required}
-                  />
+                  <>
+                    <label>
+                      {field.name.charAt(0).toUpperCase() + field.name.slice(1)}
+                      {field.required && <span className="required">*</span>}
+                    </label>
+                    {field.type === "textarea" ? (
+                      <textarea
+                        value={formData[field.name] || ""}
+                        onChange={(e) => handleChange(field.name, e.target.value)}
+                        placeholder={field.placeholder}
+                        required={field.required}
+                      />
+                    ) : field.type === "password" ? (
+                      <PasswordInput
+                        name={field.name}
+                        value={formData[field.name] || ""}
+                        onChange={(e) => handleChange(field.name, e.target.value)}
+                        placeholder={field.placeholder}
+                        required={field.required}
+                      />
+                    ) : field.type === "checkbox" ? (
+                      <input
+                        type="checkbox"
+                        checked={formData[field.name] || false}
+                        onChange={(e) => handleChange(field.name, e.target.checked)}
+                      />
+                    ) : (
+                      <input
+                        type={field.type}
+                        value={formData[field.name] || ""}
+                        onChange={(e) => handleChange(field.name, e.target.value)}
+                        placeholder={field.placeholder}
+                        required={field.required}
+                      />
+                    )}
+                  </>
                 )}
               </div>
             ))}

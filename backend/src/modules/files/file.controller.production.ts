@@ -43,15 +43,7 @@ async function handleRangeRequest(
     const start = parseInt(parts[0], 10);
     let end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
 
-    // Limit chunk size to prevent memory issues
-    if (end - start > 2097152) { // 2MB
-      end = start + 2097151;
-    }
-
-    // For initial requests, allow larger chunks for better buffering
-    if (start === 0 && end > 1048576) { // 1MB
-      end = 1048575;
-    }
+    // No chunk size limits - allow full range requests for optimal performance
 
     // Validate range
     if (start >= fileSize || end >= fileSize || start > end) {
