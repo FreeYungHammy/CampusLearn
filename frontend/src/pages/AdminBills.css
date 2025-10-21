@@ -102,6 +102,30 @@
   color: var(--text-secondary);
 }
 
+.admin-table-header {
+  margin: 10px 10px 10px 10px;
+}
+
+/* Admin Header Layout - Desktop */
+.admin-header-content {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  width: 100% !important;
+  flex-direction: row !important;
+}
+
+.admin-header-left {
+  flex: 1 !important;
+}
+
+.admin-header-right {
+  display: flex !important;
+  align-items: center !important;
+  gap: 1rem !important;
+  flex-shrink: 0 !important;
+}
+
 .admin-no-data i {
   font-size: 3rem;
   margin-bottom: 1rem;
@@ -254,5 +278,17 @@
   .admin-select {
     width: 100%;
     min-width: unset;
+  }
+
+  /* Mobile header layout */
+  .admin-header-content {
+    flex-direction: column !important;
+    gap: 1rem !important;
+    align-items: flex-start !important;
+  }
+
+  .admin-header-right {
+    width: 100% !important;
+    justify-content: flex-start !important;
   }
 }

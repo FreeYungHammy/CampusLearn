@@ -131,7 +131,7 @@ const Header = () => {
           <nav className="cl-center desktop-nav" aria-label="Primary">
             <NavLink to="/schedule" className="cl-nav-item">
               <i className="fas fa-calendar" />
-              <span>Schedule</span>
+              <span>Dashboard</span>
             </NavLink>
             {!isAdmin && (
               <NavLink to="/bookings" className="cl-nav-item">
@@ -378,7 +378,7 @@ const Header = () => {
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 <i className="fas fa-calendar" />
-                <span>Schedule</span>
+                <span>Dashboard</span>
               </NavLink>
 
               {!isAdmin && (

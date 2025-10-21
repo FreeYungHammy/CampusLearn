@@ -5074,6 +5074,7 @@ select {
   display: flex;
   align-items: center;
   gap: 16px;
+  width: 100% !important;
 }
 
 .stat-item {
@@ -5085,9 +5086,15 @@ select {
 }
 
 .topic-author {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  flex: 1 !important;
+  width: 100% !important;
+  order: 2 !important;
+  justify-content: flex-end !important;
 }
 
 .author-avatar {
@@ -5379,11 +5386,58 @@ header.cl-bleed-header,
   background: transparent;
 }
 
-.modal-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  padding: 20px;
+/* Forum Delete Modal - Horizontal Button Layout */
+/* Target delete confirmation modals specifically */
+.modal-actions:has(.btn-danger-solid) {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 12px !important;
+  justify-content: center !important;
+}
+
+.modal-actions:has(.btn-danger-solid) button {
+  flex: 0 0 auto !important;
+  min-width: 120px !important;
+  width: 120px !important;
+  max-width: 120px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  padding: 8px 16px !important;
+  box-sizing: border-box !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  line-height: 1.2 !important;
+}
+
+.modal-actions:has(.btn-danger-solid) .btn-danger-solid {
+  /* Ensure delete button is the same size as cancel button */
+  min-width: 120px !important;
+  width: 120px !important;
+  max-width: 120px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  padding: 8px 16px !important;
+  box-sizing: border-box !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  line-height: 1.2 !important;
+}
+
+.modal-actions:has(.btn-danger-solid) .btn-ghost {
+  /* Ensure cancel button is the same size as delete button */
+  min-width: 120px !important;
+  width: 120px !important;
+  max-width: 120px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  padding: 8px 16px !important;
+  box-sizing: border-box !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  line-height: 1.2 !important;
 }
 
 .modal-actions .modal-content-text {
@@ -6769,13 +6823,6 @@ body.mobile-menu-open {
     align-items: flex-start;
   }
 
-  .reply-card:hover {
-    background: linear-gradient(135deg, var(--light-gray) 0%, #f8f9fa 100%);
-    transform: translateX(4px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    border-left-color: var(--primary);
-  }
-
   .reply-card:last-child {
     border-bottom: none;
   }
@@ -6786,16 +6833,6 @@ body.mobile-menu-open {
     border-color: var(--border);
     border-left-color: transparent;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-  }
-
-  [data-theme="dark"] .reply-card:hover {
-    background: linear-gradient(
-      135deg,
-      var(--surface-2) 0%,
-      var(--surface) 100%
-    );
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    border-left-color: var(--primary);
   }
 
   /* Reply Voting Section */
@@ -7116,10 +7153,11 @@ body.mobile-menu-open {
       min-width: 32px;
       padding: 2px 0;
       margin-right: 0 !important;
+      margin-top: 8px;
     }
 
     .reply-text-content {
-      margin-top: 10px;
+      margin-top: 20px;
     }
 
     .upvote-btn,
@@ -7141,7 +7179,7 @@ body.mobile-menu-open {
     }
 
     .reply-content p {
-      font-size: 13px;
+      font-size: 14px;
       line-height: 1.4;
       margin: 0 0 6px 0;
     }
@@ -7657,6 +7695,9 @@ body.mobile-menu-open {
     margin: 0 !important;
     padding: 0 !important;
     flex: 1 !important;
+    width: 100% !important;
+    order: 2 !important;
+    justify-content: flex-end !important;
   }
 
   /* Replies count - first element */
@@ -7668,6 +7709,7 @@ body.mobile-menu-open {
     padding: 0 !important;
     order: 1 !important;
     margin-left: -4px !important;
+    flex-shrink: 0 !important;
   }
 
   .stat-item {
@@ -8714,11 +8756,11 @@ body.mobile-menu-open {
 }
 
 .content-section-title {
-  font-size: 20px;
+  font-size: 25px;
   font-weight: 700;
   color: var(--blue-primary);
   margin-bottom: 16px;
-  text-align: left;
+  text-align: center;
 }
 
 /* Content Header */
@@ -8763,6 +8805,7 @@ body.mobile-menu-open {
   display: flex;
   align-items: center;
   gap: 16px;
+  justify-content: center;
 }
 
 .results-count {
@@ -10227,10 +10270,6 @@ body.mobile-menu-open {
   transition: box-shadow 0.2s;
 }
 
-.reply-card:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
 .reply-content {
   flex-grow: 1;
 }
@@ -10239,6 +10278,12 @@ body.mobile-menu-open {
   margin: 0;
   line-height: 1.5;
   color: var(--dark);
+}
+
+.reply-text-content {
+  overflow-wrap: break-word;
+  max-width: 70%;
+  word-break: break-word;
 }
 
 .reply-meta {
@@ -10615,4 +10660,22 @@ body.mobile-menu-open {
 [data-theme="dark"] .error-close-btn:hover {
   background: rgba(255, 255, 255, 0.2);
   opacity: 1;
+}
+
+.view-btn,
+.edit-btn,
+.delete-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
