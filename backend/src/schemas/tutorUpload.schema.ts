@@ -19,12 +19,8 @@ const FileSchema = new Schema(
       type: String,
       required: false,
     },
-    compressionStatus: { 
-      type: String, 
-      enum: ["pending", "compressing", "completed", "failed"], 
-      default: "pending" 
-    },
-    compressedQualities: [{ type: String }], // Array of available qualities (e.g., ["360p", "480p", "720p"])
+    // Compression fields removed from schema to prevent auto-insertion
+    // These fields are added dynamically only for video files in the service layer
   },
   { timestamps: true },
 );

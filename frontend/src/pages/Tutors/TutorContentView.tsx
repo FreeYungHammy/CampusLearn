@@ -85,7 +85,7 @@ const TutorContentView = () => {
       try {
         const [tutorData, files] = await Promise.all([
           getTutorById(tutorId),
-          getTutorContent(tutorId),
+          getTutorContent(tutorId, token || undefined),
         ]);
         if (mounted) {
           setTutor(tutorData);
@@ -134,7 +134,8 @@ const TutorContentView = () => {
       setIsModalOpen(true);
     } else {
       const fileId = (file as any).id || (file as any)._id;
-      window.open(`${apiBaseUrl}/files/${fileId}/binary`, "_blank");
+      const binaryUrl = `${apiBaseUrl}/files/${fileId}/binary${token ? `?token=${token}` : ''}`;
+      window.open(binaryUrl, "_blank");
     }
   };
 
@@ -466,11 +467,11 @@ const TutorContentView = () => {
 
                 const fileId =
                   (selectedFile as any).id || (selectedFile as any)._id;
-                const fileUrl = `${apiBaseUrl}/files/${fileId}/binary`;
+                const fileUrl = `${apiBaseUrl}/files/${fileId}/binary${token ? `?token=${token}` : ''}`;
 
                 // On localhost, use the local viewer for Word docs
                 if (isLocalhost && isWordDoc) {
-                  return <DocxViewer file={selectedFile} />;
+                  return <DocxViewer file={selectedFile} token={token || undefined} />;
                 }
 
                 // On a deployed server, use the MS viewer for any Office doc

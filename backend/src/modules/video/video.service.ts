@@ -33,8 +33,8 @@ export class VideoService {
     }
 
     return {
-      compressionStatus: file.compressionStatus || "pending",
-      compressedQualities: file.compressedQualities || [],
+      compressionStatus: (file as any).compressionStatus || "pending",
+      compressedQualities: (file as any).compressedQualities || [],
     };
   }
 }

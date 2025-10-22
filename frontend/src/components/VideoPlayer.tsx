@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { ConnectionDetector } from "../utils/connectionDetector";
 import { VideoPerformanceMonitor } from "../utils/videoPerformanceMonitor";
 import VideoQualitySelector, { VideoQuality } from "./VideoQualitySelector";
@@ -27,7 +27,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [optimizedSrc, setOptimizedSrc] = useState<string | null>(null);
-  const [currentQuality, setCurrentQuality] = useState<string>("480p");
+  const [currentQuality, setCurrentQuality] = useState<string>("original");
   const hasTriedFallbackRef = useRef(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [videoDimensions, setVideoDimensions] = useState<{width: number, height: number} | null>(null);
@@ -38,15 +38,26 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const user = useAuthStore((state) => state.user);
   const { compressionStatus, compressedQualities, loading: statusLoading } = useVideoCompressionStatus(fileId || undefined, token || undefined);
 
-  // Quality selection state
-  const [availableQualities] = useState<VideoQuality[]>([
-    { name: "720p", label: "720p" },
-    { name: "480p", label: "480p" },
-    { name: "360p", label: "360p" },
-  ]);
+  // Quality selection state - only show qualities that are actually available
+  const availableQualities = useMemo(() => {
+    if (compressionStatus === 'completed' && compressedQualities.length > 0) {
+      return compressedQualities.map(q => ({ name: q, label: q }));
+    }
+    return [{ name: 'original', label: 'Original' }];
+  }, [compressionStatus, compressedQualities]);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Update current quality when available qualities change
+  useEffect(() => {
+    if (availableQualities.length > 0 && !availableQualities.some(q => q.name === currentQuality)) {
+      // If current quality is not available, switch to the first available quality
+      const newQuality = availableQualities[0].name;
+      console.log(`🔄 Switching from unavailable quality ${currentQuality} to ${newQuality}`);
+      setCurrentQuality(newQuality);
+    }
+  }, [availableQualities, currentQuality]);
 
   // Debug: Log when optimizedSrc changes
   useEffect(() => {
@@ -96,8 +107,17 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         }
 
         if (fileId) {
-          const baseUrl = src.replace("/binary", "");
-          const candidateUrl = `${baseUrl}/binary?quality=${selectedQuality}${token ? `&token=${token}` : ''}`;
+          let candidateUrl: string;
+          
+          if (selectedQuality === 'original') {
+            // Use original URL without quality parameter
+            candidateUrl = `${src}${token ? `?token=${token}` : ''}`;
+          } else {
+            // Use compressed quality URL
+            const baseUrl = src.replace("/binary", "");
+            candidateUrl = `${baseUrl}/binary?quality=${selectedQuality}${token ? `&token=${token}` : ''}`;
+          }
+          
           console.log(`🔗 Original URL: ${src}`);
           console.log(`⚡ Optimized URL: ${candidateUrl}`);
 
@@ -508,7 +528,15 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           <VideoQualitySelector
             currentQuality={currentQuality}
             availableQualities={availableQualities}
-            onQualityChange={setCurrentQuality}
+            onQualityChange={(quality: string) => {
+              // Validate quality before changing
+              if (quality === 'original' || compressedQualities.includes(quality)) {
+                setCurrentQuality(quality);
+              } else {
+                console.warn(`Quality ${quality} not available, falling back to original`);
+                setCurrentQuality('original');
+              }
+            }}
           />
         </div>
       )}
