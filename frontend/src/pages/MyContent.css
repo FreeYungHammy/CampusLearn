@@ -579,6 +579,11 @@
     flex-wrap: wrap;
   }
 
+  /* Hide back button on mobile - breadcrumb provides same functionality */
+  .back-button-top-right {
+    display: none !important;
+  }
+
   #mycontent-view .subjects-grid {
     grid-template-columns: 1fr !important;
     gap: 16px !important;
@@ -623,6 +628,51 @@
     gap: 12px;
     padding: 12px 16px;
     min-height: auto;
+    width: 100%;
+    overflow: visible;
+  }
+
+  .file-info {
+    width: 100%;
+    min-width: 0;
+    overflow: visible;
+  }
+
+  .file-name {
+    font-size: 16px !important;
+    line-height: 1.3 !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+    hyphens: auto !important;
+    max-width: 100% !important;
+    margin-bottom: 8px !important;
+  }
+
+  .file-description {
+    font-size: 13px !important;
+    line-height: 1.4 !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+    margin-bottom: 8px !important;
+  }
+
+  .file-meta {
+    flex-direction: column !important;
+    gap: 4px !important;
+    align-items: flex-start !important;
+    font-size: 12px !important;
+  }
+
+  .meta-item {
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    flex-wrap: wrap !important;
+  }
+
+  .meta-item span {
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
   }
 
   .file-actions {
@@ -677,5 +727,157 @@
 
   #mycontent-view .subject-card .file-count {
     font-size: 12px !important;
+  }
+
+  /* Enhanced mobile file card styling for very small screens */
+  .file-card {
+    padding: 10px 12px !important;
+    gap: 10px !important;
+  }
+
+  .file-name {
+    font-size: 15px !important;
+    line-height: 1.2 !important;
+  }
+
+  .file-description {
+    font-size: 12px !important;
+    line-height: 1.3 !important;
+  }
+
+  .file-meta {
+    font-size: 11px !important;
+    gap: 3px !important;
+  }
+
+  .file-actions .btn {
+    min-width: 60px !important;
+    padding: 3px 6px !important;
+    font-size: 9px !important;
+  }
+}
+
+/* Modal Styling for My Content View */
+#mycontent-view .modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--light-gray);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+#mycontent-view .modal-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+}
+
+#mycontent-view .modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-top: 0px;
+}
+
+#mycontent-view .modal-actions .btn {
+  padding: 8px 12px;
+  font-size: 12px;
+  white-space: nowrap;
+  min-width: auto;
+}
+
+#mycontent-view .modal-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+#mycontent-view .modal-close-btn:hover {
+  background: var(--surface-2);
+  color: var(--text-primary);
+}
+
+/* Mobile responsive modal header */
+@media (max-width: 768px) {
+  #mycontent-view .modal-header {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 12px 16px;
+    gap: 8px;
+  }
+
+  #mycontent-view .modal-header h3 {
+    font-size: 14px;
+    text-align: center;
+    margin-bottom: 4px;
+  }
+
+  #mycontent-view .modal-actions {
+    justify-content: center;
+    width: 100%;
+    gap: 12px;
+    align-items: center !important;
+    margin-top: 0px;
+  }
+
+  #mycontent-view .modal-actions .btn {
+    flex: 1;
+    max-width: 120px;
+    padding: 10px 8px;
+    font-size: 11px;
+  }
+
+  #mycontent-view .modal-close-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 6px;
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  #mycontent-view .modal-header {
+    padding: 10px 12px;
+  }
+
+  #mycontent-view .modal-header h3 {
+    font-size: 13px;
+    line-height: 1.3;
+  }
+
+  #mycontent-view .modal-actions {
+    justify-content: center;
+    width: 100%;
+    gap: 8px;
+    align-items: center !important;
+    margin-top: 0px;
+  }
+
+  #mycontent-view .modal-actions .btn {
+    padding: 8px 6px;
+    font-size: 10px;
+    max-width: 100px;
+  }
+
+  #mycontent-view .modal-close-btn {
+    top: 6px;
+    right: 6px;
+    padding: 4px;
+    font-size: 14px;
   }
 }

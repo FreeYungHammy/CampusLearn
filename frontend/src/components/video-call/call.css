@@ -3,7 +3,12 @@
   height: 100vh;
   width: 100vw;
   overflow: hidden;
-  background: radial-gradient(1200px 800px at 80% 0%, #0f172a 0%, #0b1220 40%, #0a1020 100%);
+  background: radial-gradient(
+    1200px 800px at 80% 0%,
+    #0f172a 0%,
+    #0b1220 40%,
+    #0a1020 100%
+  );
   color: #e5e7eb;
 }
 
@@ -13,7 +18,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 18px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   backdrop-filter: saturate(140%) blur(6px);
 }
 
@@ -40,7 +45,7 @@
   border-radius: 12px;
   object-fit: cover;
   background: #111827;
-  box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
 }
 
 .cl-dock {
@@ -53,7 +58,7 @@
   padding: 14px 18px;
   background: rgba(255, 255, 255, 0.9);
   border-radius: 999px;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
 }
 
 .cl-btn {
@@ -97,11 +102,13 @@
 }
 
 .cl-pre-card {
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 12px;
   padding: 24px;
-  box-shadow: 0 18px 50px rgba(0,0,0,0.25) inset, 0 12px 28px rgba(0,0,0,0.25);
+  box-shadow:
+    0 18px 50px rgba(0, 0, 0, 0.25) inset,
+    0 12px 28px rgba(0, 0, 0, 0.25);
 }
 
 /* Preview Section */
@@ -149,7 +156,7 @@
   border-radius: 12px;
   overflow: hidden;
   background: #0b1220;
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .cl-preview-loading {
@@ -164,7 +171,7 @@
 .cl-loading-spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid rgba(255,255,255,0.1);
+  border: 3px solid rgba(255, 255, 255, 0.1);
   border-top: 3px solid #2563eb;
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -172,8 +179,12 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .cl-preview-video {
@@ -224,7 +235,7 @@
   width: 100%;
   padding: 12px 16px;
   border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.12);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(15, 23, 42, 0.8);
   color: #e5e7eb;
   font-size: 14px;
@@ -276,7 +287,7 @@
   flex: 1;
   padding: 12px 24px;
   border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.18);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   background: transparent;
   color: #e5e7eb;
   font-size: 14px;
@@ -286,8 +297,8 @@
 }
 
 .cl-btn-cancel:hover:not(:disabled) {
-  background: rgba(255,255,255,0.05);
-  border-color: rgba(255,255,255,0.25);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.25);
 }
 
 .cl-btn-cancel:disabled {
@@ -322,4 +333,93 @@
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
 }
 
+/* Mobile responsive layout for prejoin panel */
+@media (max-width: 768px) {
+  .cl-prejoin {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto auto !important;
+    gap: 16px !important;
+    padding: 16px !important;
+    height: auto !important;
+    min-height: 100% !important;
+  }
 
+  .cl-pre-card {
+    padding: 16px !important;
+  }
+
+  .cl-preview-container {
+    height: 200px !important;
+  }
+
+  .cl-preview-header h3 {
+    font-size: 16px !important;
+  }
+
+  .cl-device-section h3 {
+    font-size: 16px !important;
+  }
+
+  .cl-device-group {
+    gap: 16px !important;
+    margin-bottom: 20px !important;
+  }
+
+  .cl-pre-actions {
+    flex-direction: column !important;
+    gap: 8px !important;
+    margin-top: 20px !important;
+  }
+
+  .cl-btn-cancel,
+  .cl-btn-join {
+    width: 100% !important;
+    padding: 14px 20px !important;
+    font-size: 15px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .cl-prejoin {
+    padding: 12px !important;
+    gap: 12px !important;
+  }
+
+  .cl-pre-card {
+    padding: 12px !important;
+  }
+
+  .cl-preview-container {
+    height: 180px !important;
+  }
+
+  .cl-preview-header h3,
+  .cl-device-section h3 {
+    font-size: 15px !important;
+  }
+
+  .cl-device-group {
+    gap: 12px !important;
+    margin-bottom: 16px !important;
+  }
+
+  .cl-device-label {
+    font-size: 13px !important;
+  }
+
+  .cl-device-select {
+    padding: 10px 12px !important;
+    font-size: 13px !important;
+  }
+
+  .cl-pre-actions {
+    gap: 6px !important;
+    margin-top: 16px !important;
+  }
+
+  .cl-btn-cancel,
+  .cl-btn-join {
+    padding: 12px 16px !important;
+    font-size: 14px !important;
+  }
+}

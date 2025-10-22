@@ -1,13 +1,16 @@
-import React, { useState, useEffect, useCallback } from "react"; // Add useEffect and useCallback
+import React, { useState, useEffect, useCallback } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import { register, checkEmailAvailability, submitTutorApplication } from "../services/authApi";
-import Stepper from "./Stepper";
+import {
+  register,
+  checkEmailAvailability,
+  submitTutorApplication,
+} from "../services/authApi";
 import Dialog from "./ui/Dialog";
 import { useNavigate } from "react-router-dom";
-import "./RegisterStepperModal.css";
+import "./NewRegisterStepperModal.css";
 
-interface RegisterStepperModalProps {
+interface NewRegisterStepperModalProps {
   show: boolean;
   onClose: () => void;
 }
@@ -26,27 +29,24 @@ const getPasswordStrengthText = (strength: number) => {
   switch (strength) {
     case 0:
     case 1:
-      return { text: "Weak", color: "#dc3545" };
+      return { text: "Weak", color: "#ef4444" };
     case 2:
-      return { text: "Moderate", color: "#fd7e14" };
+      return { text: "Moderate", color: "#f59e0b" };
     case 3:
-      return { text: "Strong", color: "#28a745" }; // Changed to green
+      return { text: "Strong", color: "#10b981" };
     case 4:
     case 5:
-      return { text: "Very Strong", color: "#20c997" };
+      return { text: "Very Strong", color: "#059669" };
     default:
-      return { text: "Weak", color: "#dc3545" };
+      return { text: "Weak", color: "#ef4444" };
   }
 };
 
-const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
+const NewRegisterStepperModal: React.FC<NewRegisterStepperModalProps> = ({
   show,
   onClose,
 }) => {
   const [currentStep, setCurrentStep] = useState(1);
-  const [transitionDirection, setTransitionDirection] = useState<
-    "next" | "prev"
-  >("next");
   const [isDragOver, setIsDragOver] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isCheckingEmail, setIsCheckingEmail] = useState(false);
@@ -55,6 +55,11 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
     useState<NodeJS.Timeout | null>(null);
   const [emailSuccess, setEmailSuccess] = useState(false);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+
   const steps = ["Role", "Details", "Subjects"];
 
   const validateEmailAvailability = async (email: string) => {
@@ -65,9 +70,7 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
     setEmailSuccess(false);
 
     try {
-      console.log("Starting email availability check for:", email);
       const isAvailable = await checkEmailAvailability(email);
-      console.log("Email availability result:", isAvailable);
       if (!isAvailable) {
         setEmailError("This email is already registered");
         setEmailSuccess(false);
@@ -77,9 +80,6 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
       setEmailError(null);
       return true;
     } catch (error: any) {
-      console.error("Error checking email:", error);
-      console.error("Error details:", error.response?.data || error.message);
-      // More specific error handling
       if (error.response?.status === 400) {
         setEmailError("Please enter a valid email address");
       } else if (error.response?.status === 500) {
@@ -95,19 +95,16 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
     }
   };
 
-  // Debounced email check function
   const debouncedEmailCheck = useCallback(
     (email: string) => {
-      // Clear existing timeout
       if (emailCheckTimeout) {
         clearTimeout(emailCheckTimeout);
       }
 
-      // Only check if email looks valid
       if (email && email.includes("@") && email.includes(".")) {
         const timeout = setTimeout(() => {
           validateEmailAvailability(email);
-        }, 1000); // 1 second delay
+        }, 1000);
 
         setEmailCheckTimeout(timeout);
       }
@@ -115,7 +112,6 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
     [emailCheckTimeout],
   );
 
-  // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
       if (emailCheckTimeout) {
@@ -126,30 +122,32 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
 
   const validateCurrentStep = () => {
     switch (currentStep) {
-      case 1: // Role selection
+      case 1:
         return formik.values.role !== "";
-      case 2: // Details
+      case 2:
         const basicFieldsValid =
           formik.values.firstName.trim() !== "" &&
           formik.values.lastName.trim() !== "" &&
           formik.values.email.trim() !== "" &&
           formik.values.password.trim() !== "";
 
-        // Only block if there's a specific email error (not just network issues)
+        const passwordStrongEnough =
+          checkPasswordStrength(formik.values.password) >= 3;
         const emailBlocking =
           emailError && !emailError.includes("Unable to verify");
 
-        // If role is tutor, also check for qualification file
         if (formik.values.role === "tutor") {
           return (
             basicFieldsValid &&
+            passwordStrongEnough &&
             formik.values.qualificationFile !== null &&
-            (formik.values.qualificationFile as File).type === "application/pdf" &&
+            (formik.values.qualificationFile as File).type ===
+              "application/pdf" &&
             !emailBlocking
           );
         }
-        return basicFieldsValid && !emailBlocking;
-      case 3: // Subjects
+        return basicFieldsValid && passwordStrongEnough && !emailBlocking;
+      case 3:
         return formik.values.subjects.length > 0;
       default:
         return true;
@@ -158,23 +156,19 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
 
   const handleNext = async () => {
     if (currentStep < steps.length) {
-      // Special handling for step 2 - check email availability
       if (currentStep === 2 && formik.values.email.trim()) {
         const isEmailAvailable = await validateEmailAvailability(
           formik.values.email,
         );
         if (!isEmailAvailable) {
           formik.setFieldTouched("email", true);
-          return; // Don't proceed if email is not available
+          return;
         }
       }
 
-      // Validate current step before proceeding
       if (!validateCurrentStep()) {
-        // Mark relevant fields as touched to show validation errors
         switch (currentStep) {
           case 1:
-            // Role selection - this shouldn't happen as role has default value
             break;
           case 2:
             formik.setFieldTouched("firstName", true);
@@ -189,17 +183,15 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
             formik.setFieldTouched("subjects", true);
             break;
         }
-        return; // Don't proceed to next step
+        return;
       }
 
-      setTransitionDirection("next");
       setCurrentStep(currentStep + 1);
     }
   };
 
   const handleBack = () => {
     if (currentStep > 1) {
-      setTransitionDirection("prev");
       setCurrentStep(currentStep - 1);
     }
   };
@@ -207,9 +199,6 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
-
-  const [error, setError] = useState("");
-  const navigate = useNavigate();
 
   const formik = useFormik({
     initialValues: {
@@ -246,13 +235,17 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
             return checkPasswordStrength(value || "") >= 3;
           },
         )
-        .test("email-password", "Password cannot be the same as your email address", function(value) {
-          const { email } = this.parent;
-          if (value && email && value.toLowerCase() === email.toLowerCase()) {
-            return false;
-          }
-          return true;
-        }),
+        .test(
+          "email-password",
+          "Password cannot be the same as your email address",
+          function (value) {
+            const { email } = this.parent;
+            if (value && email && value.toLowerCase() === email.toLowerCase()) {
+              return false;
+            }
+            return true;
+          },
+        ),
       role: Yup.string().required("Required"),
       subjects: Yup.array().min(1, "Select at least one subject"),
       qualificationFile: Yup.mixed().when("role", {
@@ -270,6 +263,7 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
     }),
     onSubmit: async (values) => {
       setError("");
+      setIsSubmitting(true);
       try {
         if (values.role === "tutor") {
           const formData = new FormData();
@@ -278,21 +272,30 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
           formData.append("email", values.email);
           formData.append("password", values.password);
           formData.append("role", values.role);
-          values.subjects.forEach((subject) => formData.append("subjects", subject));
+          values.subjects.forEach((subject) =>
+            formData.append("subjects", subject),
+          );
           if (values.qualificationFile) {
             formData.append("qualificationFile", values.qualificationFile);
           }
 
           await submitTutorApplication(formData);
-          setRegistrationSuccess(true); // Show success message and wait for manual close
+          setRegistrationSuccess(true);
         } else {
           await register(values);
           setRegistrationSuccess(true);
-          // For students, auto-redirect after showing success message
-          setTimeout(() => {
-            onClose();
-            navigate("/login?registered=true");
-          }, 2500);
+          setCountdown(3);
+          const countdownInterval = setInterval(() => {
+            setCountdown((prev) => {
+              if (prev <= 1) {
+                clearInterval(countdownInterval);
+                onClose();
+                navigate("/login?registered=true");
+                return 0;
+              }
+              return prev - 1;
+            });
+          }, 1000);
         }
       } catch (err: any) {
         if (err.response && err.response.data && err.response.data.message) {
@@ -300,26 +303,27 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
         } else {
           setError("An unexpected error occurred. Please try again.");
         }
+      } finally {
+        setIsSubmitting(false);
       }
     },
   });
 
-  // Reset function
   const resetForm = () => {
     formik.resetForm();
     setCurrentStep(1);
-    setTransitionDirection("next");
     setError("");
     setIsDragOver(false);
+    setRegistrationSuccess(false);
+    setIsSubmitting(false);
+    setCountdown(0);
   };
 
-  // Handle modal close with reset
   const handleClose = () => {
     resetForm();
     onClose();
   };
 
-  // Reset when modal is closed
   useEffect(() => {
     if (!show) {
       resetForm();
@@ -354,227 +358,252 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
     }
   };
 
+  const getProgressBarWidth = (step: number) => {
+    if (currentStep >= step) return "100%";
+    if (currentStep === step - 1) return "50%";
+    return "0%";
+  };
+
   return (
-    <Dialog isOpen={show} onClose={handleClose} width="lg" labelledById="register-modal">
-      {" "}
-      {/* Change onClose to handleClose */}
-      <div className="register-stepper-modal">
-        <div className="modal-header">
-          <h2 className="modal-title">Create Your Account</h2>
-          <button className="modal-close" onClick={handleClose}>
-            {" "}
-            {/* Change to handleClose */}
-            &times;
+    <Dialog
+      isOpen={show}
+      onClose={handleClose}
+      width="lg"
+      labelledById="new-register-modal"
+    >
+      <div className="new-register-modal">
+        {/* Header */}
+        <div className="new-modal-header">
+          <h2 className="new-modal-title">Create Your Account</h2>
+          <button className="new-modal-close" onClick={handleClose}>
+            ×
           </button>
         </div>
-        <form onSubmit={formik.handleSubmit}>
-          <div className="modal-body">
-            {!registrationSuccess && (
-              <Stepper
-                currentStep={currentStep}
-                onStepChange={setCurrentStep}
-              >
-                {steps.map((step, index) => (
-                  <div key={index} className="step-content">
-                    {step}
-                  </div>
-                ))}
-              </Stepper>
-            )}
+
+        {/* Progress Stepper */}
+        <div className="new-progress-stepper">
+          <div className="new-progress-container">
             <div
-              className={`step-content ${transitionDirection === "prev" ? "back-transition" : ""}`}
+              className={`new-progress-step ${registrationSuccess ? "completed" : currentStep >= 1 ? (currentStep === 1 ? "active" : "completed") : ""}`}
             >
+              {registrationSuccess ? "" : currentStep > 1 ? "" : "1"}
+            </div>
+            <div className="new-progress-connector">
+              <div
+                className="new-progress-bar"
+                style={{
+                  width: registrationSuccess ? "100%" : getProgressBarWidth(2),
+                }}
+              />
+            </div>
+            <div
+              className={`new-progress-step ${registrationSuccess ? "completed" : currentStep >= 2 ? (currentStep === 2 ? "active" : "completed") : ""}`}
+            >
+              {registrationSuccess ? "" : currentStep > 2 ? "" : "2"}
+            </div>
+            <div className="new-progress-connector">
+              <div
+                className="new-progress-bar"
+                style={{
+                  width: registrationSuccess ? "100%" : getProgressBarWidth(3),
+                }}
+              />
+            </div>
+            <div
+              className={`new-progress-step ${registrationSuccess ? "completed" : currentStep >= 3 ? (currentStep === 3 ? "active" : "completed") : ""}`}
+            >
+              {registrationSuccess ? "" : currentStep > 3 ? "" : "3"}
+            </div>
+          </div>
+        </div>
+
+        {/* Modal Body */}
+        <div className="new-modal-body">
+          <form onSubmit={formik.handleSubmit}>
+            <div className="new-step-content">
               {error && (
-                <p
-                  className="error-message"
-                  style={{
-                    color: "red",
-                    textAlign: "center",
-                    marginBottom: "10px",
-                  }}
+                <div
+                  className="new-error-message"
+                  style={{ textAlign: "center", marginBottom: "16px" }}
                 >
                   {error}
-                </p>
+                </div>
               )}
+
               {registrationSuccess && (
-                <div className="success-message-container">
-                  <div className="success-icon">
+                <div className="new-success-container">
+                  <div className="new-success-icon">
                     <i className="fas fa-check-circle"></i>
                   </div>
-                  {formik.values.role === 'tutor' ? (
+                  {formik.values.role === "tutor" ? (
                     <>
-                      <h3 className="success-title">Application Submitted!</h3>
-                      <p className="success-description">
-                        Thank you for applying. Your application is under review.
+                      <h3 className="new-success-title">
+                        Application Submitted!
+                      </h3>
+                      <p className="new-success-description">
+                        Thank you for applying. Your application is under
+                        review.
                       </p>
-                      <p className="success-redirect">
-                        You will be notified of the outcome via email. Please check your spam/junk folder if you don't see it in your inbox. You may now close this window.
+                      <p className="new-success-redirect">
+                        You will be notified of the outcome via email. Please
+                        check your spam/junk folder if you don't see it in your
+                        inbox. You may now close this window.
                       </p>
                     </>
                   ) : (
                     <>
-                      <h3 className="success-title">Account Created Successfully!</h3>
-                      <p className="success-description">
-                        Welcome to CampusLearn! Your account has been created successfully.
+                      <h3 className="new-success-title">
+                        Account Created Successfully!
+                      </h3>
+                      <p className="new-success-description">
+                        Welcome to CampusLearn! Your account has been created
+                        successfully.
                       </p>
-                      <p className="success-redirect">Redirecting you to login...</p>
+                      <p className="new-success-redirect">
+                        Redirecting you to login in {countdown} second
+                        {countdown !== 1 ? "s" : ""}...
+                      </p>
                     </>
                   )}
                 </div>
               )}
+
               {!registrationSuccess && currentStep === 1 && (
                 <div>
-                  <h3 className="step-title">Are you a Student or a Tutor?</h3>
-                  <div className="role-selection">
+                  <h3 className="new-step-title">
+                    Are you a Student or a Tutor?
+                  </h3>
+                  <p className="new-step-description">
+                    Choose your role to get started
+                  </p>
+                  <div className="new-role-selection">
                     <div
-                      className={`role-option ${
-                        formik.values.role === "student" ? "selected" : ""
-                      }`}
+                      className={`new-role-option ${formik.values.role === "student" ? "selected" : ""}`}
                       onClick={() => formik.setFieldValue("role", "student")}
                     >
-                      <i className="fas fa-user-graduate"></i>
-                      <h3>Student</h3>
-                      <p>Learn from peers and tutors</p>
+                      <i className="fas fa-user-graduate new-role-icon"></i>
+                      <h3 className="new-role-title">Student</h3>
+                      <p className="new-role-description">
+                        Learn from peers and tutors
+                      </p>
                     </div>
                     <div
-                      className={`role-option ${
-                        formik.values.role === "tutor" ? "selected" : ""
-                      }`}
+                      className={`new-role-option ${formik.values.role === "tutor" ? "selected" : ""}`}
                       onClick={() => formik.setFieldValue("role", "tutor")}
                     >
-                      <i className="fas fa-chalkboard-teacher"></i>
-                      <h3>Tutor</h3>
-                      <p>Share knowledge and earn</p>
+                      <i className="fas fa-chalkboard-teacher new-role-icon"></i>
+                      <h3 className="new-role-title">Tutor</h3>
+                      <p className="new-role-description">
+                        Share knowledge and earn
+                      </p>
                     </div>
                   </div>
                 </div>
               )}
+
               {!registrationSuccess && currentStep === 2 && (
                 <div>
-                  <h3 className="step-title">Enter Your Details</h3>
-                  <p className="step-description">
+                  <h3 className="new-step-title">Enter Your Details</h3>
+                  <p className="new-step-description">
                     All fields are required to continue
                   </p>
-                  <div className="form-group">
-                    <label className="form-label">First Name</label>
+
+                  <div className="new-form-group">
+                    <label className="new-form-label">First Name</label>
                     <input
                       id="firstName"
                       name="firstName"
                       type="text"
-                      className={`form-control ${
-                        formik.touched.firstName && formik.errors.firstName
-                          ? "is-invalid"
-                          : ""
-                      }${
-                        formik.touched.firstName && !formik.errors.firstName
-                          ? "is-valid"
-                          : ""
-                      }`}
+                      className={`new-form-control ${formik.touched.firstName && formik.errors.firstName ? "is-invalid" : ""}${formik.touched.firstName && !formik.errors.firstName ? "is-valid" : ""}`}
                       placeholder="Enter your first name"
                       onChange={formik.handleChange}
                       onBlur={formik.handleBlur}
                       value={formik.values.firstName}
                     />
-                    {formik.touched.firstName && formik.errors.firstName ? (
-                      <div className="error-message">
+                    {formik.touched.firstName && formik.errors.firstName && (
+                      <div className="new-error-message">
                         {formik.errors.firstName}
                       </div>
-                    ) : null}
+                    )}
                   </div>
 
-                  <div className="form-group">
-                    <label className="form-label">Last Name</label>
+                  <div className="new-form-group">
+                    <label className="new-form-label">Last Name</label>
                     <input
                       id="lastName"
                       name="lastName"
                       type="text"
-                      className={`form-control ${
-                        formik.touched.lastName && formik.errors.lastName
-                          ? "is-invalid"
-                          : ""
-                      }${
-                        formik.touched.lastName && !formik.errors.lastName
-                          ? "is-valid"
-                          : ""
-                      }`}
+                      className={`new-form-control ${formik.touched.lastName && formik.errors.lastName ? "is-invalid" : ""}${formik.touched.lastName && !formik.errors.lastName ? "is-valid" : ""}`}
                       placeholder="Enter your last name"
                       onChange={formik.handleChange}
                       onBlur={formik.handleBlur}
                       value={formik.values.lastName}
                     />
-                    {formik.touched.lastName && formik.errors.lastName ? (
-                      <div className="error-message">
+                    {formik.touched.lastName && formik.errors.lastName && (
+                      <div className="new-error-message">
                         {formik.errors.lastName}
                       </div>
-                    ) : null}
+                    )}
                   </div>
 
-                  <div className="form-group">
-                    <label className="form-label">Email Address</label>
+                  <div className="new-form-group">
+                    <label className="new-form-label">Email Address</label>
                     <input
                       id="email"
                       name="email"
                       type="email"
-                      className={`form-control ${
-                        formik.touched.email && formik.errors.email
+                      className={`new-form-control ${
+                        (formik.touched.email && formik.errors.email) ||
+                        emailError
                           ? "is-invalid"
                           : ""
                       }${
-                        formik.touched.email && !formik.errors.email
+                        formik.touched.email &&
+                        !formik.errors.email &&
+                        !emailError &&
+                        emailSuccess
                           ? "is-valid"
                           : ""
                       }`}
                       placeholder="Enter your email"
                       onChange={(e) => {
                         formik.handleChange(e);
-                        // Clear email error and success when user starts typing
-                        if (emailError) {
-                          setEmailError(null);
-                        }
-                        if (emailSuccess) {
-                          setEmailSuccess(false);
-                        }
-                        // Start debounced email check
+                        if (emailError) setEmailError(null);
+                        if (emailSuccess) setEmailSuccess(false);
                         debouncedEmailCheck(e.target.value);
                       }}
                       onBlur={formik.handleBlur}
                       value={formik.values.email}
                     />
-                    {formik.touched.email && formik.errors.email ? (
-                      <div className="error-message">{formik.errors.email}</div>
-                    ) : null}
+                    {formik.touched.email && formik.errors.email && (
+                      <div className="new-error-message">
+                        {formik.errors.email}
+                      </div>
+                    )}
                     {emailError && (
-                      <div className="error-message">{emailError}</div>
+                      <div className="new-error-message">{emailError}</div>
                     )}
                     {isCheckingEmail && (
-                      <div className="loading-message">
+                      <div className="new-loading-message">
                         <i className="fas fa-spinner fa-spin"></i> Checking
                         email availability...
                       </div>
                     )}
                     {emailSuccess && !isCheckingEmail && (
-                      <div className="success-message">
+                      <div className="new-success-message">
                         <i className="fas fa-check"></i> Email is available
                       </div>
                     )}
                   </div>
 
-                  <div className="form-group">
-                    <label className="form-label">Password</label>
-                    <div className="password-wrapper">
+                  <div className="new-form-group">
+                    <label className="new-form-label">Password</label>
+                    <div className="new-password-wrapper">
                       <input
                         id="password"
                         name="password"
                         type={showPassword ? "text" : "password"}
-                        className={`form-control password-input ${
-                          formik.touched.password && formik.errors.password
-                            ? "is-invalid"
-                            : ""
-                        }${
-                          formik.touched.password && !formik.errors.password
-                            ? "is-valid"
-                            : ""
-                        }`}
+                        className={`new-form-control new-password-input ${formik.touched.password && formik.errors.password ? "is-invalid" : ""}${formik.touched.password && !formik.errors.password ? "is-valid" : ""}`}
                         placeholder="Create a password"
                         onChange={formik.handleChange}
                         onBlur={formik.handleBlur}
@@ -582,7 +611,7 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
                       />
                       <button
                         type="button"
-                        className="password-toggle-btn"
+                        className="new-password-toggle"
                         onClick={togglePasswordVisibility}
                         aria-label={
                           showPassword ? "Hide password" : "Show password"
@@ -593,9 +622,9 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
                         ></i>
                       </button>
                     </div>
-                    <div className="password-strength-meter">
+                    <div className="new-password-strength">
                       <div
-                        className="strength-bar"
+                        className="new-strength-bar"
                         data-strength={checkPasswordStrength(
                           formik.values.password,
                         )}
@@ -603,7 +632,7 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
                     </div>
                     {formik.values.password && (
                       <div
-                        className="password-strength-text"
+                        className="new-strength-text"
                         style={{
                           color: getPasswordStrengthText(
                             checkPasswordStrength(formik.values.password),
@@ -617,19 +646,24 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
                         }
                       </div>
                     )}
+                    {formik.touched.password && formik.errors.password && (
+                      <div className="new-error-message">
+                        {formik.errors.password}
+                      </div>
+                    )}
                   </div>
 
                   {formik.values.role === "tutor" && (
-                    <div className="form-group">
-                      <label className="form-label">
-                        Upload Qualification Document
+                    <div className="new-form-group">
+                      <label className="new-form-label">
+                        Qualification Document
                       </label>
-                      <div className="file-upload-container">
+                      <div className="new-file-upload-container">
                         <input
                           id="qualificationFile"
                           name="qualificationFile"
                           type="file"
-                          className="file-input"
+                          className="new-file-input"
                           accept=".pdf"
                           onChange={(event) => {
                             const file = event.currentTarget.files?.[0] || null;
@@ -648,35 +682,35 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
                         />
                         <label
                           htmlFor="qualificationFile"
-                          className={`file-upload-label ${isDragOver ? "drag-over" : ""}`}
+                          className={`new-file-upload ${isDragOver ? "drag-over" : ""}`}
                           onDragOver={handleDragOver}
                           onDragLeave={handleDragLeave}
                           onDrop={handleDrop}
                         >
-                          <i className="fas fa-cloud-upload-alt"></i>
-                          <span className="file-upload-text">
+                          <i className="fas fa-cloud-upload-alt new-file-icon"></i>
+                          <div className="new-file-text">
                             {formik.values.qualificationFile
                               ? (formik.values.qualificationFile as File).name
                               : "Choose file or drag and drop"}
-                          </span>
-                          <span className="file-upload-subtext">
-                            PDF (Max 10MB)
-                          </span>
+                          </div>
+                          <div className="new-file-subtext">PDF (Max 10MB)</div>
                         </label>
                       </div>
                       {formik.touched.qualificationFile &&
-                      formik.errors.qualificationFile ? (
-                        <div className="error-message">
-                          {formik.errors.qualificationFile}
-                        </div>
-                      ) : null}
+                        formik.errors.qualificationFile && (
+                          <div className="new-error-message">
+                            {formik.errors.qualificationFile}
+                          </div>
+                        )}
                       {formik.values.qualificationFile && (
-                        <div className="file-preview">
-                          <i className="fas fa-file"></i>
-                          <span>{(formik.values.qualificationFile as File).name}</span>
+                        <div className="new-file-preview">
+                          <i className="fas fa-file-pdf"></i>
+                          <span>
+                            {(formik.values.qualificationFile as File).name}
+                          </span>
                           <button
                             type="button"
-                            className="file-remove"
+                            className="new-file-remove"
                             onClick={() =>
                               formik.setFieldValue("qualificationFile", null)
                             }
@@ -689,13 +723,14 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
                   )}
                 </div>
               )}
+
               {!registrationSuccess && currentStep === 3 && (
                 <div>
-                  <h3 className="step-title">Select Your Subjects</h3>
-                  <p className="step-description">
+                  <h3 className="new-step-title">Select Your Subjects</h3>
+                  <p className="new-step-description">
                     Please select at least one subject to continue
                   </p>
-                  <div className="subjects-container">
+                  <div className="new-subjects-container">
                     {[
                       "Programming",
                       "Mathematics",
@@ -712,15 +747,17 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
                         <input
                           type="checkbox"
                           id={subject}
-                          className="subject-checkbox"
+                          className="new-subject-checkbox"
                           name="subjects"
                           value={subject}
-                          checked={(formik.values.subjects as string[]).includes(subject)}
+                          checked={(
+                            formik.values.subjects as string[]
+                          ).includes(subject)}
                           onChange={formik.handleChange}
                         />
-                        <label htmlFor={subject} className="subject-label">
+                        <label htmlFor={subject} className="new-subject-label">
                           <i
-                            className={`fas ${
+                            className={`fas new-subject-icon ${
                               {
                                 Programming: "fa-code",
                                 Mathematics: "fa-calculator",
@@ -735,56 +772,77 @@ const RegisterStepperModal: React.FC<RegisterStepperModalProps> = ({
                               }[subject]
                             }`}
                           ></i>
-                          <span className="subject-text">{subject}</span>
+                          <span className="new-subject-text">{subject}</span>
                         </label>
                       </div>
                     ))}
                   </div>
+                  {formik.touched.subjects && formik.errors.subjects && (
+                    <div
+                      className="new-error-message"
+                      style={{ textAlign: "center", marginTop: "16px" }}
+                    >
+                      {formik.errors.subjects}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          </div>
-          {currentStep === 3 &&
-          formik.touched.subjects &&
-          formik.errors.subjects ? (
-            <div
-              className="error-message"
-              style={{ textAlign: "center", padding: "1rem" }}
-            >
-              {formik.errors.subjects}
-            </div>
-          ) : null}
-          {!registrationSuccess && (
-            <div className="modal-actions">
+          </form>
+        </div>
+
+        {/* Modal Actions */}
+        {!registrationSuccess && (
+          <div className="new-modal-actions">
+            <div>
               {currentStep > 1 && (
                 <button
                   type="button"
-                  className="btn btn-secondary"
+                  className="new-btn new-btn-secondary"
                   onClick={handleBack}
                 >
+                  <i className="fas fa-arrow-left"></i>
                   Back
                 </button>
               )}
+            </div>
+            <div>
               {currentStep < steps.length ? (
                 <button
                   type="button"
-                  className={`btn btn-primary ${!validateCurrentStep() ? "btn-disabled" : ""}`}
+                  className={`new-btn new-btn-primary ${!validateCurrentStep() ? "new-btn-disabled" : ""}`}
                   onClick={handleNext}
                   disabled={!validateCurrentStep()}
                 >
                   Next
+                  <i className="fas fa-arrow-right"></i>
                 </button>
               ) : (
-                <button type="submit" className="btn btn-primary">
-                  Finish
+                <button
+                  type="submit"
+                  className={`new-btn new-btn-primary ${isSubmitting ? "new-btn-loading" : ""}`}
+                  onClick={() => formik.handleSubmit()}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <i className="fas fa-spinner fa-spin"></i>
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <i className="fas fa-check"></i>
+                      Finish
+                    </>
+                  )}
                 </button>
               )}
             </div>
-          )}
-        </form>
+          </div>
+        )}
       </div>
     </Dialog>
   );
 };
 
-export default RegisterStepperModal;
+export default NewRegisterStepperModal;

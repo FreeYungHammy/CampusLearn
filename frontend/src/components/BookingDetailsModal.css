@@ -73,6 +73,7 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
+  width: 100%;
 }
 
 .info-section {
@@ -297,27 +298,34 @@
   .modal-backdrop {
     padding: 16px;
   }
-  
+
   .booking-details-modal {
     max-height: 95vh;
   }
-  
+
   .modal-header,
   .modal-body,
   .modal-footer {
     padding: 16px;
   }
-  
+
   .info-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .action-buttons {
     flex-direction: column;
   }
-  
+
   .btn {
     width: 100%;
+  }
+
+  /* Center status badge on mobile */
+  .status-badge {
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
   }
 }
 
@@ -325,19 +333,19 @@
   .modal-backdrop {
     padding: 8px;
   }
-  
+
   .booking-details-modal {
     max-height: 98vh;
   }
-  
+
   .modal-header h2 {
     font-size: 1.25rem;
   }
-  
+
   .info-section {
     padding: 16px;
   }
-  
+
   .participant {
     padding: 12px;
   }
