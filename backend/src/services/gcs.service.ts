@@ -31,18 +31,7 @@ function getStorage(): Storage {
     console.log("GCS: Set projectId to:", env.gcsProjectId);
   }
 
-  if (env.gcsKeyJson) {
-    try {
-      options.credentials = JSON.parse(env.gcsKeyJson);
-      console.log("GCS: Successfully parsed inline JSON credentials");
-    } catch (e) {
-      console.error("Failed to parse GCS_KEYFILE_JSON:", e);
-      console.error(
-        "JSON content preview:",
-        env.gcsKeyJson?.substring(0, 100) + "...",
-      );
-    }
-  } else if (env.gcsKeyBase64) {
+if (env.gcsKeyBase64) {
     try {
       const json = Buffer.from(env.gcsKeyBase64, "base64").toString("utf-8");
       options.credentials = JSON.parse(json);
@@ -105,6 +94,7 @@ export const gcsService = {
     buffer: Buffer,
     contentType: string,
     destination: string,
+    originalFilename?: string,
   ): Promise<GcsUploadResult> {
     if (!env.gcsBucket) throw new Error("GCS bucket not configured");
     const client = getStorage();
@@ -120,7 +110,8 @@ export const gcsService = {
         public: false,
         metadata: { 
           contentType,
-          cacheControl: 'public, max-age=3600'
+          cacheControl: 'public, max-age=3600',
+          contentDisposition: originalFilename ? `inline; filename="${originalFilename}"` : 'inline',
         },
         validation: 'crc32c', // Use CRC32C validation
       });
@@ -142,6 +133,7 @@ export const gcsService = {
     buffer: Buffer,
     contentType: string,
     destination: string,
+    originalFilename?: string,
   ): Promise<GcsUploadResult> {
     if (!env.gcsBucket) throw new Error("GCS bucket not configured");
     const client = getStorage();
@@ -155,7 +147,8 @@ export const gcsService = {
       const stream = file.createWriteStream({
         metadata: {
           contentType,
-          cacheControl: 'public, max-age=3600'
+          cacheControl: 'public, max-age=3600',
+          contentDisposition: originalFilename ? `inline; filename="${originalFilename}"` : 'inline',
         },
         resumable: false,
         validation: 'crc32c',
