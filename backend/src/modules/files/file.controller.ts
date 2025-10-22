@@ -149,6 +149,88 @@ const VIEWABLE_MIME_TYPES = [
 ];
 
 export const FileController = {
+  validateCompression: async (req: AuthedRequest, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      const item = await FileService.getWithBinary(id);
+      
+      if (!item) {
+        return res.status(404).json({ message: "File not found" });
+      }
+      
+      // Only validate compression for video files
+      if (!item.contentType.startsWith("video/")) {
+        return res.status(400).json({ 
+          message: "Compression validation only applies to video files",
+          fileType: item.contentType
+        });
+      }
+      
+      const gcsService = (await import("../../services/gcs.service")).gcsService;
+      const { VideoCompressionService } = await import("../../services/video-compression.service");
+      
+      const itemAny = item as any; // Type cast to access optional fields
+      
+      if (!item.externalUri) {
+        return res.json({
+          message: "File is not stored in GCS",
+          compressionStatus: itemAny.compressionStatus,
+          availableQualities: itemAny.compressedQualities || [],
+          actualFilesExist: false
+        });
+      }
+      
+      // Check if original file exists
+      const originalExists = await gcsService.objectExists(item.externalUri);
+      
+      // Check which compressed qualities actually exist
+      const availableQualities = itemAny.compressedQualities || [];
+      const existingQualities: string[] = [];
+      
+      for (const quality of availableQualities) {
+        try {
+          const compressedName = await VideoCompressionService.getBestQualityUrl(
+            item.externalUri, 
+            "medium", 
+            quality
+          );
+          
+          // If getBestQualityUrl returns a different name, it means the compressed version exists
+          if (compressedName !== item.externalUri && compressedName.includes(quality)) {
+            const exists = await gcsService.objectExists(compressedName);
+            if (exists) {
+              existingQualities.push(quality);
+            }
+          }
+        } catch (error) {
+          console.warn(`Failed to check quality ${quality}:`, error);
+        }
+      }
+      
+      // Determine actual compression status
+      let actualStatus = itemAny.compressionStatus;
+      if (itemAny.compressionStatus === "completed" && existingQualities.length === 0) {
+        actualStatus = "failed";
+      } else if (itemAny.compressionStatus === "completed" && existingQualities.length < availableQualities.length) {
+        actualStatus = "failed"; // Use "failed" instead of "partial" since it's not in the enum
+      }
+      
+      return res.json({
+        message: "Compression validation completed",
+        originalFileExists: originalExists,
+        compressionStatus: itemAny.compressionStatus,
+        actualCompressionStatus: actualStatus,
+        availableQualities: itemAny.compressedQualities || [],
+        existingQualities,
+        missingQualities: availableQualities.filter((q: string) => !existingQualities.includes(q))
+      });
+      
+    } catch (error) {
+      console.error("Compression validation failed:", error);
+      next(error);
+    }
+  },
+
   create: [
     upload.single("file"),
     async (req: AuthedRequest, res: Response, next: NextFunction) => {
@@ -434,16 +516,25 @@ export const FileController = {
                 console.error(`❌ DEBUG: Error details:`, error);
                 return res.status(404).json({
                   message: `Video quality ${requestedQuality} not available.`,
+                  availableQualities: (item as any).compressedQualities || [],
+                  compressionStatus: (item as any).compressionStatus,
+                  fallbackToOriginal: true
                 });
               }
             } else {
               return res.status(404).json({
                 message: `Video quality ${requestedQuality} not available. Original video may have been compressed and deleted.`,
+                availableQualities: (item as any).compressedQualities || [],
+                compressionStatus: (item as any).compressionStatus,
+                fallbackToOriginal: true
               });
             }
           } catch (error) {
             return res.status(404).json({
               message: "Video quality not available due to processing error.",
+              availableQualities: (item as any).compressedQualities || [],
+              compressionStatus: (item as any).compressionStatus,
+              fallbackToOriginal: true
             });
           }
         }

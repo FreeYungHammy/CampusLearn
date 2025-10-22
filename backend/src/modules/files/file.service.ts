@@ -59,8 +59,14 @@ export const FileService = {
       description: input.description,
       size: input.file.buffer.length,
       contentType,
-      compressionStatus: "pending" as const, // Default status
     };
+
+    // Only add compression fields for video files
+    if (contentType.startsWith("video/")) {
+      fileData.compressionStatus = "pending";
+      fileData.compressedQualities = [];
+    }
+    // For non-video files, explicitly ensure no compression fields exist
 
     if (gcsService.isEnabled() && contentType.startsWith("video/")) {
       // Enhanced filename sanitization using utility
@@ -169,7 +175,16 @@ export const FileService = {
     }
 
     try {
-      const result = await FileRepo.create(fileData);
+      // For non-video files, create a clean object without compression fields
+      let dataToSave = fileData;
+      if (!contentType.startsWith("video/")) {
+        const { compressionStatus, compressedQualities, ...cleanData } = fileData;
+        dataToSave = cleanData;
+        logger.info(`🧹 Cleaning compression fields for non-video file: ${contentType}`);
+        logger.info(`📝 Data to save:`, JSON.stringify(dataToSave, null, 2));
+      }
+      
+      const result = await FileRepo.create(dataToSave);
       logger.info("File data sent successfully to repository.");
       return result;
     } catch (e) {
@@ -182,9 +197,29 @@ export const FileService = {
     return FileRepo.find(filter as any, limit, skip);
   },
 
-  getMeta(id: string) {
+  async getMeta(id: string) {
     // returns doc without binary (content is select:false in schema)
-    return FileRepo.findById(id);
+    const fileDoc = await FileRepo.findById(id);
+    if (!fileDoc) return null;
+    
+    // Clean up compression fields for non-video files
+    if (!fileDoc.contentType.startsWith("video/")) {
+      const obj = fileDoc as any;
+      // Remove compression fields if they exist
+      if (obj.compressionStatus !== undefined || obj.compressedQualities !== undefined) {
+        await FileRepo.updateById(id, {
+          $unset: {
+            compressionStatus: "",
+            compressedQualities: ""
+          }
+        });
+        // Return cleaned object
+        const { compressionStatus, compressedQualities, ...cleanedObj } = obj;
+        return cleanedObj;
+      }
+    }
+    
+    return fileDoc;
   },
 
   async getWithBinary(id: string) {
@@ -192,8 +227,32 @@ export const FileService = {
     const fileDoc = await FileRepo.findByIdWithContent(id);
     if (!fileDoc) return null;
 
+    const obj = fileDoc.toObject() as any;
+    
+    // Clean up compression fields for non-video files
+    if (!fileDoc.contentType.startsWith("video/")) {
+      if (obj.compressionStatus !== undefined || obj.compressedQualities !== undefined) {
+        await FileRepo.updateById(id, {
+          $unset: {
+            compressionStatus: "",
+            compressedQualities: ""
+          }
+        });
+        // Remove compression fields from the returned object
+        const { compressionStatus, compressedQualities, ...cleanedObj } = obj;
+        if (cleanedObj.externalUri) {
+          return cleanedObj;
+        }
+        // Decompress the file content for legacy/local storage
+        if (!fileDoc.content) {
+          throw new Error("Binary content missing for file");
+        }
+        const decompressedContent = await gunzip(fileDoc.content as Buffer);
+        return { ...cleanedObj, content: decompressedContent };
+      }
+    }
+
     // If stored in GCS, return without content and include externalUri
-    const obj = fileDoc.toObject();
     if (obj.externalUri) {
       return obj;
     }

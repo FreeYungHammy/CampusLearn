@@ -5,9 +5,10 @@ import { apiBaseUrl } from "../lib/api";
 
 interface DocxViewerProps {
   file: TutorUpload;
+  token?: string;
 }
 
-const DocxViewer: React.FC<DocxViewerProps> = ({ file }) => {
+const DocxViewer: React.FC<DocxViewerProps> = ({ file, token }) => {
   const viewerRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +23,13 @@ const DocxViewer: React.FC<DocxViewerProps> = ({ file }) => {
     setLoading(true);
     setError(null);
 
-    fetch(fileUrl)
+    // Include token in the request headers
+    const headers: HeadersInit = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    fetch(fileUrl, { headers })
       .then((response) => {
         if (!response.ok) {
           throw new Error("Failed to fetch the document.");

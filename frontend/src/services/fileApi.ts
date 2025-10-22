@@ -7,8 +7,9 @@ export const getMyContent = async (token: string) => {
   return response.data;
 };
 
-export const getTutorContent = async (tutorId: string) => {
-  const response = await api.get(`/files/by-tutor/${tutorId}`);
+export const getTutorContent = async (tutorId: string, token?: string) => {
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  const response = await api.get(`/files/by-tutor/${tutorId}`, { headers });
   return response.data;
 };
 

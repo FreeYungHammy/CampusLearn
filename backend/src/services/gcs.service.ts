@@ -215,4 +215,14 @@ export const gcsService = {
       .file(objectPath)
       .delete({ ignoreNotFound: true });
   },
+
+  async objectExists(objectName: string): Promise<boolean> {
+    const client = getStorage();
+    const { bucket, objectPath } = parseBucketAndObject(objectName);
+    const [exists] = await client
+      .bucket(bucket)
+      .file(objectPath)
+      .exists();
+    return exists;
+  },
 };

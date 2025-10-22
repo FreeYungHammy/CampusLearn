@@ -565,9 +565,9 @@ export class VideoCompressionService {
       // Find file by externalUri (which contains the bucketPath)
       const file = await FileModel.findOne({ externalUri: bucketPath });
       if (file) {
-        file.compressionStatus = status;
+        (file as any).compressionStatus = status;
         if (compressedQualities) {
-          file.compressedQualities = compressedQualities;
+          (file as any).compressedQualities = compressedQualities;
         }
         await file.save();
         logger.info(`📊 Updated compression status for ${bucketPath}: ${status}`);
@@ -580,9 +580,9 @@ export class VideoCompressionService {
             externalUri: { $regex: filename, $options: 'i' } 
           });
           if (fallbackFile) {
-            fallbackFile.compressionStatus = status;
+            (fallbackFile as any).compressionStatus = status;
             if (compressedQualities) {
-              fallbackFile.compressedQualities = compressedQualities;
+              (fallbackFile as any).compressedQualities = compressedQualities;
             }
             await fallbackFile.save();
             logger.info(`📊 Updated compression status for fallback match ${fallbackFile.externalUri}: ${status}`);
