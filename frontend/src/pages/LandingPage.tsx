@@ -20,7 +20,7 @@ interface FeatureCardProps {
 
 // FloatingCard interface removed - no longer needed
 
-import RegisterStepperModal from "../components/RegisterStepperModal";
+import NewRegisterStepperModal from "../components/NewRegisterStepperModal";
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -624,7 +624,7 @@ const LandingPage: React.FC = () => {
           </div>
         </div>
       </footer>
-      <RegisterStepperModal
+      <NewRegisterStepperModal
         show={showRegisterModal}
         onClose={() => setShowRegisterModal(false)}
       />

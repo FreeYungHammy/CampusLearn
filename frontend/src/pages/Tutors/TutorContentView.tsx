@@ -195,30 +195,52 @@ const TutorContentView = () => {
       </div>
 
       <div className="content-browser">
+        {/* Breadcrumb Navigation */}
         <div className="breadcrumb-nav">
-          <button
-            className={`breadcrumb-item ${currentPath.length === 0 ? "active" : ""}`}
-            onClick={navigateToRoot}
-          >
-            <i className="fas fa-home"></i> All Content
-          </button>
-          {currentPath.map((path, index) => (
-            <React.Fragment key={index}>
-              <i className="fas fa-chevron-right breadcrumb-separator"></i>
-              <button
-                className={`breadcrumb-item ${index === currentPath.length - 1 ? "active" : ""}`}
-                onClick={() => {
-                  if (index === 0) navigateToSubject(path);
-                  else navigateToSubtopic(currentPath[0], path);
-                }}
-              >
-                {path}
-              </button>
-            </React.Fragment>
-          ))}
+          <div className="breadcrumb-items">
+            <button
+              className={`breadcrumb-item ${currentPath.length === 0 ? "active" : ""}`}
+              onClick={navigateToRoot}
+            >
+              <i className="fas fa-home"></i> All Content
+            </button>
+
+            {currentPath.map((path, index) => (
+              <React.Fragment key={index}>
+                <i className="fas fa-chevron-right breadcrumb-separator"></i>
+                <button
+                  className={`breadcrumb-item ${index === currentPath.length - 1 ? "active" : ""}`}
+                  onClick={() => {
+                    if (index === 0) {
+                      navigateToSubject(path);
+                    } else {
+                      navigateToSubtopic(currentPath[0], path);
+                    }
+                  }}
+                >
+                  {path}
+                </button>
+              </React.Fragment>
+            ))}
+          </div>
         </div>
 
+        {/* Back Button - Top Right */}
+        {currentPath.length > 0 && (
+          <button className="back-button-top-right" onClick={navigateBack}>
+            <i className="fas fa-arrow-left"></i> Back
+          </button>
+        )}
+
         <div id="content-display">
+          <h3 className="content-section-title">
+            {currentPath.length === 0
+              ? "Subjects"
+              : currentPath.length === 1
+                ? `Folders in ${currentPath[0]}`
+                : `Files in ${currentPath[currentPath.length - 1]}`}
+          </h3>
+
           {loading && (
             <div className="loading-state">
               <i className="fas fa-spinner fa-spin"></i>
@@ -247,66 +269,50 @@ const TutorContentView = () => {
                   <p>This tutor has not uploaded any content yet.</p>
                 </div>
               ) : (
-                <div className="content-grid">
+                <>
                   {!selectedSubject && (
-                    <>
-                      <div className="content-header justify-content-center">
-                        <h3 className="content-section-title">Subjects</h3>
-                      </div>
-                      <div className="subjects-container">
-                        <div className="subjects-grid">
-                          {Object.keys(grouped).map((subject) => (
-                            <div
-                              key={subject}
-                              className="subject-card enhanced"
-                              onClick={() => navigateToSubject(subject)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter" || e.key === " ") {
-                                  e.preventDefault();
-                                  navigateToSubject(subject);
-                                }
-                              }}
-                              tabIndex={0}
-                              role="button"
-                              aria-label={`View ${subject} content`}
-                            >
-                              <div className="subject-icon enhanced">
-                                <i className="fas fa-book"></i>
-                              </div>
-                              <div className="subject-info">
-                                <h4>{subject}</h4>
-                                <span className="file-count">
-                                  {
-                                    Object.values(grouped[subject]).flat()
-                                      .length
-                                  }{" "}
-                                  files
-                                </span>
-                              </div>
-                              <i className="fas fa-chevron-right subject-arrow"></i>
+                    <div className="subjects-container">
+                      <div className="subjects-grid">
+                        {Object.keys(grouped).map((subject) => (
+                          <div
+                            key={subject}
+                            className="subject-card"
+                            onClick={() => navigateToSubject(subject)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                navigateToSubject(subject);
+                              }
+                            }}
+                            tabIndex={0}
+                            role="button"
+                            aria-label={`View ${subject} content`}
+                          >
+                            <div className="subject-icon">
+                              <i className="fas fa-book"></i>
                             </div>
-                          ))}
-                        </div>
+                            <div className="subject-info">
+                              <h4>{subject}</h4>
+                              <span className="file-count">
+                                {Object.values(grouped[subject]).flat().length}{" "}
+                                files
+                              </span>
+                            </div>
+                            <i className="fas fa-chevron-right subject-arrow"></i>
+                          </div>
+                        ))}
                       </div>
-                    </>
+                    </div>
                   )}
 
                   {selectedSubject && !selectedSubtopic && (
                     <div className="subtopics-container">
-                      <div className="content-header">
-                        <button className="back-button" onClick={navigateBack}>
-                          <i className="fas fa-arrow-left"></i> Back
-                        </button>
-                        <h3 className="content-section-title">
-                          {selectedSubject}
-                        </h3>
-                      </div>
                       <div className="subtopics-grid">
                         {Object.keys(grouped[selectedSubject]).map(
                           (subtopic) => (
                             <div
                               key={subtopic}
-                              className="subtopic-card enhanced"
+                              className="subtopic-card"
                               onClick={() =>
                                 navigateToSubtopic(selectedSubject, subtopic)
                               }
@@ -320,7 +326,7 @@ const TutorContentView = () => {
                               role="button"
                               aria-label={`View ${subtopic} files`}
                             >
-                              <div className="subtopic-icon enhanced">
+                              <div className="subtopic-icon">
                                 <i className="fas fa-folder"></i>
                               </div>
                               <div className="subtopic-info">
@@ -340,16 +346,6 @@ const TutorContentView = () => {
 
                   {selectedSubject && selectedSubtopic && (
                     <div className="files-container">
-                      <div className="content-header">
-                        <button className="back-button" onClick={navigateBack}>
-                          <i className="fas fa-arrow-left"></i> Back
-                        </button>
-                        <h3 className="content-section-title">
-                          {selectedSubject}{" "}
-                          <i className="fas fa-chevron-right"></i>{" "}
-                          {selectedSubtopic}
-                        </h3>
-                      </div>
                       <div className="files-grid">
                         {grouped[selectedSubject][selectedSubtopic].map(
                           (file) => {
@@ -364,63 +360,14 @@ const TutorContentView = () => {
                                   : file.contentType.includes("pdf")
                                     ? "fa-file-pdf"
                                     : "fa-file";
-                            const fileSize = (file as any).size
-                              ? `${((file as any).size / 1024 / 1024).toFixed(1)} MB`
-                              : "Unknown size";
-
-                            // Get the actual file type for the badge
-                            const getFileTypeBadge = (contentType: string) => {
-                              if (contentType === "application/pdf")
-                                return "PDF";
-                              if (contentType === "application/msword")
-                                return "DOC";
-                              if (
-                                contentType ===
-                                "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                              )
-                                return "DOCX";
-                              if (contentType === "application/vnd.ms-excel")
-                                return "XLS";
-                              if (
-                                contentType ===
-                                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                              )
-                                return "XLSX";
-                              if (
-                                contentType === "application/vnd.ms-powerpoint"
-                              )
-                                return "PPT";
-                              if (
-                                contentType ===
-                                "application/vnd.openxmlformats-officedocument.presentationml.presentation"
-                              )
-                                return "PPTX";
-                              if (contentType.startsWith("image/"))
-                                return "IMAGE";
-                              if (contentType.startsWith("video/"))
-                                return "VIDEO";
-                              if (contentType.startsWith("text/"))
-                                return "TEXT";
-                              if (contentType.startsWith("application/"))
-                                return "APP";
-                              return (
-                                contentType.split("/")[1]?.toUpperCase() ||
-                                "FILE"
-                              );
-                            };
 
                             return (
-                              <div key={fileId} className="file-card enhanced">
-                                <div className="file-header">
-                                  <div className="file-icon">
-                                    <i className={`fas ${fileIcon}`}></i>
-                                  </div>
-                                  <div className="file-badge">
-                                    {getFileTypeBadge(file.contentType)}
-                                  </div>
+                              <div key={fileId} className="file-card">
+                                <div className="file-icon">
+                                  <i className={`fas ${fileIcon}`}></i>
                                 </div>
                                 <div className="file-info">
-                                  <h4 className="file-title">{file.title}</h4>
+                                  <h4 className="file-name">{file.title}</h4>
                                   {file.description && (
                                     <p className="file-description">
                                       {file.description}
@@ -462,16 +409,13 @@ const TutorContentView = () => {
                                       <i className="fas fa-eye"></i> View
                                     </button>
                                   )}
-                                  {file.contentType !== "application/pdf" && (
-                                    <a
-                                      href={getDownloadUrl(fileId)}
-                                      className="btn btn-sm btn-outline-download"
-                                      download
-                                    >
-                                      <i className="fas fa-download"></i>{" "}
-                                      Download
-                                    </a>
-                                  )}
+                                  <a
+                                    href={getDownloadUrl(fileId)}
+                                    className="btn btn-sm btn-outline"
+                                    download
+                                  >
+                                    <i className="fas fa-download"></i> Download
+                                  </a>
                                 </div>
                               </div>
                             );
@@ -480,7 +424,7 @@ const TutorContentView = () => {
                       </div>
                     </div>
                   )}
-                </div>
+                </>
               )}
             </>
           )}
@@ -497,7 +441,9 @@ const TutorContentView = () => {
               <h3>{selectedFile.title}</h3>
               <div className="modal-actions">
                 <a
-                  href={getDownloadUrl((selectedFile as any).id || (selectedFile as any)._id)}
+                  href={getDownloadUrl(
+                    (selectedFile as any).id || (selectedFile as any)._id,
+                  )}
                   className="btn btn-sm btn-primary"
                   download
                 >

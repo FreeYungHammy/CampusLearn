@@ -730,7 +730,7 @@
 .admin-stat-card {
   background: var(--white, #ffffff);
   border-radius: 12px;
-  padding: 16px;
+  padding: 20px;
   box-shadow: var(--card-shadow, 0 4px 12px rgba(0, 0, 0, 0.08));
   border: 1px solid var(--border, #dfe6e9);
   transition: all 0.3s ease;
@@ -738,8 +738,8 @@
   overflow: hidden;
   min-height: 120px;
   display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
 }
 
 [data-theme="dark"] .admin-stat-card {
@@ -769,14 +769,13 @@
 }
 
 .admin-stat-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
+  width: 50px;
+  height: 50px;
+  border-radius: 10px;
   background: var(--stat-color, var(--primary, #3498db));
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 12px;
   flex-shrink: 0;
 }
 
@@ -792,6 +791,7 @@
 
 .admin-stat-content {
   flex: 1;
+  text-align: center;
 }
 
 .admin-stat-value {
@@ -1172,6 +1172,26 @@
     var(--bg-grad-end) 100%
   );
   min-height: 100vh;
+}
+
+/* Override min-width for tutor application buttons */
+.admin-tutor-applications .btn {
+  min-width: auto !important;
+}
+
+/* Mobile responsive styling for tutor application buttons */
+@media (max-width: 768px) {
+  .admin-tutor-applications .btn {
+    font-size: 12px !important;
+    padding: 8px 12px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-tutor-applications .btn {
+    font-size: 11px !important;
+    padding: 6px 10px !important;
+  }
 }
 
 [data-theme="dark"] .admin-tutor-applications {
@@ -1823,8 +1843,12 @@
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 550px) {
   .admin-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-actions-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -1849,14 +1873,6 @@
 
   .admin-title {
     font-size: 2rem;
-  }
-
-  .admin-stats-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .admin-actions-grid {
-    grid-template-columns: 1fr;
   }
 
   .applications-grid {

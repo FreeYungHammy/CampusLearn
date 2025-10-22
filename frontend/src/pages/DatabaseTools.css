@@ -985,7 +985,7 @@
 .data-table th:last-child,
 .data-table td:last-child {
   width: 18%; /* ACTIONS column - increased width */
-  min-width: 160px;
+  min-width: 250px;
   max-width: none;
   padding-right: 20px; /* Add extra padding to prevent cutoff */
   overflow: visible;

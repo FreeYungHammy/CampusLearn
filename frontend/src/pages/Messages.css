@@ -1543,6 +1543,66 @@
   }
 }
 
+/* Extra small mobile devices - prevent send button cutoff */
+@media (max-width: 400px) {
+  .composer {
+    padding: 6px 8px !important;
+    padding-right: 12px !important; /* Reduced padding */
+  }
+
+  .composer-row {
+    grid-template-columns: 32px 1fr 36px !important; /* Even smaller buttons, more space for input */
+    gap: 6px !important; /* Tighter gaps */
+  }
+
+  .attachment-button {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .send-btn {
+    width: 36px !important;
+    height: 36px !important;
+    margin-right: 0 !important;
+    flex-shrink: 0 !important;
+  }
+
+  .composer-input {
+    padding: 8px 10px !important;
+    font-size: 13px !important;
+    min-width: 0 !important; /* Allow input to shrink */
+    width: 100% !important;
+  }
+}
+
+/* Ultra small screens - maximum compression */
+@media (max-width: 350px) {
+  .composer {
+    padding: 4px 6px !important;
+    padding-right: 8px !important;
+  }
+
+  .composer-row {
+    grid-template-columns: 28px 1fr 32px !important;
+    gap: 4px !important;
+  }
+
+  .attachment-button {
+    width: 28px !important;
+    height: 28px !important;
+  }
+
+  .send-btn {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .composer-input {
+    padding: 6px 8px !important;
+    font-size: 12px !important;
+  }
+}
+
 /* ---------- Utility ---------- */
 .hidden {
   display: none;

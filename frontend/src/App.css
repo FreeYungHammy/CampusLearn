@@ -3506,6 +3506,12 @@ select {
   border-radius: 12px !important;
 }
 
+/* Delete User Modal - Add more bottom padding for buttons */
+.delete-user-modal .modal-actions {
+  padding-bottom: 24px !important;
+  margin-bottom: 0 !important;
+}
+
 /* Modal actions styling */
 .modal-actions {
   display: flex;
@@ -7805,18 +7811,28 @@ body.mobile-menu-open {
     color: var(--text-secondary) !important;
   }
 
-  .upvote-btn:hover,
-  .downvote-btn:hover {
-    background: var(--primary) !important;
+  .upvote-btn:hover {
+    background: #16a34a !important; /* green-600 */
     color: white !important;
-    border-color: var(--primary) !important;
+    border-color: #16a34a !important;
   }
 
-  .upvote-btn.upvoted,
-  .downvote-btn.downvoted {
-    background: var(--primary) !important;
+  .downvote-btn:hover {
+    background: #dc2626 !important; /* red-600 */
     color: white !important;
-    border-color: var(--primary) !important;
+    border-color: #dc2626 !important;
+  }
+
+  .upvote-btn.upvoted {
+    background: #22c55e !important; /* green-500 */
+    color: white !important;
+    border-color: #22c55e !important;
+  }
+
+  .downvote-btn.downvoted {
+    background: #ef4444 !important; /* red-500 */
+    color: white !important;
+    border-color: #ef4444 !important;
   }
 
   .vote-count {
@@ -7846,6 +7862,27 @@ body.mobile-menu-open {
 
   [data-theme="dark"] .topic-excerpt {
     color: var(--text-secondary) !important;
+  }
+}
+
+/* Extra small mobile devices - prevent profile picture from becoming oval */
+@media (max-width: 375px) {
+  .cl-mobile-profile-pfp .user-avatar {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+    flex-shrink: 0 !important;
+    border-radius: 50% !important;
+  }
+
+  .cl-mobile-profile-pfp {
+    flex-shrink: 0 !important;
+    min-width: 40px !important;
+  }
+
+  .user-actions {
+    gap: 8px !important;
   }
 }
 
@@ -8082,6 +8119,27 @@ body.mobile-menu-open {
 }
 
 /* Hide chat widget when booking modal is open on mobile */
+/* Hide chat widget on screens below 1350px */
+@media (max-width: 1350px) {
+  .botpress-chat-widget-container,
+  .botpress-chat-bubble,
+  .botpress-chat-window,
+  .bpFabWrapper,
+  .bpFab,
+  .bp-widget,
+  .bp-chat-widget,
+  .bp-chat-bubble,
+  .bp-chat-window,
+  [class*="bp-"],
+  [id*="botpress"],
+  [id*="bp-"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+}
+
 @media (max-width: 768px) {
   .bpFabWrapper,
   .bpFab,
@@ -9452,7 +9510,7 @@ body.mobile-menu-open {
 .image-modal {
   height: auto !important;
   min-height: 100px !important;
-  min-width: 400px !important; /* Ensure header buttons fit */
+  min-width: 300px !important; /* Ensure header buttons fit */
 }
 
 .image-modal .modal-body {
@@ -10106,6 +10164,26 @@ body.mobile-menu-open {
 
 /* Mobile Responsive */
 @media (max-width: 768px) {
+  /* Upload page mobile responsive header */
+  #upload-view .section-title {
+    padding: 16px 0 !important;
+    margin-bottom: 16px !important;
+  }
+
+  #upload-view .section-title .title-row {
+    font-size: 24px !important;
+    gap: 8px !important;
+  }
+
+  #upload-view .section-title i {
+    font-size: 20px !important;
+  }
+
+  #upload-view .section-title::after {
+    font-size: 14px !important;
+    margin-top: 8px !important;
+  }
+
   .content-browser {
     padding: 16px;
     margin: 16px 0;
@@ -10176,10 +10254,33 @@ body.mobile-menu-open {
 
   .file-meta {
     gap: 8px;
+    align-items: center !important;
   }
 
   .meta-item {
     font-size: 11px;
+  }
+}
+
+/* Extra small mobile devices - Upload page */
+@media (max-width: 480px) {
+  #upload-view .section-title {
+    padding: 12px 0 !important;
+    margin-bottom: 12px !important;
+  }
+
+  #upload-view .section-title .title-row {
+    font-size: 20px !important;
+    gap: 6px !important;
+  }
+
+  #upload-view .section-title i {
+    font-size: 18px !important;
+  }
+
+  #upload-view .section-title::after {
+    font-size: 12px !important;
+    margin-top: 6px !important;
   }
 }
 

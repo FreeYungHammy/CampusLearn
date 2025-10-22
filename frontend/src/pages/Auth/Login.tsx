@@ -6,7 +6,7 @@ import { useState } from "react";
 import { login } from "../../services/authApi";
 import { useAuthStore } from "../../store/authStore";
 
-import RegisterStepperModal from "../../components/RegisterStepperModal";
+import NewRegisterStepperModal from "../../components/NewRegisterStepperModal";
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -157,7 +157,7 @@ const Login = () => {
           </form>
         </div>
       </div>
-      <RegisterStepperModal
+      <NewRegisterStepperModal
         show={showRegisterModal}
         onClose={() => setShowRegisterModal(false)}
       />
