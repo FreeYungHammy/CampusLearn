@@ -15,7 +15,7 @@ async function streamVideoContent(fetchResponse: any, expressRes: any): Promise<
     throw new Error('No response body available');
   }
 
-  console.log(`📦 Starting to pipe video content to client`);
+  // Pipe video content to client
   
   // Use the simple pipe method with no timeout limits
   fetchResponse.body.pipe(expressRes);
@@ -55,13 +55,11 @@ async function verifyFileAccess(userId: string, fileId: string): Promise<boolean
     // Check if user is the owner of the file
     const isOwner = await FileService.isOwner(userId, file.tutorId.toString());
     if (isOwner) {
-      logger.info(`User ${userId} has owner access to file ${fileId}`);
       return true;
     }
 
     // For now, allow all authenticated users to access files
     // In the future, you might want to implement more granular permissions
-    logger.info(`User ${userId} has general access to file ${fileId}`);
     return true;
   } catch (error) {
     logger.error(`Error verifying file access for user ${userId}, file ${fileId}:`, error);
@@ -543,10 +541,8 @@ export const FileController = {
         if (item.contentType.startsWith("video/") && !req.query.quality) {
           // If compression is in progress, serve the original video directly
           if ((item as any).compressionStatus === "compressing") {
-            console.log(`🎬 Compression in progress, serving original video: ${objectName}`);
             try {
               const signedUrl = await gcsService.getSignedReadUrl(objectName);
-              console.log(`🔗 Generated signed URL for original during compression: ${signedUrl.substring(0, 100)}...`);
               
               // Serve original video directly
               try {
@@ -567,8 +563,7 @@ export const FileController = {
                   throw new Error(`Failed to fetch original video: ${response.status} ${response.statusText}`);
                 }
                 
-                console.log(`✅ Successfully fetched video from GCS, status: ${response.status}`);
-                console.log(`📊 Response headers:`, Object.fromEntries(response.headers.entries()));
+                // Video fetched successfully from GCS
                 
                 const responseHeaders: any = {
                   'Content-Type': response.headers.get('content-type') || item.contentType,

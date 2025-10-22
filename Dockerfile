@@ -41,6 +41,7 @@ RUN apt-get update && apt-get install -y \
     wget \
     curl \
     ca-certificates \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy backend package files

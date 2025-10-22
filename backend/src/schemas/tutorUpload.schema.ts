@@ -19,8 +19,18 @@ const FileSchema = new Schema(
       type: String,
       required: false,
     },
-    // Compression fields removed from schema to prevent auto-insertion
-    // These fields are added dynamically only for video files in the service layer
+    // Compression fields - only populated for video files
+    compressionStatus: { 
+      type: String, 
+      enum: ["pending", "compressing", "completed", "failed"], 
+      required: false, // Make optional so non-video files don't get these fields
+      default: undefined // No default value
+    },
+    compressedQualities: { 
+      type: [{ type: String }], 
+      required: false, // Make optional so non-video files don't get these fields
+      default: undefined // No default value
+    },
   },
   { timestamps: true },
 );
