@@ -186,23 +186,14 @@ export const gcsService = {
 
   async getSignedReadUrl(objectName: string): Promise<string> {
     // TEMPORARY: Disable caching completely to fix expired URL issue
-    console.log(`GCS: Generating fresh signed URL for ${objectName} (caching disabled)`);
-
     const client = getStorage();
     const { bucket, objectPath } = parseBucketAndObject(objectName);
-
-    console.log(
-      `GCS: Generating new signed URL for bucket '${bucket}' and object '${objectPath}'`,
-    );
 
     const file = client.bucket(bucket).file(objectPath);
     const [url] = await file.getSignedUrl({
       action: "read",
       expires: Date.now() + env.gcsSignedUrlTtlSeconds * 1000,
     });
-
-    console.log(`GCS: Generated fresh signed URL for ${objectName}`);
-    console.log(`GCS: Full signed URL: ${url}`);
 
     return url;
   },

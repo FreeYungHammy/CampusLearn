@@ -90,6 +90,9 @@ export function createSocketServer(httpServer: HttpServer) {
     socket.on("ping", () => {
       socket.emit("pong");
     });
+
+    // Note: Video compression events are emitted directly from the service
+    // No need for socket listener here as the service handles broadcasting
   });
 
   const chat = io.of("/chat");

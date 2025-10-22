@@ -563,14 +563,41 @@ export class VideoCompressionService {
   ): Promise<void> {
     try {
       // Find file by externalUri (which contains the bucketPath)
-      const file = await FileModel.findOne({ externalUri: bucketPath });
+      let file = await FileModel.findOne({ externalUri: bucketPath });
+      
+      // If not found immediately, wait a bit and try again (race condition fix)
+      if (!file) {
+        logger.info(`⏳ File not found immediately, waiting 2 seconds for database sync...`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        file = await FileModel.findOne({ externalUri: bucketPath });
+      }
+      
       if (file) {
+        const previousStatus = (file as any).compressionStatus;
         (file as any).compressionStatus = status;
         if (compressedQualities) {
           (file as any).compressedQualities = compressedQualities;
         }
         await file.save();
+        
         logger.info(`📊 Updated compression status for ${bucketPath}: ${status}`);
+        
+        // Emit WebSocket event for real-time updates when compression completes
+        if (status === 'completed' && previousStatus === 'compressing') {
+          try {
+            const { io } = await import('../config/socket');
+            if (io) {
+              io.emit("video-compression-update", {
+                fileId: file._id.toString(),
+                compressedQualities: compressedQualities || [],
+                timestamp: Date.now()
+              });
+              logger.info(`🎬 Emitted compression completion event for file ${file._id}`);
+            }
+          } catch (socketError) {
+            logger.warn('Failed to emit compression completion event:', socketError);
+          }
+        }
       } else {
         logger.warn(`⚠️ File not found for externalUri: ${bucketPath}`);
         // Try to find by filename pattern as fallback
@@ -580,18 +607,36 @@ export class VideoCompressionService {
             externalUri: { $regex: filename, $options: 'i' } 
           });
           if (fallbackFile) {
+            const previousStatus = (fallbackFile as any).compressionStatus;
             (fallbackFile as any).compressionStatus = status;
             if (compressedQualities) {
               (fallbackFile as any).compressedQualities = compressedQualities;
             }
             await fallbackFile.save();
             logger.info(`📊 Updated compression status for fallback match ${fallbackFile.externalUri}: ${status}`);
+            
+            // Emit WebSocket event for fallback file too
+            if (status === 'completed' && previousStatus === 'compressing') {
+              try {
+                const { io } = await import('../config/socket');
+                if (io) {
+                  io.emit("video-compression-update", {
+                    fileId: fallbackFile._id.toString(),
+                    compressedQualities: compressedQualities || [],
+                    timestamp: Date.now()
+                  });
+                  logger.info(`🎬 Emitted compression completion event for fallback file ${fallbackFile._id}`);
+                }
+              } catch (socketError) {
+                logger.warn('Failed to emit compression completion event for fallback:', socketError);
+              }
+            }
           } else {
             logger.error(`❌ No file found for bucketPath: ${bucketPath}`);
           }
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`❌ Failed to update compression status for ${bucketPath}:`, error);
     }
   }
