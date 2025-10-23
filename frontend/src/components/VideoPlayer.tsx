@@ -289,8 +289,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     const optimizeVideoSource = async () => {
       try {
         // Don't optimize if user is actively playing - this prevents resets
-        if (isVideoPlayingRef.current) {
-          console.log(`🚫 Skipping optimization - user is actively playing`);
+        if (isVideoPlayingRef.current && optimizedSrc) {
+          console.log(`🚫 Skipping optimization - user is actively playing and video is already optimized`);
           return;
         }
 
@@ -344,9 +344,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
             return;
           }
           console.log(`⏰ Video optimization timeout, using original source`);
-          if (!isVideoPlayingRef.current) {
-            setOptimizedSrcWithRef(src);
-          }
+          setOptimizedSrcWithRef(src);
           setLoading(false);
         }, 5000); // 5 second timeout
 
@@ -390,9 +388,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
             if (headResp.type === "opaqueredirect" || (headResp.status >= 300 && headResp.status < 400)) {
               console.warn("Optimized URL redirected cross-origin; using original.");
               const fallbackUrl = src.includes('?token=') ? src : `${src}${token ? `?token=${token}` : ''}`;
-              if (!isVideoPlayingRef.current) {
-                setOptimizedSrcWithRef(fallbackUrl);
-              }
+              setOptimizedSrcWithRef(fallbackUrl);
               return;
             }
             if (headResp.ok) {
@@ -404,9 +400,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
                   clearTimeout(optimizationTimeoutRef.current);
                   optimizationTimeoutRef.current = null;
                 }
-                if (!isVideoPlayingRef.current) {
-                  setOptimizedSrcWithRef(candidateUrl);
-                }
+                setOptimizedSrcWithRef(candidateUrl);
               } else {
                 console.warn("HEAD non-video content-type; using original.", contentType);
                 const fallbackUrl = src.includes('?token=') ? src : `${src}${token ? `?token=${token}` : ''}`;
@@ -476,6 +470,19 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       setError(null);
     }
   }, [optimizedSrc]);
+
+  // Fallback mechanism to ensure optimization completes
+  useEffect(() => {
+    if (optimizedSrc && !isOptimizationComplete) {
+      const fallbackTimeout = setTimeout(() => {
+        console.log(`🚨 Fallback: Forcing optimization completion after 10 seconds`);
+        setIsOptimizationComplete(true);
+        setLoading(false);
+      }, 10000);
+      
+      return () => clearTimeout(fallbackTimeout);
+    }
+  }, [optimizedSrc, isOptimizationComplete]);
 
   // When compression finishes, clear any stuck loading overlay
   useEffect(() => {
