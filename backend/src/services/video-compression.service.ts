@@ -63,22 +63,22 @@ export class VideoCompressionService {
     if (env.gcsProjectId) {
       options.projectId = env.gcsProjectId;
     }
-    if (env.gcsKeyJson) {
-      try {
-        options.credentials = JSON.parse(env.gcsKeyJson);
-      } catch (e) {
-        logger.error(
-          "Failed to parse GCS_KEYFILE_JSON for video compression:",
-          e,
-        );
-      }
-    } else if (env.gcsKeyBase64) {
+    if (env.gcsKeyBase64) {
       try {
         const json = Buffer.from(env.gcsKeyBase64, "base64").toString("utf-8");
         options.credentials = JSON.parse(json);
       } catch (e) {
         logger.error(
           "Failed to parse GCS_KEYFILE_B64 for video compression:",
+          e,
+        );
+      }
+    } else if (env.gcsKeyJson) {
+      try {
+        options.credentials = JSON.parse(env.gcsKeyJson);
+      } catch (e) {
+        logger.error(
+          "Failed to parse GCS_KEYFILE_JSON for video compression:",
           e,
         );
       }

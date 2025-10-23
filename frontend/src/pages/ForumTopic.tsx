@@ -16,6 +16,7 @@ import {
 } from "../services/forumApi";
 import { useAuthStore } from "../store/authStore";
 import { useForumSocket } from "../hooks/useForumSocket";
+import { SocketManager } from "../services/socketManager";
 import PostActions from "../components/forum/PostActions";
 import DeleteConfirmationModal from "../components/forum/DeletePostConfirmationModal";
 import { isWithinEditWindow, getRemainingEditTime } from "../utils/editWindow";
@@ -148,15 +149,9 @@ const ForumTopic = () => {
           ...prevThread,
           ...updatedPost,
         }));
-      });
-
-      socket.on("reply_updated", ({ updatedReply }) => {
-        setThread((prevThread: any) => ({
-          ...prevThread,
-          replies: prevThread.replies.map((reply: any) =>
-            reply._id === updatedReply._id ? updatedReply : reply,
-          ),
-        }));
+        
+        // Edit mode is already closed by handleUpdateSubmit
+        // WebSocket update just refreshes the content for all users
       });
 
       socket.on("vote_updated", ({ targetId, newScore }) => {
@@ -192,11 +187,49 @@ const ForumTopic = () => {
         socket.off("reply_deleted");
         socket.off("thread_deleted");
         socket.off("thread_updated");
-        socket.off("reply_updated");
         socket.off("vote_updated");
       };
     }
   }, [socket, threadId, navigate]);
+
+  // Register SocketManager handler for reply updates
+  useEffect(() => {
+    SocketManager.registerHandlers({
+      global: {
+        onReplyUpdated: ({ replyId, threadId: updatedThreadId, updatedReply }) => {
+          // Only update if this is the current thread
+          if (updatedThreadId === threadId) {
+            console.log("Received reply_updated event:", { replyId, updatedReply });
+            setThread((prevThread: any) => ({
+              ...prevThread,
+              replies: prevThread.replies.map((reply: any) => {
+                if (reply._id === replyId) {
+                  // Preserve the original author structure to maintain ownership checks
+                  return {
+                    ...updatedReply,
+                    _id: reply._id, // Ensure _id remains the same format as original
+                    author: {
+                      ...reply.author, // Keep original author structure
+                      ...updatedReply.author, // Overlay with updated author data
+                    }
+                  };
+                }
+                return reply;
+              }),
+            }));
+            
+            // Edit mode is already closed by handleUpdateSubmit
+            // WebSocket update just refreshes the content for all users
+          }
+        },
+      },
+    });
+
+    return () => {
+      // Clean up handlers when component unmounts
+      SocketManager.registerHandlers({ global: {} });
+    };
+  }, [threadId]);
 
   const handleReplySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -357,7 +390,9 @@ const ForumTopic = () => {
       } else {
         await updateForumReply(editingId, { content: editingContent }, token);
       }
-      handleCancelEdit();
+      // Exit edit mode immediately after successful update
+      setEditingId(null);
+      setEditingContent("");
     } catch (error) {
       console.error("Failed to update", error);
     }
@@ -582,7 +617,7 @@ const ForumTopic = () => {
               <div key={reply._id} className="reply-card">
                 <div className="reply-vote">
                   <button
-                    onClick={(e) => handleReplyUpvote(reply._id, e)}
+                    onClick={(e) => handleReplyUpvote(String(reply._id), e)}
                     className={`upvote-btn ${
                       reply.userVote === 1 ? "upvoted" : ""
                     }`}
@@ -596,7 +631,7 @@ const ForumTopic = () => {
                     {reply.upvotes}
                   </span>
                   <button
-                    onClick={(e) => handleReplyDownvote(reply._id, e)}
+                    onClick={(e) => handleReplyDownvote(String(reply._id), e)}
                     className={`downvote-btn ${
                       reply.userVote === -1 ? "downvoted" : ""
                     }`}
@@ -635,7 +670,7 @@ const ForumTopic = () => {
                             <button
                               onClick={() =>
                                 canEdit &&
-                                handleEditClick(reply._id, reply.content)
+                                handleEditClick(String(reply._id), reply.content)
                               }
                               disabled={!canEdit}
                               className={`edit-btn ${!canEdit ? "disabled" : ""}`}
@@ -656,7 +691,7 @@ const ForumTopic = () => {
                         user.id === reply.author.userId) ||
                         (user && user.role === "admin")) && (
                         <button
-                          onClick={() => handleDeleteReply(reply._id)}
+                          onClick={() => handleDeleteReply(String(reply._id))}
                           className="delete-btn"
                         >
                           <i className="fas fa-trash"></i>

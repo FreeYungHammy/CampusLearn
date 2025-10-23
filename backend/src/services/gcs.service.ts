@@ -31,13 +31,20 @@ function getStorage(): Storage {
     console.log("GCS: Set projectId to:", env.gcsProjectId);
   }
 
-if (env.gcsKeyBase64) {
+  if (env.gcsKeyBase64) {
     try {
       const json = Buffer.from(env.gcsKeyBase64, "base64").toString("utf-8");
       options.credentials = JSON.parse(json);
       console.log("GCS: Successfully parsed base64 JSON credentials");
     } catch (e) {
       console.error("Failed to parse GCS_KEYFILE_B64:", e);
+    }
+  } else if (env.gcsKeyJson) {
+    try {
+      options.credentials = JSON.parse(env.gcsKeyJson);
+      console.log("GCS: Successfully parsed inline JSON credentials");
+    } catch (e) {
+      console.error("Failed to parse GCS_KEYFILE_JSON:", e);
     }
   } else if (env.gcsKeyFile) {
     options.keyFilename = env.gcsKeyFile;

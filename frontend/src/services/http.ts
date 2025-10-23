@@ -51,6 +51,8 @@ http.interceptors.response.use(
   (err) => {
     console.error('❌ HTTP Response Error - Status:', err.response?.status, 'URL:', err.config?.url);
     console.error('❌ HTTP Response Error - Data:', err.response?.data);
+    
+    // Only clear auth for actual token expiry (401), not authorization errors (403)
     if (err.response?.status === 401) {
       const { clearAuth, closeLogoutModal } = useAuthStore.getState();
       closeLogoutModal?.(); // optional UX tidy-up
