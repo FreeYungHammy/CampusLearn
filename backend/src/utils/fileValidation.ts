@@ -191,22 +191,36 @@ export function sanitizeFilename(filename: string): string {
   // Remove path traversal attempts
   let sanitized = filename.replace(/\.\./g, "").replace(/\/|\\/g, "_");
   
-  // Replace special characters
-  sanitized = sanitized.replace(/[^a-zA-Z0-9._-]/g, "_");
+  // Replace special characters but preserve file extensions
+  // Split filename and extension
+  const lastDotIndex = sanitized.lastIndexOf('.');
+  let name = sanitized;
+  let extension = '';
+  
+  if (lastDotIndex > 0 && lastDotIndex < sanitized.length - 1) {
+    name = sanitized.substring(0, lastDotIndex);
+    extension = sanitized.substring(lastDotIndex);
+  }
+  
+  // Sanitize the name part
+  name = name.replace(/[^a-zA-Z0-9._-]/g, "_");
   
   // Remove multiple underscores
-  sanitized = sanitized.replace(/_{2,}/g, "_");
+  name = name.replace(/_{2,}/g, "_");
   
   // Remove leading/trailing underscores
-  sanitized = sanitized.replace(/^_|_$/g, "");
+  name = name.replace(/^_|_$/g, "");
   
-  // Limit length
-  sanitized = sanitized.substring(0, 100);
+  // Limit length (leave room for extension)
+  name = name.substring(0, 95);
   
   // Ensure it's not empty
-  if (!sanitized) {
-    sanitized = "upload";
+  if (!name) {
+    name = "upload";
   }
+  
+  // Reconstruct with extension
+  sanitized = name + extension;
   
   return sanitized;
 }

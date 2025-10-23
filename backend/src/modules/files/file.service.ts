@@ -100,72 +100,15 @@ export const FileService = {
         }
       }
 
-      // Start compression process in background
-      logger.info(`🎬 Starting automatic compression for: ${destination}`);
+      // Set compression status to "pending" - compression will start when video is played
+      logger.info(`🎬 Video uploaded successfully: ${destination}`);
       logger.info(`🎬 Video file size: ${input.file.buffer.length} bytes`);
       logger.info(`🎬 Content type: ${contentType}`);
+      logger.info(`🎬 Compression will start when video is first played`);
 
-      // Set compression status to "compressing" immediately
-      fileData.compressionStatus = "compressing";
+      // Set compression status to "pending" - not started yet
+      fileData.compressionStatus = "pending";
       fileData.externalUri = externalUri;
-
-      try {
-        const { VideoCompressionService } = await import(
-          "../../services/video-compression.service"
-        );
-        logger.info(`🎬 VideoCompressionService imported successfully`);
-
-        // Compress to 360p, 480p, 720p (skip 1080p to save space)
-        logger.info(`🎬 Starting compression with qualities: 360p, 480p, 720p`);
-        const compressionPromise = VideoCompressionService.compressVideo(
-          destination,
-          destination.replace(".mp4", ""), // Use destination as output prefix
-          ["360p", "480p", "720p"],
-        );
-
-        logger.info(`🎬 Compression promise created, running in background`);
-
-        // Don't await - let it run in background
-        compressionPromise
-          .then(async () => {
-            logger.info(`✅ Compression completed for: ${destination}`);
-
-            // Only delete original if compressed versions are available
-            try {
-              const { VideoCompressionService } = await import(
-                "../../services/video-compression.service"
-              );
-              const compressedVersions = await VideoCompressionService.findAllCompressedVersions(destination);
-              
-              if (compressedVersions.length > 0) {
-                logger.info(`✅ Found ${compressedVersions.length} compressed versions, deleting original: ${destination}`);
-                await gcsService.deleteObject(destination);
-                logger.info(`🗑️ Deleted original video: ${destination}`);
-              } else {
-                logger.warn(`⚠️ No compressed versions found, keeping original: ${destination}`);
-              }
-            } catch (error) {
-              logger.warn(
-                `⚠️ Failed to delete original video ${destination}:`,
-                error,
-              );
-            }
-          })
-          .catch((error) => {
-            logger.error(`❌ Compression failed for ${destination}:`, error);
-            logger.info(
-              `ℹ️ Video will remain uncompressed. Install FFmpeg to enable compression.`,
-            );
-          });
-      } catch (error) {
-        logger.warn(
-          `⚠️ Failed to start compression for ${destination}:`,
-          error,
-        );
-        logger.info(
-          `ℹ️ Video will remain uncompressed. Install FFmpeg to enable compression.`,
-        );
-      }
     } else {
       // Fallback: store in Mongo as before
       logger.info(`Original size: ${input.file.buffer.length} bytes`);
@@ -180,7 +123,7 @@ export const FileService = {
       // For non-video files, create a clean object without compression fields
       let dataToSave = fileData;
       if (!contentType.startsWith("video/")) {
-        const { compressionStatus, compressedQualities, ...cleanData } = fileData;
+        const { compressionStatus, compressedQualities, ...cleanData } = fileData as any;
         dataToSave = cleanData;
         logger.info(`🧹 Cleaning compression fields for non-video file: ${contentType}`);
         logger.info(`📝 Data to save:`, JSON.stringify(dataToSave, null, 2));
@@ -211,8 +154,8 @@ export const FileService = {
       if (obj.compressionStatus !== undefined || obj.compressedQualities !== undefined) {
         await FileRepo.updateById(id, {
           $unset: {
-            compressionStatus: "",
-            compressedQualities: ""
+            compressionStatus: 1,
+            compressedQualities: 1
           }
         });
         // Return cleaned object
@@ -236,8 +179,8 @@ export const FileService = {
       if (obj.compressionStatus !== undefined || obj.compressedQualities !== undefined) {
         await FileRepo.updateById(id, {
           $unset: {
-            compressionStatus: "",
-            compressedQualities: ""
+            compressionStatus: 1,
+            compressedQualities: 1
           }
         });
         // Remove compression fields from the returned object

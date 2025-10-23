@@ -176,7 +176,17 @@ export class VideoCompressionService {
         await fs.mkdir(outputDir, { recursive: true });
         logger.info(`📁 Created output directory: ${outputDir}`);
 
-        await this.compressToQuality(inputPath, outputPath, quality);
+        logger.info(`🎬 Starting compression for quality: ${quality.name}`);
+        logger.info(`📥 Input: ${inputPath}`);
+        logger.info(`📤 Output: ${outputPath}`);
+        
+        try {
+          await this.compressToQuality(inputPath, outputPath, quality);
+          logger.info(`✅ Successfully compressed ${quality.name}`);
+        } catch (error) {
+          logger.error(`❌ Failed to compress ${quality.name}:`, error);
+          throw error; // Re-throw to stop the entire process
+        }
 
         // Upload compressed version with consistent naming
         // Handle files that already have quality in the name (e.g., "1080p")
@@ -251,7 +261,7 @@ export class VideoCompressionService {
     quality: VideoQuality,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
-      const ffmpeg = spawn(
+      const ffmpegProcess = spawn(
         "ffmpeg",
         [
           "-i",
@@ -259,13 +269,13 @@ export class VideoCompressionService {
           "-c:v",
           "libx264",
           "-preset",
-          "ultrafast", // Much faster compression
+          "medium", // Better quality than ultrafast, prevents incomplete compression
           "-crf",
           quality.crf.toString(),
           "-maxrate",
           quality.bitrate,
           "-bufsize",
-          `${parseInt(quality.bitrate) * 2}k`,
+          `${isNaN(parseInt(quality.bitrate)) ? 0 : parseInt(quality.bitrate) * 2}k`,
           "-vf",
           `scale=${quality.width}:${quality.height}`,
           "-c:a",
@@ -276,6 +286,8 @@ export class VideoCompressionService {
           "2", // Limit to 2 threads to reduce CPU usage
           "-movflags",
           "+faststart", // Optimize for web streaming
+          "-avoid_negative_ts", "make_zero", // Fix timestamp issues
+          "-fflags", "+genpts", // Generate presentation timestamps
           "-y", // Overwrite output file
           outputPath,
         ],
@@ -286,21 +298,36 @@ export class VideoCompressionService {
         },
       );
 
+      // Set a timeout to prevent hanging (30 minutes max)
+      const timeout = setTimeout(() => {
+        ffmpegProcess.kill('SIGTERM');
+        reject(new Error(`FFmpeg compression timeout after 30 minutes for ${outputPath}`));
+      }, 30 * 60 * 1000);
+
       let stderr = "";
 
-      ffmpeg.stderr.on("data", (data) => {
+      ffmpegProcess.stderr.on("data", (data) => {
         stderr += data.toString();
+        // Log progress for long-running compressions
+        if (stderr.includes("frame=")) {
+          logger.info(`📊 FFmpeg progress: ${stderr.split('\n').pop()}`);
+        }
       });
 
-      ffmpeg.on("close", (code) => {
+      ffmpegProcess.on("close", (code) => {
+        clearTimeout(timeout); // Clear the timeout
         if (code === 0) {
+          logger.info(`✅ FFmpeg compression completed successfully for ${outputPath}`);
           resolve();
         } else {
+          logger.error(`❌ FFmpeg failed with code ${code} for ${outputPath}`);
+          logger.error(`❌ FFmpeg stderr: ${stderr}`);
           reject(new Error(`FFmpeg failed with code ${code}: ${stderr}`));
         }
       });
 
-      ffmpeg.on("error", (error) => {
+      ffmpegProcess.on("error", (error) => {
+        clearTimeout(timeout); // Clear the timeout
         reject(new Error(`FFmpeg spawn error: ${error.message}`));
       });
     });

@@ -129,10 +129,19 @@ r.post("/test-compression/:id", requireAuth, requireTutor, async (req, res) => {
 r.get("/by-user/:userId", FileController.byUser);
 
 r.get("/by-tutor/:tutorId", FileController.byTutor);
+
+// Debug middleware to log all requests
+r.use((req, res, next) => {
+  console.log(`🔍 [Files Router] ${req.method} ${req.path} - Params:`, req.params);
+  next();
+});
+
 r.get("/:id/binary", requireAuth, FileController.getBinary);
 r.get("/:id/thumbnail", FileController.getThumbnail);
-r.get("/:id", requireAuth, FileController.getMeta);
 r.get("/:id/validate-compression", requireAuth, FileController.validateCompression);
+r.get("/:id/compression-status", requireAuth, FileController.getCompressionStatus);
+r.post("/:id/start-compression", requireAuth, FileController.startCompression);
+r.get("/:id", requireAuth, FileController.getMeta);
 r.patch("/:id", requireAuth, requireTutor, FileController.update);
 r.delete("/:id", requireAuth, requireTutor, FileController.remove);
 
@@ -169,17 +178,8 @@ r.post("/compress/:id", requireAuth, requireTutor, async (req, res) => {
       .then(async () => {
         console.log(`✅ Manual compression completed for: ${objectName}`);
 
-        // Delete original video after successful compression
-        try {
-          const { gcsService } = await import("../../services/gcs.service");
-          await gcsService.deleteObject(objectName);
-          console.log(`🗑️ Deleted original video: ${objectName}`);
-        } catch (error) {
-          console.warn(
-            `⚠️ Failed to delete original video ${objectName}:`,
-            error,
-          );
-        }
+        // Keep original video after successful compression for fallback
+        console.log(`📹 Keeping original video for fallback: ${objectName}`);
       })
       .catch((error) => {
         console.error(`❌ Manual compression failed for ${objectName}:`, error);

@@ -158,7 +158,7 @@ export const FileController = {
           };
         }
         const created = await FileService.create(body);
-        res.status(201).json(created);
+        return res.status(201).json(created);
       } catch (e) {
         next(e);
       }
@@ -178,7 +178,7 @@ export const FileController = {
         Number(req.query.limit ?? 20),
         Number(req.query.skip ?? 0),
       );
-      res.json(items);
+      return res.json(items);
     } catch (e) {
       next(e);
     }
@@ -198,7 +198,7 @@ export const FileController = {
 
       const item = await FileService.getMeta(req.params.id);
       if (!item) return res.status(404).json({ message: "File not found" });
-      res.json(item);
+      return res.json(item);
     } catch (e) {
       next(e);
     }
@@ -269,7 +269,7 @@ export const FileController = {
               
               if (compressedUrl && compressedUrl !== objectName) {
                 console.log(`✅ Found compressed version during compression: ${compressedUrl}`);
-                // Continue with normal compressed version serving
+                // Continue with normal compressed version serving - fall through to quality handling
               } else {
                 console.log(`⚠️ No compressed version available yet for ${requestedQuality}, compression still in progress`);
                 if (req.method === 'HEAD') {
@@ -314,8 +314,8 @@ export const FileController = {
               await VideoCompressionService.getBestQualityUrl(
                 objectName,
                 undefined, // No connection speed preference
-                requestedQuality, // Use the requested quality
-            );
+                requestedQuality // Use the requested quality
+              );
 
             // If we found a compressed version, use it
             if (compressedUrl && compressedUrl !== objectName) {
@@ -323,78 +323,39 @@ export const FileController = {
                 const signedUrl =
                   await gcsService.getSignedReadUrl(compressedUrl);
                 
-
-                
-                // Proxy the video content to avoid CORS issues with signed URLs
-                try {
-                  const fetch = (await import("node-fetch")).default;
-                  const fetchHeaders: any = {};
-                  if (req.headers.range) {
-                    fetchHeaders['Range'] = req.headers.range;
-                  }
-                  
-                  const response = await fetch(signedUrl, { headers: fetchHeaders });
-                  
-                  if (!response.ok) {
-                    throw new Error(`Failed to fetch video: ${response.status} ${response.statusText}`);
-                  }
-                  
-                  // Set appropriate headers for video streaming
-                  const responseHeaders: any = {
-                    'Content-Type': response.headers.get('content-type') || item.contentType,
-                    'Accept-Ranges': 'bytes',
-                    'Cache-Control': 'public, max-age=3600',
-                    'Access-Control-Allow-Origin': '*',
-                    'Access-Control-Allow-Credentials': 'true',
-                    'Access-Control-Expose-Headers': 'Content-Range, Accept-Ranges, Content-Length'
-                  };
-                  
-                  // Copy content-length and content-range from the response
-                  const contentLength = response.headers.get('content-length');
-                  if (contentLength) {
-                    responseHeaders['Content-Length'] = contentLength;
-                  }
-                  
-                  const contentRange = response.headers.get('content-range');
-                  if (contentRange) {
-                    responseHeaders['Content-Range'] = contentRange;
-                  }
-                  
-                  // Set all headers
-                  Object.keys(responseHeaders).forEach(key => {
-                    res.setHeader(key, responseHeaders[key]);
-                  });
-                  
-                  // Stream the video content
-                  if (response.body) {
-                    response.body.pipe(res);
-                  } else {
-                    res.status(500).json({ message: 'Failed to stream video content' });
-                  }
-                } catch (proxyError) {
-                  console.error('❌ Failed to proxy video content:', proxyError);
-                  return res.status(500).json({ message: 'Failed to stream video' });
-                }
+                return res.redirect(signedUrl);
               } catch (error) {
                 console.error(
-                  `❌ Failed to generate signed URL for compressed version:`,
+                  `❌ Failed to generate signed URL for compressed version, falling back to original:`,
                   error,
                 );
-                console.error(`❌ DEBUG: Error details:`, error);
-                return res.status(404).json({
-                  message: `Video quality ${requestedQuality} not available.`,
-                  availableQualities: (item as any).compressedQualities || [],
-                  compressionStatus: (item as any).compressionStatus,
-                  fallbackToOriginal: true
-                });
+                // Fallback to original video
+                try {
+                  const originalSignedUrl = await gcsService.getSignedReadUrl(objectName);
+                  return res.redirect(originalSignedUrl);
+                } catch (fallbackError) {
+                  console.error(`❌ Failed to generate signed URL for original video:`, fallbackError);
+                  return res.status(404).json({
+                    message: `Video not available.`,
+                    availableQualities: (item as any).compressedQualities || [],
+                    compressionStatus: (item as any).compressionStatus,
+                  });
+                }
               }
             } else {
-              return res.status(404).json({
-                message: `Video quality ${requestedQuality} not available. Original video may have been compressed and deleted.`,
-                availableQualities: (item as any).compressedQualities || [],
-                compressionStatus: (item as any).compressionStatus,
-                fallbackToOriginal: true
-              });
+              // No compressed version found, fallback to original
+              console.log(`🔄 No compressed version found for ${requestedQuality}, serving original`);
+              try {
+                const originalSignedUrl = await gcsService.getSignedReadUrl(objectName);
+                return res.redirect(originalSignedUrl);
+              } catch (fallbackError) {
+                console.error(`❌ Failed to generate signed URL for original video:`, fallbackError);
+                return res.status(404).json({
+                  message: `Video not available.`,
+                  availableQualities: (item as any).compressedQualities || [],
+                  compressionStatus: (item as any).compressionStatus,
+                });
+              }
             }
           } catch (error) {
             return res.status(404).json({
@@ -456,8 +417,9 @@ export const FileController = {
                 // Stream the video content
                 if (response.body) {
                   response.body.pipe(res);
+                  return; // Exit after streaming
                 } else {
-                  res.status(500).json({ message: 'Failed to stream video content' });
+                  return res.status(500).json({ message: 'Failed to stream video content' });
                 }
               } catch (proxyError) {
                 console.error('❌ Failed to proxy video content:', proxyError);
@@ -522,8 +484,9 @@ export const FileController = {
                 // Stream the video content
                 if (response.body) {
                   response.body.pipe(res);
+                  return; // Exit after streaming
                 } else {
-                  res.status(500).json({ message: 'Failed to stream video content' });
+                  return res.status(500).json({ message: 'Failed to stream video content' });
                 }
               } catch (proxyError) {
                 console.error('❌ Failed to proxy video content:', proxyError);
@@ -559,56 +522,7 @@ export const FileController = {
                 console.log(
                   `🔗 Generated signed URL: ${signedUrl.substring(0, 100)}...`,
                 );
-                // Proxy the video content to avoid CORS issues with signed URLs
-                try {
-                  const fetch = (await import("node-fetch")).default;
-                  const fetchHeaders: any = {};
-                  if (req.headers.range) {
-                    fetchHeaders['Range'] = req.headers.range;
-                  }
-                  
-                  const response = await fetch(signedUrl, { headers: fetchHeaders });
-                  
-                  if (!response.ok) {
-                    throw new Error(`Failed to fetch video: ${response.status} ${response.statusText}`);
-                  }
-                  
-                  // Set appropriate headers for video streaming
-                  const responseHeaders: any = {
-                    'Content-Type': response.headers.get('content-type') || item.contentType,
-                    'Accept-Ranges': 'bytes',
-                    'Cache-Control': 'public, max-age=3600',
-                    'Access-Control-Allow-Origin': '*',
-                    'Access-Control-Allow-Credentials': 'true',
-                    'Access-Control-Expose-Headers': 'Content-Range, Accept-Ranges, Content-Length'
-                  };
-                  
-                  // Copy content-length and content-range from the response
-                  const contentLength = response.headers.get('content-length');
-                  if (contentLength) {
-                    responseHeaders['Content-Length'] = contentLength;
-                  }
-                  
-                  const contentRange = response.headers.get('content-range');
-                  if (contentRange) {
-                    responseHeaders['Content-Range'] = contentRange;
-                  }
-                  
-                  // Set all headers
-                  Object.keys(responseHeaders).forEach(key => {
-                    res.setHeader(key, responseHeaders[key]);
-                  });
-                  
-                  // Stream the video content
-                  if (response.body) {
-                    response.body.pipe(res);
-                  } else {
-                    res.status(500).json({ message: 'Failed to stream video content' });
-                  }
-                } catch (proxyError) {
-                  console.error('❌ Failed to proxy video content:', proxyError);
-                  return res.status(500).json({ message: 'Failed to stream video' });
-                }
+                return res.redirect(signedUrl);
               } catch (error) {
                 console.error(
                   `❌ Failed to generate signed URL for default compressed version:`,
@@ -653,7 +567,7 @@ export const FileController = {
         "Content-Disposition",
         `${disposition}; filename="${filename}"`,
       );
-      res.send((item as any).content);
+      return res.send((item as any).content);
     } catch (e) {
       next(e);
     }
@@ -705,7 +619,7 @@ export const FileController = {
       const buffer = Buffer.from(base64Data, "base64");
       res.setHeader("Content-Type", "image/svg+xml");
       res.setHeader("Cache-Control", "public, max-age=3600");
-      res.send(buffer);
+      return res.send(buffer);
     } catch (e) {
       next(e);
     }
@@ -723,7 +637,7 @@ export const FileController = {
       }
       const updated = await FileService.update(req.params.id, body);
       if (!updated) return res.status(404).json({ message: "File not found" });
-      res.json(updated);
+      return res.json(updated);
     } catch (e) {
       next(e);
     }
@@ -732,7 +646,7 @@ export const FileController = {
   byTutor: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const items = await FileService.byTutor(req.params.tutorId);
-      res.json(items);
+      return res.json(items);
     } catch (e) {
       next(e);
     }
@@ -741,7 +655,7 @@ export const FileController = {
   byUser: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const items = await FileService.byTutorUserId(req.params.userId);
-      res.json(items);
+      return res.json(items);
     } catch (e) {
       next(e);
     }
@@ -751,7 +665,7 @@ export const FileController = {
     try {
       const userId = req.user!.id;
       const items = await FileService.byTutorUserId(userId);
-      res.json(items);
+      return res.json(items);
     } catch (e) {
       next(e);
     }
@@ -765,7 +679,7 @@ export const FileController = {
     try {
       const { filename } = req.params;
       const url = await FileService.getSignedUrlForVideo(filename);
-      res.json({ url });
+      return res.json({ url });
     } catch (e) {
       next(e);
     }
@@ -805,7 +719,177 @@ export const FileController = {
       const deleted = await FileService.remove(fileId);
       if (!deleted) return res.status(404).json({ message: "File not found" });
 
-      res.status(204).send();
+      return res.status(204).send();
+    } catch (e) {
+      next(e);
+    }
+  },
+
+  // Get compression status for a video file
+  getCompressionStatus: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const fileId = req.params.id;
+      
+      if (!fileId) {
+        return res.status(400).json({ message: "File ID is required" });
+      }
+
+      const file = await FileService.getWithBinary(fileId);
+      
+      if (!file) {
+        return res.status(404).json({ message: "File not found" });
+      }
+
+      // Check if it's a video file
+      if (!file.contentType.startsWith("video/")) {
+        return res.status(400).json({ 
+          message: "Compression status only applies to video files" 
+        });
+      }
+
+      // Return compression status and available qualities
+      return res.json({
+        compressionStatus: (file as any).compressionStatus || "pending",
+        compressedQualities: (file as any).compressedQualities || [],
+        fileId: fileId
+      });
+    } catch (e) {
+      next(e);
+    }
+  },
+
+  // Start compression when video is played
+    startCompression: async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const fileId = req.params.id;
+        console.log(`🎬 [startCompression] Received request for fileId: ${fileId}`);
+        console.log(`🔍 [startCompression] fileId type: ${typeof fileId}`);
+        console.log(`🔍 [startCompression] fileId length: ${fileId ? fileId.length : 'undefined'}`);
+        console.log(`🔍 [startCompression] Full fileId: ${fileId}`);
+        console.log(`🔍 [startCompression] All params:`, req.params);
+        console.log(`🔍 [startCompression] Request URL:`, req.url);
+        console.log(`🔍 [startCompression] Request method:`, req.method);
+        console.log(`🔍 [startCompression] Request path:`, req.path);
+        
+        if (!fileId) {
+          console.log(`❌ [startCompression] fileId is undefined or empty`);
+          return res.status(400).json({ message: "File ID is required" });
+        }
+        
+        const file = await FileService.getWithBinary(fileId);
+        
+        if (!file) {
+          console.log(`❌ [startCompression] File not found for fileId: ${fileId}`);
+          return res.status(404).json({ message: "File not found" });
+        }
+
+        console.log(`✅ [startCompression] File found: ${(file as any).title}`);
+        console.log(`🔍 [startCompression] Compression status: ${(file as any).compressionStatus}`);
+
+        // Check if compression is already started or completed
+        if ((file as any).compressionStatus === "compressing" || (file as any).compressionStatus === "completed") {
+          console.log(`⚠️ [startCompression] Compression already ${(file as any).compressionStatus}`);
+          return res.status(200).json({ 
+            message: "Compression already in progress or completed",
+            status: (file as any).compressionStatus 
+          });
+        }
+
+        // Only start compression if status is "pending"
+        if ((file as any).compressionStatus !== "pending") {
+          console.log(`❌ [startCompression] Cannot start compression, status: ${(file as any).compressionStatus}`);
+          return res.status(400).json({ 
+            message: "Compression cannot be started for this file",
+            status: (file as any).compressionStatus 
+          });
+        }
+
+      // Check if it's a video file
+      const videoExtensions = ['.mp4', '.webm', '.ogg', '.avi', '.mov', '.mkv', '.m'];
+      const hasVideoExtension = videoExtensions.some(ext => 
+        String((file as any).externalUri).toLowerCase().includes(ext)
+      );
+      
+      if (!(file as any).externalUri || !hasVideoExtension) {
+        console.log(`❌ [startCompression] Not a video file - externalUri: ${(file as any).externalUri}`);
+        console.log(`❌ [startCompression] Content type: ${(file as any).contentType}`);
+        return res.status(400).json({ message: "Not a video file" });
+      }
+
+      const objectName = String((file as any).externalUri).replace(/^gs:\/\//, "");
+      
+      // Extract base name more robustly (including .m files)
+      const baseName = objectName.replace(/\.(mp4|webm|ogg|avi|mov|mkv|m)$/i, "");
+      
+      // Start compression in background
+      const { VideoCompressionService } = await import("../../services/video-compression.service");
+      
+      // Update status to compressing
+      await FileService.update(fileId, { compressionStatus: "compressing" });
+      
+      // Start compression with better logging
+      console.log(`🚀 Starting compression for: ${objectName}`);
+      console.log(`📁 Base name: ${baseName}`);
+      console.log(`🎯 Qualities to compress: 360p, 480p, 720p`);
+      
+      const compressionPromise = VideoCompressionService.compressVideo(
+        objectName,
+        baseName,
+        ["360p", "480p", "720p"]
+      );
+
+      // Handle compression completion
+      compressionPromise
+        .then(async (result) => {
+          console.log(`✅ Compression completed for: ${objectName}`);
+          console.log(`📊 Compression result:`, result);
+          
+          // Check if compressed versions exist and are working
+          try {
+            const compressedVersions = await VideoCompressionService.findAllCompressedVersions(objectName);
+            console.log(`🔍 Found ${compressedVersions.length} compressed versions:`, compressedVersions);
+            
+            const EXPECTED_QUALITIES = 3; // 360p, 480p, 720p
+            
+            if (compressedVersions.length >= EXPECTED_QUALITIES) { // All 3 qualities available
+              console.log(`✅ All compressed versions available, deleting original: ${objectName}`);
+              
+              // Delete original video
+              const { gcsService } = await import("../../services/gcs.service");
+              await gcsService.deleteObject(objectName);
+              
+              // Update status to completed with compressed qualities
+              await FileService.update(fileId, { 
+                compressionStatus: "completed",
+                compressedQualities: ["360p", "480p", "720p"]
+              });
+              
+              console.log(`🗑️ Deleted original video: ${objectName}`);
+            } else {
+              console.log(`⚠️ Not all compressed versions available (${compressedVersions.length}/${EXPECTED_QUALITIES}), keeping original: ${objectName}`);
+              await FileService.update(fileId, { 
+                compressionStatus: "completed",
+                compressedQualities: compressedVersions.map(v => v.split('_').pop()?.replace('.mp4', '')).filter((q): q is string => Boolean(q))
+              });
+            }
+          } catch (error) {
+            console.error(`❌ Error checking compressed versions:`, error);
+            await FileService.update(fileId, { compressionStatus: "completed" });
+          }
+        })
+        .catch(async (error) => {
+          console.error(`❌ Compression failed for ${objectName}:`, error);
+          console.error(`❌ Error details:`, error.message);
+          console.error(`❌ Error stack:`, error.stack);
+          // Update status to failed but keep original
+          await FileService.update(fileId, { compressionStatus: "failed" });
+        });
+
+      return res.status(202).json({ 
+        message: "Compression started",
+        status: "compressing"
+      });
+      
     } catch (e) {
       next(e);
     }
