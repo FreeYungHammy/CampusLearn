@@ -19,6 +19,7 @@ import { useForumSocket } from "../hooks/useForumSocket";
 import { SocketManager } from "../services/socketManager";
 import PostActions from "../components/forum/PostActions";
 import DeleteConfirmationModal from "../components/forum/DeletePostConfirmationModal";
+import ReadMoreText from "../components/forum/ReadMoreText";
 import { isWithinEditWindow, getRemainingEditTime } from "../utils/editWindow";
 
 const ForumTopic = () => {
@@ -461,7 +462,11 @@ const ForumTopic = () => {
                 </div>
               </div>
             ) : (
-              <p className="topic-content-text">{thread.content}</p>
+              <ReadMoreText
+                text={thread.content}
+                maxLength={500}
+                className="topic-content-text"
+              />
             )}
           </div>
           <div className="topic-meta">
@@ -766,7 +771,11 @@ const ForumTopic = () => {
                         </div>
                       </div>
                     ) : (
-                      <p>{reply.content}</p>
+                      <ReadMoreText
+                        text={reply.content}
+                        maxLength={300}
+                        className="reply-content-text"
+                      />
                     )}
                   </div>
                 </div>

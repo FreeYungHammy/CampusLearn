@@ -20,7 +20,7 @@ export default function UploadConfirmationModal({
         Confirm Upload
       </h2>
       <p className="modal-body">
-        Are you sure you want to upload the file: <strong>{fileName}</strong>?
+        Are you sure you want to upload the file: <strong>{fileName}?</strong>
       </p>
 
       <div className="modal-actions">

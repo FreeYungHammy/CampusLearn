@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import CreatePostModal from "../components/forum/CreatePostModal";
 import DeleteConfirmationModal from "../components/forum/DeletePostConfirmationModal";
+import ReadMoreText from "../components/forum/ReadMoreText";
 import "../components/forum/CreatePostModal.css";
 import {
   getForumThreads,
@@ -689,7 +690,11 @@ const Forum = () => {
                   </h2>
                 </div>
                 <div className="topic-excerpt-wrapper">
-                  <p className="topic-excerpt">{thread.content}</p>
+                  <ReadMoreText
+                    text={thread.content}
+                    maxLength={200}
+                    className="topic-excerpt"
+                  />
                 </div>
                 <span
                   className={`topic-subject ${formatSubjectClass(

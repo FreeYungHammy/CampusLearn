@@ -39,7 +39,7 @@ export default function ClearChatConfirmationModal({
           disabled={isSubmitting}
           onClick={onConfirm}
         >
-          {isSubmitting ? "Clearing..." : "Yes, Clear History"}
+          {isSubmitting ? "Clearing..." : "Clear History"}
         </button>
       </div>
     </Dialog>
