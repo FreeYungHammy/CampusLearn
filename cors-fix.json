@@ -1,0 +1,23 @@
+[
+  {
+    "origin": [
+      "https://campuslearn.onrender.com",
+      "https://www.campuslearn-api.run.place",
+      "http://localhost:3000",
+      "http://localhost:5173",
+      "http://localhost:5001"
+    ],
+    "method": ["GET", "HEAD", "OPTIONS"],
+    "responseHeader": [
+      "Content-Type",
+      "Content-Range", 
+      "Content-Length",
+      "Accept-Ranges",
+      "Content-Disposition",
+      "Cache-Control",
+      "ETag",
+      "Last-Modified"
+    ],
+    "maxAgeSeconds": 3600
+  }
+]

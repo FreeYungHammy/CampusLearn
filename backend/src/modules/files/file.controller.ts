@@ -325,8 +325,56 @@ export const FileController = {
                 
 
                 
-                // For GET requests, redirect to the signed URL
-                return res.redirect(signedUrl);
+                // Proxy the video content to avoid CORS issues with signed URLs
+                try {
+                  const fetch = (await import("node-fetch")).default;
+                  const fetchHeaders: any = {};
+                  if (req.headers.range) {
+                    fetchHeaders['Range'] = req.headers.range;
+                  }
+                  
+                  const response = await fetch(signedUrl, { headers: fetchHeaders });
+                  
+                  if (!response.ok) {
+                    throw new Error(`Failed to fetch video: ${response.status} ${response.statusText}`);
+                  }
+                  
+                  // Set appropriate headers for video streaming
+                  const responseHeaders: any = {
+                    'Content-Type': response.headers.get('content-type') || item.contentType,
+                    'Accept-Ranges': 'bytes',
+                    'Cache-Control': 'public, max-age=3600',
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Credentials': 'true',
+                    'Access-Control-Expose-Headers': 'Content-Range, Accept-Ranges, Content-Length'
+                  };
+                  
+                  // Copy content-length and content-range from the response
+                  const contentLength = response.headers.get('content-length');
+                  if (contentLength) {
+                    responseHeaders['Content-Length'] = contentLength;
+                  }
+                  
+                  const contentRange = response.headers.get('content-range');
+                  if (contentRange) {
+                    responseHeaders['Content-Range'] = contentRange;
+                  }
+                  
+                  // Set all headers
+                  Object.keys(responseHeaders).forEach(key => {
+                    res.setHeader(key, responseHeaders[key]);
+                  });
+                  
+                  // Stream the video content
+                  if (response.body) {
+                    response.body.pipe(res);
+                  } else {
+                    res.status(500).json({ message: 'Failed to stream video content' });
+                  }
+                } catch (proxyError) {
+                  console.error('❌ Failed to proxy video content:', proxyError);
+                  return res.status(500).json({ message: 'Failed to stream video' });
+                }
               } catch (error) {
                 console.error(
                   `❌ Failed to generate signed URL for compressed version:`,
@@ -365,8 +413,56 @@ export const FileController = {
             try {
               const signedUrl = await gcsService.getSignedReadUrl(objectName);
               
-              // Serve original video directly by redirecting
-              return res.redirect(signedUrl);
+              // Proxy the video content to avoid CORS issues with signed URLs
+              try {
+                const fetch = (await import("node-fetch")).default;
+                const fetchHeaders: any = {};
+                if (req.headers.range) {
+                  fetchHeaders['Range'] = req.headers.range;
+                }
+                
+                const response = await fetch(signedUrl, { headers: fetchHeaders });
+                
+                if (!response.ok) {
+                  throw new Error(`Failed to fetch video: ${response.status} ${response.statusText}`);
+                }
+                
+                // Set appropriate headers for video streaming
+                const responseHeaders: any = {
+                  'Content-Type': response.headers.get('content-type') || item.contentType,
+                  'Accept-Ranges': 'bytes',
+                  'Cache-Control': 'public, max-age=3600',
+                  'Access-Control-Allow-Origin': '*',
+                  'Access-Control-Allow-Credentials': 'true',
+                  'Access-Control-Expose-Headers': 'Content-Range, Accept-Ranges, Content-Length'
+                };
+                
+                // Copy content-length and content-range from the response
+                const contentLength = response.headers.get('content-length');
+                if (contentLength) {
+                  responseHeaders['Content-Length'] = contentLength;
+                }
+                
+                const contentRange = response.headers.get('content-range');
+                if (contentRange) {
+                  responseHeaders['Content-Range'] = contentRange;
+                }
+                
+                // Set all headers
+                Object.keys(responseHeaders).forEach(key => {
+                  res.setHeader(key, responseHeaders[key]);
+                });
+                
+                // Stream the video content
+                if (response.body) {
+                  response.body.pipe(res);
+                } else {
+                  res.status(500).json({ message: 'Failed to stream video content' });
+                }
+              } catch (proxyError) {
+                console.error('❌ Failed to proxy video content:', proxyError);
+                return res.status(500).json({ message: 'Failed to stream video' });
+              }
             } catch (error) {
               console.error(`❌ Failed to generate signed URL for original during compression:`, error);
               return res.status(500).json({
@@ -383,8 +479,56 @@ export const FileController = {
               const signedUrl = await gcsService.getSignedReadUrl(objectName);
               console.log(`🔗 Generated signed URL for original: ${signedUrl.substring(0, 100)}...`);
               
-              // Serve original video directly by redirecting
-              return res.redirect(signedUrl);
+              // Proxy the video content to avoid CORS issues with signed URLs
+              try {
+                const fetch = (await import("node-fetch")).default;
+                const fetchHeaders: any = {};
+                if (req.headers.range) {
+                  fetchHeaders['Range'] = req.headers.range;
+                }
+                
+                const response = await fetch(signedUrl, { headers: fetchHeaders });
+                
+                if (!response.ok) {
+                  throw new Error(`Failed to fetch video: ${response.status} ${response.statusText}`);
+                }
+                
+                // Set appropriate headers for video streaming
+                const responseHeaders: any = {
+                  'Content-Type': response.headers.get('content-type') || item.contentType,
+                  'Accept-Ranges': 'bytes',
+                  'Cache-Control': 'public, max-age=3600',
+                  'Access-Control-Allow-Origin': '*',
+                  'Access-Control-Allow-Credentials': 'true',
+                  'Access-Control-Expose-Headers': 'Content-Range, Accept-Ranges, Content-Length'
+                };
+                
+                // Copy content-length and content-range from the response
+                const contentLength = response.headers.get('content-length');
+                if (contentLength) {
+                  responseHeaders['Content-Length'] = contentLength;
+                }
+                
+                const contentRange = response.headers.get('content-range');
+                if (contentRange) {
+                  responseHeaders['Content-Range'] = contentRange;
+                }
+                
+                // Set all headers
+                Object.keys(responseHeaders).forEach(key => {
+                  res.setHeader(key, responseHeaders[key]);
+                });
+                
+                // Stream the video content
+                if (response.body) {
+                  response.body.pipe(res);
+                } else {
+                  res.status(500).json({ message: 'Failed to stream video content' });
+                }
+              } catch (proxyError) {
+                console.error('❌ Failed to proxy video content:', proxyError);
+                return res.status(500).json({ message: 'Failed to stream video' });
+              }
             } catch (error) {
               console.error(`❌ Failed to generate signed URL for original:`, error);
               return res.status(500).json({
@@ -415,8 +559,56 @@ export const FileController = {
                 console.log(
                   `🔗 Generated signed URL: ${signedUrl.substring(0, 100)}...`,
                 );
-                // Instead of redirecting, proxy the video content to avoid CORS issues
-                return res.redirect(signedUrl);
+                // Proxy the video content to avoid CORS issues with signed URLs
+                try {
+                  const fetch = (await import("node-fetch")).default;
+                  const fetchHeaders: any = {};
+                  if (req.headers.range) {
+                    fetchHeaders['Range'] = req.headers.range;
+                  }
+                  
+                  const response = await fetch(signedUrl, { headers: fetchHeaders });
+                  
+                  if (!response.ok) {
+                    throw new Error(`Failed to fetch video: ${response.status} ${response.statusText}`);
+                  }
+                  
+                  // Set appropriate headers for video streaming
+                  const responseHeaders: any = {
+                    'Content-Type': response.headers.get('content-type') || item.contentType,
+                    'Accept-Ranges': 'bytes',
+                    'Cache-Control': 'public, max-age=3600',
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Credentials': 'true',
+                    'Access-Control-Expose-Headers': 'Content-Range, Accept-Ranges, Content-Length'
+                  };
+                  
+                  // Copy content-length and content-range from the response
+                  const contentLength = response.headers.get('content-length');
+                  if (contentLength) {
+                    responseHeaders['Content-Length'] = contentLength;
+                  }
+                  
+                  const contentRange = response.headers.get('content-range');
+                  if (contentRange) {
+                    responseHeaders['Content-Range'] = contentRange;
+                  }
+                  
+                  // Set all headers
+                  Object.keys(responseHeaders).forEach(key => {
+                    res.setHeader(key, responseHeaders[key]);
+                  });
+                  
+                  // Stream the video content
+                  if (response.body) {
+                    response.body.pipe(res);
+                  } else {
+                    res.status(500).json({ message: 'Failed to stream video content' });
+                  }
+                } catch (proxyError) {
+                  console.error('❌ Failed to proxy video content:', proxyError);
+                  return res.status(500).json({ message: 'Failed to stream video' });
+                }
               } catch (error) {
                 console.error(
                   `❌ Failed to generate signed URL for default compressed version:`,
