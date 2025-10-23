@@ -3437,7 +3437,7 @@ select {
 
 /* Danger button */
 .btn-danger {
-  background: var(--danger);
+  background: var(--danger) !important;
   color: white;
   border: 1px solid var(--danger);
   box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
@@ -3470,7 +3470,7 @@ select {
 
 /* Success button */
 .btn-success {
-  background: var(--secondary);
+  background: var(--secondary) !important;
   color: white;
   border: 1px solid var(--secondary);
   box-shadow: 0 4px 12px rgba(46, 204, 113, 0.3);
@@ -3534,7 +3534,7 @@ select {
 
 /* Warning button */
 .btn-warning {
-  background: var(--warning);
+  background: var(--warning) !important;
   color: white;
   border: 1px solid var(--warning);
   box-shadow: 0 4px 12px rgba(243, 156, 18, 0.3);
@@ -4184,6 +4184,11 @@ select {
   line-height: 1.3;
   margin: 0;
   text-align: left;
+  max-width: calc(100% - 80px);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
 }
 
 .topic-subject {
@@ -4574,7 +4579,9 @@ select {
     text-align: left !important;
     word-wrap: break-word;
     overflow-wrap: break-word;
-    max-width: 100%;
+    word-break: break-word;
+    hyphens: auto;
+    max-width: calc(100% - 60px);
   }
 
   .topic-content-text {
@@ -4663,6 +4670,11 @@ select {
   .topic-title-main {
     font-size: 20px;
     line-height: 1.2;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    hyphens: auto;
+    max-width: calc(100% - 50px);
   }
 
   .topic-content-text {
@@ -4706,9 +4718,49 @@ select {
   }
 }
 
-/* Text Truncation for Long Content */
-.topic-content-text,
-.reply-content p {
+/* Read More Component */
+.read-more-container {
+  position: relative;
+}
+
+.read-more-text {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.read-more-btn {
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 0;
+  margin-top: 8px;
+  text-decoration: underline;
+  transition: color 0.2s ease;
+}
+
+.read-more-btn:hover {
+  color: var(--primary-dark);
+  text-decoration: none;
+}
+
+.read-more-btn:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Text Truncation for Long Content - Keep for cases where ReadMoreText is not used */
+.topic-content-text.truncated,
+.reply-content p.truncated {
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 10; /* Limit to 10 lines */
@@ -4797,7 +4849,7 @@ select {
   background: var(--primary);
   color: white;
   box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
-  max-width: 300px;
+  max-width: 82%;
 }
 
 .forum-breadcrumb-separator {
@@ -5032,6 +5084,7 @@ select {
 .topic-content {
   flex-grow: 1;
   text-align: left;
+  max-width: 95%;
 }
 
 .topic-link {
@@ -5042,6 +5095,7 @@ select {
 }
 
 .topic-title {
+  max-width: calc(100% - 80px);
   font-size: 24px;
   font-weight: 700;
   margin: 0;
@@ -5049,6 +5103,10 @@ select {
   line-height: 1.3;
   display: inline-block;
   text-align: left !important;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
 }
 
 .topic-header {
@@ -7624,6 +7682,11 @@ body.mobile-menu-open {
     text-align: left !important;
     line-height: 1.3 !important;
     order: 2 !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    word-break: break-word !important;
+    hyphens: auto !important;
+    max-width: calc(100% - 60px) !important;
   }
 
   [data-theme="dark"] .topic-title {
@@ -9426,7 +9489,7 @@ body.mobile-menu-open {
 
 .content-viewer-modal {
   max-width: 90vw; /* Leave more space on sides */
-  max-height: 85vh; /* Leave more space top/bottom */
+  max-height: 85vh !important; /* Leave more space top/bottom */
   width: 70%;
   height: 75%; /* Reduce height to leave space for controls */
   min-width: 200px;
@@ -9497,8 +9560,7 @@ body.mobile-menu-open {
   padding: 0; /* Remove padding to let video fill entire space */
   height: calc(100% - 80px); /* Account for modal header */
   display: flex;
-  flex-direction: column;
-  margin-bottom: 80px; /* Add extra space for video controls */
+  flex-direction: column; /* Add extra space for video controls */
 }
 
 .content-viewer-modal .modal-body img {

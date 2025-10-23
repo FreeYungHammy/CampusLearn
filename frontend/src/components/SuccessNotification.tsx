@@ -29,7 +29,7 @@ const SuccessNotification: React.FC<SuccessNotificationProps> = ({
     <div className="success-notification-overlay">
       <div className="success-notification">
         <div className="success-notification-content">
-          <div className="success-icon">
+          <div className="success-icon" style={{ marginBottom: "0px" }}>
             <i className="fas fa-check-circle"></i>
           </div>
           <div className="success-message">

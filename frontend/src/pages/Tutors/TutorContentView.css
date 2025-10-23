@@ -23,11 +23,6 @@
 #tutor-content-view .breadcrumb-nav {
   display: flex;
   padding: 20px 24px;
-  background: linear-gradient(
-    135deg,
-    var(--primary) 0%,
-    var(--primary-dark) 100%
-  );
   border-bottom: 1px solid var(--border-light);
 }
 

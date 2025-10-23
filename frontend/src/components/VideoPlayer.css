@@ -18,8 +18,6 @@
   flex: 1; /* Take up most available space */
   height: calc(100% - 100px); /* Leave 100px for video controls */
   min-height: 300px; /* Ensure minimum usable height */
-  margin-bottom: 100px; /* Add extra space for video controls */
-  padding-bottom: 20px; /* Additional padding for controls */
 }
 
 /* Ensure video element fills the container */
@@ -45,14 +43,14 @@
     height: 100%;
     min-height: 200px;
   }
-  
+
   /* When inside a content viewer modal on mobile */
   .content-viewer-modal .modal-body .video-player-container {
     height: calc(100% - 80px); /* Leave space for controls on mobile */
     margin-bottom: 80px;
     padding-bottom: 15px;
   }
-  
+
   .content-viewer-modal .modal-body .video-player-container video {
     height: calc(100% - 80px);
     max-height: calc(100% - 80px);
@@ -64,14 +62,14 @@
     height: 100%;
     min-height: 150px;
   }
-  
+
   /* When inside a content viewer modal on small mobile */
   .content-viewer-modal .modal-body .video-player-container {
     height: calc(100% - 70px); /* Leave space for controls on small mobile */
     margin-bottom: 70px;
     padding-bottom: 10px;
   }
-  
+
   .content-viewer-modal .modal-body .video-player-container video {
     height: calc(100% - 70px);
     max-height: calc(100% - 70px);
@@ -516,7 +514,8 @@
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {

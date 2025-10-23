@@ -134,7 +134,7 @@ const TutorContentView = () => {
       setIsModalOpen(true);
     } else {
       const fileId = (file as any).id || (file as any)._id;
-      const binaryUrl = `${apiBaseUrl}/files/${fileId}/binary${token ? `?token=${token}` : ''}`;
+      const binaryUrl = `${apiBaseUrl}/files/${fileId}/binary${token ? `?token=${token}` : ""}`;
       window.open(binaryUrl, "_blank");
     }
   };
@@ -225,13 +225,6 @@ const TutorContentView = () => {
             ))}
           </div>
         </div>
-
-        {/* Back Button - Top Right */}
-        {currentPath.length > 0 && (
-          <button className="back-button-top-right" onClick={navigateBack}>
-            <i className="fas fa-arrow-left"></i> Back
-          </button>
-        )}
 
         <div id="content-display">
           <h3 className="content-section-title">
@@ -467,11 +460,16 @@ const TutorContentView = () => {
 
                 const fileId =
                   (selectedFile as any).id || (selectedFile as any)._id;
-                const fileUrl = `${apiBaseUrl}/files/${fileId}/binary${token ? `?token=${token}` : ''}`;
+                const fileUrl = `${apiBaseUrl}/files/${fileId}/binary${token ? `?token=${token}` : ""}`;
 
                 // On localhost, use the local viewer for Word docs
                 if (isLocalhost && isWordDoc) {
-                  return <DocxViewer file={selectedFile} token={token || undefined} />;
+                  return (
+                    <DocxViewer
+                      file={selectedFile}
+                      token={token || undefined}
+                    />
+                  );
                 }
 
                 // On a deployed server, use the MS viewer for any Office doc
@@ -482,7 +480,7 @@ const TutorContentView = () => {
                         fileUrl,
                       )}`}
                       width="100%"
-                      height="100%"
+                      height="80vh"
                       style={{ border: "none", minHeight: "80vh" }}
                       title={selectedFile.title}
                       allowFullScreen={true}
@@ -500,7 +498,7 @@ const TutorContentView = () => {
                         maxWidth: "100%",
                         maxHeight: "100%",
                         width: "auto",
-                        height: "auto",
+                        height: "80vh",
                         objectFit: "contain",
                       }}
                       onLoad={(e) => {
@@ -583,7 +581,7 @@ const TutorContentView = () => {
                       src={fileUrl}
                       title={selectedFile.title}
                       fileId={fileId}
-                      style={{ width: "auto", height: "auto" }}
+                      style={{ width: "auto", height: "80vh" }}
                     />
                   );
                 }

@@ -130,7 +130,7 @@ const MyContent = () => {
       setIsModalOpen(true);
     } else {
       const fileId = (file as any).id || (file as any)._id;
-      const binaryUrl = `${apiBaseUrl}/files/${fileId}/binary${token ? `?token=${token}` : ''}`;
+      const binaryUrl = `${apiBaseUrl}/files/${fileId}/binary${token ? `?token=${token}` : ""}`;
       window.open(binaryUrl, "_blank");
     }
   };
@@ -333,7 +333,11 @@ const MyContent = () => {
                         className="btn btn-primary"
                         onClick={() => navigate("/upload")}
                       >
-                        <i className="fas fa-upload"></i> Upload Content
+                        <i
+                          className="fas fa-upload"
+                          style={{ marginBottom: "0px" }}
+                        ></i>{" "}
+                        Upload Content
                       </button>
                     </div>
                   ) : (
@@ -639,11 +643,16 @@ const MyContent = () => {
 
                 const fileId =
                   (selectedFile as any).id || (selectedFile as any)._id;
-                const fileUrl = `${apiBaseUrl}/files/${fileId}/binary${token ? `?token=${token}` : ''}`;
+                const fileUrl = `${apiBaseUrl}/files/${fileId}/binary${token ? `?token=${token}` : ""}`;
 
                 // On localhost, use the local viewer for Word docs
                 if (isLocalhost && isWordDoc) {
-                  return <DocxViewer file={selectedFile} token={token || undefined} />;
+                  return (
+                    <DocxViewer
+                      file={selectedFile}
+                      token={token || undefined}
+                    />
+                  );
                 }
 
                 // On a deployed server, use the MS viewer for any Office doc
@@ -654,7 +663,7 @@ const MyContent = () => {
                         fileUrl,
                       )}`}
                       width="100%"
-                      height="100%"
+                      height="80vh"
                       style={{ border: "none", minHeight: "80vh" }}
                       title={selectedFile.title}
                       allowFullScreen={true}
@@ -672,7 +681,7 @@ const MyContent = () => {
                         maxWidth: "100%",
                         maxHeight: "100%",
                         width: "auto",
-                        height: "auto",
+                        height: "80vh",
                         objectFit: "contain",
                       }}
                       onLoad={(e) => {
@@ -755,7 +764,7 @@ const MyContent = () => {
                       src={fileUrl}
                       title={selectedFile.title}
                       fileId={fileId}
-                      style={{ width: "auto", height: "auto" }}
+                      style={{ width: "auto", height: "80vh" }}
                     />
                   );
                 }
