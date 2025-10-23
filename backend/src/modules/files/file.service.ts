@@ -81,6 +81,7 @@ export const FileService = {
           input.file.buffer,
           contentType,
           destination,
+          input.file.originalname,
         );
         externalUri = destination; // stored path in bucket
       } catch (error) {
@@ -90,6 +91,7 @@ export const FileService = {
             input.file.buffer,
             contentType,
             destination,
+            input.file.originalname,
           );
           externalUri = destination; // stored path in bucket
         } catch (fallbackError) {

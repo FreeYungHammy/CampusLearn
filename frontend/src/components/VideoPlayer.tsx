@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
-import { ConnectionDetector } from "../utils/connectionDetector";
+
 import { VideoPerformanceMonitor } from "../utils/videoPerformanceMonitor";
-import VideoQualitySelector, { VideoQuality } from "./VideoQualitySelector";
+import VideoQualitySelector from "./VideoQualitySelector";
 import { useVideoCompressionStatus } from "../hooks/useVideoCompressionStatus";
 import { useAuthStore } from "../store/authStore";
 import { SocketManager } from "../services/socketManager";
@@ -15,6 +15,12 @@ interface VideoPlayerProps {
   style?: React.CSSProperties;
 }
 
+interface CompressionUpdateData {
+  fileId: string;
+  compressedQualities: string[];
+  timestamp: number;
+}
+
 const VideoPlayer: React.FC<VideoPlayerProps> = ({
   src,
   title,
@@ -22,7 +28,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   className = "",
   style = {},
 }) => {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Start as true to show overlay initially
   const [error, setError] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(true); // Start as visible for immediate loading feedback
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
@@ -33,7 +39,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const currentOptimizedSrcRef = useRef<string | null>(null);
   const optimizationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isVideoPlayingRef = useRef(false);
-  
+
   // Helper function to update both state and ref
   const setOptimizedSrcWithRef = (newSrc: string) => {
     setOptimizedSrc(newSrc);
@@ -41,22 +47,24 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     setIsOptimizationComplete(true); // Mark optimization as complete
   };
   
-  const [isMinimized, setIsMinimized] = useState(false);
-  const [videoDimensions, setVideoDimensions] = useState<{width: number, height: number} | null>(null);
-  const [retryCounter, setRetryCounter] = useState(0);
-  const [isRefreshingQualities, setIsRefreshingQualities] = useState(false);
-  const [compressionJustCompleted, setCompressionJustCompleted] = useState(false);
+
+
+
+
+
   const [hasAutoSwitched, setHasAutoSwitched] = useState(false);
   const [isOptimizationComplete, setIsOptimizationComplete] = useState(false);
-  const [isManualQualityChange, setIsManualQualityChange] = useState(false);
+
   const [recentManualChange, setRecentManualChange] = useState(false);
   const [fallbackAttempts, setFallbackAttempts] = useState(0);
+  
+  const token = useAuthStore((state) => state.token);
+  const isVideoFile = src.includes('/binary') && (src.includes('video/') || fileId); // Basic check for video files
   
   // Reset optimization state when fileId changes (new video)
   useEffect(() => {
     setIsOptimizationComplete(false);
     setHasAutoSwitched(false);
-    setIsManualQualityChange(false);
     setRecentManualChange(false);
     setIsVideoPlaying(false); // Reset playing state for new video
     isVideoPlayingRef.current = false; // Reset ref for new video
@@ -68,7 +76,31 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       clearTimeout(optimizationTimeoutRef.current);
       optimizationTimeoutRef.current = null;
     }
-  }, [fileId]);
+    
+    // For video files, DON'T immediately set the original source as available
+    // Let the normal optimization process handle it so overlays work correctly
+    if (isVideoFile) {
+      console.log(`🎬 Video file detected - will optimize normally`);
+    }
+  }, [fileId, src, token, isVideoFile]);
+
+  // Direct retry function that doesn't trigger useEffect loops
+  const retryOptimization = useCallback(() => {
+    console.log(`🔄 Direct retry of video optimization`);
+    
+    // Clear any existing optimization timeout before starting new optimization
+    if (optimizationTimeoutRef.current) {
+      console.log(`🚫 Clearing existing optimization timeout before retry`);
+      clearTimeout(optimizationTimeoutRef.current);
+      optimizationTimeoutRef.current = null;
+    }
+    
+    currentOptimizedSrcRef.current = null; // Clear ref to force re-optimization
+    
+    // Trigger re-optimization by calling the main optimization function directly
+    // This will be handled by the main useEffect, we just need to clear the ref
+    console.log(`🔄 Cleared optimization ref, main useEffect will handle re-optimization`);
+  }, []);
 
   // Seamless quality switching function that preserves video state
   const switchQualitySeamlessly = useCallback((newQuality: string) => {
@@ -84,7 +116,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     console.log(`🔍 Debug - Setting currentQuality to: ${newQuality}`);
 
     // Mark this as a manual quality change to allow source updates
-    setIsManualQualityChange(true);
+    isManualQualityChange.current = true;
     setRecentManualChange(true);
 
     // Switch quality
@@ -113,11 +145,12 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         }
       }
       // Reset the manual quality change flag
-      setIsManualQualityChange(false);
+      isManualQualityChange.current = false;
       setRecentManualChange(false);
     });
-  }, []);
-  
+  }, [src, token]);
+
+
   // Handle compression completion
   const handleCompressionComplete = useCallback(() => {
     try {
@@ -128,7 +161,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       // Silently refresh video qualities without notification
       
       // Only refresh immediately if user is not playing, otherwise defer
-      if (!isVideoPlaying) {
+      if (!isVideoPlayingRef.current) {
         // Refresh the video source to pick up new qualities
         const refreshWithRetry = async (retries = 3) => {
           try {
@@ -137,7 +170,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
             setTimeout(() => {
               console.log(`🔄 Refreshing video qualities after compression completion`);
               // Only refresh if user is not actively playing
-              if (!isVideoPlaying) {
+              if (!isVideoPlayingRef.current) {
                 retryOptimization();
               } else {
                 console.log(`🚫 Skipping quality refresh - user is actively playing`);
@@ -170,37 +203,14 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           setCompressionJustCompleted(false);
         }, 2000);
       }
-    } catch (error) {
-      console.error('Error handling compression completion:', error);
+    } catch {
+      console.error('Error handling compression completion:');
       setIsRefreshingQualities(false);
       setCompressionJustCompleted(false);
     }
-  }, [isVideoPlaying]);
+  }, [retryOptimization]);
 
-  // Get compression status from the hook - only for video files
-  const token = useAuthStore((state) => state.token);
-  const user = useAuthStore((state) => state.user);
-
-  // Direct retry function that doesn't trigger useEffect loops
-  const retryOptimization = useCallback(() => {
-    console.log(`🔄 Direct retry of video optimization`);
-    
-    // Clear any existing optimization timeout before starting new optimization
-    if (optimizationTimeoutRef.current) {
-      console.log(`🚫 Clearing existing optimization timeout before retry`);
-      clearTimeout(optimizationTimeoutRef.current);
-      optimizationTimeoutRef.current = null;
-    }
-    
-    currentOptimizedSrcRef.current = null; // Clear ref to force re-optimization
-    
-    // Trigger re-optimization by calling the main optimization function directly
-    // This will be handled by the main useEffect, we just need to clear the ref
-    console.log(`🔄 Cleared optimization ref, main useEffect will handle re-optimization`);
-  }, []);
-  const isVideoFile = src.includes('/binary') && (src.includes('video/') || fileId); // Basic check for video files
-  
-  const { compressionStatus, compressedQualities, loading: statusLoading } = useVideoCompressionStatus(
+  const { compressionStatus, compressedQualities } = useVideoCompressionStatus(
     isVideoFile ? fileId : undefined, // Only pass fileId for video files
     token || undefined,
     handleCompressionComplete // Pass the callback
@@ -215,39 +225,33 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     
     // Otherwise, show original quality (during compression or if no compressed qualities)
     return [{ name: 'original', label: 'Original' }];
-  }, [compressionStatus, compressedQualities, compressionJustCompleted, isVideoFile]);
+  }, [compressionStatus, compressedQualities, isVideoFile]);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const hasUserInitiatedPlayback = useRef<boolean>(false);
+  const isManualQualityChange = useRef<boolean>(false);
+  const [isRefreshingQualities, setIsRefreshingQualities] = useState(false);
+  const [compressionJustCompleted, setCompressionJustCompleted] = useState(false);
+  const [videoDimensions, setVideoDimensions] = useState<{width: number, height: number} | null>(null);
+  const [isMinimized, setIsMinimized] = useState(false);
+
 
   // Update current quality when available qualities change
   useEffect(() => {
-    if (availableQualities.length > 0 && !availableQualities.some(q => q.name === currentQuality)) {
-      // If current quality is not available, switch to the first available quality
-      const newQuality = availableQualities[0].name;
-      console.log(`🔄 Switching from unavailable quality ${currentQuality} to ${newQuality}`);
-      setCurrentQuality(newQuality);
-    }
-    
-    // Special case: if compression completed and we were on "original", switch to first compressed quality
-    // Use seamless switching that preserves video state regardless of playing status
-    if (isVideoFile && compressionStatus === 'completed' && compressedQualities && compressedQualities.length > 0 && currentQuality === 'original' && !hasAutoSwitched && isOptimizationComplete) {
+    if (compressionStatus === 'completed' && currentQuality === 'original' && compressedQualities.length > 0 && !hasAutoSwitched && !hasUserInitiatedPlayback.current) {
       const newQuality = compressedQualities[0];
-      console.log(`🎬 Compression completed, seamlessly switching from original to ${newQuality}`);
-      
-      // Mark that we've done the auto-switch to prevent repeated switching
+      console.log(`✅ Compression complete. Automatically switching from original to ${newQuality}`);
       setHasAutoSwitched(true);
-
-      // Use seamless switching
       switchQualitySeamlessly(newQuality);
     }
-  }, [availableQualities, currentQuality, compressionStatus, compressedQualities, isVideoFile, isVideoPlaying, hasAutoSwitched, isOptimizationComplete, switchQualitySeamlessly]);
+  }, [compressionStatus, currentQuality, compressedQualities, hasAutoSwitched, switchQualitySeamlessly, isVideoPlaying]);
 
   // WebSocket listener for compression updates - only for video files
   useEffect(() => {
     if (!fileId || !isVideoFile) return;
 
-    const handleCompressionUpdate = (data: any) => {
+    const handleCompressionUpdate = (data: CompressionUpdateData) => {
       if (data.fileId === fileId) {
         console.log('🎬 Received compression update via WebSocket:', data);
         handleCompressionComplete();
@@ -278,27 +282,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   }, [optimizedSrc]);
 
   // Calculate optimal video dimensions based on container and aspect ratio
-  const calculateOptimalDimensions = (videoWidth: number, videoHeight: number, containerWidth: number, containerHeight: number) => {
-    const aspectRatio = videoWidth / videoHeight;
-    
-    // Define maximum dimensions based on context
-    const maxWidth = containerWidth > 600 ? 500 : Math.min(containerWidth * 0.8, 400);
-    const maxHeight = containerHeight > 400 ? 300 : Math.min(containerHeight * 0.6, 250);
-    
-    let optimalWidth = maxWidth;
-    let optimalHeight = optimalWidth / aspectRatio;
-    
-    // If height exceeds max, scale down by height
-    if (optimalHeight > maxHeight) {
-      optimalHeight = maxHeight;
-      optimalWidth = optimalHeight * aspectRatio;
-    }
-    
-    return {
-      width: Math.round(optimalWidth),
-      height: Math.round(optimalHeight)
-    };
-  };
+
 
   // Detect connection speed and optimize video source with graceful fallback
   useEffect(() => {
@@ -313,6 +297,13 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         // Don't optimize if a manual quality change just happened - seamless switching already handled it
         if (recentManualChange) {
           console.log(`🚫 Skipping optimization - recent manual quality change, seamless switching already handled it`);
+          return;
+        }
+
+        // For video files, if we're on original quality and compression is in progress,
+        // don't run optimization - let the original video play
+        if (isVideoFile && currentQuality === 'original' && compressionStatus === 'compressing') {
+          console.log(`🎬 Video compression in progress - keeping original quality, skipping optimization`);
           return;
         }
 
@@ -353,7 +344,9 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
             return;
           }
           console.log(`⏰ Video optimization timeout, using original source`);
-          setOptimizedSrcWithRef(src);
+          if (!isVideoPlayingRef.current) {
+            setOptimizedSrcWithRef(src);
+          }
           setLoading(false);
         }, 5000); // 5 second timeout
 
@@ -397,7 +390,9 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
             if (headResp.type === "opaqueredirect" || (headResp.status >= 300 && headResp.status < 400)) {
               console.warn("Optimized URL redirected cross-origin; using original.");
               const fallbackUrl = src.includes('?token=') ? src : `${src}${token ? `?token=${token}` : ''}`;
-              setOptimizedSrcWithRef(fallbackUrl);
+              if (!isVideoPlayingRef.current) {
+                setOptimizedSrcWithRef(fallbackUrl);
+              }
               return;
             }
             if (headResp.ok) {
@@ -409,7 +404,9 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
                   clearTimeout(optimizationTimeoutRef.current);
                   optimizationTimeoutRef.current = null;
                 }
-                setOptimizedSrcWithRef(candidateUrl);
+                if (!isVideoPlayingRef.current) {
+                  setOptimizedSrcWithRef(candidateUrl);
+                }
               } else {
                 console.warn("HEAD non-video content-type; using original.", contentType);
                 const fallbackUrl = src.includes('?token=') ? src : `${src}${token ? `?token=${token}` : ''}`;
@@ -469,7 +466,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
     hasTriedFallbackRef.current = false;
     optimizeVideoSource();
-  }, [src, fileId, title, currentQuality, token, recentManualChange]);
+  }, [src, fileId, title, currentQuality, token, recentManualChange, isVideoFile, compressionStatus]);
 
   // When optimizedSrc changes, ensure loading state is properly managed
   useEffect(() => {
@@ -525,7 +522,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     // Don't set isVideoPlaying here - this just means video is ready to play, not actually playing
     console.log(`🎯 Overlay should now be hidden - video is ready to play`);
     
-    // For large videos, start preloading more aggressively after initial play
+    // Enable aggressive preloading for large videos
     if (videoRef.current && videoRef.current.duration > 300) { // 5+ minutes
       console.log(`🚀 Large video detected (${videoRef.current.duration}s), enabling aggressive preloading`);
       videoRef.current.preload = "auto";
@@ -575,6 +572,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       return;
     }
     console.log(`▶️ User started playing video`);
+    hasUserInitiatedPlayback.current = true;
     
     // Clear any pending optimization timeout IMMEDIATELY when user starts playing
     // This prevents the timeout from switching sources while user is playing
@@ -783,18 +781,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         </div>
       )}
 
-      {/* Show compression overlay when compressing AND video is not playing AND not loading */}
-      {isVisible && compressionStatus === "compressing" && !isVideoPlaying && !loading && (
-        <div className="video-loading-overlay">
-          <div className="loading-spinner">
-            <div className="spinner"></div>
-            <p>Processing video...</p>
-            <p style={{ fontSize: '0.9rem', opacity: 0.8, marginTop: '0.5rem' }}>
-              Your video is being optimized for better streaming. This may take a few minutes.
-            </p>
-          </div>
-        </div>
-      )}
+      {/* COMPRESSION OVERLAY REMOVED */}
 
 
 
@@ -819,25 +806,14 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         </div>
       )}
 
-      {/* Show error overlay only when visible and has error (and not compressing) */}
-      {isVisible && error && compressionStatus !== "compressing" && (
-        <div className="video-error-overlay">
-          <div className="error-content">
-            <i className="fas fa-exclamation-triangle"></i>
-            <p>{error}</p>
-            <button onClick={handleRetry} className="retry-btn">
-              <i className="fas fa-redo"></i> Retry
-            </button>
-          </div>
-        </div>
-      )}
+      {/* ERROR OVERLAY COMPLETELY REMOVED */}
 
       {/* Show video - use original src as fallback if optimizedSrc is not ready */}
       {isVisible && (
         <video
           ref={videoRef}
           src={optimizedSrc || src}
-          controls={isOptimizationComplete}
+          controls={isOptimizationComplete || (isVideoFile && optimizedSrc && !optimizedSrc.includes('quality=')) || false}
           preload="metadata"
           playsInline
           crossOrigin="anonymous"
@@ -852,12 +828,10 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
                    setIsVideoPlaying(false); // Reset playing state when video ends
                    isVideoPlayingRef.current = false;
                  }}
-                 onLoad={(e) => {
-                   const video = e.target as HTMLVideoElement;
+                 onLoad={() => {
                    console.log("🎬 Video loaded successfully");
                  }}
-                 onLoadedData={(e) => {
-                   const video = e.target as HTMLVideoElement;
+                 onLoadedData={() => {
                    console.log("📊 Video data loaded");
                  }}
                  onLoadedMetadata={(e) => {

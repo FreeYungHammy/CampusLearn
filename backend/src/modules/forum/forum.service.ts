@@ -137,7 +137,7 @@ export const ForumService = {
     offset: number = 0,
   ) {
     // Only cache if no search/filter parameters (for performance)
-    const shouldCache = !searchQuery && !topic && sortBy !== "upvotes";
+    const shouldCache = !searchQuery && !topic && sortBy !== "upvotes" && sortBy !== "replies";
     
     if (shouldCache && offset === 0) {
       const cacheKey = FORUM_THREADS_CACHE_KEY;
@@ -149,8 +149,19 @@ export const ForumService = {
         // Removed verbose cache hit logging
         // Add user vote information to cached threads
         const threadsWithUserVotes = await ForumService.addUserVoteInfoToThreads(cachedThreads.threads, user);
+        
+        // Ensure cached threads have the same author structure as fresh data
+        const threadsWithCompleteAuthors = threadsWithUserVotes.map((thread) => {
+          if (thread.author && thread.author.updatedAt) {
+            thread.author.pfpTimestamp = new Date(
+              thread.author.updatedAt,
+            ).getTime();
+          }
+          return thread;
+        });
+        
         return {
-          threads: threadsWithUserVotes,
+          threads: threadsWithCompleteAuthors,
           totalCount: cachedThreads.totalCount
         };
       } else {
@@ -177,12 +188,20 @@ export const ForumService = {
     const sortStage: any = {};
     if (sortBy === "upvotes") {
       sortStage.upvotes = -1;
+    } else if (sortBy === "replies") {
+      sortStage.replyCount = -1; // Sort by number of replies (descending)
     } else {
       sortStage.createdAt = -1; // Default to newest
     }
 
     const aggregation = ForumPostModel.aggregate([
       { $match: matchStage },
+      // Add reply count field for sorting
+      {
+        $addFields: {
+          replyCount: { $size: { $ifNull: ["$replies", []] } }
+        }
+      },
       { $sort: sortStage },
       { $skip: offset },
       { $limit: limit },

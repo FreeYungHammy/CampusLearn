@@ -26,6 +26,7 @@ const api = axios.create({
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Only clear auth for actual token expiry (401), not authorization errors (403)
     if (error.response?.status === 401) {
       const { clearAuth, closeLogoutModal } = useAuthStore.getState();
       closeLogoutModal?.();
